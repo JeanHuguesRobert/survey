@@ -305,11 +305,27 @@ export default function ConsultationPertitellu() {
                   
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
-                    Êtes-vous satisfait de la démocratie locale actuelle ? *
+                      Êtes-vous satisfait de la démocratie locale actuelle ? *
                     </label>
-                    <div className="flex items-center space-x-4">
-                    <span className="text-sm text-gray-600">Pas du tout (1)</span>
-                    {[1, 2, 3, 4, 5].map(num => (
+                    {/* Version mobile des notes */}
+                    <div className="md:hidden">
+                      <select
+                        name="satisfactionDemocratie"
+                        value={formData.satisfactionDemocratie}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                      >
+                        <option value="1">1 - Pas du tout satisfait</option>
+                        <option value="2">2 - Peu satisfait</option>
+                        <option value="3">3 - Moyennement satisfait</option>
+                        <option value="4">4 - Satisfait</option>
+                        <option value="5">5 - Très satisfait</option>
+                      </select>
+                    </div>
+                    {/* Version desktop des notes */}
+                    <div className="hidden md:flex items-center space-x-4">
+                      <span className="text-sm text-gray-600">Pas du tout (1)</span>
+                      {[1, 2, 3, 4, 5].map(num => (
                         <label key={num} className="flex items-center cursor-pointer">
                         <input
                             type="radio"
@@ -321,8 +337,8 @@ export default function ConsultationPertitellu() {
                         />
                         {num}
                         </label>
-                    ))}
-                    <span className="text-sm text-gray-600">Très satisfait (5)</span>
+                      ))}
+                      <span className="text-sm text-gray-600">Très satisfait (5)</span>
                     </div>
                   </div>
 
@@ -330,7 +346,21 @@ export default function ConsultationPertitellu() {
                     <label className="block text-gray-700 font-semibold mb-2">
                       Pensez-vous que Corte est en déclin ? *
                     </label>
-                    <div className="flex items-center space-x-4">
+                    <div className="md:hidden">
+                      <select
+                        name="declinCorte"
+                        value={formData.declinCorte}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                      >
+                        <option value="1">1 - En développement</option>
+                        <option value="2">2 - Plutôt en développement</option>
+                        <option value="3">3 - Stable</option>
+                        <option value="4">4 - Plutôt en déclin</option>
+                        <option value="5">5 - En fort déclin</option>
+                      </select>
+                    </div>
+                    <div className="hidden md:flex items-center space-x-4">
                       <span className="text-sm text-gray-600">En développement (1)</span>
                       {[1, 2, 3, 4, 5].map(num => (
                         <label key={num} className="flex items-center cursor-pointer">
@@ -514,6 +544,15 @@ export default function ConsultationPertitellu() {
                     </svg>
                     Partager
                   </button>
+                  <button
+                    onClick={() => setPage('results')}
+                    className="px-4 py-2 bg-gray-100 text-blue-900 font-semibold rounded-md hover:bg-gray-200 flex items-center gap-2"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                    </svg>
+                    Voir les résultats
+                  </button>
                 </div>
               </div>
             </div>
@@ -584,7 +623,7 @@ export default function ConsultationPertitellu() {
                       cy="50%"
                       labelLine={false}
                       label={({name, value}) => `${name}: ${value}`}
-                      outerRadius={80}
+                      outerRadius={window.innerWidth < 768 ? 60 : 80}
                       fill="#8884d8"
                       dataKey="value"
                     >
@@ -597,10 +636,15 @@ export default function ConsultationPertitellu() {
                 </ResponsiveContainer>
               </div>
 
-              <div>
-                <h2 className="text-xl font-bold text-gray-800 mb-4">Position sur l'affaire</h2>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={stats.positionData}>
+              <div className="px-2 md:px-4">
+                <ResponsiveContainer width="100%" height={window.innerWidth < 768 ? 200 : 300}>
+                  <BarChart
+                    data={stats.positionData}
+                    margin={window.innerWidth < 768 ? 
+                      { top: 5, right: 10, left: -20, bottom: 5 } :
+                      { top: 5, right: 30, left: 20, bottom: 5 }
+                    }
+                  >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
