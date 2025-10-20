@@ -265,7 +265,8 @@ export default function ConsultationPertitellu() {
                       {[
                         {label: 'Maintien de la croix', value: 'Maintien'},
                         {label: 'Retrait de la croix', value: 'Retrait'},
-                        {label: 'Sans avis', value: 'Sans'}
+                        {label: 'Sans avis', value: 'Sans'},
+                        {label: 'Je préfère ne pas répondre', value: 'NoAnswer'}
                       ].map(option => (
                         <label key={option.value} className="flex items-center cursor-pointer">
                           <input
@@ -319,6 +320,7 @@ export default function ConsultationPertitellu() {
                         onChange={handleInputChange}
                         className="w-full px-4 py-2 border border-gray-300 rounded-md"
                       >
+                        <option value="">Je préfère ne pas répondre</option>
                         <option value="1">1 - Pas du tout satisfait</option>
                         <option value="2">2 - Peu satisfait</option>
                         <option value="3">3 - Moyennement satisfait</option>
@@ -357,6 +359,7 @@ export default function ConsultationPertitellu() {
                         onChange={handleInputChange}
                         className="w-full px-4 py-2 border border-gray-300 rounded-md"
                       >
+                        <option value="">Je préfère ne pas répondre</option>
                         <option value="1">1 - En développement</option>
                         <option value="2">2 - Plutôt en développement</option>
                         <option value="3">3 - Stable</option>

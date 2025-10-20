@@ -46,8 +46,10 @@ La consultation n'a pas vocation à :
 
 3. **Neutralité des questions**
    - Formulation équilibrée des options
-   - Inclusion systématique d'options neutres ("Sans avis", "Je ne souhaite pas répondre")
-   - Échelles symétriques (1-5)
+   - Inclusion systématique d'options neutres sur toutes les questions sensibles
+   - Option "Je préfère ne pas répondre" disponible pour les sujets controversés
+   - Échelles symétriques (1-5) avec possibilité de s'abstenir
+   - Commentaires libres optionnels
 
 ## Points d'attention
 

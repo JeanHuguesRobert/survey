@@ -25,17 +25,40 @@ Cette application s'inscrit dans une démarche de transparence totale :
   - Section profil optionnelle clarifiée
   - Affichage temps réel des résultats
   - Information inscription électorale
+  - Ajout option "Je préfère ne pas répondre" sur les questions sensibles
 
 ### Planifiées
-- v1.0.2
-  - Rotation aléatoire des questions
-  - Cookie de session anti-spam
-  - Export PDF des résultats
 
-- v1.1.0
-  - Version papier du questionnaire
-  - Analyse par quartier
-  - Comité de suivi indépendant
+#### v1.0.2 - Fiabilisation
+- Rotation aléatoire des questions
+- Cookie de session anti-spam
+
+#### v1.1.0 - Accessibilité
+- Version papier du questionnaire
+- Interface adaptée seniors/malvoyants
+- Analyse par quartier
+- QR codes dans la ville
+
+#### v1.2.0 - Engagement
+- Système de propositions citoyennes
+- Votes sur les propositions
+- Commentaires et débats
+- Comité de suivi indépendant
+
+#### v2.0.0 - Démocratie directe (2026)
+- Plateforme permanente de consultation
+- Budget participatif
+- Pétitions citoyennes
+- Référendums d'initiative locale
+- API publique pour les données
+- Applications mobiles natives
+
+#### v3.0.0 - Gouvernance partagée (2027)
+- Conseil citoyen numérique
+- Blockchain pour la transparence
+- Intégration avec les services municipaux
+- Formation citoyenne en ligne
+- Monitoring de l'impact des décisions
 
 ## Déploiement
 
