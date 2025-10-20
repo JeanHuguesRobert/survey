@@ -11,6 +11,7 @@ Disponible [ici](https://68f5dca7ec6d8bc46a9fa85c--lucky-concha-a9fcd2.netlify.a
 - Intégration avec Google Sheets pour le stockage des données
 - Interface responsive et accessible
 - Graphiques interactifs pour les statistiques
+- Partage facile sur les réseaux sociaux
 
 ## Technologies utilisées
 

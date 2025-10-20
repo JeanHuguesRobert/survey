@@ -169,7 +169,25 @@ export default function ConsultationPertitellu() {
     };
   };
 
-  const stats = calculateStats();
+  const handleShare = async () => {
+    const shareData = {
+      title: 'Consultation citoyenne Pertitellu',
+      text: 'Participez à la consultation citoyenne sur la démocratie locale à Corte',
+      url: window.location.href
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback: copier le lien dans le presse-papier
+        await navigator.clipboard.writeText(window.location.href);
+        alert('Lien copié dans le presse-papier !');
+      }
+    } catch (err) {
+      console.error('Erreur lors du partage:', err);
+    }
+  };
 
   if (page === 'form') {
     return (
@@ -460,12 +478,17 @@ export default function ConsultationPertitellu() {
               </div>
 
               <div className="mt-8 text-center">
-                <button
-                  onClick={() => setPage('results')}
-                  className="text-blue-900 underline hover:text-blue-700"
-                >
-                  Voir les résultats de la consultation
-                </button>
+                <div className="flex justify-center gap-4">
+                  <button
+                    onClick={handleShare}
+                    className="px-4 py-2 bg-blue-900 text-white rounded-md hover:opacity-90 flex items-center gap-2"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+                    </svg>
+                    Partager
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -625,13 +648,24 @@ export default function ConsultationPertitellu() {
           )}
 
           <div className="mt-8 text-center">
-            <button
-              onClick={() => setPage('form')}
-              className="py-3 px-6 text-white font-bold rounded-md hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: '#1A4D7C' }}
-            >
-              Participer à la consultation
-            </button>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => setPage('form')}
+                className="py-3 px-6 text-white font-bold rounded-md hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: '#1A4D7C' }}
+              >
+                Participer à la consultation
+              </button>
+              <button
+                onClick={handleShare}
+                className="text-blue-900 underline hover:text-blue-700 flex items-center gap-1"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+                </svg>
+                Partager
+              </button>
+            </div>
           </div>
         </div>
       </div>
