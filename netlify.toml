@@ -1,5 +1,5 @@
 [build]
-  publish = "build"
+  publish = "dist"
   command = "npm run build"
 
 [[redirects]]
@@ -17,4 +17,5 @@
   [headers.values]
     X-Frame-Options = "DENY"
     X-XSS-Protection = "1; mode=block"
-    Content-Security-Policy = "default-src 'self' 'unsafe-inline' 'unsafe-eval' *.netlify.app *.google.com *.facebook.com"
+    Content-Security-Policy = "default-src 'self' 'unsafe-inline' 'unsafe-eval' *.netlify.app *.google.com *.facebook.com "
+    

@@ -20,7 +20,7 @@ Cette application s'inscrit dans une démarche de transparence totale :
 ## Améliorations
 
 ### Déjà réalisées
-- v1.0.1 (20/01/2024)
+- v1.0.1
   - Ajout rapport d'audit éthique
   - Section profil optionnelle clarifiée
   - Affichage temps réel des résultats
