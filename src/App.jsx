@@ -284,24 +284,24 @@ export default function ConsultationPertitellu() {
                   
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
-                      4. Êtes-vous satisfait de la démocratie locale actuelle ? *
+                    4. Êtes-vous satisfait de la démocratie locale actuelle ? *
                     </label>
                     <div className="flex items-center space-x-4">
-                      <span className="text-sm text-gray-600">Pas du tout (1)</span>
-                      {[1, 2, 3, 4, 5].map(num => (
+                    <span className="text-sm text-gray-600">Pas du tout (1)</span>
+                    {[1, 2, 3, 4, 5].map(num => (
                         <label key={num} className="flex items-center cursor-pointer">
-                          <input
+                        <input
                             type="radio"
                             name="satisfactionDemocratie"
                             value={num}
-                            checked={formData.satisfactionDemocratie === num}
+                            checked={Number(formData.satisfactionDemocratie) === num}
                             onChange={handleInputChange}
                             className="mr-1"
-                          />
-                          {num}
+                        />
+                        {num}
                         </label>
-                      ))}
-                      <span className="text-sm text-gray-600">Très satisfait (5)</span>
+                    ))}
+                    <span className="text-sm text-gray-600">Très satisfait (5)</span>
                     </div>
                   </div>
 
