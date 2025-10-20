@@ -2,6 +2,8 @@
 
 Application de consultation citoyenne pour Corte.
 
+[Accessible ici](https://lucky-concha-a9fcd2.netlify.app/)
+
 ## À propos
 
 Initiative lancée dans le cadre des élections municipales de Corte pour :
