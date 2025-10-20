@@ -75,7 +75,7 @@ export default function Methodologie() {
                     Un rapport d'audit éthique complet est disponible :
                   </p>
                   <a 
-                    href="/docs/audit-ethique.pdf"
+                    href="/audit"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:underline flex items-center gap-2"
