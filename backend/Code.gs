@@ -9,19 +9,19 @@ function doPost(e) {
     
     sheet.appendRow([
       new Date(),
-      data.connaissanceQuasquara,
-      data.positionQuasquara,
-      data.quiDecide,
-      data.satisfactionDemocratie,
-      Number(data.declinCorte), // Nouveau champ ajouté
-      data.favorableReferendum,
-      data.sujetsReferendum.join(', '),
-      data.quartier,
-      data.age,
-      data.dureeHabitation,
-      data.email,
-      data.accepteContact,
-      data.commentaire
+      data.connaissanceQuasquara,  // string (Oui/Non)
+      data.positionQuasquara,      // string (Maintien/Retrait/Sans)
+      data.quiDecide,              // string (Justice/Élus/Référendum/Autre)
+      Number(data.satisfactionDemocratie),  // number (1-5)
+      Number(data.declinCorte),            // number (1-5)
+      data.favorableReferendum,    // string (Oui/Non/Selon)
+      data.sujetsReferendum.join(', '),  // string array join
+      data.quartier,               // string
+      data.age,                    // string (catégories)
+      data.dureeHabitation,        // string (catégories)
+      data.email,                  // string
+      data.accepteContact,         // boolean
+      data.commentaire             // string
     ]);
     
     return ContentService.createTextOutput(JSON.stringify({success: true}))
@@ -33,7 +33,7 @@ function doPost(e) {
 }
 
 function getResponses() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Réponses');
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
   const rows = data.slice(1);
