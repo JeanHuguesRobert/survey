@@ -1,6 +1,6 @@
 # Rapport d'audit éthique - Consultation citoyenne Pertitellu
-*Version publique v{APP_VERSION}*  
-*Généré automatiquement le {DEPLOY_DATE}*
+
+*Généré automatiquement le 20/10/2025*
 
 ## Synthèse
 
