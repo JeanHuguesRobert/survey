@@ -2,11 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Methodologie from './pages/Methodologie';
-
-const COLORS = ['#FF5722', '#1A4D7C', '#FFA726', '#42A5F5', '#66BB6A'];
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz2KTFI6M2VNQyaFI_Oll2apNpdVzDJLOyfvd9lYD2G8ejFljd9Zvj11z0E7LZZnuZy/exec';
-const APP_VERSION = '1.0.1';
-const DEPLOY_DATE = '2024-01-20';
+import { APP_VERSION, DEPLOY_DATE, GOOGLE_SCRIPT_URL, COLORS } from './constants';
+import Audit from './pages/Audit';
 
 export default function ConsultationPertitellu() {
   const [page, setPage] = useState('form');
@@ -15,9 +12,10 @@ export default function ConsultationPertitellu() {
     positionQuasquara: '',
     quiDecide: '',
     satisfactionDemocratie: 3,
-    declinCorte: 3, // Valeur par défaut au milieu
+    declinCorte: 3,
     favorableReferendum: '',
     sujetsReferendum: [],
+    inscritListe: '',  // Nouvelle propriété
     quartier: '',
     age: '',
     dureeHabitation: '',
@@ -240,7 +238,7 @@ export default function ConsultationPertitellu() {
                   
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
-                      Connaissez-vous la polémique sur la croix de Quasquara ? *
+                      Connaissez-vous la polémique sur la croix de Quasquara ?
                     </label>
                     <div className="space-y-2">
                       {['Oui', 'Non'].map(option => (
@@ -261,7 +259,7 @@ export default function ConsultationPertitellu() {
 
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
-                      Quelle est votre position sur cette affaire ? *
+                      Quelle est votre position sur cette affaire ?
                     </label>
                     <div className="space-y-2">
                       {[
@@ -286,7 +284,7 @@ export default function ConsultationPertitellu() {
 
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
-                      Qui devrait décider dans ce type de situation ? *
+                      Qui devrait décider dans ce type de situation ?
                     </label>
                     <div className="space-y-2">
                       {['Justice', 'Élus locaux', 'Référendum des habitants', 'Autre'].map(option => (
@@ -311,7 +309,7 @@ export default function ConsultationPertitellu() {
                   
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
-                      Êtes-vous satisfait de la démocratie locale actuelle ? *
+                      Êtes-vous satisfait de la démocratie locale actuelle ?
                     </label>
                     {/* Version mobile des notes */}
                     <div className="md:hidden">
@@ -350,7 +348,7 @@ export default function ConsultationPertitellu() {
 
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
-                      Pensez-vous que Corte est en déclin ? *
+                      Pensez-vous que Corte est en déclin ?
                     </label>
                     <div className="md:hidden">
                       <select
@@ -387,7 +385,7 @@ export default function ConsultationPertitellu() {
 
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
-                      Seriez-vous favorable à des référendums locaux sur des questions importantes ? *
+                      Seriez-vous favorable à des référendums locaux sur des questions importantes ?
                     </label>
                     <div className="space-y-2">
                       {[
@@ -433,8 +431,31 @@ export default function ConsultationPertitellu() {
                 </div>
 
                 <div className="border-l-4 border-orange-500 pl-4">
-                  <h2 className="text-xl font-bold text-gray-800 mb-4">Profil (optionnel)</h2>
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">
+                    Profil <span className="font-normal text-base text-gray-600">(toutes les questions sont optionnelles)</span>
+                  </h2>
                   
+                  <div className="mb-6">
+                    <label className="block text-gray-700 font-semibold mb-2">
+                      Êtes-vous inscrit(e) sur les listes électorales à Corte ?
+                    </label>
+                    <div className="space-y-2">
+                      {['Oui', 'Non', 'Pas encore mais je compte le faire', 'Je ne souhaite pas répondre'].map(option => (
+                        <label key={option} className="flex items-center cursor-pointer">
+                          <input
+                            type="radio"
+                            name="inscritListe"
+                            value={option}
+                            checked={formData.inscritListe === option}
+                            onChange={handleInputChange}
+                            className="mr-2"
+                          />
+                          {option}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
                       Quartier de Corte
@@ -569,19 +590,19 @@ export default function ConsultationPertitellu() {
           <div className="max-w-4xl mx-auto px-4 text-center">
             <p className="mb-2">Une initiative #PERTITELLU - Corti Capitale</p>
             <div className="flex justify-center gap-4">
-              <button
-                onClick={() => setPage('results')}
-                className="text-blue-900 underline hover:text-blue-700"
-              >
-                Voir les résultats
-              </button>
+              <Link to="/methodologie" className="text-orange-400 hover:text-orange-300">
+                Méthodologie
+              </Link>
+              <a href="/audit" className="text-orange-400 hover:text-orange-300">
+                Audit éthique
+              </a>
               <a 
                 href="https://www.facebook.com/groups/1269635707349220"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-orange-400 hover:text-orange-300"
               >
-                Rejoignez-nous sur Facebook
+                Facebook
               </a>
             </div>
             <div 
@@ -780,19 +801,19 @@ export default function ConsultationPertitellu() {
         <div className="max-w-4xl mx-auto px-4 text-center">
           <p className="mb-2">Une initiative #PERTITELLU - Corti Capitale</p>
           <div className="flex justify-center gap-4">
-            <button
-              onClick={() => setPage('results')}
-              className="text-blue-900 underline hover:text-blue-700"
-            >
-              Voir les résultats
-            </button>
+            <Link to="/methodologie" className="text-orange-400 hover:text-orange-300">
+              Méthodologie
+            </Link>
+            <a href="/audit" className="text-orange-400 hover:text-orange-300">
+              Audit éthique
+            </a>
             <a 
               href="https://www.facebook.com/groups/1269635707349220"
               target="_blank"
               rel="noopener noreferrer"
               className="text-orange-400 hover:text-orange-300"
             >
-              Rejoignez-nous sur Facebook
+              Facebook
             </a>
           </div>
           <div 
@@ -813,6 +834,7 @@ export function App() {
       <Routes>
         <Route path="/" element={<ConsultationPertitellu />} />
         <Route path="/methodologie" element={<Methodologie />} />
+        <Route path="/audit" element={<Audit />} />
       </Routes>
     </BrowserRouter>
   );

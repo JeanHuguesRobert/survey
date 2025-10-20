@@ -69,6 +69,23 @@ export default function Methodologie() {
                 <p className="text-gray-600">
                   Les données brutes anonymisées peuvent être consultées sur demande.
                 </p>
+                <div className="mt-4 p-4 bg-gray-50 rounded-md">
+                  <h3 className="font-semibold mb-2">Audit éthique</h3>
+                  <p className="text-gray-600 mb-2">
+                    Un rapport d'audit éthique complet est disponible :
+                  </p>
+                  <a 
+                    href="/docs/audit-ethique.pdf"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline flex items-center gap-2"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" />
+                    </svg>
+                    Consulter le rapport d'audit éthique
+                  </a>
+                </div>
               </div>
             </section>
 
