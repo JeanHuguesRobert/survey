@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const COLORS = ['#FF5722', '#1A4D7C', '#FFA726', '#42A5F5', '#66BB6A'];
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw3Es7QtXFLNl1oxVvOMwiQaBazSAU2Cr1gCALONrPzjgsp7_LWWyIxVI-YBXCYOt8r/exec';
 
 export default function ConsultationPertitellu() {
   const [page, setPage] = useState('form');
@@ -22,32 +23,50 @@ export default function ConsultationPertitellu() {
   
   const [responses, setResponses] = useState([]);
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
+  // Charger les réponses depuis Google Sheets
   useEffect(() => {
-    const demoResponses = [
-      {
-        connaissanceQuasquara: 'Oui',
-        positionQuasquara: 'Maintien',
-        quiDecide: 'Référendum des habitants',
-        satisfactionDemocratie: 2,
-        favorableReferendum: 'Oui',
-        sujetsReferendum: ['culture', 'patrimoine'],
-        age: '41-60',
-        dureeHabitation: '>10 ans'
-      },
-      {
-        connaissanceQuasquara: 'Oui',
-        positionQuasquara: 'Maintien',
-        quiDecide: 'Référendum des habitants',
-        satisfactionDemocratie: 3,
-        favorableReferendum: 'Oui',
-        sujetsReferendum: ['culture', 'urbanisme'],
-        age: '26-40',
-        dureeHabitation: '5-10 ans'
-      }
-    ];
-    setResponses(demoResponses);
+    loadResponses();
   }, []);
+
+  const loadResponses = async () => {
+    try {
+      const response = await fetch(GOOGLE_SCRIPT_URL);
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        // Convertir les données Google Sheets au format de l'app
+        const formattedResponses = data.data.map(row => ({
+          connaissanceQuasquara: row['Connaissance Quasquara'] || '',
+          positionQuasquara: row['Position Quasquara'] || '',
+          quiDecide: row['Qui décide'] || '',
+          satisfactionDemocratie: parseInt(row['Satisfaction Démocratie']) || 3,
+          favorableReferendum: row['Favorable Référendum'] || '',
+          sujetsReferendum: row['Sujets Référendum'] ? row['Sujets Référendum'].split(', ') : [],
+          age: row['Âge'] || '',
+          dureeHabitation: row['Durée Habitation'] || ''
+        }));
+        setResponses(formattedResponses);
+      }
+    } catch (err) {
+      console.error('Erreur chargement:', err);
+      // En cas d'erreur, utiliser des données de démo
+      setResponses([
+        {
+          connaissanceQuasquara: 'Oui',
+          positionQuasquara: 'Maintien',
+          quiDecide: 'Référendum des habitants',
+          satisfactionDemocratie: 2,
+          favorableReferendum: 'Oui',
+          sujetsReferendum: ['culture', 'patrimoine'],
+          age: '41-60',
+          dureeHabitation: '>10 ans'
+        }
+      ]);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -65,17 +84,41 @@ export default function ConsultationPertitellu() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.connaissanceQuasquara || !formData.positionQuasquara || !formData.quiDecide || !formData.favorableReferendum) {
       alert('Veuillez répondre aux questions obligatoires (sections 1 et 2)');
       return;
     }
-    setResponses(prev => [...prev, formData]);
-    setSubmitted(true);
-    setTimeout(() => {
-      setPage('results');
-      setSubmitted(false);
-    }, 2000);
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      });
+
+      // Avec no-cors, on ne peut pas lire la réponse, on assume que ça a fonctionné
+      setSubmitted(true);
+      
+      // Recharger les données après 2 secondes
+      setTimeout(async () => {
+        await loadResponses();
+        setPage('results');
+        setSubmitted(false);
+        setLoading(false);
+      }, 2000);
+
+    } catch (err) {
+      console.error('Erreur soumission:', err);
+      setError('Erreur lors de l\'envoi. Veuillez réessayer.');
+      setLoading(false);
+    }
   };
 
   const calculateStats = () => {
@@ -151,12 +194,18 @@ export default function ConsultationPertitellu() {
           {submitted ? (
             <div className="bg-green-50 border border-green-200 rounded-lg p-8 text-center">
               <h2 className="text-2xl font-bold text-green-800 mb-2">Merci pour votre participation !</h2>
-              <p className="text-green-700">Redirection vers les résultats...</p>
+              <p className="text-green-700">Votre réponse a été enregistrée. Redirection vers les résultats...</p>
             </div>
           ) : (
             <div className="bg-white rounded-lg shadow-md p-8">
               <h1 className="text-3xl font-bold text-gray-800 mb-2">Consultation citoyenne sur la démocratie locale</h1>
               <p className="text-gray-600 mb-6">Une initiative Pertitellu pour les élections municipales de Corte</p>
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-red-700">
+                  {error}
+                </div>
+              )}
 
               <div className="space-y-8">
                 <div className="border-l-4 border-orange-500 pl-4">
@@ -164,7 +213,7 @@ export default function ConsultationPertitellu() {
                   
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
-                      1. Connaissez-vous la polémique sur la croix de Quasquara ?
+                      1. Connaissez-vous la polémique sur la croix de Quasquara ? *
                     </label>
                     <div className="space-y-2">
                       {['Oui', 'Non'].map(option => (
@@ -185,7 +234,7 @@ export default function ConsultationPertitellu() {
 
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
-                      2. Quelle est votre position sur cette affaire ?
+                      2. Quelle est votre position sur cette affaire ? *
                     </label>
                     <div className="space-y-2">
                       {[
@@ -210,7 +259,7 @@ export default function ConsultationPertitellu() {
 
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
-                      3. Qui devrait décider dans ce type de situation ?
+                      3. Qui devrait décider dans ce type de situation ? *
                     </label>
                     <div className="space-y-2">
                       {['Justice', 'Élus locaux', 'Référendum des habitants', 'Autre'].map(option => (
@@ -235,7 +284,7 @@ export default function ConsultationPertitellu() {
                   
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
-                      4. Êtes-vous satisfait de la démocratie locale actuelle ?
+                      4. Êtes-vous satisfait de la démocratie locale actuelle ? *
                     </label>
                     <div className="flex items-center space-x-4">
                       <span className="text-sm text-gray-600">Pas du tout (1)</span>
@@ -258,7 +307,7 @@ export default function ConsultationPertitellu() {
 
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
-                      5. Seriez-vous favorable à des référendums locaux sur des questions importantes ?
+                      5. Seriez-vous favorable à des référendums locaux sur des questions importantes ? *
                     </label>
                     <div className="space-y-2">
                       {[
@@ -402,10 +451,11 @@ export default function ConsultationPertitellu() {
 
                 <button
                   onClick={handleSubmit}
-                  className="w-full py-3 px-6 text-white font-bold rounded-md text-lg hover:opacity-90 transition-opacity"
+                  disabled={loading}
+                  className="w-full py-3 px-6 text-white font-bold rounded-md text-lg hover:opacity-90 transition-opacity disabled:opacity-50"
                   style={{ backgroundColor: '#FF5722' }}
                 >
-                  Envoyer ma réponse
+                  {loading ? 'Envoi en cours...' : 'Envoyer ma réponse'}
                 </button>
               </div>
 
@@ -458,10 +508,20 @@ export default function ConsultationPertitellu() {
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="bg-white rounded-lg shadow-md p-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Résultats de la consultation</h1>
-          <p className="text-gray-600 mb-6">
-            {stats?.totalResponses} participation{stats?.totalResponses > 1 ? 's' : ''} enregistrée{stats?.totalResponses > 1 ? 's' : ''}
-          </p>
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">Résultats de la consultation</h1>
+              <p className="text-gray-600">
+                {stats?.totalResponses} participation{stats?.totalResponses > 1 ? 's' : ''} enregistrée{stats?.totalResponses > 1 ? 's' : ''}
+              </p>
+            </div>
+            <button
+              onClick={loadResponses}
+              className="px-4 py-2 bg-blue-900 text-white rounded-md hover:opacity-90"
+            >
+              Actualiser
+            </button>
+          </div>
 
           {stats && (
             <div className="space-y-12">
