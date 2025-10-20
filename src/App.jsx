@@ -5,6 +5,8 @@ import Methodologie from './pages/Methodologie';
 
 const COLORS = ['#FF5722', '#1A4D7C', '#FFA726', '#42A5F5', '#66BB6A'];
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz2KTFI6M2VNQyaFI_Oll2apNpdVzDJLOyfvd9lYD2G8ejFljd9Zvj11z0E7LZZnuZy/exec';
+const APP_VERSION = '1.0.1';
+const DEPLOY_DATE = '2024-01-20';
 
 export default function ConsultationPertitellu() {
   const [page, setPage] = useState('form');
@@ -193,6 +195,8 @@ export default function ConsultationPertitellu() {
       console.error('Erreur lors du partage:', err);
     }
   };
+
+  const stats = calculateStats();  // Ajout de cette ligne au niveau des autres déclarations d'état
 
   if (page === 'form') {
     return (
@@ -564,21 +568,27 @@ export default function ConsultationPertitellu() {
         <footer className="bg-gray-800 text-white py-6 mt-12">
           <div className="max-w-4xl mx-auto px-4 text-center">
             <p className="mb-2">Une initiative #PERTITELLU - Corti Capitale</p>
-            <div className="flex justify-center gap-4 mb-2">
-              <Link 
-                to="/methodologie"
-                className="text-orange-400 hover:text-orange-300"
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => setPage('results')}
+                className="text-blue-900 underline hover:text-blue-700"
               >
-                Méthodologie
-              </Link>
+                Voir les résultats
+              </button>
               <a 
                 href="https://www.facebook.com/groups/1269635707349220"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-orange-400 hover:text-orange-300"
               >
-                Facebook
+                Rejoignez-nous sur Facebook
               </a>
+            </div>
+            <div 
+              className="text-xs text-gray-500 mt-4 cursor-help"
+              title={`Déployé le ${DEPLOY_DATE}`}
+            >
+              v{APP_VERSION}
             </div>
           </div>
         </footer>
@@ -606,125 +616,60 @@ export default function ConsultationPertitellu() {
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="bg-white rounded-lg shadow-md p-8">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">Résultats de la consultation</h1>
-              <p className="text-gray-600">
-                {stats?.totalResponses} participation{stats?.totalResponses > 1 ? 's' : ''} enregistrée{stats?.totalResponses > 1 ? 's' : ''}
-              </p>
+          {!stats ? (
+            <div className="text-center text-gray-600">
+              Chargement des résultats...
             </div>
-            <button
-              onClick={loadResponses}
-              className="px-4 py-2 bg-blue-900 text-white rounded-md hover:opacity-90"
-            >
-              Actualiser
-            </button>
-          </div>
-
-          {stats && (
-            <div className="space-y-12">
-              <div>
-                <h2 className="text-xl font-bold text-gray-800 mb-4">Connaissance de l'affaire de Quasquara</h2>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={stats.connaissanceData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({name, value}) => `${name}: ${value}`}
-                      outerRadius={window.innerWidth < 768 ? 60 : 80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {stats.connaissanceData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="px-2 md:px-4">
-                <ResponsiveContainer width="100%" height={window.innerWidth < 768 ? 200 : 300}>
-                  <BarChart
-                    data={stats.positionData}
-                    margin={window.innerWidth < 768 ? 
-                      { top: 5, right: 10, left: -20, bottom: 5 } :
-                      { top: 5, right: 30, left: 20, bottom: 5 }
-                    }
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="value" fill="#FF5722" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div>
-                <h2 className="text-xl font-bold text-gray-800 mb-4">Qui devrait décider ?</h2>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={stats.decisionData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="value" fill="#1A4D7C" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div>
-                <h2 className="text-xl font-bold text-gray-800 mb-4">Satisfaction de la démocratie locale</h2>
-                <div className="text-center">
-                  <div className="text-6xl font-bold" style={{ color: '#FF5722' }}>
-                    {stats.satisfactionMoyenne.toFixed(1)}/5
-                  </div>
-                  <p className="text-gray-600 mt-2">Note moyenne</p>
-                </div>
-              </div>
-
-              <div>
-                <h2 className="text-xl font-bold text-gray-800 mb-4">État de Corte</h2>
-                <div className="text-center">
-                  <div className="text-6xl font-bold" style={{ color: '#FF5722' }}>
-                    {stats.declinMoyen.toFixed(1)}/5
-                  </div>
-                  <p className="text-gray-600 mt-2">1 = En développement, 5 = En déclin</p>
-                </div>
-              </div>
-
-              <div>
-                <h2 className="text-xl font-bold text-gray-800 mb-4">Favorable aux référendums locaux ?</h2>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={stats.referendumData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({name, value}) => `${name}: ${value}`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {stats.referendumData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-
-              {stats.sujetsData.length > 0 && (
+          ) : (
+            <>
+              <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800 mb-4">Sujets prioritaires pour les référendums</h2>
+                  <h1 className="text-3xl font-bold text-gray-800 mb-2">Résultats de la consultation</h1>
+                  <p className="text-gray-600">
+                    {stats?.totalResponses} participation{stats?.totalResponses > 1 ? 's' : ''} enregistrée{stats?.totalResponses > 1 ? 's' : ''}
+                  </p>
+                </div>
+                <button
+                  onClick={loadResponses}
+                  className="px-4 py-2 bg-blue-900 text-white rounded-md hover:opacity-90"
+                >
+                  Actualiser
+                </button>
+              </div>
+
+              <div className="space-y-12">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">Connaissance de l'affaire de Quasquara</h2>
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={stats.sujetsData}>
+                    <PieChart>
+                      <Pie
+                        data={stats.connaissanceData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({name, value}) => `${name}: ${value}`}
+                        outerRadius={window.innerWidth < 768 ? 60 : 80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {stats.connaissanceData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="px-2 md:px-4">
+                  <ResponsiveContainer width="100%" height={window.innerWidth < 768 ? 200 : 300}>
+                    <BarChart
+                      data={stats.positionData}
+                      margin={window.innerWidth < 768 ? 
+                        { top: 5, right: 10, left: -20, bottom: 5 } :
+                        { top: 5, right: 30, left: 20, bottom: 5 }
+                      }
+                    >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="name" />
                       <YAxis />
@@ -733,8 +678,79 @@ export default function ConsultationPertitellu() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-              )}
-            </div>
+
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">Qui devrait décider ?</h2>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={stats.decisionData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="value" fill="#1A4D7C" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">Satisfaction de la démocratie locale</h2>
+                  <div className="text-center">
+                    <div className="text-6xl font-bold" style={{ color: '#FF5722' }}>
+                      {stats.satisfactionMoyenne.toFixed(1)}/5
+                    </div>
+                    <p className="text-gray-600 mt-2">Note moyenne</p>
+                  </div>
+                </div>
+
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">État de Corte</h2>
+                  <div className="text-center">
+                    <div className="text-6xl font-bold" style={{ color: '#FF5722' }}>
+                      {stats.declinMoyen.toFixed(1)}/5
+                    </div>
+                    <p className="text-gray-600 mt-2">1 = En développement, 5 = En déclin</p>
+                  </div>
+                </div>
+
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">Favorable aux référendums locaux ?</h2>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={stats.referendumData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({name, value}) => `${name}: ${value}`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {stats.referendumData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {stats.sujetsData.length > 0 && (
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-800 mb-4">Sujets prioritaires pour les référendums</h2>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={stats.sujetsData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Bar dataKey="value" fill="#FF5722" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </div>
+            </>
           )}
 
           <div className="mt-8 text-center">
@@ -763,21 +779,27 @@ export default function ConsultationPertitellu() {
       <footer className="bg-gray-800 text-white py-6 mt-12">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <p className="mb-2">Une initiative #PERTITELLU - Corti Capitale</p>
-          <div className="flex justify-center gap-4 mb-2">
-            <Link 
-              to="/methodologie"
-              className="text-orange-400 hover:text-orange-300"
+          <div className="flex justify-center gap-4">
+            <button
+              onClick={() => setPage('results')}
+              className="text-blue-900 underline hover:text-blue-700"
             >
-              Méthodologie
-            </Link>
+              Voir les résultats
+            </button>
             <a 
               href="https://www.facebook.com/groups/1269635707349220"
               target="_blank"
               rel="noopener noreferrer"
               className="text-orange-400 hover:text-orange-300"
             >
-              Facebook
+              Rejoignez-nous sur Facebook
             </a>
+          </div>
+          <div 
+            className="text-xs text-gray-500 mt-4 cursor-help"
+            title={`Déployé le ${DEPLOY_DATE}`}
+          >
+            v{APP_VERSION}
           </div>
         </div>
       </footer>
