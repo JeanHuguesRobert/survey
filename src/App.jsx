@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const COLORS = ['#FF5722', '#1A4D7C', '#FFA726', '#42A5F5', '#66BB6A'];
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw3Es7QtXFLNl1oxVvOMwiQaBazSAU2Cr1gCALONrPzjgsp7_LWWyIxVI-YBXCYOt8r/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz2KTFI6M2VNQyaFI_Oll2apNpdVzDJLOyfvd9lYD2G8ejFljd9Zvj11z0E7LZZnuZy/exec';
 
 export default function ConsultationPertitellu() {
   const [page, setPage] = useState('form');
@@ -11,6 +11,7 @@ export default function ConsultationPertitellu() {
     positionQuasquara: '',
     quiDecide: '',
     satisfactionDemocratie: 3,
+    declinCorte: 3, // Valeur par défaut au milieu
     favorableReferendum: '',
     sujetsReferendum: [],
     quartier: '',
@@ -37,13 +38,13 @@ export default function ConsultationPertitellu() {
       const data = await response.json();
       
       if (data.success && data.data) {
-        // Convertir les données Google Sheets au format de l'app
         const formattedResponses = data.data.map(row => ({
           connaissanceQuasquara: row['Connaissance Quasquara'] || '',
           positionQuasquara: row['Position Quasquara'] || '',
           quiDecide: row['Qui décide'] || '',
           satisfactionDemocratie: parseInt(row['Satisfaction Démocratie']) || 3,
           favorableReferendum: row['Favorable Référendum'] || '',
+          declinCorte: parseInt(row['Déclin Corte']) || 3, // Correction du parsing
           sujetsReferendum: row['Sujets Référendum'] ? row['Sujets Référendum'].split(', ') : [],
           age: row['Âge'] || '',
           dureeHabitation: row['Durée Habitation'] || ''
@@ -143,6 +144,7 @@ export default function ConsultationPertitellu() {
     ];
 
     const satisfactionMoyenne = responses.reduce((acc, r) => acc + r.satisfactionDemocratie, 0) / responses.length;
+    const declinMoyen = responses.reduce((acc, r) => acc + parseInt(r.declinCorte || 3), 0) / responses.length;
 
     const referendumData = [
       { name: 'Oui', value: responses.filter(r => r.favorableReferendum === 'Oui').length },
@@ -163,6 +165,7 @@ export default function ConsultationPertitellu() {
       positionData,
       decisionData,
       satisfactionMoyenne,
+      declinMoyen, // Nouvelle stat
       referendumData,
       sujetsData,
       totalResponses: responses.length
@@ -231,7 +234,7 @@ export default function ConsultationPertitellu() {
                   
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
-                      1. Connaissez-vous la polémique sur la croix de Quasquara ? *
+                      Connaissez-vous la polémique sur la croix de Quasquara ? *
                     </label>
                     <div className="space-y-2">
                       {['Oui', 'Non'].map(option => (
@@ -252,7 +255,7 @@ export default function ConsultationPertitellu() {
 
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
-                      2. Quelle est votre position sur cette affaire ? *
+                      Quelle est votre position sur cette affaire ? *
                     </label>
                     <div className="space-y-2">
                       {[
@@ -277,7 +280,7 @@ export default function ConsultationPertitellu() {
 
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
-                      3. Qui devrait décider dans ce type de situation ? *
+                      Qui devrait décider dans ce type de situation ? *
                     </label>
                     <div className="space-y-2">
                       {['Justice', 'Élus locaux', 'Référendum des habitants', 'Autre'].map(option => (
@@ -302,7 +305,7 @@ export default function ConsultationPertitellu() {
                   
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
-                    4. Êtes-vous satisfait de la démocratie locale actuelle ? *
+                    Êtes-vous satisfait de la démocratie locale actuelle ? *
                     </label>
                     <div className="flex items-center space-x-4">
                     <span className="text-sm text-gray-600">Pas du tout (1)</span>
@@ -325,7 +328,30 @@ export default function ConsultationPertitellu() {
 
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
-                      5. Seriez-vous favorable à des référendums locaux sur des questions importantes ? *
+                      Pensez-vous que Corte est en déclin ? *
+                    </label>
+                    <div className="flex items-center space-x-4">
+                      <span className="text-sm text-gray-600">En développement (1)</span>
+                      {[1, 2, 3, 4, 5].map(num => (
+                        <label key={num} className="flex items-center cursor-pointer">
+                          <input
+                            type="radio"
+                            name="declinCorte"
+                            value={num}
+                            checked={Number(formData.declinCorte) === num}
+                            onChange={handleInputChange}
+                            className="mr-1"
+                          />
+                          {num}
+                        </label>
+                      ))}
+                      <span className="text-sm text-gray-600">En déclin (5)</span>
+                    </div>
+                  </div>
+
+                  <div className="mb-6">
+                    <label className="block text-gray-700 font-semibold mb-2">
+                      Seriez-vous favorable à des référendums locaux sur des questions importantes ? *
                     </label>
                     <div className="space-y-2">
                       {[
@@ -350,7 +376,7 @@ export default function ConsultationPertitellu() {
 
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
-                      6. Sur quels sujets ces référendums devraient-ils porter ? (choix multiples)
+                      Sur quels sujets ces référendums devraient-ils porter ? (choix multiples)
                     </label>
                     <div className="space-y-2">
                       {['urbanisme', 'culture', 'budget', 'environnement', 'patrimoine', 'autre'].map(option => (
@@ -375,7 +401,7 @@ export default function ConsultationPertitellu() {
                   
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
-                      7. Quartier de Corte
+                      Quartier de Corte
                     </label>
                     <input
                       type="text"
@@ -389,7 +415,7 @@ export default function ConsultationPertitellu() {
 
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
-                      8. Tranche d'âge
+                      Tranche d'âge
                     </label>
                     <select
                       name="age"
@@ -407,7 +433,7 @@ export default function ConsultationPertitellu() {
 
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
-                      9. Depuis combien de temps habitez-vous Corte ?
+                      Depuis combien de temps habitez-vous Corte ?
                     </label>
                     <select
                       name="dureeHabitation"
@@ -428,7 +454,7 @@ export default function ConsultationPertitellu() {
                 <div className="border-l-4 border-blue-900 pl-4">
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
-                      10. Commentaire libre
+                      Commentaire libre
                     </label>
                     <textarea
                       name="commentaire"
@@ -604,6 +630,16 @@ export default function ConsultationPertitellu() {
                     {stats.satisfactionMoyenne.toFixed(1)}/5
                   </div>
                   <p className="text-gray-600 mt-2">Note moyenne</p>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-xl font-bold text-gray-800 mb-4">État de Corte</h2>
+                <div className="text-center">
+                  <div className="text-6xl font-bold" style={{ color: '#FF5722' }}>
+                    {stats.declinMoyen.toFixed(1)}/5
+                  </div>
+                  <p className="text-gray-600 mt-2">1 = En développement, 5 = En déclin</p>
                 </div>
               </div>
 
