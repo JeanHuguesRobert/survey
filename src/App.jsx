@@ -1,0 +1,594 @@
+import React, { useState, useEffect } from 'react';
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+const COLORS = ['#FF5722', '#1A4D7C', '#FFA726', '#42A5F5', '#66BB6A'];
+
+export default function ConsultationPertitellu() {
+  const [page, setPage] = useState('form');
+  const [formData, setFormData] = useState({
+    connaissanceQuasquara: '',
+    positionQuasquara: '',
+    quiDecide: '',
+    satisfactionDemocratie: 3,
+    favorableReferendum: '',
+    sujetsReferendum: [],
+    quartier: '',
+    age: '',
+    dureeHabitation: '',
+    email: '',
+    accepteContact: false,
+    commentaire: ''
+  });
+  
+  const [responses, setResponses] = useState([]);
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    const demoResponses = [
+      {
+        connaissanceQuasquara: 'Oui',
+        positionQuasquara: 'Maintien',
+        quiDecide: 'Référendum des habitants',
+        satisfactionDemocratie: 2,
+        favorableReferendum: 'Oui',
+        sujetsReferendum: ['culture', 'patrimoine'],
+        age: '41-60',
+        dureeHabitation: '>10 ans'
+      },
+      {
+        connaissanceQuasquara: 'Oui',
+        positionQuasquara: 'Maintien',
+        quiDecide: 'Référendum des habitants',
+        satisfactionDemocratie: 3,
+        favorableReferendum: 'Oui',
+        sujetsReferendum: ['culture', 'urbanisme'],
+        age: '26-40',
+        dureeHabitation: '5-10 ans'
+      }
+    ];
+    setResponses(demoResponses);
+  }, []);
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    if (type === 'checkbox' && name === 'sujetsReferendum') {
+      setFormData(prev => ({
+        ...prev,
+        sujetsReferendum: checked 
+          ? [...prev.sujetsReferendum, value]
+          : prev.sujetsReferendum.filter(s => s !== value)
+      }));
+    } else if (type === 'checkbox') {
+      setFormData(prev => ({ ...prev, [name]: checked }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!formData.connaissanceQuasquara || !formData.positionQuasquara || !formData.quiDecide || !formData.favorableReferendum) {
+      alert('Veuillez répondre aux questions obligatoires (sections 1 et 2)');
+      return;
+    }
+    setResponses(prev => [...prev, formData]);
+    setSubmitted(true);
+    setTimeout(() => {
+      setPage('results');
+      setSubmitted(false);
+    }, 2000);
+  };
+
+  const calculateStats = () => {
+    if (responses.length === 0) return null;
+
+    const connaissanceData = [
+      { name: 'Oui', value: responses.filter(r => r.connaissanceQuasquara === 'Oui').length },
+      { name: 'Non', value: responses.filter(r => r.connaissanceQuasquara === 'Non').length }
+    ];
+
+    const positionData = [
+      { name: 'Maintien', value: responses.filter(r => r.positionQuasquara === 'Maintien').length },
+      { name: 'Retrait', value: responses.filter(r => r.positionQuasquara === 'Retrait').length },
+      { name: 'Sans avis', value: responses.filter(r => r.positionQuasquara === 'Sans').length }
+    ];
+
+    const decisionData = [
+      { name: 'Justice', value: responses.filter(r => r.quiDecide === 'Justice').length },
+      { name: 'Élus locaux', value: responses.filter(r => r.quiDecide === 'Élus locaux').length },
+      { name: 'Référendum', value: responses.filter(r => r.quiDecide === 'Référendum des habitants').length },
+      { name: 'Autre', value: responses.filter(r => r.quiDecide === 'Autre').length }
+    ];
+
+    const satisfactionMoyenne = responses.reduce((acc, r) => acc + r.satisfactionDemocratie, 0) / responses.length;
+
+    const referendumData = [
+      { name: 'Oui', value: responses.filter(r => r.favorableReferendum === 'Oui').length },
+      { name: 'Non', value: responses.filter(r => r.favorableReferendum === 'Non').length },
+      { name: 'Selon sujets', value: responses.filter(r => r.favorableReferendum === 'Selon').length }
+    ];
+
+    const sujetsCount = {};
+    responses.forEach(r => {
+      r.sujetsReferendum.forEach(sujet => {
+        sujetsCount[sujet] = (sujetsCount[sujet] || 0) + 1;
+      });
+    });
+    const sujetsData = Object.entries(sujetsCount).map(([name, value]) => ({ name, value }));
+
+    return {
+      connaissanceData,
+      positionData,
+      decisionData,
+      satisfactionMoyenne,
+      referendumData,
+      sujetsData,
+      totalResponses: responses.length
+    };
+  };
+
+  const stats = calculateStats();
+
+  if (page === 'form') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white shadow-sm">
+          <div className="max-w-4xl mx-auto px-4 py-6">
+            <div className="text-center">
+              <div className="mb-4">
+                <div className="text-5xl font-bold" style={{ color: '#FF5722' }}>
+                  #PERTITELLU
+                </div>
+                <div className="h-1 bg-blue-900 my-3 max-w-2xl mx-auto"></div>
+                <div className="text-4xl font-bold text-blue-900">
+                  CORTI<br/>CAPITALE
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          {submitted ? (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-8 text-center">
+              <h2 className="text-2xl font-bold text-green-800 mb-2">Merci pour votre participation !</h2>
+              <p className="text-green-700">Redirection vers les résultats...</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow-md p-8">
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">Consultation citoyenne sur la démocratie locale</h1>
+              <p className="text-gray-600 mb-6">Une initiative Pertitellu pour les élections municipales de Corte</p>
+
+              <div className="space-y-8">
+                <div className="border-l-4 border-orange-500 pl-4">
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">L'affaire de Quasquara</h2>
+                  
+                  <div className="mb-6">
+                    <label className="block text-gray-700 font-semibold mb-2">
+                      1. Connaissez-vous la polémique sur la croix de Quasquara ?
+                    </label>
+                    <div className="space-y-2">
+                      {['Oui', 'Non'].map(option => (
+                        <label key={option} className="flex items-center cursor-pointer">
+                          <input
+                            type="radio"
+                            name="connaissanceQuasquara"
+                            value={option}
+                            checked={formData.connaissanceQuasquara === option}
+                            onChange={handleInputChange}
+                            className="mr-2"
+                          />
+                          {option}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mb-6">
+                    <label className="block text-gray-700 font-semibold mb-2">
+                      2. Quelle est votre position sur cette affaire ?
+                    </label>
+                    <div className="space-y-2">
+                      {[
+                        {label: 'Maintien de la croix', value: 'Maintien'},
+                        {label: 'Retrait de la croix', value: 'Retrait'},
+                        {label: 'Sans avis', value: 'Sans'}
+                      ].map(option => (
+                        <label key={option.value} className="flex items-center cursor-pointer">
+                          <input
+                            type="radio"
+                            name="positionQuasquara"
+                            value={option.value}
+                            checked={formData.positionQuasquara === option.value}
+                            onChange={handleInputChange}
+                            className="mr-2"
+                          />
+                          {option.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mb-6">
+                    <label className="block text-gray-700 font-semibold mb-2">
+                      3. Qui devrait décider dans ce type de situation ?
+                    </label>
+                    <div className="space-y-2">
+                      {['Justice', 'Élus locaux', 'Référendum des habitants', 'Autre'].map(option => (
+                        <label key={option} className="flex items-center cursor-pointer">
+                          <input
+                            type="radio"
+                            name="quiDecide"
+                            value={option}
+                            checked={formData.quiDecide === option}
+                            onChange={handleInputChange}
+                            className="mr-2"
+                          />
+                          {option}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-l-4 border-blue-900 pl-4">
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">Démocratie locale à Corte</h2>
+                  
+                  <div className="mb-6">
+                    <label className="block text-gray-700 font-semibold mb-2">
+                      4. Êtes-vous satisfait de la démocratie locale actuelle ?
+                    </label>
+                    <div className="flex items-center space-x-4">
+                      <span className="text-sm text-gray-600">Pas du tout (1)</span>
+                      {[1, 2, 3, 4, 5].map(num => (
+                        <label key={num} className="flex items-center cursor-pointer">
+                          <input
+                            type="radio"
+                            name="satisfactionDemocratie"
+                            value={num}
+                            checked={formData.satisfactionDemocratie === num}
+                            onChange={handleInputChange}
+                            className="mr-1"
+                          />
+                          {num}
+                        </label>
+                      ))}
+                      <span className="text-sm text-gray-600">Très satisfait (5)</span>
+                    </div>
+                  </div>
+
+                  <div className="mb-6">
+                    <label className="block text-gray-700 font-semibold mb-2">
+                      5. Seriez-vous favorable à des référendums locaux sur des questions importantes ?
+                    </label>
+                    <div className="space-y-2">
+                      {[
+                        {label: 'Oui', value: 'Oui'},
+                        {label: 'Non', value: 'Non'},
+                        {label: 'Selon les sujets', value: 'Selon'}
+                      ].map(option => (
+                        <label key={option.value} className="flex items-center cursor-pointer">
+                          <input
+                            type="radio"
+                            name="favorableReferendum"
+                            value={option.value}
+                            checked={formData.favorableReferendum === option.value}
+                            onChange={handleInputChange}
+                            className="mr-2"
+                          />
+                          {option.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mb-6">
+                    <label className="block text-gray-700 font-semibold mb-2">
+                      6. Sur quels sujets ces référendums devraient-ils porter ? (choix multiples)
+                    </label>
+                    <div className="space-y-2">
+                      {['urbanisme', 'culture', 'budget', 'environnement', 'patrimoine', 'autre'].map(option => (
+                        <label key={option} className="flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            name="sujetsReferendum"
+                            value={option}
+                            checked={formData.sujetsReferendum.includes(option)}
+                            onChange={handleInputChange}
+                            className="mr-2"
+                          />
+                          {option.charAt(0).toUpperCase() + option.slice(1)}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-l-4 border-orange-500 pl-4">
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">Profil (optionnel)</h2>
+                  
+                  <div className="mb-6">
+                    <label className="block text-gray-700 font-semibold mb-2">
+                      7. Quartier de Corte
+                    </label>
+                    <input
+                      type="text"
+                      name="quartier"
+                      value={formData.quartier}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                      placeholder="Ex: Centre-ville, Citadelle..."
+                    />
+                  </div>
+
+                  <div className="mb-6">
+                    <label className="block text-gray-700 font-semibold mb-2">
+                      8. Tranche d'âge
+                    </label>
+                    <select
+                      name="age"
+                      value={formData.age}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="">-- Sélectionnez --</option>
+                      <option value="18-25">18-25 ans</option>
+                      <option value="26-40">26-40 ans</option>
+                      <option value="41-60">41-60 ans</option>
+                      <option value="60+">60 ans et plus</option>
+                    </select>
+                  </div>
+
+                  <div className="mb-6">
+                    <label className="block text-gray-700 font-semibold mb-2">
+                      9. Depuis combien de temps habitez-vous Corte ?
+                    </label>
+                    <select
+                      name="dureeHabitation"
+                      value={formData.dureeHabitation}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="">-- Sélectionnez --</option>
+                      <option value="<1 an">Moins d'1 an</option>
+                      <option value="1-5 ans">1 à 5 ans</option>
+                      <option value="5-10 ans">5 à 10 ans</option>
+                      <option value=">10 ans">Plus de 10 ans</option>
+                      <option value="toute ma vie">Toute ma vie</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="border-l-4 border-blue-900 pl-4">
+                  <div className="mb-6">
+                    <label className="block text-gray-700 font-semibold mb-2">
+                      10. Commentaire libre
+                    </label>
+                    <textarea
+                      name="commentaire"
+                      value={formData.commentaire}
+                      onChange={handleInputChange}
+                      rows="4"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                      placeholder="Vos suggestions, remarques..."
+                    />
+                  </div>
+
+                  <div className="mb-6 bg-gray-50 p-4 rounded-md">
+                    <label className="block text-gray-700 font-semibold mb-2">
+                      Souhaitez-vous être tenu informé de nos propositions ?
+                    </label>
+                    <div className="flex items-center mb-3">
+                      <input
+                        type="checkbox"
+                        name="accepteContact"
+                        checked={formData.accepteContact}
+                        onChange={handleInputChange}
+                        className="mr-2 cursor-pointer"
+                      />
+                      <span className="text-gray-700">Oui, je souhaite être contacté</span>
+                    </div>
+                    {formData.accepteContact && (
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                        placeholder="Votre email"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleSubmit}
+                  className="w-full py-3 px-6 text-white font-bold rounded-md text-lg hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: '#FF5722' }}
+                >
+                  Envoyer ma réponse
+                </button>
+              </div>
+
+              <div className="mt-8 text-center">
+                <button
+                  onClick={() => setPage('results')}
+                  className="text-blue-900 underline hover:text-blue-700"
+                >
+                  Voir les résultats de la consultation
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <footer className="bg-gray-800 text-white py-6 mt-12">
+          <div className="max-w-4xl mx-auto px-4 text-center">
+            <p className="mb-2">Une initiative #PERTITELLU - Corti Capitale</p>
+            <a 
+              href="https://www.facebook.com/groups/1269635707349220"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-orange-400 hover:text-orange-300"
+            >
+              Rejoignez-nous sur Facebook
+            </a>
+          </div>
+        </footer>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white shadow-sm">
+        <div className="max-w-6xl mx-auto px-4 py-6">
+          <div className="text-center">
+            <div className="mb-4">
+              <div className="text-5xl font-bold" style={{ color: '#FF5722' }}>
+                #PERTITELLU
+              </div>
+              <div className="h-1 bg-blue-900 my-3 max-w-2xl mx-auto"></div>
+              <div className="text-4xl font-bold text-blue-900">
+                CORTI<br/>CAPITALE
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="bg-white rounded-lg shadow-md p-8">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Résultats de la consultation</h1>
+          <p className="text-gray-600 mb-6">
+            {stats?.totalResponses} participation{stats?.totalResponses > 1 ? 's' : ''} enregistrée{stats?.totalResponses > 1 ? 's' : ''}
+          </p>
+
+          {stats && (
+            <div className="space-y-12">
+              <div>
+                <h2 className="text-xl font-bold text-gray-800 mb-4">Connaissance de l'affaire de Quasquara</h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={stats.connaissanceData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({name, value}) => `${name}: ${value}`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {stats.connaissanceData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div>
+                <h2 className="text-xl font-bold text-gray-800 mb-4">Position sur l'affaire</h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={stats.positionData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="#FF5722" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div>
+                <h2 className="text-xl font-bold text-gray-800 mb-4">Qui devrait décider ?</h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={stats.decisionData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="#1A4D7C" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div>
+                <h2 className="text-xl font-bold text-gray-800 mb-4">Satisfaction de la démocratie locale</h2>
+                <div className="text-center">
+                  <div className="text-6xl font-bold" style={{ color: '#FF5722' }}>
+                    {stats.satisfactionMoyenne.toFixed(1)}/5
+                  </div>
+                  <p className="text-gray-600 mt-2">Note moyenne</p>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-xl font-bold text-gray-800 mb-4">Favorable aux référendums locaux ?</h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={stats.referendumData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({name, value}) => `${name}: ${value}`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {stats.referendumData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {stats.sujetsData.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">Sujets prioritaires pour les référendums</h2>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={stats.sujetsData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="value" fill="#FF5722" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="mt-8 text-center">
+            <button
+              onClick={() => setPage('form')}
+              className="py-3 px-6 text-white font-bold rounded-md hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: '#1A4D7C' }}
+            >
+              Participer à la consultation
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <footer className="bg-gray-800 text-white py-6 mt-12">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <p className="mb-2">Une initiative #PERTITELLU - Corti Capitale</p>
+          <a 
+            href="https://www.facebook.com/groups/1269635707349220"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-orange-400 hover:text-orange-300"
+          >
+            Rejoignez-nous sur Facebook
+          </a>
+        </div>
+      </footer>
+    </div>
+  );
+}
