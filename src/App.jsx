@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import Methodologie from './pages/Methodologie';
 
 const COLORS = ['#FF5722', '#1A4D7C', '#FFA726', '#42A5F5', '#66BB6A'];
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz2KTFI6M2VNQyaFI_Oll2apNpdVzDJLOyfvd9lYD2G8ejFljd9Zvj11z0E7LZZnuZy/exec';
@@ -562,14 +564,22 @@ export default function ConsultationPertitellu() {
         <footer className="bg-gray-800 text-white py-6 mt-12">
           <div className="max-w-4xl mx-auto px-4 text-center">
             <p className="mb-2">Une initiative #PERTITELLU - Corti Capitale</p>
-            <a 
-              href="https://www.facebook.com/groups/1269635707349220"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-orange-400 hover:text-orange-300"
-            >
-              Rejoignez-nous sur Facebook
-            </a>
+            <div className="flex justify-center gap-4 mb-2">
+              <Link 
+                to="/methodologie"
+                className="text-orange-400 hover:text-orange-300"
+              >
+                Méthodologie
+              </Link>
+              <a 
+                href="https://www.facebook.com/groups/1269635707349220"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-orange-400 hover:text-orange-300"
+              >
+                Facebook
+              </a>
+            </div>
           </div>
         </footer>
       </div>
@@ -753,16 +763,35 @@ export default function ConsultationPertitellu() {
       <footer className="bg-gray-800 text-white py-6 mt-12">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <p className="mb-2">Une initiative #PERTITELLU - Corti Capitale</p>
-          <a 
-            href="https://www.facebook.com/groups/1269635707349220"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-orange-400 hover:text-orange-300"
-          >
-            Rejoignez-nous sur Facebook
-          </a>
+          <div className="flex justify-center gap-4 mb-2">
+            <Link 
+              to="/methodologie"
+              className="text-orange-400 hover:text-orange-300"
+            >
+              Méthodologie
+            </Link>
+            <a 
+              href="https://www.facebook.com/groups/1269635707349220"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-orange-400 hover:text-orange-300"
+            >
+              Facebook
+            </a>
+          </div>
         </div>
       </footer>
     </div>
+  );
+}
+
+export function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<ConsultationPertitellu />} />
+        <Route path="/methodologie" element={<Methodologie />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
