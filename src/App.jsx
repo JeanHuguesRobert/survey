@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { Routes, Route, Link } from 'react-router-dom';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Methodologie from './pages/Methodologie';
 import { APP_VERSION, DEPLOY_DATE, GOOGLE_SCRIPT_URL, COLORS } from './constants';
@@ -833,12 +833,10 @@ export default function ConsultationPertitellu() {
 
 export function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<ConsultationPertitellu />} />
-        <Route path="/methodologie" element={<Methodologie />} />
-        <Route path="/audit" element={<Audit />} />
-      </Routes>
-    </BrowserRouter>
+    <Routes>
+      <Route path="/" element={<ConsultationPertitellu />} />
+      <Route path="/methodologie" element={<Methodologie />} />
+      <Route path="/audit" element={<Audit />} />
+    </Routes>
   );
 }
