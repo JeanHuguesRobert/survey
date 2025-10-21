@@ -4,6 +4,7 @@ import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Toolti
 import Methodologie from './pages/Methodologie';
 import { APP_VERSION, DEPLOY_DATE, GOOGLE_SCRIPT_URL, COLORS } from './constants';
 import Audit from './pages/Audit';
+import Kudocracy from './pages/Kudocracy';
 
 export default function ConsultationPertitellu() {
   const [page, setPage] = useState('form');
@@ -599,7 +600,10 @@ export default function ConsultationPertitellu() {
               <a href="/audit" className="text-orange-400 hover:text-orange-300">
                 Audit éthique
               </a>
-              <a 
+              <Link to="/kudocracy" className="text-orange-400 hover:text-orange-300">
+                Kudocracy
+              </Link>
+              <a
                 href="https://www.facebook.com/groups/1269635707349220"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -810,7 +814,10 @@ export default function ConsultationPertitellu() {
             <a href="/audit" className="text-orange-400 hover:text-orange-300">
               Audit éthique
             </a>
-            <a 
+            <Link to="/kudocracy" className="text-orange-400 hover:text-orange-300">
+              Kudocracy
+            </Link>
+            <a
               href="https://www.facebook.com/groups/1269635707349220"
               target="_blank"
               rel="noopener noreferrer"
@@ -837,6 +844,7 @@ export function App() {
       <Route path="/" element={<ConsultationPertitellu />} />
       <Route path="/methodologie" element={<Methodologie />} />
       <Route path="/audit" element={<Audit />} />
+      <Route path="/kudocracy" element={<Kudocracy />} />
     </Routes>
   );
 }
