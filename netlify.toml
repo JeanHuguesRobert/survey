@@ -17,5 +17,5 @@
   [headers.values]
     X-Frame-Options = "DENY"
     X-XSS-Protection = "1; mode=block"
-    Content-Security-Policy = "default-src 'self' 'unsafe-inline' 'unsafe-eval' *.netlify.app *.google.com *.facebook.com https://cdn.tailwindcss.com"
+    Content-Security-Policy = "default-src 'self' 'unsafe-inline' 'unsafe-eval' *.netlify.app *.google.com *.googleusercontent.com *.facebook.com https://cdn.tailwindcss.com"
     
