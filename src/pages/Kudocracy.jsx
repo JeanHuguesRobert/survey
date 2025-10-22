@@ -35,11 +35,16 @@ export default function Kudocracy() {
     if (error) throw error;
 
     if (data.user) {
-      await supabase.from('users').insert({
+      const { error: insertError } = await supabase.from('users').insert({
         id: data.user.id,
         email: data.user.email,
         display_name: displayName
       });
+      
+      if (insertError) {
+        console.error('Erreur création user dans table users:', insertError);
+        throw insertError;
+      }
     }
     setShowAuthModal(false);
   };

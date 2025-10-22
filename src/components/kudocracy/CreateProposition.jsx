@@ -65,6 +65,20 @@ export default function CreateProposition({ user }) {
     setLoading(true);
 
     try {
+      // DEBUG: Vérifions le user
+      console.log('User object:', user);
+      console.log('User ID:', user?.id);
+      
+      // Vérifions si le user existe dans la table users
+      const { data: userExists, error: userCheckError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
+        .single();
+      
+      console.log('User exists in DB?', userExists);
+      console.log('User check error?', userCheckError);
+
       const { data: proposition, error: propError } = await supabase
         .from('propositions')
         .insert({
