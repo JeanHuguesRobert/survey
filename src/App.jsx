@@ -48,7 +48,7 @@ function Footer() {
               rel="noopener noreferrer"
               className="text-orange-400 hover:text-orange-300"
             >
-              Facebook
+              Réseaux Sociaux
             </a>
             
             <a
