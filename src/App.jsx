@@ -18,7 +18,17 @@ function Footer() {
             <a href="/audit" className="text-orange-400 hover:text-orange-300">
               Audit éthique
             </a>
-            Autres services : 
+            Autres services :
+            
+            <a
+              href="https://app.tooljet.ai/applications/133a5d8d-9268-4813-8a46-0126a309b52a"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-orange-400 hover:text-orange-300"
+            >
+              Incidents
+            </a>
+            
             <a
               href="https://events-agenda-social.deploypad.app/"
               target="_blank"
@@ -27,16 +37,11 @@ function Footer() {
             >
               Agenda
             </a>
-            <a
-              href="https://wiki-corte-citoyen-0240441d.base44.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-orange-400 hover:text-orange-300"
-            >
-              Wiki
-            </a>            <Link to="/kudocracy" className="text-orange-400 hover:text-orange-300">
+            
+            <Link to="/kudocracy" className="text-orange-400 hover:text-orange-300">
               Propositions
             </Link>
+            
             <a
               href="https://www.facebook.com/groups/1269635707349220"
               target="_blank"
@@ -45,6 +50,16 @@ function Footer() {
             >
               Facebook
             </a>
+            
+            <a
+              href="https://wiki-corte-citoyen-0240441d.base44.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-orange-400 hover:text-orange-300"
+            >
+              Wiki
+            </a>
+
           </div>
           <div 
             className="text-xs text-gray-500 mt-4 cursor-help"
