@@ -6,6 +6,57 @@ import { APP_VERSION, DEPLOY_DATE, GOOGLE_SCRIPT_URL, COLORS } from './constants
 import Audit from './pages/Audit';
 import Kudocracy from './pages/Kudocracy';
 
+function Footer() {
+  return (
+    <footer className="bg-gray-800 text-white py-6 mt-12">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <p className="mb-2">Une initiative #PERTITELLU - Corti Capitale</p>
+          <div className="flex justify-center gap-4">
+            <Link to="/methodologie" className="text-orange-400 hover:text-orange-300">
+              Méthodologie
+            </Link>
+            <a href="/audit" className="text-orange-400 hover:text-orange-300">
+              Audit éthique
+            </a>
+            Autres services : 
+            <a
+              href="https://events-agenda-social.deploypad.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-orange-400 hover:text-orange-300"
+            >
+              Agenda
+            </a>
+            <a
+              href="https://wiki-corte-citoyen-0240441d.base44.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-orange-400 hover:text-orange-300"
+            >
+              Wiki
+            </a>            <Link to="/kudocracy" className="text-orange-400 hover:text-orange-300">
+              Propositions
+            </Link>
+            <a
+              href="https://www.facebook.com/groups/1269635707349220"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-orange-400 hover:text-orange-300"
+            >
+              Facebook
+            </a>
+          </div>
+          <div 
+            className="text-xs text-gray-500 mt-4 cursor-help"
+            title={`Déployé le ${DEPLOY_DATE}`}
+          >
+            v{APP_VERSION}
+          </div>
+        </div>
+      </footer>
+      );
+}
+
 export default function ConsultationPertitellu() {
   const [page, setPage] = useState('form');
   const [formData, setFormData] = useState({
@@ -587,40 +638,12 @@ export default function ConsultationPertitellu() {
                 </div>
               </div>
             </div>
-          )}
+          )
+          }
         </div>
 
-        <footer className="bg-gray-800 text-white py-6 mt-12">
-          <div className="max-w-4xl mx-auto px-4 text-center">
-            <p className="mb-2">Une initiative #PERTITELLU - Corti Capitale</p>
-            <div className="flex justify-center gap-4">
-              <Link to="/methodologie" className="text-orange-400 hover:text-orange-300">
-                Méthodologie
-              </Link>
-              <a href="/audit" className="text-orange-400 hover:text-orange-300">
-                Audit éthique
-              </a>
-              <Link to="/kudocracy" className="text-orange-400 hover:text-orange-300">
-                Kudocracy
-              </Link>
-              <a
-                href="https://www.facebook.com/groups/1269635707349220"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-orange-400 hover:text-orange-300"
-              >
-                Facebook
-              </a>
-            </div>
-            <div 
-              className="text-xs text-gray-500 mt-4 cursor-help"
-              title={`Déployé le ${DEPLOY_DATE}`}
-            >
-              v{APP_VERSION}
-            </div>
-          </div>
-        </footer>
-      </div>
+        <Footer />
+      </div> 
     );
   }
 
@@ -803,53 +826,6 @@ export default function ConsultationPertitellu() {
           </div>
         </div>
       </div>
-
-      <footer className="bg-gray-800 text-white py-6 mt-12">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <p className="mb-2">Une initiative #PERTITELLU - Corti Capitale</p>
-          <div className="flex justify-center gap-4">
-            <Link to="/methodologie" className="text-orange-400 hover:text-orange-300">
-              Méthodologie
-            </Link>
-            <a href="/audit" className="text-orange-400 hover:text-orange-300">
-              Audit éthique
-            </a>
-            <Link to="/kudocracy" className="text-orange-400 hover:text-orange-300">
-              Kudocracy v2.0 !
-            </Link>
-            <a
-              href="https://events-agenda-social.deploypad.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-orange-400 hover:text-orange-300"
-            >
-              Agenda
-            </a>
-            <a
-              href="https://wiki-corte-citoyen-0240441d.base44.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-orange-400 hover:text-orange-300"
-            >
-              Wiki
-            </a>
-            <a
-              href="https://www.facebook.com/groups/1269635707349220"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-orange-400 hover:text-orange-300"
-            >
-              Facebook
-            </a>
-          </div>
-          <div 
-            className="text-xs text-gray-500 mt-4 cursor-help"
-            title={`Déployé le ${DEPLOY_DATE}`}
-          >
-            v{APP_VERSION}
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
