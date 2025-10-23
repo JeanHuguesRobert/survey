@@ -815,8 +815,24 @@ export default function ConsultationPertitellu() {
               Audit éthique
             </a>
             <Link to="/kudocracy" className="text-orange-400 hover:text-orange-300">
-              Kudocracy
+              Kudocracy v2.0 !
             </Link>
+            <a
+              href="https://events-agenda-social.deploypad.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-orange-400 hover:text-orange-300"
+            >
+              Agenda
+            </a>
+            <a
+              href="https://wiki-corte-citoyen-0240441d.base44.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-orange-400 hover:text-orange-300"
+            >
+              Wiki
+            </a>
             <a
               href="https://www.facebook.com/groups/1269635707349220"
               target="_blank"
