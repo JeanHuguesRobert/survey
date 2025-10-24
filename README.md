@@ -125,24 +125,24 @@ Le projet est déployé automatiquement via Vercel/Netlify (selon configuration)
 
 ## 📜 Historique du projet
 
-### Phase 1 : Consultation citoyenne (Oct 2024)
+### Phase 1 : Consultation citoyenne
 - **v0.1.0** : Formulaire de consultation sur la démocratie locale
 - **v0.2.0** : Intégration Google Sheets pour stockage des réponses
 - **v0.3.0** : Graphiques interactifs (Recharts) pour visualisation des résultats
 - **v0.4.0** : Page Méthodologie et Audit éthique
 
-### Phase 2 : Kudocratie (Nov 2024)
+### Phase 2 : Kudocratie
 - **v0.5.0** : Système de propositions citoyennes
 - **v0.6.0** : Vote et délégation de vote
 - **v0.7.0** : Tableau de bord avec statistiques en temps réel
 - **v0.8.0** : Migration vers Supabase (PostgreSQL)
 
-### Phase 3 : Wiki collaboratif (Dec 2024)
+### Phase 3 : Wiki collaboratif
 - **v0.9.0** : Base du wiki avec affichage Markdown
 - **v0.9.5** : Édition inline et création de pages
 - **v1.0.0** : Lancement officiel avec wiki fonctionnel
 
-### Phase 4 : Améliorations UX (Jan 2025)
+### Phase 4 : Améliorations UX
 - **v1.0.1** : Refonte navigation wiki (routes dédiées)
 - **v1.0.2** : Boutons Partager et navigation prev/next
 - **v1.0.3** : Amélioration styles Markdown (H1-H6, listes, code)
