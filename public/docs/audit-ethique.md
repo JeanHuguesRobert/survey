@@ -1,6 +1,6 @@
 # Rapport d'audit éthique - Consultation citoyenne Pertitellu
 
-*Généré automatiquement le 20/10/2025*
+*Généré automatiquement le 24/10/2025*
 
 ## Synthèse
 
@@ -110,8 +110,8 @@ Le dispositif est conforme aux standards éthiques minimaux pour une consultatio
 Ce rapport d'audit éthique a été généré automatiquement lors du déploiement de l'application. Il fait partie intégrante de notre démarche de transparence.
 
 **Auteur :** Initiative Pertitellu  
-**Date de génération :** {DEPLOY_DATE}  
-**Version de l'application :** {APP_VERSION}  
+**Date de génération :** 24/10/2025  
+**Version de l'application :** 1.0.4  
 **Standards appliqués :** ESOMAR/WAPOR pour les sondages d'opinion publique  
 **Source :** Le code source de ce rapport est disponible sur [GitHub](https://github.com/jeanhuguesrobert/survey/blob/main/docs/audit-ethique.md)
 
