@@ -4,6 +4,7 @@ import PropositionList from '../components/kudocracy/PropositionList';
 import CreateProposition from '../components/kudocracy/CreateProposition';
 import DelegationManager from '../components/kudocracy/DelegationManager';
 import VotingDashboard from '../components/kudocracy/VotingDashboard';
+import { Link } from 'react-router-dom';
 
 export default function Kudocracy() {
   const [activeTab, setActiveTab] = useState('browse');
@@ -138,6 +139,15 @@ export default function Kudocracy() {
           onSignUp={handleSignUp}
         />
       )}
+
+      <footer className="mt-8 flex justify-center">
+        <Link
+          to="/"
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-semibold"
+        >
+          Retour à l'accueil
+        </Link>
+      </footer>
     </div>
   );
 }
