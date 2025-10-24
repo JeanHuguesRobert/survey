@@ -5,6 +5,10 @@ import Methodologie from './pages/Methodologie';
 import { APP_VERSION, DEPLOY_DATE, GOOGLE_SCRIPT_URL, COLORS } from './constants';
 import Audit from './pages/Audit';
 import Kudocracy from './pages/Kudocracy';
+import Wiki from './pages/Wiki';
+import WikiPage from './pages/WikiPage';
+import WikiCreate from './pages/WikiCreate';
+import WikiEdit from './pages/WikiEdit';
 
 function Footer() {
   return (
@@ -43,6 +47,15 @@ function Footer() {
             </Link>
             
             <a
+              href="https://entraide-cortenaise.lovable.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-orange-400 hover:text-orange-300"
+            >
+              Bénévolat
+            </a>
+
+            <a
               href="https://www.facebook.com/groups/1269635707349220"
               target="_blank"
               rel="noopener noreferrer"
@@ -51,21 +64,15 @@ function Footer() {
               Réseaux Sociaux
             </a>
             
-            <a
-              href="https://wiki-corte-citoyen-0240441d.base44.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-orange-400 hover:text-orange-300"
-            >
+            <Link to="/wiki" className="text-orange-400 hover:text-orange-300">
               Wiki
-            </a>
+            </Link>
 
           </div>
           <div 
             className="text-xs text-gray-500 mt-4 cursor-help"
-            title={`Déployé le ${DEPLOY_DATE}`}
           >
-            v{APP_VERSION}
+            Version ${APP_VERSION}, déployée le ${DEPLOY_DATE}`
           </div>
         </div>
       </footer>
@@ -852,6 +859,10 @@ export function App() {
       <Route path="/methodologie" element={<Methodologie />} />
       <Route path="/audit" element={<Audit />} />
       <Route path="/kudocracy" element={<Kudocracy />} />
+      <Route path="/wiki" element={<Wiki />} />
+      <Route path="/wiki/new" element={<WikiCreate />} />
+      <Route path="/wiki/:slug" element={<WikiPage />} />
+      <Route path="/wiki/:slug/edit" element={<WikiEdit />} />
     </Routes>
   );
 }
