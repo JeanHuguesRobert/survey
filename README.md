@@ -2,6 +2,8 @@
 
 Une plateforme de consultation citoyenne pour les élections municipales de Corte, incluant un wiki collaboratif et un système de propositions citoyennes (Kudocratie).
 
+Disponible en version [Prototype](https://lucky-concha-a9fcd2.netlify.app/)
+
 ## 🚀 Fonctionnalités principales
 
 ### 1. Consultation citoyenne
