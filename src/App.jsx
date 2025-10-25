@@ -19,10 +19,10 @@ function Footer() {
             <Link to="/methodologie" className="text-orange-400 hover:text-orange-300">
               Méthodologie
             </Link>
-            <a href="/audit" className="text-orange-400 hover:text-orange-300">
+            <Link to="/audit" className="text-orange-400 hover:text-orange-300">
               Audit éthique
-            </a>
-            Autres services :
+            </Link>
+            Autres services
             
             <a
               href="https://app.tooljet.ai/applications/133a5d8d-9268-4813-8a46-0126a309b52a"
