@@ -95,6 +95,7 @@ export default function ConsultationPertitellu() {
     dureeHabitation: '',
     email: '',
     accepteContact: false,
+    participationEtudeIA: false,
     commentaire: ''
   });
   
@@ -624,6 +625,28 @@ export default function ConsultationPertitellu() {
                         placeholder="Votre email"
                       />
                     )}
+                    
+                    <div className="flex items-center mt-4">
+                      <input
+                        type="checkbox"
+                        name="participationEtudeIA"
+                        checked={formData.participationEtudeIA}
+                        onChange={handleInputChange}
+                        className="mr-2 cursor-pointer"
+                      />
+                      <span className="text-gray-700">
+                        Je veux aussi participer à l'étude IA pour tous
+                        <span 
+                          className="ml-2 inline-block cursor-pointer text-blue-500 hover:text-blue-700"
+                          title="Informations sur l'étude IA pour tous"
+                          onClick={() => window.open('https://www.ia-pour-tous.fr', '_blank')}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9z" clipRule="evenodd" />
+                          </svg>
+                        </span>
+                      </span>
+                    </div>
                   </div>
                 </div>
 
