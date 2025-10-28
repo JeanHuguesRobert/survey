@@ -118,6 +118,7 @@ Le projet est déployé automatiquement via Vercel/Netlify (selon configuration)
 - ✅ Hiérarchie typographique H1-H6 rétablie
 - ✅ Styles Markdown améliorés (listes, citations, code)
 - ✅ Renommage "slug" → "adresse de la page" dans l'UI
+- ✅ Bouton "Archiver" → [dépot github "pertidellu"](https://github.com/JeanHuguesRobert/pertitellu/tree/main/wiki)
 
 ### Général
 - ✅ Correction affichage version/date de déploiement
