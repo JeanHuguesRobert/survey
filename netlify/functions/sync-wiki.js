@@ -1,86 +1,163 @@
-import { useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
+import { GITHUB_CONFIG, SUPABASE_CONFIG } from '../constants.js';
 
-export function ArchiveButton({ pageId, slug }) {
-  const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState(null);
+const supabase = createClient(
+  SUPABASE_CONFIG.url,
+  SUPABASE_CONFIG.serviceKey
+);
 
-  const handleArchive = async () => {
-    setLoading(true);
-    setStatus(null);
+export default async (req, context) => {
+  // Vérifier la méthode
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 
-    try {
-      const body = pageId ? { pageId } : { slug };
-      
-      console.log('📤 Envoi vers Netlify:', body);
-      
-      const response = await fetch('/.netlify/functions/sync-wiki', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
+  try {
+    const { pageId, slug } = await req.json();
+
+    if (!pageId && !slug) {
+      return new Response(JSON.stringify({ error: 'pageId or slug required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
       });
-
-      console.log('📥 Response status:', response.status);
-      console.log('📥 Response headers:', response.headers);
-
-      const text = await response.text();
-      console.log('📥 Response text:', text);
-
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (e) {
-        throw new Error(`Invalid JSON response: ${text.substring(0, 200)}`);
-      }
-
-      if (response.ok) {
-        setStatus({
-          type: 'success',
-          message: data.message === 'Already synced today' 
-            ? '✅ Déjà archivé aujourd\'hui'
-            : '✅ Page archivée sur GitHub !'
-        });
-      } else {
-        setStatus({
-          type: 'error',
-          message: `❌ Erreur: ${data.error}`
-        });
-      }
-    } catch (error) {
-      setStatus({
-        type: 'error',
-        message: `❌ Erreur: ${error.message}`
-      });
-    } finally {
-      setLoading(false);
     }
+
+    // 1. Récupérer la page depuis Supabase
+    let query = supabase.from('wiki_pages').select('*');
+    
+    if (pageId) {
+      query = query.eq('id', pageId);
+    } else {
+      query = query.eq('slug', slug);
+    }
+    
+    const { data: page, error: pageError } = await query.single();
+
+    if (pageError || !page) {
+      return new Response(JSON.stringify({ error: 'Page not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // 2. Vérifier si déjà synced aujourd'hui
+    const today = new Date().toISOString().split('T')[0];
+    const { data: lastSync } = await supabase
+      .from('git_sync_log')
+      .select('*')
+      .eq('page_id', page.id)
+      .eq('last_sync_date', today)
+      .single();
+
+    if (lastSync) {
+      return new Response(JSON.stringify({ 
+        message: 'Already synced today',
+        commit_sha: lastSync.commit_sha 
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // 3. Préparer le contenu Markdown avec frontmatter
+    const frontmatter = `---
+title: ${page.title}
+slug: ${page.slug}
+author_id: ${page.author_id || 'unknown'}
+created_at: ${page.created_at}
+updated_at: ${page.updated_at}
+---
+
+`;
+    const content = frontmatter + page.content;
+
+    // 4. Commit sur GitHub
+    const filePath = `${GITHUB_CONFIG.wikiPath}/${page.slug}.md`;
+    const commitSha = await commitToGitHub(filePath, content, page.title);
+
+    // 5. Logger le sync
+    await supabase.from('git_sync_log').insert({
+      page_id: page.id,
+      last_sync_date: today,
+      commit_sha: commitSha
+    });
+
+    return new Response(JSON.stringify({ 
+      success: true,
+      commit_sha: commitSha,
+      file_path: filePath
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+  } catch (error) {
+    console.error('Sync error:', error);
+    return new Response(JSON.stringify({ 
+      error: error.message 
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+};
+
+async function commitToGitHub(path, content, title) {
+  const { owner, repo, branch, token } = GITHUB_CONFIG;
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+
+  // 1. Vérifier si le fichier existe déjà
+  let sha = null;
+  try {
+    const getResponse = await fetch(url, {
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+
+    if (getResponse.ok) {
+      const data = await getResponse.json();
+      sha = data.sha;
+    }
+  } catch (e) {
+    // Fichier n'existe pas, c'est OK
+  }
+
+  // 2. Créer ou mettre à jour le fichier
+  const contentBase64 = Buffer.from(content, 'utf8').toString('base64');
+  const commitMessage = sha 
+    ? `Update: ${title} - ${new Date().toISOString().split('T')[0]}`
+    : `Create: ${title} - ${new Date().toISOString().split('T')[0]}`;
+
+  const body = {
+    message: commitMessage,
+    content: contentBase64,
+    branch: branch
   };
 
-  return (
-    <div className="flex flex-col gap-2">
-      <button
-        onClick={handleArchive}
-        disabled={loading}
-        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-      >
-        {loading ? 'Archivage en cours...' : '📦 Archiver sur GitHub'}
-      </button>
+  if (sha) {
+    body.sha = sha;
+  }
 
-      {status && (
-        <div className={`p-3 rounded ${
-          status.type === 'success' 
-            ? 'bg-green-100 text-green-800' 
-            : 'bg-red-100 text-red-800'
-        }`}>
-          {status.message}
-        </div>
-      )}
-    </div>
-  );
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `token ${token}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`GitHub API error: ${error}`);
+  }
+
+  const result = await response.json();
+  return result.commit.sha;
 }
-
-// Utilisation dans votre page d'édition :
-// Avec ID : <ArchiveButton pageId={currentPage.id} />
-// Avec slug : <ArchiveButton slug={currentPage.slug} />
-// Les deux marchent !
