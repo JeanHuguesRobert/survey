@@ -3,8 +3,8 @@
   command = "npm run build"
   functions = "netlify/functions"
 
-[functions]
-  node_bundler = "esbuild"
+  node_bundler = "esbuild_zisi"
+  external_node_modules = ["@supabase/supabase-js"]
 
 [[redirects]]
   from = "/audit"
