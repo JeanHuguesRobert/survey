@@ -5,6 +5,73 @@ import remarkGfm from 'remark-gfm';
 import { supabase } from '../lib/supabase';
 import ErrorBoundary from '../components/ErrorBoundary';
 
+export function ArchiveButton({ pageId, slug }) {
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState(null);
+
+  const handleArchive = async () => {
+    setLoading(true);
+    setStatus(null);
+
+    try {
+      const body = pageId ? { pageId } : { slug };
+      
+      const response = await fetch('/.netlify/functions/sync-wiki', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setStatus({
+          type: 'success',
+          message: data.message === 'Already synced today' 
+            ? '✅ Déjà archivé aujourd\'hui'
+            : '✅ Page archivée sur GitHub !'
+        });
+      } else {
+        setStatus({
+          type: 'error',
+          message: `❌ Erreur: ${data.error}`
+        });
+      }
+    } catch (error) {
+      setStatus({
+        type: 'error',
+        message: `❌ Erreur: ${error.message}`
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <button
+        onClick={handleArchive}
+        disabled={loading}
+        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+      >
+        {loading ? 'Archivage en cours...' : '📦 Archiver'}
+      </button>
+
+      {status && (
+        <div className={`p-3 rounded ${
+          status.type === 'success' 
+            ? 'bg-green-100 text-green-800' 
+            : 'bg-red-100 text-red-800'
+        }`}>
+          {status.message}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function WikiPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -89,18 +156,22 @@ export default function WikiPage() {
             <p className="text-sm text-gray-500 mt-2">Adresse de la page : /wiki/{page.slug}</p>
           </div>
           <div className="flex gap-3">
+            
             <button
               onClick={handleShare}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
               Partager
             </button>
+            
             <button
               onClick={() => navigate(`/wiki/${page.slug}/edit`)}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
               Modifier
             </button>
+
+            <ArchiveButton slug={page.slug} />
           </div>
         </header>
 
