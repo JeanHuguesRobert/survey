@@ -72,7 +72,7 @@ function Footer() {
           <div 
             className="text-xs text-gray-500 mt-4 cursor-help"
           >
-            Version ${APP_VERSION}, déployée le ${DEPLOY_DATE}`
+            Version {APP_VERSION}, déployée le {DEPLOY_DATE}`
           </div>
         </div>
       </footer>
@@ -635,10 +635,10 @@ export default function ConsultationPertitellu() {
                         className="mr-2 cursor-pointer"
                       />
                       <span className="text-gray-700">
-                        Je veux aussi participer à l'étude IA pour tous
+                        Je veux aussi participer à l'étude &quot;IA pour tous&quot;
                         <span 
                           className="ml-2 inline-block cursor-pointer text-blue-500 hover:text-blue-700"
-                          title="Informations sur l'étude IA pour tous"
+                          title="Informations sur l'étude &quot;IA pour tous&quot;"
                           onClick={() => window.open('https://www.ia-pour-tous.fr', '_blank')}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline" viewBox="0 0 20 20" fill="currentColor">
