@@ -23,6 +23,17 @@ Disponible en version [Prototype](https://lucky-concha-a9fcd2.netlify.app/)
 - Délégation de vote sur des sujets spécifiques
 - Tableau de bord des résultats
 
+### 4. Transparence & participation renforcée
+- **Enquête Transparence** : sur le respect du public lors des conseils municipaux
+- **Engagement collectif** : publication des audits, engagements éthiques et résultats de consultation
+- **IA pour tous** *(à venir)* : programme d’expérimentation citoyenne sur l’IA conversationnelle
+
+### 5. Services additionnels
+- Signalement d’incidents urbains
+- Agenda social partagé
+- Plateforme d’entraide bénévole
+- Accès direct aux réseaux sociaux du mouvement
+
 ## 🛠️ Stack technique
 
 - **Frontend** : React 18 + Vite
@@ -44,6 +55,8 @@ src/
 │   ├── WikiPage.jsx       # Affichage d'une page
 │   ├── WikiCreate.jsx     # Création de page
 │   ├── WikiEdit.jsx       # Édition de page
+│   ├── Transparence.jsx   # Enquête Transparence
+│   ├── Bob.jsx            # Prototype IA conversationnelle (à venir)
 │   ├── Kudocracy.jsx
 │   ├── Methodologie.jsx
 │   └── Audit.jsx
@@ -190,11 +203,12 @@ Cette plateforme participe à l’initiative citoyenne « Transparence » visant
 - **v0.9.5** : Édition inline et création de pages
 - **v1.0.0** : Lancement officiel avec wiki fonctionnel
 
-### Phase 4 : Améliorations UX
+### Phase 4 : Améliorations UX (Jan 2025)
 - **v1.0.1** : Refonte navigation wiki (routes dédiées)
 - **v1.0.2** : Boutons Partager et navigation prev/next
 - **v1.0.3** : Amélioration styles Markdown (H1-H6, listes, code)
 - **v1.0.4** : Renommage "slug" → "adresse", corrections finales
+- **v1.0.5** : Lancement de l’enquête Transparence et intégration du programme “IA pour tous”
 
 ### Roadmap future
 - 🔄 Système de notifications pour nouveaux contenus
@@ -202,6 +216,8 @@ Cette plateforme participe à l’initiative citoyenne « Transparence » visant
 - 🔄 Modération collaborative (signalement de pages)
 - 🔄 Export PDF des résultats de consultation
 - 🔄 Intégration cartographique pour les propositions locales
+- 🔄 Lancement du module IA conversationnelle #Pertitellu Bot
+- 🔄 Tableau de bord Transparence avec données financières ouvertes
 
 ## 📄 Licence
 

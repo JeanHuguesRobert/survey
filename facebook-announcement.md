@@ -1,4 +1,4 @@
-🎉 **Nouvelle version v1.0.4 de la plateforme #PERTITELLU !**
+🎉 **Nouvelle version v1.1.0 de la plateforme #PERTITELLU !**
 
 📱 **Une plateforme citoyenne complète au service de la démocratie locale à Corte**
 
@@ -45,7 +45,7 @@ Redonner le pouvoir aux citoyens de Corte pour construire ensemble l'avenir de n
 
 ### 💪 REJOIGNEZ LE MOUVEMENT
 
-👉 Plateforme : [site](https://lucky-concha-a9fcd2.netlify.app/)
+👉 Plateforme : [site](http://lepp.fr)
 👥 Groupe Facebook : https://www.facebook.com/groups/1269635707349220
 
 **#PERTITELLU** | **CORTI CAPITALE**
@@ -53,7 +53,7 @@ Redonner le pouvoir aux citoyens de Corte pour construire ensemble l'avenir de n
 
 ---
 
-📧 Contact : contact@pertitellu.org
+📧 Contact : contact@lepp.fr
 🌐 En savoir plus : [lien méthodologie]
 
 **Ensemble, faisons vivre la démocratie locale ! 🚀**
