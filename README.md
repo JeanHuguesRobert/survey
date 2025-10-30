@@ -124,6 +124,53 @@ Le projet est déployé automatiquement via Vercel/Netlify (selon configuration)
 - ✅ Correction affichage version/date de déploiement
 - ✅ Amélioration des messages d'erreur
 
+### Audit éthique
+- ✅ Intégration du composant `AuditContent` avec rendu Markdown dynamique (`react-markdown` + `remark-gfm`)
+- ✅ Fichier `audit-ethique.md` servi depuis `public/docs/` et accessible via la page `/audit`
+- ✅ Correction de la navigation vers `/audit` (remplacement des balises `<a>` par `Link` React Router)
+- ✅ Encapsulation du contenu Markdown dans `div.markdown-content` pour une application fiable des styles
+
+### Consultation
+- ✅ Ajout d’une case à cocher « Je veux participer à l’étude IA pour tous » après la question de consentement
+- ✅ Icône d’information ouvrant une publication externe (nouvel onglet)
+- ✅ Prise en charge de la nouvelle colonne Google Sheet « IA pour tous » pour les réponses
+
+### Sécurité (CSP)
+- ✅ Mise à jour de `netlify.toml` (directive `default-src`) : ajout de `fonts.googleapis.com`, `fonts.gstatic.com`, `*.w3.org` et `data:` pour corriger les blocages de polices et SVG
+
+### Transparence (Enquête nationale)
+- ✅ Documentation ajoutée et alignement avec l’initiative « Transparence »
+- ✅ Résultats agrégés et partageables depuis la page des résultats et Google Sheets
+- ✅ Respect des principes d’auditabilité, lisibilité et interopérabilité des données
+
+## 🧭 Enquête nationale « Transparence »
+
+Cette plateforme participe à l’initiative citoyenne « Transparence » visant à rendre les consultations locales lisibles, auditables et interopérables à l’échelle nationale.
+
+- Objectifs
+  - Rendre les résultats compréhensibles par tous, vérifiables et réutilisables
+  - Favoriser la comparaison entre territoires et thématiques
+  - Encourager la participation citoyenne et la publication responsable des données
+
+- Intégration dans ce projet
+  - Les réponses sont anonymisées et agrégées pour les visualisations
+  - Les résultats sont accessibles depuis la page `Résultats` de l’application
+  - Les exports (CSV/Sheets) facilitent le partage et la réutilisation
+
+- Données et confidentialité
+  - Respect du RGPD : aucune donnée sensible collectée
+  - L’email est facultatif et uniquement si l’utilisateur souhaite être recontacté
+  - La case « IA pour tous » permet de signaler une participation volontaire à une étude connexe
+
+- Participer et contribuer
+  - Remplir le formulaire de consultation (#PERTITELLU – Corti Capitale)
+  - Partager la consultation via le bouton `Partager` pour élargir la participation
+  - Proposer des améliorations via issues/PR (voir section Contribution)
+
+- Références
+  - Contact : `contact@pertitellu.org`
+  - Documentation complémentaire à ajouter par les mainteneurs (lien officiel « Transparence »)
+
 ## 📜 Historique du projet
 
 ### Phase 1 : Consultation citoyenne

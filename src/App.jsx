@@ -9,6 +9,8 @@ import Wiki from './pages/Wiki';
 import WikiPage from './pages/WikiPage';
 import WikiCreate from './pages/WikiCreate';
 import WikiEdit from './pages/WikiEdit';
+import Bob from './pages/Bob';
+import Transparence from './pages/Transparence';
 
 function Footer() {
   return (
@@ -16,12 +18,16 @@ function Footer() {
         <div className="max-w-4xl mx-auto px-4 text-center">
           <p className="mb-2">Une initiative #PERTITELLU - Corti Capitale</p>
           <div className="flex justify-center gap-4">
+            <Link to="/transparence" className="text-orange-400 hover:text-orange-300">
+              Petit Parti - Enqu&ecirc;te Transparence
+            </Link>
             <Link to="/methodologie" className="text-orange-400 hover:text-orange-300">
               Méthodologie
             </Link>
             <Link to="/audit" className="text-orange-400 hover:text-orange-300">
               Audit éthique
             </Link>
+            
             Autres services
             
             <a
@@ -66,6 +72,10 @@ function Footer() {
             
             <Link to="/wiki" className="text-orange-400 hover:text-orange-300">
               Wiki
+            </Link>
+
+            <Link to="/bob" className="text-orange-400 hover:text-orange-300">
+              AI
             </Link>
 
           </div>
@@ -879,6 +889,7 @@ export function App() {
   return (
     <Routes>
       <Route path="/" element={<ConsultationPertitellu />} />
+      <Route path="/transparence" element={<Transparence />} />
       <Route path="/methodologie" element={<Methodologie />} />
       <Route path="/audit" element={<Audit />} />
       <Route path="/kudocracy" element={<Kudocracy />} />
