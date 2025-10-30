@@ -203,12 +203,12 @@ Cette plateforme participe à l’initiative citoyenne « Transparence » visant
 - **v0.9.5** : Édition inline et création de pages
 - **v1.0.0** : Lancement officiel avec wiki fonctionnel
 
-### Phase 4 : Améliorations UX (Jan 2025)
+### Phase 4 : Améliorations UX
 - **v1.0.1** : Refonte navigation wiki (routes dédiées)
 - **v1.0.2** : Boutons Partager et navigation prev/next
 - **v1.0.3** : Amélioration styles Markdown (H1-H6, listes, code)
 - **v1.0.4** : Renommage "slug" → "adresse", corrections finales
-- **v1.0.5** : Lancement de l’enquête Transparence et intégration du programme “IA pour tous”
+- **v1.1.0** : Lancement de l’enquête Transparence et intégration du programme “IA pour tous”
 
 ### Roadmap future
 - 🔄 Système de notifications pour nouveaux contenus
