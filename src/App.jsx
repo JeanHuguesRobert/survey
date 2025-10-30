@@ -24,9 +24,6 @@ function Footer() {
             <Link to="/methodologie" className="text-orange-400 hover:text-orange-300">
               Méthodologie
             </Link>
-            <Link to="/audit" className="text-orange-400 hover:text-orange-300">
-              Audit éthique
-            </Link>
             
             Autres services
             
