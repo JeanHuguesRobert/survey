@@ -210,4 +210,4 @@ MIT - Projet open-source pour la démocratie locale
 ## 🤝 Contact
 
 Initiative #PERTITELLU - Corti Capitale  
-📧 [contact@pertitellu.org](mailto:contact@pertitellu.org)
+📧 [jeanhuguesrobert@gmail.com](mailto:jeanhuguesrobert@gmail.com)
