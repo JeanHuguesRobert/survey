@@ -1,4 +1,6 @@
-export const APP_VERSION = '1.1.1';
-export const DEPLOY_DATE = '2025-10-30';
-export const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz2KTFI6M2VNQyaFI_Oll2apNpdVzDJLOyfvd9lYD2G8ejFljd9Zvj11z0E7LZZnuZy/exec';
-export const COLORS = ['#FF5722', '#1A4D7C', '#FFA726', '#42A5F5', '#66BB6A'];
+export const APP_VERSION = '1.1.2';
+export const DEPLOY_DATE = '2025-10-31';
+export const COLORS = ['#F54928', '#0A3F73', '#FFA726', '#42A5F5', '#66BB6A'];
+export const PRIMARY_COLOR = '#F54928'; // Orange #Pertitellu
+export const SECONDARY_COLOR = '#0A3F73'; // Bleu Corti Capitale
+export const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwyzcR0hiou7CiQTv35Jek8CWgHTBPptps65v76YqISjE64J5tC1PkPVOb_QaIdZ5Vc/exec';

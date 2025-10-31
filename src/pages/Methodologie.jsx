@@ -113,7 +113,7 @@ export default function Methodologie() {
 
       <footer className="bg-gray-800 text-white py-6 mt-12">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <p className="mb-2">Une initiative #PERTITELLU - Corti Capitale</p>
+          <p className="mb-2">Une initiative #Pertitellu - Corti Capitale</p>
           <a 
             href="https://www.facebook.com/groups/1269635707349220"
             target="_blank"

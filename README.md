@@ -1,4 +1,4 @@
-# 📊 Consultation Citoyenne Pertitellu
+# 📊 Consultation Citoyenne Petit Parti / Pertitellu
 
 Une plateforme de consultation citoyenne pour les élections municipales de Corte, incluant un wiki collaboratif et un système de propositions citoyennes (Kudocratie).
 
@@ -8,6 +8,7 @@ Disponible en version [Prototype](https://lucky-concha-a9fcd2.netlify.app/)
 
 ### 1. Consultation citoyenne
 - Questionnaire sur la démocratie locale à Corte
+- **Nouvelle question** : Les horaires actuels des conseils municipaux vous paraissent-ils pratiques ?
 - Visualisation en temps réel des résultats (graphiques interactifs)
 - Partage social et anonymisation des réponses
 
@@ -147,6 +148,9 @@ Le projet est déployé automatiquement via Vercel/Netlify (selon configuration)
 - ✅ Ajout d’une case à cocher « Je veux participer à l’étude IA pour tous » après la question de consentement
 - ✅ Icône d’information ouvrant une publication externe (nouvel onglet)
 - ✅ Prise en charge de la nouvelle colonne Google Sheet « IA pour tous » pour les réponses
+- ✅ Ajout d’une question « Les horaires actuels des conseils municipaux vous paraissent-ils pratiques ? » avec les options Oui, Non, Je ne sais pas, Je préfère ne pas répondre.
+- ✅ Affichage des résultats sous forme de graphique circulaire dans la section des résultats.
+- ✅ Mise à jour de la feuille Google Sheet pour inclure une colonne `Horaire Conseil Municipal`.
 
 ### Sécurité (CSP)
 - ✅ Mise à jour de `netlify.toml` (directive `default-src`) : ajout de `fonts.googleapis.com`, `fonts.gstatic.com`, `*.w3.org` et `data:` pour corriger les blocages de polices et SVG
@@ -176,12 +180,12 @@ Cette plateforme participe à l’initiative citoyenne « Transparence » visant
   - La case « IA pour tous » permet de signaler une participation volontaire à une étude connexe
 
 - Participer et contribuer
-  - Remplir le formulaire de consultation (#PERTITELLU – Corti Capitale)
+  - Remplir le formulaire de consultation
   - Partager la consultation via le bouton `Partager` pour élargir la participation
   - Proposer des améliorations via issues/PR (voir section Contribution)
 
 - Références
-  - Contact : `contact@pertitellu.org`
+  - Contact : `contact@lepp.fr`
   - Documentation complémentaire à ajouter par les mainteneurs (lien officiel « Transparence »)
 
 ## 📜 Historique du projet

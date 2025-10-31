@@ -1,4 +1,4 @@
-🎉 **Nouvelle version v1.1.0 de la plateforme #PERTITELLU !**
+🎉 **Nouvelle version v1.1.0 de la plateforme #PetitParti !**
 
 📱 **Une plateforme citoyenne complète au service de la démocratie locale à Corte**
 

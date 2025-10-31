@@ -213,7 +213,7 @@ export default function Transparence() {
       <div className="bg-white shadow-sm border-b border-slate-200">
         <div className="max-w-5xl mx-auto px-4 py-10 text-center">
           <p className="text-sm uppercase tracking-[0.4em] text-slate-500 font-semibold mb-3">
-            #PERTITELLU - Observatoire citoyen
+            #PetitParti - Observatoire citoyen
           </p>
           <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
             VOTRE MAIRIE EST-ELLE TRANSPARENTE ?

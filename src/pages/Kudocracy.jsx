@@ -5,6 +5,7 @@ import CreateProposition from '../components/kudocracy/CreateProposition';
 import DelegationManager from '../components/kudocracy/DelegationManager';
 import VotingDashboard from '../components/kudocracy/VotingDashboard';
 import { Link } from 'react-router-dom';
+import { PRIMARY_COLOR, SECONDARY_COLOR } from '../constants';
 
 export default function Kudocracy() {
   const [activeTab, setActiveTab] = useState('browse');
@@ -264,8 +265,8 @@ function AuthModal({ onClose, onSignIn, onSignUp }) {
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-blue-900 text-white font-bold rounded-md hover:bg-blue-800 disabled:opacity-50"
+            className="w-full py-3 px-6 text-white font-bold rounded-md hover:opacity-90"
+            style={{ backgroundColor: PRIMARY_COLOR }}
           >
             {loading ? 'Chargement...' : (mode === 'signin' ? 'Se connecter' : 'S\'inscrire')}
           </button>

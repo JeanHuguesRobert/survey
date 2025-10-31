@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Methodologie from './pages/Methodologie';
-import { APP_VERSION, DEPLOY_DATE, GOOGLE_SCRIPT_URL, COLORS } from './constants';
+import { APP_VERSION, DEPLOY_DATE, GOOGLE_SCRIPT_URL, COLORS, PRIMARY_COLOR, SECONDARY_COLOR } from './constants';
 import Audit from './pages/Audit';
 import Kudocracy from './pages/Kudocracy';
 import Wiki from './pages/Wiki';
@@ -15,74 +15,77 @@ import Transparence from './pages/Transparence';
 function Footer() {
   return (
     <footer className="bg-gray-800 text-white py-6 mt-12">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <p className="mb-2">Une initiative #PERTITELLU - Corti Capitale</p>
-          <div className="flex justify-center gap-4">
-            <Link to="/transparence" className="text-orange-400 hover:text-orange-300">
-              Petit Parti - Enqu&ecirc;te Transparence
-            </Link>
-            <Link to="/methodologie" className="text-orange-400 hover:text-orange-300">
-              Méthodologie
-            </Link>
-            
-            Autres services
-            
-            <a
-              href="https://app.tooljet.ai/applications/133a5d8d-9268-4813-8a46-0126a309b52a"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-orange-400 hover:text-orange-300"
-            >
-              Incidents
-            </a>
-            
-            <a
-              href="https://events-agenda-social.deploypad.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-orange-400 hover:text-orange-300"
-            >
-              Agenda
-            </a>
-            
-            <Link to="/kudocracy" className="text-orange-400 hover:text-orange-300">
-              Propositions
-            </Link>
-            
-            <a
-              href="https://entraide-cortenaise.lovable.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-orange-400 hover:text-orange-300"
-            >
-              Bénévolat
-            </a>
-
-            <a
-              href="https://www.facebook.com/groups/1269635707349220"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-orange-400 hover:text-orange-300"
-            >
-              Réseaux Sociaux
-            </a>
-            
-            <Link to="/wiki" className="text-orange-400 hover:text-orange-300">
-              Wiki
-            </Link>
-
-            <Link to="/bob" className="text-orange-400 hover:text-orange-300">
-              AI
-            </Link>
-
-          </div>
-          <div 
-            className="text-xs text-gray-500 mt-4 cursor-help"
-          >
-            Version {APP_VERSION}, déployée le {DEPLOY_DATE}`
-          </div>
+      <div className="max-w-4xl mx-auto px-4 text-center">
+        <p className="mb-2">Le Petit Parti — déclinaison locale #Pertitellu</p>
+        <p className="mb-4">
+          <a href="http://lepp.fr" className="text-orange-300 hover:text-orange-200" target="_blank" rel="noopener noreferrer">
+            LePP.fr
+          </a>
+        </p>
+        
+        {/* Première section */}
+        <div className="flex flex-col md:flex-row md:flex-wrap justify-center gap-3 md:gap-4 mb-4">
+          <Link to="/transparence" className="text-orange-400 hover:text-orange-300">
+            Enquête nationale Transparence
+          </Link>
+          <Link to="/methodologie" className="text-orange-400 hover:text-orange-300">
+            Méthodologie
+          </Link>
         </div>
-      </footer>
+
+        {/* Séparateur */}
+        <p className="text-gray-400 mb-3">Autres services (proto)</p>
+
+        {/* Deuxième section */}
+        <div className="flex flex-col md:flex-row md:flex-wrap justify-center gap-3 md:gap-4 mb-4">
+          <a
+            href="https://app.tooljet.ai/applications/133a5d8d-9268-4813-8a46-0126a309b52a"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-orange-400 hover:text-orange-300"
+          >
+            Incidents
+          </a>
+          <a
+            href="https://events-agenda-social.deploypad.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-orange-400 hover:text-orange-300"
+          >
+            Agenda
+          </a>
+          <Link to="/kudocracy" className="text-orange-400 hover:text-orange-300">
+            Propositions
+          </Link>
+          <a
+            href="https://entraide-cortenaise.lovable.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-orange-400 hover:text-orange-300"
+          >
+            Bénévolat
+          </a>
+          <a
+            href="https://www.facebook.com/groups/1269635707349220"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-orange-400 hover:text-orange-300"
+          >
+            Réseaux Sociaux
+          </a>
+          <Link to="/wiki" className="text-orange-400 hover:text-orange-300">
+            Wiki
+          </Link>
+          <Link to="/bob" className="text-orange-400 hover:text-orange-300">
+            IA (bientôt)
+          </Link>
+        </div>
+
+        <div className="text-xs text-gray-500 mt-4 cursor-help">
+          Version {APP_VERSION}, déployée le {DEPLOY_DATE}
+        </div>
+      </div>
+    </footer>
       );
 }
 
@@ -96,13 +99,13 @@ export default function ConsultationPertitellu() {
     declinCorte: 3,
     favorableReferendum: '',
     sujetsReferendum: [],
-    inscritListe: '',  // Nouvelle propriété
+    inscritListe: '', 
     quartier: '',
     age: '',
     dureeHabitation: '',
     email: '',
-    accepteContact: false,
     participationEtudeIA: false,
+    horaireConseil: '',
     commentaire: ''
   });
   
@@ -128,6 +131,7 @@ export default function ConsultationPertitellu() {
           quiDecide: row['Qui décide'] || '',
           satisfactionDemocratie: parseInt(row['Satisfaction Démocratie']) || 3,
           favorableReferendum: row['Favorable Référendum'] || '',
+          horaireConseil: row['Horaire Conseil'] || '',
           declinCorte: parseInt(row['Déclin Corte']) || 3, // Correction du parsing
           sujetsReferendum: row['Sujets Référendum'] ? row['Sujets Référendum'].split(', ') : [],
           age: row['Âge'] || '',
@@ -170,7 +174,7 @@ export default function ConsultationPertitellu() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.connaissanceQuasquara || !formData.positionQuasquara || !formData.quiDecide || !formData.favorableReferendum) {
+    if (!formData.connaissanceQuasquara || !formData.positionQuasquara || !formData.quiDecide || !formData.favorableReferendum || !formData.horaireConseil) {
       alert('Veuillez répondre aux questions obligatoires (sections 1 et 2)');
       return;
     }
@@ -227,6 +231,13 @@ export default function ConsultationPertitellu() {
       { name: 'Autre', value: responses.filter(r => r.quiDecide === 'Autre').length }
     ];
 
+    const horaireConseilData = [
+      { name: 'Oui', value: responses.filter(r => r.horaireConseil === 'Oui').length },
+      { name: 'Non', value: responses.filter(r => r.horaireConseil === 'Non').length },
+      { name: 'Je ne sais pas', value: responses.filter(r => r.horaireConseil === 'Je ne sais pas').length },
+      { name: 'Je préfère ne pas répondre', value: responses.filter(r => r.horaireConseil === 'Je préfère ne pas répondre').length }
+    ];
+
     const satisfactionMoyenne = responses.reduce((acc, r) => acc + r.satisfactionDemocratie, 0) / responses.length;
     const declinMoyen = responses.reduce((acc, r) => acc + parseInt(r.declinCorte || 3), 0) / responses.length;
 
@@ -248,8 +259,9 @@ export default function ConsultationPertitellu() {
       connaissanceData,
       positionData,
       decisionData,
+      horaireConseilData, // Ajout des données pour Horaire Conseil
       satisfactionMoyenne,
-      declinMoyen, // Nouvelle stat
+      declinMoyen,
       referendumData,
       sujetsData,
       totalResponses: responses.length
@@ -285,11 +297,11 @@ export default function ConsultationPertitellu() {
           <div className="max-w-4xl mx-auto px-4 py-6">
             <div className="text-center">
               <div className="mb-4">
-                <div className="text-5xl font-bold" style={{ color: '#FF5722' }}>
+                <div className="text-5xl font-bold" style={{ color: PRIMARY_COLOR }}>
                   #PERTITELLU
                 </div>
-                <div className="h-1 bg-blue-900 my-3 max-w-2xl mx-auto"></div>
-                <div className="text-4xl font-bold text-blue-900">
+                <div className="h-1 my-3 max-w-2xl mx-auto" style={{ backgroundColor: SECONDARY_COLOR }}></div>
+                <div className="text-4xl font-bold" style={{ color: SECONDARY_COLOR }}>
                   CORTI<br/>CAPITALE
                 </div>
               </div>
@@ -315,7 +327,7 @@ export default function ConsultationPertitellu() {
               )}
 
               <div className="space-y-8">
-                <div className="border-l-4 border-orange-500 pl-4">
+                <div className="pl-4" style={{ borderLeft: `4px solid ${PRIMARY_COLOR}` }}>
                   <h2 className="text-xl font-bold text-gray-800 mb-4">L'affaire de Quasquara</h2>
                   
                   <div className="mb-6">
@@ -387,7 +399,7 @@ export default function ConsultationPertitellu() {
                   </div>
                 </div>
 
-                <div className="border-l-4 border-blue-900 pl-4">
+                <div className="pl-4" style={{ borderLeft: `4px solid ${SECONDARY_COLOR}` }}>
                   <h2 className="text-xl font-bold text-gray-800 mb-4">Démocratie locale à Corte</h2>
                   
                   <div className="mb-6">
@@ -513,9 +525,30 @@ export default function ConsultationPertitellu() {
                       ))}
                     </div>
                   </div>
+
+                  <div className="mb-6">
+                    <label className="block text-gray-700 font-semibold mb-2">
+                      Les horaires actuels des conseils municipaux vous paraissent-ils pratiques ?
+                    </label>
+                    <div className="space-y-2">
+                      {['Oui', 'Non', 'Je ne sais pas', 'Je préfère ne pas répondre'].map(option => (
+                        <label key={option} className="flex items-center cursor-pointer">
+                          <input
+                            type="radio"
+                            name="horaireConseil"
+                            value={option}
+                            checked={formData.horaireConseil === option}
+                            onChange={handleInputChange}
+                            className="mr-2"
+                          />
+                          {option}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="border-l-4 border-orange-500 pl-4">
+                <div className="pl-4" style={{ borderLeft: `4px solid ${PRIMARY_COLOR}` }}>
                   <h2 className="text-xl font-bold text-gray-800 mb-4">
                     Profil <span className="font-normal text-base text-gray-600">(toutes les questions sont optionnelles)</span>
                   </h2>
@@ -593,7 +626,7 @@ export default function ConsultationPertitellu() {
                   </div>
                 </div>
 
-                <div className="border-l-4 border-blue-900 pl-4">
+                <div className="pl-4" style={{ borderLeft: `4px solid ${SECONDARY_COLOR}` }}>
                   <div className="mb-6">
                     <label className="block text-gray-700 font-semibold mb-2">
                       Commentaire libre
@@ -661,7 +694,7 @@ export default function ConsultationPertitellu() {
                   onClick={handleSubmit}
                   disabled={loading}
                   className="w-full py-3 px-6 text-white font-bold rounded-md text-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-                  style={{ backgroundColor: '#FF5722' }}
+                  style={{ backgroundColor: PRIMARY_COLOR }}
                 >
                   {loading ? 'Envoi en cours...' : 'Envoyer ma réponse'}
                 </button>
@@ -671,7 +704,8 @@ export default function ConsultationPertitellu() {
                 <div className="flex justify-center gap-4">
                   <button
                     onClick={handleShare}
-                    className="px-4 py-2 bg-blue-900 text-white rounded-md hover:opacity-90 flex items-center gap-2"
+                    className="px-4 py-2 text-white rounded-md hover:opacity-90 flex items-center gap-2"
+                    style={{ backgroundColor: SECONDARY_COLOR }}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
@@ -680,7 +714,8 @@ export default function ConsultationPertitellu() {
                   </button>
                   <button
                     onClick={() => setPage('results')}
-                    className="px-4 py-2 bg-gray-100 text-blue-900 font-semibold rounded-md hover:bg-gray-200 flex items-center gap-2"
+                    className="px-4 py-2 font-semibold rounded-md hover:bg-gray-200 flex items-center gap-2"
+                    style={{ backgroundColor: '#f3f4f6', color: SECONDARY_COLOR }}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
@@ -705,11 +740,11 @@ export default function ConsultationPertitellu() {
         <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="text-center">
             <div className="mb-4">
-              <div className="text-5xl font-bold" style={{ color: '#FF5722' }}>
+              <div className="text-5xl font-bold" style={{ color: PRIMARY_COLOR }}>
                 #PERTITELLU
               </div>
-              <div className="h-1 bg-blue-900 my-3 max-w-2xl mx-auto"></div>
-              <div className="text-4xl font-bold text-blue-900">
+              <div className="h-1 my-3 max-w-2xl mx-auto" style={{ backgroundColor: SECONDARY_COLOR }}></div>
+              <div className="text-4xl font-bold" style={{ color: SECONDARY_COLOR }}>
                 CORTI<br/>CAPITALE
               </div>
             </div>
@@ -734,7 +769,8 @@ export default function ConsultationPertitellu() {
                 </div>
                 <button
                   onClick={loadResponses}
-                  className="px-4 py-2 bg-blue-900 text-white rounded-md hover:opacity-90"
+                  className="px-4 py-2 text-white rounded-md hover:opacity-90"
+                  style={{ backgroundColor: SECONDARY_COLOR }}
                 >
                   Actualiser
                 </button>
@@ -798,7 +834,7 @@ export default function ConsultationPertitellu() {
                 <div>
                   <h2 className="text-xl font-bold text-gray-800 mb-4">Satisfaction de la démocratie locale</h2>
                   <div className="text-center">
-                    <div className="text-6xl font-bold" style={{ color: '#FF5722' }}>
+                    <div className="text-6xl font-bold" style={{ color: PRIMARY_COLOR }}>
                       {stats.satisfactionMoyenne.toFixed(1)}/5
                     </div>
                     <p className="text-gray-600 mt-2">Note moyenne</p>
@@ -808,7 +844,7 @@ export default function ConsultationPertitellu() {
                 <div>
                   <h2 className="text-xl font-bold text-gray-800 mb-4">État de Corte</h2>
                   <div className="text-center">
-                    <div className="text-6xl font-bold" style={{ color: '#FF5722' }}>
+                    <div className="text-6xl font-bold" style={{ color: PRIMARY_COLOR }}>
                       {stats.declinMoyen.toFixed(1)}/5
                     </div>
                     <p className="text-gray-600 mt-2">1 = En développement, 5 = En déclin</p>
@@ -852,6 +888,29 @@ export default function ConsultationPertitellu() {
                     </ResponsiveContainer>
                   </div>
                 )}
+
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">Les horaires des conseils municipaux</h2>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={stats?.horaireConseilData || []} // Vérification que les données existent
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, value }) => `${name}: ${value}`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {stats?.horaireConseilData?.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </>
           )}
@@ -861,13 +920,14 @@ export default function ConsultationPertitellu() {
               <button
                 onClick={() => setPage('form')}
                 className="py-3 px-6 text-white font-bold rounded-md hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: '#1A4D7C' }}
+                style={{ backgroundColor: SECONDARY_COLOR }}
               >
                 Participer à la consultation
               </button>
               <button
                 onClick={handleShare}
-                className="text-blue-900 underline hover:text-blue-700 flex items-center gap-1"
+                className="underline hover:opacity-80 flex items-center gap-1"
+                style={{ color: SECONDARY_COLOR }}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />

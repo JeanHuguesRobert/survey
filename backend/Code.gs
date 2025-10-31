@@ -9,19 +9,20 @@ function doPost(e) {
     
     sheet.appendRow([
       new Date(),
-      data.connaissanceQuasquara,  // string (Oui/Non)
-      data.positionQuasquara,      // string (Maintien/Retrait/Sans)
-      data.quiDecide,              // string (Justice/Élus/Référendum/Autre)
-      Number(data.satisfactionDemocratie),  // number (1-5)
-      Number(data.declinCorte),            // number (1-5)
-      data.favorableReferendum,    // string (Oui/Non/Selon)
+      data.connaissanceQuasquara || "",  // string (Oui/Non)
+      data.positionQuasquara || "",      // string (Maintien/Retrait/Sans)
+      data.quiDecide || "",              // string (Justice/Élus/Référendum/Autre)
+      Number(data.satisfactionDemocratie || "3"),  // number (1-5)
+      Number(data.declinCorte || "3"),   // number (1-5)
+      data.favorableReferendum || "",    // string (Oui/Non/Selon)
       data.sujetsReferendum.join(', '),  // string array join
-      data.quartier,               // string
-      data.age,                    // string (catégories)
-      data.dureeHabitation,        // string (catégories)
-      data.email,                  // string
-      data.accepteContact,         // boolean
-      data.commentaire             // string
+      data.horaireConseil || "",         // string (Oui/Non/Ne sais pas)
+      data.quartier || "",               // string
+      data.age || "",                    // string (catégories)
+      data.dureeHabitation || "",        // string (catégories)
+      data.email || "",                  // string
+      data.accepteContact || false,      // boolean
+      data.commentaire || ""             // string
     ]);
     
     return ContentService.createTextOutput(JSON.stringify({success: true}))
