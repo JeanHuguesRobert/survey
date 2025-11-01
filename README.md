@@ -233,6 +233,15 @@ Cette plateforme participe à l’initiative citoyenne « Transparence » visant
 - **v1.0.4** : Renommage "slug" → "adresse", corrections finales
 - **v1.1.0** : Lancement de l’enquête Transparence et intégration du programme “IA pour tous”
 
+### Phase 5 : IA conversationnelle
+- **v1.2.0** : Assistant IA « Bob » amélioré (streaming, fallback provider)
+- Création de propositions et tags directement depuis le chat (statut par défaut `active`)
+- Rendu des réponses en Markdown sécurisé (`marked` + `DOMPurify`), prompt système configurable (`public/prompts/bob-system.md` ou variables d’environnement)
+- Fonction serverless `netlify/functions/rag_chatbot.js` avec modération et routage léger/lourd
+- Prise en charge des liens wiki dans le Markdown (`[label](wiki/adresse)` → `/wiki/:slug`)
+- Intégration aux routes de détail `/propositions/:id` lors de la création depuis le chat
+- Journaux et gestion d’erreurs renforcés côté fonctions et UI
+
 ### Roadmap future
 - 🔄 Système de notifications pour nouveaux contenus
 - 🔄 Recherche full-text dans le wiki
