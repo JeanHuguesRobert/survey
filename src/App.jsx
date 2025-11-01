@@ -11,6 +11,7 @@ import WikiCreate from './pages/WikiCreate';
 import WikiEdit from './pages/WikiEdit';
 import Bob from './pages/Bob';
 import Transparence from './pages/Transparence';
+import { LegalPage } from "./components/LegalLinks";
 
 function Footer() {
   return (
@@ -81,7 +82,14 @@ function Footer() {
           </Link>
         </div>
 
-        <div className="text-xs text-gray-500 mt-4 cursor-help">
+        {/* Liens légaux */}
+        <div className="text-xs text-gray-400 mt-4 mb-2">
+          <Link to="/legal/terms" className="hover:text-orange-300 mr-2">Conditions d'utilisation</Link>
+          {" | "}
+          <Link to="/legal/privacy" className="hover:text-orange-300 ml-2">Politique de confidentialité</Link>
+        </div>
+        
+        <div className="text-xs text-gray-500 mt-2 cursor-help">
           Version {APP_VERSION}, déployée le {DEPLOY_DATE}
         </div>
       </div>
@@ -1070,6 +1078,8 @@ export function App() {
       <Route path="/wiki/new" element={<WikiCreate />} />
       <Route path="/wiki/:slug" element={<WikiPage />} />
       <Route path="/wiki/:slug/edit" element={<WikiEdit />} />
+      <Route path="/legal/terms" element={<LegalPage type="terms" />} />
+      <Route path="/legal/privacy" element={<LegalPage type="privacy" />} />
     </Routes>
   );
 }

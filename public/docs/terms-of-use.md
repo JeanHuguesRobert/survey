@@ -30,6 +30,5 @@ Aucune activité commerciale, hébergement sur Netlify/GitHub Pages.
 
 ## Problèmes potentiels à signaler
 
-- **Mentions légales** : Ajouter les informations sur l’éditeur du site, l’hébergeur, etc.
-- **Conformité RGPD** : S’assurer que les obligations légales sont respectées.
+- **Conformité RGPD** : S’assurer que toutes les obligations légales en matière de protection des données sont respectées.
 - **Accessibilité** : Prévoir une version accessible si nécessaire.
