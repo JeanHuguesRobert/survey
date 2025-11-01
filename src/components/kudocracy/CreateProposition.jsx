@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import { createPropositionWithTags } from '../../lib/propositions';
 
 export default function CreateProposition({ user }) {
   const [title, setTitle] = useState('');
@@ -57,10 +58,7 @@ export default function CreateProposition({ user }) {
       return;
     }
 
-    if (selectedTags.length === 0) {
-      alert('Veuillez sélectionner au moins un tag');
-      return;
-    }
+    // Les tags sont optionnels: on autorise la création sans tag
 
     setLoading(true);
 
@@ -79,29 +77,13 @@ export default function CreateProposition({ user }) {
       console.log('User exists in DB?', userExists);
       console.log('User check error?', userCheckError);
 
-      const { data: proposition, error: propError } = await supabase
-        .from('propositions')
-        .insert({
-          title: title.trim(),
-          description: description.trim(),
-          author_id: user.id,
-          status: 'active'
-        })
-        .select()
-        .single();
-
-      if (propError) throw propError;
-
-      const tagInserts = selectedTags.map(tagId => ({
-        proposition_id: proposition.id,
-        tag_id: tagId
-      }));
-
-      const { error: tagError } = await supabase
-        .from('proposition_tags')
-        .insert(tagInserts);
-
-      if (tagError) throw tagError;
+      const proposition = await createPropositionWithTags({
+        userId: user.id,
+        title: title.trim(),
+        description: description.trim(),
+        status: 'active',
+        selectedTags
+      });
 
       setSuccess(true);
       setTitle('');

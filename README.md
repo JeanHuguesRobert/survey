@@ -2,7 +2,7 @@
 
 Une plateforme de consultation citoyenne pour les élections municipales de Corte, incluant un wiki collaboratif et un système de propositions citoyennes (Kudocratie).
 
-Disponible en version [Prototype](https://lucky-concha-a9fcd2.netlify.app/)
+Disponible en version [Prototype LePP.fr](http://lepp.fr/)
 
 ## 🚀 Fonctionnalités principales
 
@@ -24,6 +24,8 @@ Disponible en version [Prototype](https://lucky-concha-a9fcd2.netlify.app/)
 - Délégation de vote sur des sujets spécifiques
 - Tableau de bord des résultats
 - Tags créés/associés automatiquement via `public.proposition_tags`
+ - Page détail de proposition: `/propositions/:id` (alias `/proposition/:id`)
+ - Description en Markdown (GFM) avec liens internes vers le wiki
 
 ### 4. Assistant IA « Bob »
 - Assistant conversationnel en français (Hugging Face Inference)
@@ -51,6 +53,7 @@ Disponible en version [Prototype](https://lucky-concha-a9fcd2.netlify.app/)
 - **Graphiques** : Recharts
 - **Markdown** : react-markdown + remark-gfm
 - **Markdown (Bob)** : marked + DOMPurify
+ - **Liens wiki Markdown** : `[label](wiki/adresse)` ou `[label](/wiki/adresse)` → route interne `/wiki/:slug`
 
 ## 📁 Structure du projet
 
@@ -67,6 +70,7 @@ src/
 │   ├── Transparence.jsx
 │   ├── Bob.jsx            # Assistant IA conversationnel
 │   ├── Kudocracy.jsx
+│   ├── Proposition.jsx    # Page détail d’une proposition (Markdown + liens wiki)
 │   ├── Methodologie.jsx
 │   └── Audit.jsx
 ├── lib/
@@ -120,7 +124,7 @@ npm run build
 ```
 
 ### Déploiement
-Le projet est déployé automatiquement via Vercel/Netlify (selon configuration).
+Le projet est déployé automatiquement via Netlify.
 
 ## 📝 Workflow de contribution
 
@@ -145,6 +149,13 @@ Le projet est déployé automatiquement via Vercel/Netlify (selon configuration)
 ### Général
 - ✅ Correction affichage version/date de déploiement
 - ✅ Amélioration des messages d'erreur
+
+### Kudocratie
+- ✅ Ajout de la page détail des propositions `src/pages/Proposition.jsx`
+- ✅ Routes dédiées : `/propositions/:id` (+ alias `/proposition/:id`)
+- ✅ Description rendue en Markdown via `react-markdown` + `remark-gfm`
+- ✅ Conversion automatique des liens wiki Markdown vers routes internes (`[label](wiki/adresse)` → `/wiki/:slug`)
+- ✅ Propositions créées via Bob désormais en statut `active` par défaut
 
 ### Audit éthique
 - ✅ Intégration du composant `AuditContent` avec rendu Markdown dynamique (`react-markdown` + `remark-gfm`)
@@ -228,8 +239,7 @@ Cette plateforme participe à l’initiative citoyenne « Transparence » visant
 - 🔄 Modération collaborative (signalement de pages)
 - 🔄 Export PDF des résultats de consultation
 - 🔄 Intégration cartographique pour les propositions locales
-- 🔄 Lancement du module IA conversationnelle #Pertitellu Bot
-- 🔄 Tableau de bord Transparence avec données financières ouvertes
+- 🔄 Tableau de bord Transparence
 
 # Pertitellu — Plateforme citoyenne Corte
 
@@ -243,10 +253,7 @@ Cette plateforme participe à l’initiative citoyenne « Transparence » visant
 
 ```bash
 npm install
-npm install marked dompurify
 ```
-
-> `marked` et `dompurify` permettent d’afficher proprement les réponses Markdown de Bob.
 
 ## 3. Lancement
 
@@ -259,6 +266,7 @@ netlify dev          # Fonctions serverless (rag_chatbot)
 - Le prompt par défaut est stocké dans `public/prompts/bob-system.md`.
 - Optionnel : sur Netlify, définissez `HF_SYSTEM_PROMPT` ou `HF_SYSTEM_PROMPT_PATH` pour personnaliser rapidement le rôle de Bob.
 - Les réponses sont renvoyées en Markdown et sécurisées côté UI (`marked` + `DOMPurify`).
+ - Lors de la création de propositions depuis le chat, le statut par défaut est `active` afin qu’elles apparaissent dans la liste Kudocratie.
 
 ## 5. Configuration Hugging Face & Netlify
 
@@ -281,6 +289,29 @@ netlify dev          # Fonctions serverless (rag_chatbot)
    - créent une entrée dans `public.tags` si nécessaire ;
    - sont attachés via la table pivot `public.proposition_tags`.
 3. Rappelez-vous de mettre à jour vos règles RLS pour autoriser ces opérations.
+
+## 6bis. Supabase — propositions et statuts
+
+- Colonne `status` attendue dans `public.propositions` avec valeurs usuelles: `active`, `draft`, `closed`.
+- Affichage dans l’application:
+  - Les listes (Kudocracy, tableau de bord) filtrent sur `status = 'active'`.
+  - Les auteurs peuvent voir leurs propres propositions selon RLS, mais la liste publique reste sur `active`.
+- Création via UI/Chat: par défaut `status = 'active'` (modération manuelle côté administrateur en BD).
+
+### Routes de détail
+- `/propositions/:id` (principal) et `/proposition/:id` (alias) renvoient vers la page détail `Proposition.jsx`.
+
+### Markdown de la description
+- Rendu via `react-markdown` + `remark-gfm` (titres, listes, liens, tableaux, code).
+- HTML brut désactivé pour sécurité (pas d’injection).
+- Liens wiki au format Markdown sont réécrits vers des routes internes:
+  - `[label](wiki/adresse)`
+  - `[label](/wiki/adresse)`
+  - `[label](wiki:adresse)`
+  → mène à `/wiki/:slug` (navigation interne React Router).
+
+### Styles
+- Les contenus Markdown utilisent la classe `markdown-content` (voir `src/index.css`).
 
 ## 7. Commandes utiles
 

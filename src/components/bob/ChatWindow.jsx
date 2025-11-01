@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Route, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase';
+import { createPropositionWithTags } from '../../lib/propositions';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import AuthModal from '../common/AuthModal';
@@ -355,59 +356,15 @@ export default function ChatWindow({ user }) {
       const lastBotMessage = messages.filter(m => m.sender === "bot").pop();
       if (!lastBotMessage) return;
 
-      const { data: newProposition, error } = await supabase
-        .from('propositions')
-        .insert({
-          title: newPropositionTitle || `Discussion: ${input.substring(0, 60)}`,
-          description: newPropositionDescription ||
-            `**Question originale:** ${input}\n\n**Réponse initiale du chatbot:**\n${lastBotMessage.text}\n\n---
-            Cette proposition a été créée automatiquement à partir d'une discussion avec l'assistant citoyen.`,
-          author_id: user.id,
-          status: 'draft',
-          tags: selectedTags.map(tag => tag.id)
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      const existingTagIds = selectedTags
-        .filter((tag) => tag?.id && !`${tag.id}`.startsWith('new-'))
-        .map((tag) => tag.id);
-
-      const tagsToCreate = selectedTags
-        .filter((tag) => !tag?.id || `${tag.id}`.startsWith('new-'))
-        .map((tag) => ({
-          name: (tag?.name || '').trim(),
-          description: ''
-        }))
-        .filter((tag) => tag.name.length > 0);
-
-      let createdTagIds = [];
-      if (tagsToCreate.length > 0) {
-        const { data: insertedTags, error: tagsInsertError } = await supabase
-          .from('tags')
-          .insert(tagsToCreate)
-          .select();
-
-        if (tagsInsertError) throw tagsInsertError;
-        createdTagIds = insertedTags.map((tag) => tag.id);
-      }
-
-      const tagIdsToLink = [...existingTagIds, ...createdTagIds];
-
-      if (tagIdsToLink.length > 0) {
-        const linkPayload = tagIdsToLink.map((tagId) => ({
-          proposition_id: newProposition.id,
-          tag_id: tagId
-        }));
-
-        const { error: linkError } = await supabase
-          .from('proposition_tags')
-          .insert(linkPayload);
-
-        if (linkError) throw linkError;
-      }
+      const newProposition = await createPropositionWithTags({
+        userId: user.id,
+        title: newPropositionTitle || `Discussion: ${input.substring(0, 60)}`,
+        description: newPropositionDescription ||
+          `**Question originale:** ${input}\n\n**Réponse initiale du chatbot:**\n${lastBotMessage.text}\n\n---
+          Cette proposition a été créée automatiquement à partir d'une discussion avec l'assistant citoyen.`,
+        status: 'active',
+        selectedTags
+      });
 
       // Ajouter un message de confirmation
       setMessages(prev => [...prev, {

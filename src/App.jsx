@@ -10,6 +10,7 @@ import WikiPage from './pages/WikiPage';
 import WikiCreate from './pages/WikiCreate';
 import WikiEdit from './pages/WikiEdit';
 import Bob from './pages/Bob';
+import Proposition from './pages/Proposition';
 import Transparence from './pages/Transparence';
 import { LegalPage } from "./components/LegalLinks";
 
@@ -1073,6 +1074,8 @@ export function App() {
       <Route path="/methodologie" element={<Methodologie />} />
       <Route path="/audit" element={<Audit />} />
       <Route path="/kudocracy" element={<Kudocracy />} />
+      <Route path="/propositions/:id" element={<Proposition />} />
+      <Route path="/proposition/:id" element={<Proposition />} />
       <Route path="/bob" element={<Bob />} />
       <Route path="/wiki" element={<Wiki />} />
       <Route path="/wiki/new" element={<WikiCreate />} />
