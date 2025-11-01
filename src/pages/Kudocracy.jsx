@@ -4,6 +4,7 @@ import PropositionList from '../components/kudocracy/PropositionList';
 import CreateProposition from '../components/kudocracy/CreateProposition';
 import DelegationManager from '../components/kudocracy/DelegationManager';
 import VotingDashboard from '../components/kudocracy/VotingDashboard';
+import AuthModal from '../components/common/AuthModal';
 import { Link } from 'react-router-dom';
 import { PRIMARY_COLOR, SECONDARY_COLOR } from '../constants';
 
@@ -26,30 +27,7 @@ export default function Kudocracy() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleSignIn = async (email, password) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    setShowAuthModal(false);
-  };
-
-  const handleSignUp = async (email, password, displayName) => {
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) throw error;
-
-    if (data.user) {
-      const { error: insertError } = await supabase.from('users').insert({
-        id: data.user.id,
-        email: data.user.email,
-        display_name: displayName
-      });
-      
-      if (insertError) {
-        console.error('Erreur création user dans table users:', insertError);
-        throw insertError;
-      }
-    }
-    setShowAuthModal(false);
-  };
+  // Utilisation du composant AuthModal pour gérer l'authentification
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -136,8 +114,7 @@ export default function Kudocracy() {
       {showAuthModal && (
         <AuthModal
           onClose={() => setShowAuthModal(false)}
-          onSignIn={handleSignIn}
-          onSignUp={handleSignUp}
+          onSuccess={() => setShowAuthModal(false)}
         />
       )}
 
@@ -168,119 +145,3 @@ function AuthRequired({ onAuth }) {
   );
 }
 
-function AuthModal({ onClose, onSignIn, onSignUp }) {
-  const [mode, setMode] = useState('signin');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
-      if (mode === 'signin') {
-        await onSignIn(email, password);
-      } else {
-        if (!displayName) {
-          setError('Veuillez entrer un nom d\'affichage');
-          setLoading(false);
-          return;
-        }
-        await onSignUp(email, password, displayName);
-      }
-    } catch (err) {
-      setError(err.message || 'Une erreur est survenue');
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">
-            {mode === 'signin' ? 'Connexion' : 'Inscription'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {mode === 'signup' && (
-            <div>
-              <label className="block text-gray-700 font-semibold mb-2">
-                Nom d'affichage
-              </label>
-              <input
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md"
-                required
-              />
-            </div>
-          )}
-
-          <div>
-            <label className="block text-gray-700 font-semibold mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-gray-700 font-semibold mb-2">
-              Mot de passe
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md"
-              required
-            />
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-md p-3 text-red-700">
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            className="w-full py-3 px-6 text-white font-bold rounded-md hover:opacity-90"
-            style={{ backgroundColor: PRIMARY_COLOR }}
-          >
-            {loading ? 'Chargement...' : (mode === 'signin' ? 'Se connecter' : 'S\'inscrire')}
-          </button>
-        </form>
-
-        <div className="mt-4 text-center">
-          <button
-            onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
-            className="text-blue-900 hover:underline"
-          >
-            {mode === 'signin' ? 'Créer un compte' : 'Déjà un compte ? Se connecter'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}

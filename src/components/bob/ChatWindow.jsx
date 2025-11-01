@@ -4,6 +4,7 @@ import { useNavigate, Route, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import AuthModal from '../common/AuthModal';
 // import RealTimeNotifications from './RealTimeNotifications';
 
 
@@ -78,6 +79,7 @@ export default function ChatWindow({ user }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [chatbotSettings, setChatbotSettings] = useState({
     welcome_message: "Bonjour ! Comment puis-je vous aider concernant la vie locale à Corte ?",
     fallback_message: "Désolé, je n'ai pas trouvé de réponse à votre question. Souhaitez-vous créer une nouvelle proposition sur ce sujet ?",
@@ -547,12 +549,46 @@ export default function ChatWindow({ user }) {
       <div className="chat-container" aria-disabled={!hasConsent}>
         {/* En-tête du chat */}
         <div className="chat-header">
-          <div className="chat-avatar">🤖</div>
-          <div className="chat-info">
-            <h2>Assistant Citoyen Corte</h2>
-            <p>{chatbotSettings.welcome_message}</p>
+          <div className="flex justify-between items-center w-full">
+            <div className="flex items-center">
+              <div className="chat-avatar">🤖</div>
+              <div className="chat-info">
+                <h2>Assistant Citoyen Corte</h2>
+                <p>{chatbotSettings.welcome_message}</p>
+              </div>
+            </div>
+            <div>
+              {user ? (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-600">Connecté en tant que {user.email}</span>
+                  <button
+                    onClick={async () => await supabase.auth.signOut()}
+                    className="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm"
+                  >
+                    Déconnexion
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="px-3 py-1 bg-orange-500 text-white rounded-md hover:bg-orange-600 text-sm"
+                >
+                  Se connecter
+                </button>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Modal d'authentification */}
+        {showAuthModal && (
+          <AuthModal 
+            onClose={() => setShowAuthModal(false)}
+            onSuccess={() => {
+              setShowAuthModal(false);
+            }}
+          />
+        )}
 
         {/* Zone des messages */}
         <div className="messages-container">
