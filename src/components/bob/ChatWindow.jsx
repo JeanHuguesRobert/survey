@@ -83,6 +83,8 @@ export default function ChatWindow({ user }) {
   const [suggestedTags, setSuggestedTags] = useState([]);
   const [relatedPropositions, setRelatedPropositions] = useState([]);
   const [chatHistory, setChatHistory] = useState([]);
+  const [hasConsent, setHasConsent] = useState(null);
+  const [isClearingHistory, setIsClearingHistory] = useState(false);
 
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
@@ -115,19 +117,39 @@ export default function ChatWindow({ user }) {
         }
 
         if (data && data.length > 0) {
-          const formattedHistory = data.map(item => ({
-            id: Date.now() + Math.random(),
-            text: item.question,
-            sender: "user",
-            timestamp: item.created_at,
-            related: {
-              answer: item.answer,
-              sources: item.sources,
-              feedback: item.feedback
+          const formattedHistory = data.flatMap(item => {
+            const entries = [
+              {
+                id: `history-user-${item.id}`,
+                text: item.question,
+                sender: "user",
+                timestamp: item.created_at,
+                related: {
+                  answer: item.answer,
+                  sources: item.sources,
+                  feedback: item.feedback
+                }
+              }
+            ];
+            if (item.answer) {
+              entries.push({
+                id: `history-bot-${item.id}`,
+                text: item.answer,
+                sender: "bot",
+                sources: item.sources,
+                feedback: item.feedback,
+                timestamp: item.created_at
+              });
             }
-          }));
+            return entries;
+          });
 
-          setMessages(prev => [...formattedHistory.reverse(), ...prev]);
+          setMessages(prev => {
+            const withoutHistory = prev.filter(
+              msg => !(typeof msg.id === "string" && msg.id.startsWith("history-"))
+            );
+            return [...formattedHistory.reverse(), ...withoutHistory];
+          });
         }
       };
       fetchChatHistory();
@@ -451,12 +473,68 @@ export default function ChatWindow({ user }) {
     }
   }, [showPropositionForm, input]);
 
+  useEffect(() => {
+    const stored = window.localStorage.getItem("bob_chat_consent");
+    if (stored === "true") setHasConsent(true);
+    else if (stored === "false") setHasConsent(false);
+    else setHasConsent(false);
+  }, []);
+
+  const handleClearHistory = async () => {
+    if (!user || isClearingHistory) return;
+    if (!window.confirm("Effacer tout l'historique de vos échanges ?")) return;
+
+    try {
+      setIsClearingHistory(true);
+      await supabase.from('chat_interactions').delete().eq('user_id', user.id);
+      setMessages(prev => prev.filter(msg => msg.sender === "system" && msg.isNotification));
+      setRelatedPropositions([]);
+      setChatHistory([]);
+    } catch (error) {
+      console.error("Erreur lors de l'effacement de l'historique:", error);
+      alert("Impossible d’effacer l’historique pour le moment.");
+    } finally {
+      setIsClearingHistory(false);
+    }
+  };
+
   return (
     <div className="chat-interface">
-      {/* Barre de notifications pour les admins */}
-      {user?.is_admin && <RealTimeNotifications user={user} />}
+      {hasConsent === false && (
+        <div className="consent-overlay">
+          <div className="consent-modal">
+            <h3>Consentement requis</h3>
+            <p>
+              Pour utiliser l’assistant et sauvegarder vos échanges, nous avons besoin de votre accord.
+              Les conversations sont enregistrées pour améliorer le service Pertitellu.
+              Vous pourrez les effacer à tout moment.
+            </p>
+            <div className="consent-actions">
+              <button
+                onClick={() => {
+                  window.localStorage.setItem("bob_chat_consent", "true");
+                  setHasConsent(true);
+                }}
+                className="accept-btn"
+              >
+                J’accepte
+              </button>
+              <button
+                onClick={() => {
+                  window.localStorage.setItem("bob_chat_consent", "false");
+                  setHasConsent(false);
+                  navigate("/");
+                }}
+                className="decline-btn"
+              >
+                Je refuse
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      <div className="chat-container">
+      <div className="chat-container" aria-disabled={!hasConsent}>
         {/* En-tête du chat */}
         <div className="chat-header">
           <div className="chat-avatar">🤖</div>
@@ -747,20 +825,32 @@ export default function ChatWindow({ user }) {
           <div ref={messagesEndRef} />
         </div>
 
+        {user && hasConsent && (
+          <div className="history-actions mt-4 flex justify-end">
+            <button
+              onClick={handleClearHistory}
+              disabled={isClearingHistory}
+              className="clear-history-btn text-sm px-3 py-1 rounded-md border border-red-500 text-red-500 hover:bg-red-50 disabled:opacity-50"
+            >
+              {isClearingHistory ? "Nettoyage..." : "Effacer l'historique"}
+            </button>
+          </div>
+        )}
+
         {/* Zone de saisie */}
         <div className="input-area flex items-center gap-2">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
+            onKeyPress={(e) => hasConsent && e.key === "Enter" && !e.shiftKey && handleSend()}
             placeholder="Posez votre question sur la vie locale à Corte..."
-            disabled={isLoading}
+            disabled={isLoading || !hasConsent}
             className="chat-input resize-none flex-grow w-full px-4 py-2 border border-gray-300 rounded-md"
-            rows="3" // Augmenter la hauteur par défaut
+            rows="3"
           />
           <button
             onClick={handleSend}
-            disabled={isLoading || !input.trim()}
+            disabled={isLoading || !input.trim() || !hasConsent}
             className="send-btn px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
           >
             {isLoading ? (
