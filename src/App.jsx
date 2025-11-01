@@ -1080,6 +1080,13 @@ export function App() {
       <Route path="/wiki/:slug/edit" element={<WikiEdit />} />
       <Route path="/legal/terms" element={<LegalPage type="terms" />} />
       <Route path="/legal/privacy" element={<LegalPage type="privacy" />} />
+      
+      {/* Redirections vers l'accueil */}
+      <Route path="/index.html" element={<ConsultationPertitellu />} />
+      <Route path="/home" element={<ConsultationPertitellu />} />
+      <Route path="/accueil" element={<ConsultationPertitellu />} />
+      <Route path="/index" element={<ConsultationPertitellu />} />
+      <Route path="*" element={<ConsultationPertitellu />} />
     </Routes>
   );
 }
