@@ -23,6 +23,13 @@ Disponible en version [Prototype](https://lucky-concha-a9fcd2.netlify.app/)
 - Création et vote de propositions
 - Délégation de vote sur des sujets spécifiques
 - Tableau de bord des résultats
+- Tags créés/associés automatiquement via `public.proposition_tags`
+
+### 4. Assistant IA « Bob »
+- Assistant conversationnel en français (Hugging Face Inference)
+- Prompt système public (`public/prompts/bob-system.md`) chargeable via env
+- Réponses Markdown sécurisées dans l’UI (`marked` + `DOMPurify`)
+- Création de propositions et tags directement depuis le chat
 
 ### 4. Transparence & participation renforcée
 - **Enquête Transparence** : sur le respect du public lors des conseils municipaux
@@ -43,6 +50,7 @@ Disponible en version [Prototype](https://lucky-concha-a9fcd2.netlify.app/)
 - **Backend** : Supabase (PostgreSQL)
 - **Graphiques** : Recharts
 - **Markdown** : react-markdown + remark-gfm
+- **Markdown (Bob)** : marked + DOMPurify
 
 ## 📁 Structure du projet
 
@@ -52,12 +60,12 @@ src/
 │   ├── ErrorBoundary.jsx
 │   └── kudocracy/
 ├── pages/
-│   ├── Wiki.jsx           # Liste des pages wiki
-│   ├── WikiPage.jsx       # Affichage d'une page
-│   ├── WikiCreate.jsx     # Création de page
-│   ├── WikiEdit.jsx       # Édition de page
-│   ├── Transparence.jsx   # Enquête Transparence
-│   ├── Bob.jsx            # Prototype IA conversationnelle (à venir)
+│   ├── Wiki.jsx
+│   ├── WikiPage.jsx
+│   ├── WikiCreate.jsx
+│   ├── WikiEdit.jsx
+│   ├── Transparence.jsx
+│   ├── Bob.jsx            # Assistant IA conversationnel
 │   ├── Kudocracy.jsx
 │   ├── Methodologie.jsx
 │   └── Audit.jsx
@@ -222,6 +230,69 @@ Cette plateforme participe à l’initiative citoyenne « Transparence » visant
 - 🔄 Intégration cartographique pour les propositions locales
 - 🔄 Lancement du module IA conversationnelle #Pertitellu Bot
 - 🔄 Tableau de bord Transparence avec données financières ouvertes
+
+# Pertitellu — Plateforme citoyenne Corte
+
+## 1. Prérequis
+
+- Node.js 18+
+- Netlify CLI (déploiement local des fonctions serverless)
+- Supabase CLI (facultatif, pour appliquer les migrations)
+
+## 2. Installation
+
+```bash
+npm install
+npm install marked dompurify
+```
+
+> `marked` et `dompurify` permettent d’afficher proprement les réponses Markdown de Bob.
+
+## 3. Lancement
+
+```bash
+npm run dev          # Front + Vite
+netlify dev          # Fonctions serverless (rag_chatbot)
+```
+
+## 4. Prompt système de Bob
+- Le prompt par défaut est stocké dans `public/prompts/bob-system.md`.
+- Optionnel : sur Netlify, définissez `HF_SYSTEM_PROMPT` ou `HF_SYSTEM_PROMPT_PATH` pour personnaliser rapidement le rôle de Bob.
+- Les réponses sont renvoyées en Markdown et sécurisées côté UI (`marked` + `DOMPurify`).
+
+## 5. Configuration Hugging Face & Netlify
+
+| Variable               | Description                                          |
+|------------------------|------------------------------------------------------|
+| `HF_TOKEN`             | Jeton Hugging Face Inference API                     |
+| `HF_CHAT_PROVIDER`     | Provider par défaut (ex. `hf-inference`, `together`) |
+| `HF_CHAT_MODEL`        | Modèle par défaut (ex. `meta-llama/Meta-Llama-3-8B-Instruct`) |
+| `HF_SYSTEM_PROMPT`     | (Optionnel) Remplace le fichier public de prompt     |
+| `HF_SYSTEM_PROMPT_PATH`| (Optionnel) Chemin personnalisé du prompt Markdown   |
+
+## 6. Supabase — tags des propositions
+
+1. Vérifiez la présence de la colonne `tags` (table `propositions`).
+   ```sql
+   ALTER TABLE public.propositions
+     ADD COLUMN IF NOT EXISTS tags text[] DEFAULT '{}';
+   ```
+2. Les nouveaux tags saisis dans l’UI :
+   - créent une entrée dans `public.tags` si nécessaire ;
+   - sont attachés via la table pivot `public.proposition_tags`.
+3. Rappelez-vous de mettre à jour vos règles RLS pour autoriser ces opérations.
+
+## 7. Commandes utiles
+
+```bash
+netlify env:list
+supabase db diff   # si vous utilisez Supabase CLI
+```
+
+## 8. Points de vigilance
+- En local, `VITE_HUGGINGFACE_API_KEY` est optionnelle (désactive la recherche/suggestion de tags).
+- `cdn.tailwindcss.com` est utilisé uniquement en développement ; configurez Tailwind via PostCSS pour la production.
+- Les fonctions Netlify (`/.netlify/functions/rag_chatbot`) se lancent via `netlify dev`.
 
 ## 📄 Licence
 

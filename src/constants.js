@@ -1,5 +1,5 @@
-export const APP_VERSION = '1.1.2';
-export const DEPLOY_DATE = '2025-10-31';
+export const APP_VERSION = '1.2.0';
+export const DEPLOY_DATE = '2025-11-1';
 export const COLORS = ['#F54928', '#0A3F73', '#FFA726', '#42A5F5', '#66BB6A'];
 export const PRIMARY_COLOR = '#F54928'; // Orange #Pertitellu
 export const SECONDARY_COLOR = '#0A3F73'; // Bleu Corti Capitale
