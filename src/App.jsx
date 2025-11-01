@@ -77,7 +77,7 @@ function Footer() {
             Wiki
           </Link>
           <Link to="/bob" className="text-orange-400 hover:text-orange-300">
-            IA (bientôt)
+            IA
           </Link>
         </div>
 
@@ -950,6 +950,7 @@ export function App() {
       <Route path="/methodologie" element={<Methodologie />} />
       <Route path="/audit" element={<Audit />} />
       <Route path="/kudocracy" element={<Kudocracy />} />
+      <Route path="/bob" element={<Bob />} />
       <Route path="/wiki" element={<Wiki />} />
       <Route path="/wiki/new" element={<WikiCreate />} />
       <Route path="/wiki/:slug" element={<WikiPage />} />

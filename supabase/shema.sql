@@ -1,6 +1,29 @@
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
 
+CREATE TABLE public.chat_interactions (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_id uuid,
+  question text NOT NULL,
+  answer text,
+  sources jsonb,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  feedback text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT chat_interactions_pkey PRIMARY KEY (id),
+  CONSTRAINT chat_interactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.chatbot_settings (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  welcome_message text DEFAULT 'Bonjour ! Comment puis-je vous aider concernant la vie locale à Corte ?'::text,
+  fallback_message text DEFAULT 'Désolé, je ne trouve pas de réponse. Souhaitez-vous créer une proposition ?'::text,
+  similarity_threshold double precision DEFAULT 0.65,
+  max_sources integer DEFAULT 3,
+  enable_proposition_creation boolean DEFAULT true,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT chatbot_settings_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.comments (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   post_id uuid NOT NULL,
@@ -56,6 +79,24 @@ CREATE TABLE public.groups (
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT groups_pkey PRIMARY KEY (id),
   CONSTRAINT groups_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.municipal_transparency (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  commune_name text NOT NULL,
+  insee_code text,
+  population integer CHECK (population >= 0),
+  agenda_mentions_location boolean NOT NULL DEFAULT false,
+  livestreamed boolean NOT NULL DEFAULT false,
+  minutes_published_under_week boolean NOT NULL DEFAULT false,
+  deliberations_open_data boolean NOT NULL DEFAULT false,
+  annual_calendar_published boolean NOT NULL DEFAULT false,
+  public_can_speak boolean NOT NULL DEFAULT false,
+  contact_email text,
+  submitted_by text,
+  notes text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT municipal_transparency_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.posts (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),

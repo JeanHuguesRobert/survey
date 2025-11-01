@@ -1,9 +1,75 @@
 // src/components/ChatWindow.jsx
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Route, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase';
-// import RealTimeNotifications from './RealTimeNotifications';
-// import { useRouter } from 'next/router';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
+
+const normalizeTag = (tag) => {
+  if (!tag) return null;
+  if (typeof tag === 'string') return { id: tag, name: tag };
+  const id = tag.id ?? tag.tag_id ?? null;
+  const name = tag.name ?? tag.label ?? tag.title ?? tag.slug ?? id ?? '';
+  return { id: id ?? `new-${Date.now()}`, name };
+};
+
+const getTagLabel = (tag) => (tag?.name ?? tag?.label ?? tag?.title ?? tag?.slug ?? tag?.id ?? '').toString();
+
+
+function Footer() {
+  return (
+    <footer className="bg-gray-800 text-white py-6 mt-12">
+      <div className="max-w-4xl mx-auto px-4 text-center">
+        <p className="mb-2">Le Petit Parti — déclinaison locale #Pertitellu</p>
+        
+        {/* Deuxième section */}
+        <div className="flex flex-col md:flex-row md:flex-wrap justify-center gap-3 md:gap-4 mb-4">
+          <Link to="/" className="text-orange-400 hover:text-orange-300">
+            Accueil
+          </Link>
+          <a
+            href="https://app.tooljet.ai/applications/133a5d8d-9268-4813-8a46-0126a309b52a"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-orange-400 hover:text-orange-300"
+          >
+            Incidents
+          </a>
+          <a
+            href="https://events-agenda-social.deploypad.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-orange-400 hover:text-orange-300"
+          >
+            Agenda
+          </a>
+          <Link to="/kudocracy" className="text-orange-400 hover:text-orange-300">
+            Propositions
+          </Link>
+          <a
+            href="https://entraide-cortenaise.lovable.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-orange-400 hover:text-orange-300"
+          >
+            Bénévolat
+          </a>
+          <a
+            href="https://www.facebook.com/groups/1269635707349220"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-orange-400 hover:text-orange-300"
+          >
+            Réseaux Sociaux
+          </a>
+          <Link to="/wiki" className="text-orange-400 hover:text-orange-300">
+            Wiki
+          </Link>
+        </div>
+      </div>
+    </footer>
+      );
+}
 
 
 export default function ChatWindow({ user }) {
@@ -133,7 +199,7 @@ export default function ChatWindow({ user }) {
       setRelatedPropositions(related);
 
       // 2. Envoyer la question au chatbot
-      const response = await fetch("/api/rag_chatbot", {
+      const response = await fetch("/.netlify/functions/rag_chatbot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -147,9 +213,14 @@ export default function ChatWindow({ user }) {
         }),
       });
 
-      const { answer, sources, cached } = await response.json();
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        const message = payload?.error || `Erreur API : ${response.status} ${response.statusText}`;
+        throw new Error(message);
+      }
 
-      // 3. Ajouter la réponse du bot
+      const { answer, sources, cached } = payload || {};
+
       setMessages(prev => [...prev, {
         id: Date.now() + 1,
         text: answer,
@@ -159,7 +230,7 @@ export default function ChatWindow({ user }) {
         timestamp: new Date()
       }]);
 
-      // 4. Sauvegarder l'interaction
+      // Sauvegarder l'interaction
       await supabase.from('chat_interactions').insert({
         user_id: user?.id,
         question: input,
@@ -172,7 +243,7 @@ export default function ChatWindow({ user }) {
       console.error("Erreur lors de l'envoi du message:", error);
       setMessages(prev => [...prev, {
         id: Date.now() + 1,
-        text: "Désolé, une erreur est survenue. Veuillez réessayer plus tard.",
+        text: error?.message || "Désolé, une erreur est survenue. Veuillez réessayer plus tard.",
         sender: "bot",
         error: true,
         timestamp: new Date()
@@ -186,12 +257,18 @@ export default function ChatWindow({ user }) {
   // Fonction pour trouver des propositions similaires
   const findRelatedPropositions = async (question) => {
     try {
+      const apiKey = import.meta.env.VITE_HUGGINGFACE_API_KEY;
+      if (!apiKey) {
+        console.warn("VITE_HUGGINGFACE_API_KEY non défini, la recherche de propositions similaires est ignorée.");
+        return [];
+      }
+
       const embeddingResponse = await fetch(
         "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2",
         {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY}`,
+            "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ inputs: question }),
@@ -261,14 +338,51 @@ export default function ChatWindow({ user }) {
             `**Question originale:** ${input}\n\n**Réponse initiale du chatbot:**\n${lastBotMessage.text}\n\n---
             Cette proposition a été créée automatiquement à partir d'une discussion avec l'assistant citoyen.`,
           author_id: user.id,
-          status: 'draft',
-          created_from: 'chatbot',
-          tags: selectedTags.map(tag => tag.id)
+          status: 'draft'
         })
         .select()
         .single();
 
       if (error) throw error;
+
+      const normalizedTags = selectedTags
+        .map(normalizeTag)
+        .filter((tag) => tag && tag.name.trim().length > 0);
+
+      const existingTagIds = normalizedTags
+        .filter((tag) => tag.id && !`${tag.id}`.startsWith('new-'))
+        .map((tag) => tag.id);
+
+      const tagsToCreate = normalizedTags
+        .filter((tag) => !tag.id || `${tag.id}`.startsWith('new-'))
+        .map((tag) => ({ name: tag.name.trim(), description: '' }))
+        .filter((tag) => tag.name.length > 0);
+
+      let createdTagIds = [];
+      if (tagsToCreate.length > 0) {
+        const { data: insertedTags, error: tagsInsertError } = await supabase
+          .from('tags')
+          .insert(tagsToCreate)
+          .select();
+
+        if (tagsInsertError) throw tagsInsertError;
+        createdTagIds = insertedTags.map((tag) => tag.id);
+      }
+
+      const tagIdsToLink = [...existingTagIds, ...createdTagIds];
+
+      if (tagIdsToLink.length > 0) {
+        const linkPayload = tagIdsToLink.map((tagId) => ({
+          proposition_id: newProposition.id,
+          tag_id: tagId
+        }));
+
+        const { error: linkError } = await supabase
+          .from('proposition_tags')
+          .insert(linkPayload);
+
+        if (linkError) throw linkError;
+      }
 
       // Ajouter un message de confirmation
       setMessages(prev => [...prev, {
@@ -306,12 +420,18 @@ export default function ChatWindow({ user }) {
   // Fonction pour suggérer des tags
   const suggestTags = async (question) => {
     try {
+      const apiKey = import.meta.env.VITE_HUGGINGFACE_API_KEY;
+      if (!apiKey) {
+        console.warn("VITE_HUGGINGFACE_API_KEY non défini, la suggestion de tags est ignorée.");
+        return;
+      }
+
       const embeddingResponse = await fetch(
         "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2",
         {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY}`,
+            "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ inputs: question }),
@@ -401,9 +521,12 @@ export default function ChatWindow({ user }) {
                     </div>
                   ) : (
                     <>
-                      <div className="message-text">
-                        {msg.text}
-                      </div>
+                      <div
+                        className="message-text"
+                        dangerouslySetInnerHTML={{
+                          __html: DOMPurify.sanitize(marked.parse(msg.text ?? ''))
+                        }}
+                      />
 
                       {msg.sources?.length > 0 && (
                         <div className="message-sources">
@@ -539,18 +662,23 @@ export default function ChatWindow({ user }) {
                 <div className="form-group tags-group">
                   <label>Tags</label>
                   <div className="tags-input-container">
-                    {selectedTags.map(tag => (
-                      <span key={tag.id} className="tag-item">
-                        {tag.name}
-                        <button
-                          type="button"
-                          onClick={() => setSelectedTags(selectedTags.filter(t => t.id !== tag.id))}
-                          className="remove-tag-btn"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
+                    {selectedTags.map(tag => {
+                      const normalized = normalizeTag(tag);
+                      const label = getTagLabel(normalized);
+                      if (!normalized || !label) return null;
+                      return (
+                        <span key={normalized.id} className="tag-item">
+                          {label}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedTags(selectedTags.filter(t => getTagLabel(normalizeTag(t)) !== label))}
+                            className="remove-tag-btn"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      );
+                    })}
                     <input
                       type="text"
                       value={tagInput}
@@ -559,17 +687,25 @@ export default function ChatWindow({ user }) {
                         if (e.key === 'Enter' && tagInput.trim()) {
                           e.preventDefault();
                           // Vérifier si le tag existe déjà
-                          const existingTag = suggestedTags.find(t => t.name.toLowerCase() === tagInput.trim().toLowerCase());
-
-                          if (existingTag && !selectedTags.some(t => t.id === existingTag.id)) {
-                            setSelectedTags([...selectedTags, existingTag]);
-                          } else if (!existingTag) {
-                            // Créer un nouveau tag temporaire
-                            const newTag = {
-                              id: `new-${Date.now()}`,
-                              name: tagInput.trim()
-                            };
-                            setSelectedTags([...selectedTags, newTag]);
+                          const existingTag = suggestedTags.find(t => t.name?.toLowerCase() === tagInput.trim().toLowerCase());
+                          if (existingTag) {
+                            const normalized = normalizeTag(existingTag);
+                            setSelectedTags(prev => {
+                              if (!normalized) return prev;
+                              const label = getTagLabel(normalized).toLowerCase();
+                              return prev.some(t => getTagLabel(normalizeTag(t)).toLowerCase() === label)
+                                ? prev
+                                : [...prev, normalized];
+                            });
+                          } else {
+                            const newTag = { id: `new-${Date.now()}`, name: tagInput.trim() };
+                            const normalized = normalizeTag(newTag);
+                            setSelectedTags(prev => {
+                              const label = getTagLabel(normalizeTag(newTag)).toLowerCase();
+                              return prev.some(t => getTagLabel(normalizeTag(t)).toLowerCase() === label)
+                                ? prev
+                                : [...prev, normalized];
+                            });
                           }
                           setTagInput('');
                         }
@@ -581,21 +717,32 @@ export default function ChatWindow({ user }) {
                   {suggestedTags.length > 0 && (
                     <div className="suggested-tags">
                       {suggestedTags
-                        .filter(tag => !selectedTags.some(st => st.id === tag.id))
-                        .map(tag => (
-                          <button
-                            key={tag.id}
-                            type="button"
-                            onClick={() => {
-                              if (!selectedTags.some(t => t.id === tag.id)) {
-                                setSelectedTags([...selectedTags, tag]);
-                              }
-                            }}
-                            className="suggested-tag-btn"
-                          >
-                            {tag.name}
-                          </button>
-                        ))}
+                        .filter(tag => {
+                          const label = getTagLabel(normalizeTag(tag)).toLowerCase();
+                          return !selectedTags.some(t => getTagLabel(normalizeTag(t)).toLowerCase() === label);
+                        })
+                        .map(tag => {
+                          const normalized = normalizeTag(tag);
+                          const label = getTagLabel(normalized);
+                          return (
+                            <button
+                              key={normalized?.id ?? label}
+                              type="button"
+                              onClick={() => {
+                                if (!normalized || !label) return;
+                                setSelectedTags(prev => {
+                                  const lower = label.toLowerCase();
+                                  return prev.some(t => getTagLabel(normalizeTag(t)).toLowerCase() === lower)
+                                    ? prev
+                                    : [...prev, normalized];
+                                });
+                              }}
+                              className="suggested-tag-btn"
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
                     </div>
                   )}
                 </div>
@@ -635,20 +782,20 @@ export default function ChatWindow({ user }) {
         </div>
 
         {/* Zone de saisie */}
-        <div className="input-area">
-          <input
-            type="text"
+        <div className="input-area flex items-center gap-2">
+          <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && handleSend()}
+            onKeyPress={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
             placeholder="Posez votre question sur la vie locale à Corte..."
             disabled={isLoading}
-            className="chat-input"
+            className="chat-input resize-none flex-grow w-full px-4 py-2 border border-gray-300 rounded-md"
+            rows="3" // Augmenter la hauteur par défaut
           />
           <button
             onClick={handleSend}
             disabled={isLoading || !input.trim()}
-            className="send-btn"
+            className="send-btn px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
           >
             {isLoading ? (
               <>
@@ -663,6 +810,7 @@ export default function ChatWindow({ user }) {
             )}
           </button>
         </div>
+        <Footer />
       </div>
     </div>
   );
