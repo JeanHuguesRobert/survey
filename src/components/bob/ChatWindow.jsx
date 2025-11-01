@@ -835,11 +835,11 @@ export default function ChatWindow({ user }) {
           <div ref={messagesEndRef} />
         </div>
 
-        {user && hasConsent && (
+        {messages.length > 0 && (
           <div className="history-actions mt-4 flex justify-end">
             <button
               onClick={handleClearHistory}
-              disabled={isClearingHistory}
+              disabled={isClearingHistory || !user}
               className="clear-history-btn text-sm px-3 py-1 rounded-md border border-red-500 text-red-500 hover:bg-red-50 disabled:opacity-50"
             >
               {isClearingHistory ? "Nettoyage..." : "Effacer l'historique"}
