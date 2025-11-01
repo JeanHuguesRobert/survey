@@ -57,6 +57,16 @@ function Footer() {
             Wiki
           </Link>
         </div>
+        {/* Liens légaux */}
+        <div className="mt-4 text-xs text-gray-400">
+          <Link to="/legal/terms" className="hover:text-orange-300 underline mr-2">
+            Conditions d'utilisation
+          </Link>
+          <span>|</span>
+          <Link to="/legal/privacy" className="hover:text-orange-300 underline ml-2">
+            Politique de confidentialité
+          </Link>
+        </div>
       </div>
     </footer>
       );
