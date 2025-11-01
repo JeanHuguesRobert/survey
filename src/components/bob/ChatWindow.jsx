@@ -640,14 +640,14 @@ export default function ChatWindow({ user }) {
                               className={`feedback-btn useful ${msg.feedback === "useful" ? "active" : ""}`}
                               disabled={msg.feedback === "useful"}
                             >
-                              ✅ {msg.feedback === "useful" ? "Merci pour votre avis!" : "Utile"}
+                              ✅ {msg.feedback === "useful" ? "Merci pour votre avis !" : "Utile"}
                             </button>
                             <button
                               onClick={() => handleFeedback(msg.id, "not_useful")}
                               className={`feedback-btn not-useful ${msg.feedback === "not_useful" ? "active" : ""}`}
                               disabled={msg.feedback === "not_useful"}
                             >
-                              ❌ {msg.feedback === "not_useful" ? "Merci pour votre avis!" : "Non utile"}
+                              ❌ {msg.feedback === "not_useful" ? "Merci pour votre avis !" : "Non utile"}
                             </button>
                           </div>
 
