@@ -4,16 +4,7 @@ import { useNavigate, Route, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
-
-const normalizeTag = (tag) => {
-  if (!tag) return null;
-  if (typeof tag === 'string') return { id: tag, name: tag };
-  const id = tag.id ?? tag.tag_id ?? null;
-  const name = tag.name ?? tag.label ?? tag.title ?? tag.slug ?? id ?? '';
-  return { id: id ?? `new-${Date.now()}`, name };
-};
-
-const getTagLabel = (tag) => (tag?.name ?? tag?.label ?? tag?.title ?? tag?.slug ?? tag?.id ?? '').toString();
+// import RealTimeNotifications from './RealTimeNotifications';
 
 
 function Footer() {
@@ -338,24 +329,24 @@ export default function ChatWindow({ user }) {
             `**Question originale:** ${input}\n\n**Réponse initiale du chatbot:**\n${lastBotMessage.text}\n\n---
             Cette proposition a été créée automatiquement à partir d'une discussion avec l'assistant citoyen.`,
           author_id: user.id,
-          status: 'draft'
+          status: 'draft',
+          tags: selectedTags.map(tag => tag.id)
         })
         .select()
         .single();
 
       if (error) throw error;
 
-      const normalizedTags = selectedTags
-        .map(normalizeTag)
-        .filter((tag) => tag && tag.name.trim().length > 0);
-
-      const existingTagIds = normalizedTags
-        .filter((tag) => tag.id && !`${tag.id}`.startsWith('new-'))
+      const existingTagIds = selectedTags
+        .filter((tag) => tag?.id && !`${tag.id}`.startsWith('new-'))
         .map((tag) => tag.id);
 
-      const tagsToCreate = normalizedTags
-        .filter((tag) => !tag.id || `${tag.id}`.startsWith('new-'))
-        .map((tag) => ({ name: tag.name.trim(), description: '' }))
+      const tagsToCreate = selectedTags
+        .filter((tag) => !tag?.id || `${tag.id}`.startsWith('new-'))
+        .map((tag) => ({
+          name: (tag?.name || '').trim(),
+          description: ''
+        }))
         .filter((tag) => tag.name.length > 0);
 
       let createdTagIds = [];
@@ -479,7 +470,6 @@ export default function ChatWindow({ user }) {
         <div className="messages-container">
           {messages.length === 0 ? (
             <div className="welcome-message">
-              <h3>Bienvenue sur l'assistant citoyen de Corte !</h3>
               <p>Je peux vous aider avec :</p>
               <ul className="example-questions">
                 <li onClick={() => setInput("Quels sont les projets urbains en cours dans mon quartier ?")}>
@@ -662,23 +652,18 @@ export default function ChatWindow({ user }) {
                 <div className="form-group tags-group">
                   <label>Tags</label>
                   <div className="tags-input-container">
-                    {selectedTags.map(tag => {
-                      const normalized = normalizeTag(tag);
-                      const label = getTagLabel(normalized);
-                      if (!normalized || !label) return null;
-                      return (
-                        <span key={normalized.id} className="tag-item">
-                          {label}
-                          <button
-                            type="button"
-                            onClick={() => setSelectedTags(selectedTags.filter(t => getTagLabel(normalizeTag(t)) !== label))}
-                            className="remove-tag-btn"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      );
-                    })}
+                    {selectedTags.map(tag => (
+                      <span key={tag.id} className="tag-item">
+                        {tag.name}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTags(selectedTags.filter(t => t.id !== tag.id))}
+                          className="remove-tag-btn"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
                     <input
                       type="text"
                       value={tagInput}
@@ -687,25 +672,17 @@ export default function ChatWindow({ user }) {
                         if (e.key === 'Enter' && tagInput.trim()) {
                           e.preventDefault();
                           // Vérifier si le tag existe déjà
-                          const existingTag = suggestedTags.find(t => t.name?.toLowerCase() === tagInput.trim().toLowerCase());
-                          if (existingTag) {
-                            const normalized = normalizeTag(existingTag);
-                            setSelectedTags(prev => {
-                              if (!normalized) return prev;
-                              const label = getTagLabel(normalized).toLowerCase();
-                              return prev.some(t => getTagLabel(normalizeTag(t)).toLowerCase() === label)
-                                ? prev
-                                : [...prev, normalized];
-                            });
-                          } else {
-                            const newTag = { id: `new-${Date.now()}`, name: tagInput.trim() };
-                            const normalized = normalizeTag(newTag);
-                            setSelectedTags(prev => {
-                              const label = getTagLabel(normalizeTag(newTag)).toLowerCase();
-                              return prev.some(t => getTagLabel(normalizeTag(t)).toLowerCase() === label)
-                                ? prev
-                                : [...prev, normalized];
-                            });
+                          const existingTag = suggestedTags.find(t => t.name.toLowerCase() === tagInput.trim().toLowerCase());
+
+                          if (existingTag && !selectedTags.some(t => t.id === existingTag.id)) {
+                            setSelectedTags([...selectedTags, existingTag]);
+                          } else if (!existingTag) {
+                            // Créer un nouveau tag temporaire
+                            const newTag = {
+                              id: `new-${Date.now()}`,
+                              name: tagInput.trim()
+                            };
+                            setSelectedTags([...selectedTags, newTag]);
                           }
                           setTagInput('');
                         }
@@ -717,32 +694,21 @@ export default function ChatWindow({ user }) {
                   {suggestedTags.length > 0 && (
                     <div className="suggested-tags">
                       {suggestedTags
-                        .filter(tag => {
-                          const label = getTagLabel(normalizeTag(tag)).toLowerCase();
-                          return !selectedTags.some(t => getTagLabel(normalizeTag(t)).toLowerCase() === label);
-                        })
-                        .map(tag => {
-                          const normalized = normalizeTag(tag);
-                          const label = getTagLabel(normalized);
-                          return (
-                            <button
-                              key={normalized?.id ?? label}
-                              type="button"
-                              onClick={() => {
-                                if (!normalized || !label) return;
-                                setSelectedTags(prev => {
-                                  const lower = label.toLowerCase();
-                                  return prev.some(t => getTagLabel(normalizeTag(t)).toLowerCase() === lower)
-                                    ? prev
-                                    : [...prev, normalized];
-                                });
-                              }}
-                              className="suggested-tag-btn"
-                            >
-                              {label}
-                            </button>
-                          );
-                        })}
+                        .filter(tag => !selectedTags.some(st => st.id === tag.id))
+                        .map(tag => (
+                          <button
+                            key={tag.id}
+                            type="button"
+                            onClick={() => {
+                              if (!selectedTags.some(t => t.id === tag.id)) {
+                                setSelectedTags([...selectedTags, tag]);
+                              }
+                            }}
+                            className="suggested-tag-btn"
+                          >
+                            {tag.name}
+                          </button>
+                        ))}
                     </div>
                   )}
                 </div>
