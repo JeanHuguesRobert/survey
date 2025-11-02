@@ -13,7 +13,7 @@ function doPost(e) {
       data.positionQuasquara || "",      // string (Maintien/Retrait/Sans)
       data.quiDecide || "",              // string (Justice/Élus/Référendum/Autre)
       Number(data.satisfactionDemocratie || "3"),  // number (1-5)
-      Number(data.declinCorte || "3"),   // number (1-5)
+      Number(data.declinVille || "3"),   // number (1-5)
       data.favorableReferendum || "",    // string (Oui/Non/Selon)
       data.sujetsReferendum.join(', '),  // string array join
       data.horaireConseil || "",         // string (Oui/Non/Ne sais pas)

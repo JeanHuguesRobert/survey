@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { CITY_NAME, HASHTAG } from '../constants';
 
 const CRITERIA = [
   { key: 'agenda_mentions_location', label: 'Les ordres du jour mentionnent-ils toujours le lieu ?' },
@@ -46,12 +47,17 @@ export default function Transparence() {
   const [formOpen, setFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const isCorte = String(CITY_NAME || '').toLowerCase() === 'corte';
 
   const computeScore = (entry) =>
     CRITERIA.reduce((total, criterion) => total + (entry?.[criterion.key] ? 1 : 0), 0);
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!isCorte) {
+        setLoading(false);
+        return;
+      }
       if (!supabase) {
         setError('La connexion à la base de données est indisponible. Vérifiez la configuration Supabase.');
         setLoading(false);
@@ -74,12 +80,15 @@ export default function Transparence() {
         }));
         setCommunes(enriched);
 
-        const corte = enriched.find(
-          (entry) => entry.commune_name && entry.commune_name.toLowerCase() === 'corte'
-        );
-        if (corte) {
-          setSelectedCommune(corte);
-          setSearchTerm(corte.commune_name);
+        const defaultCommune = String(CITY_NAME || '').toLowerCase();
+        if (defaultCommune) {
+          const match = enriched.find(
+            (entry) => entry.commune_name && entry.commune_name.toLowerCase() === defaultCommune
+          );
+          if (match) {
+            setSelectedCommune(match);
+            setSearchTerm(match.commune_name);
+          }
         }
       }
 
@@ -89,6 +98,27 @@ export default function Transparence() {
     fetchData();
   }, []);
 
+  if (!isCorte) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          <h1 className="text-3xl font-bold text-slate-900 mb-4">Transparence municipale</h1>
+          <p className="text-slate-700 mb-6">
+            Cette enquête nationale est rendue disponible dans la commune de Corte, en Corse.
+          </p>
+          <a
+            href="https://lepp.fr/transparence"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block px-4 py-2 bg-blue-900 text-white rounded-md hover:bg-blue-800"
+          >
+            Accéder au site de Corte
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   const nationalAverage = useMemo(() => {
     const eligible = communes.filter((commune) => (commune.population ?? 0) >= 3500);
     if (!eligible.length) return null;
@@ -96,12 +126,13 @@ export default function Transparence() {
     return (total / eligible.length).toFixed(1);
   }, [communes]);
 
-  const corteScore = useMemo(() => {
+  const cityScore = useMemo(() => {
     if (!communes.length) return null;
-    const corte = communes.find(
-      (entry) => entry.commune_name && entry.commune_name.toLowerCase() === 'corte'
+    const target = String(CITY_NAME || '').toLowerCase();
+    const commune = communes.find(
+      (entry) => entry.commune_name && entry.commune_name.toLowerCase() === target
     );
-    return corte ? corte.score : null;
+    return commune ? commune.score : null;
   }, [communes]);
 
   const handleCommuneSelection = (name) => {
@@ -213,7 +244,7 @@ export default function Transparence() {
       <div className="bg-white shadow-sm border-b border-slate-200">
         <div className="max-w-5xl mx-auto px-4 py-10 text-center">
           <p className="text-sm uppercase tracking-[0.4em] text-slate-500 font-semibold mb-3">
-            #PetitParti - Observatoire citoyen
+            {HASHTAG} - Observatoire citoyen
           </p>
           <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
             VOTRE MAIRIE EST-ELLE TRANSPARENTE ?
@@ -230,11 +261,11 @@ export default function Transparence() {
           <h2 className="text-xl font-semibold text-slate-900 mb-4">Scores de référence</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="border border-slate-200 rounded-lg p-5 text-center">
-              <p className="text-sm uppercase text-slate-500 tracking-wide mb-2">Score Corte</p>
-              <p className={`text-3xl font-bold ${scoreColor(corteScore ?? 0)}`}>
-                {corteScore !== null ? formatScore(corteScore) : '0/6'}
+              <p className="text-sm uppercase text-slate-500 tracking-wide mb-2">Score {CITY_NAME}</p>
+              <p className={`text-3xl font-bold ${scoreColor(cityScore ?? 0)}`}>
+                {cityScore !== null ? formatScore(cityScore) : '0/6'}
               </p>
-              <p className="text-xs text-slate-500 mt-2">Données collectées auprès des habitantes et habitants de Corte.</p>
+              <p className="text-xs text-slate-500 mt-2">Données collectées auprès des habitantes et habitants de {CITY_NAME}.</p>
             </div>
             <div className="border border-slate-200 rounded-lg p-5 text-center">
               <p className="text-sm uppercase text-slate-500 tracking-wide mb-2">Score moyen national</p>
@@ -266,7 +297,7 @@ export default function Transparence() {
                   id="commune"
                   list="commune-list"
                   className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="Ex : Marseille, Nantes, Corte"
+                  placeholder={`Ex : Marseille, Nantes, ${CITY_NAME}`}
                   value={searchTerm}
                   onChange={(event) => handleCommuneSelection(event.target.value)}
                 />
@@ -354,7 +385,7 @@ export default function Transparence() {
                     className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                     value={formData.commune_name}
                     onChange={handleInputChange}
-                    placeholder="Ex : Corte"
+                    placeholder={`Ex : ${CITY_NAME}`}
                     required
                   />
                 </div>
@@ -416,7 +447,7 @@ export default function Transparence() {
                     className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                     value={formData.submitted_by || ''}
                     onChange={handleInputChange}
-                    placeholder="Collectif citoyen Corte"
+                    placeholder={`Collectif citoyen ${CITY_NAME}`}
                   />
                 </div>
                 <div>

@@ -112,6 +112,12 @@ npm install
 # Configurer les variables d'environnement
 cp .env.example .env
 # Renseigner VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY
+# Optionnel : personnaliser la configuration générique (commune, mouvement, parti)
+# Frontend (Vite)
+#   VITE_CITY_NAME, VITE_CITY_TAGLINE, VITE_MOVEMENT_NAME, VITE_PARTY_NAME, VITE_HASHTAG, VITE_BOT_NAME
+# Backend (fonctions Netlify)
+#   CITY_NAME, MOVEMENT_NAME, PARTY_NAME, HASHTAG, BOT_NAME
+#   HF_SYSTEM_PROMPT ou HF_SYSTEM_PROMPT_PATH pour surcharger le prompt de Bob
 
 # Lancer en développement
 npm run dev
@@ -274,6 +280,20 @@ netlify dev          # Fonctions serverless (rag_chatbot)
 ## 4. Prompt système de Bob
 - Le prompt par défaut est stocké dans `public/prompts/bob-system.md`.
 - Optionnel : sur Netlify, définissez `HF_SYSTEM_PROMPT` ou `HF_SYSTEM_PROMPT_PATH` pour personnaliser rapidement le rôle de Bob.
+- Le prompt fallback côté fonction utilise les variables d’environnement génériques (`CITY_NAME`, `MOVEMENT_NAME`, `PARTY_NAME`, `HASHTAG`, `BOT_NAME`) si aucun fichier ou texte n’est fourni.
+
+## ⚙️ Configuration générique (toutes communes)
+- Personnalisez la plateforme pour votre commune et mouvement/liste via `.env`.
+- Frontend (Vite) :
+  - `VITE_CITY_NAME` (ex. `Corte`), `VITE_CITY_TAGLINE` (ex. `CAPITALE`)
+  - `VITE_MOVEMENT_NAME` (ex. `Pertitellu`), `VITE_PARTY_NAME` (ex. `Petit Parti`)
+  - `VITE_HASHTAG` (ex. `#PERTITELLU`), `VITE_BOT_NAME` (ex. `Ophélie`)
+- Backend (Netlify functions) :
+  - `CITY_NAME`, `MOVEMENT_NAME`, `PARTY_NAME`, `HASHTAG`, `BOT_NAME`
+  - `HF_SYSTEM_PROMPT_PATH` ou `HF_SYSTEM_PROMPT` pour surcharger le prompt système
+- Effets UI principaux :
+  - Page Transparence affiche le score par défaut pour `CITY_NAME` et utilise `HASHTAG` dans l’en-tête
+  - Navigation et libellés dynamiques s’appuient sur les constantes du frontend
 - Les réponses sont renvoyées en Markdown et sécurisées côté UI (`marked` + `DOMPurify`).
  - Lors de la création de propositions depuis le chat, le statut par défaut est `active` afin qu’elles apparaissent dans la liste Kudocratie.
 

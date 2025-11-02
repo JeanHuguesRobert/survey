@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Methodologie from './pages/Methodologie';
-import { APP_VERSION, DEPLOY_DATE, GOOGLE_SCRIPT_URL, COLORS, PRIMARY_COLOR, SECONDARY_COLOR } from './constants';
+import { APP_VERSION, DEPLOY_DATE, GOOGLE_SCRIPT_URL, COLORS, PRIMARY_COLOR, SECONDARY_COLOR, CITY_NAME, CITY_TAGLINE, MOVEMENT_NAME, PARTY_NAME, HASHTAG, VOLUNTEER_URL } from './constants';
 import Audit from './pages/Audit';
 import Kudocracy from './pages/Kudocracy';
 import Wiki from './pages/Wiki';
@@ -60,7 +60,7 @@ function Footer() {
             Propositions
           </Link>
           <a
-            href="https://entraide-cortenaise.lovable.app/"
+            href={VOLUNTEER_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="text-orange-400 hover:text-orange-300"
@@ -105,7 +105,7 @@ export default function ConsultationPertitellu() {
     positionQuasquara: '',
     quiDecide: '',
     satisfactionDemocratie: 3,
-    declinCorte: 3,
+    declinVille: 3,
     favorableReferendum: '',
     sujetsReferendum: [],
     inscritListe: '', 
@@ -126,6 +126,7 @@ export default function ConsultationPertitellu() {
   const [isClearingHistory, setIsClearingHistory] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(true);
+  const isCorte = String(CITY_NAME || '').toLowerCase() === 'corte';
 
   // Charger les réponses depuis Google Sheets
   useEffect(() => {
@@ -145,7 +146,7 @@ export default function ConsultationPertitellu() {
           satisfactionDemocratie: parseInt(row['Satisfaction Démocratie']) || 3,
           favorableReferendum: row['Favorable Référendum'] || '',
           horaireConseil: row['Horaire Conseil'] || '',
-          declinCorte: parseInt(row['Déclin Corte']) || 3, // Correction du parsing
+          declinVille: parseInt(row['Déclin Ville']) || 3, // Correction du parsing
           sujetsReferendum: row['Sujets Référendum'] ? row['Sujets Référendum'].split(', ') : [],
           age: row['Âge'] || '',
           dureeHabitation: row['Durée Habitation'] || ''
@@ -252,7 +253,7 @@ export default function ConsultationPertitellu() {
     ];
 
     const satisfactionMoyenne = responses.reduce((acc, r) => acc + r.satisfactionDemocratie, 0) / responses.length;
-    const declinMoyen = responses.reduce((acc, r) => acc + parseInt(r.declinCorte || 3), 0) / responses.length;
+    const declinMoyen = responses.reduce((acc, r) => acc + parseInt(r.declinVille || 3), 0) / responses.length;
 
     const referendumData = [
       { name: 'Oui', value: responses.filter(r => r.favorableReferendum === 'Oui').length },
@@ -283,8 +284,8 @@ export default function ConsultationPertitellu() {
 
   const handleShare = async () => {
     const shareData = {
-      title: 'Consultation citoyenne Pertitellu',
-      text: 'Participez à la consultation citoyenne sur la démocratie locale à Corte',
+      title: `Consultation citoyenne ${MOVEMENT_NAME}`,
+      text: `Participez à la consultation citoyenne sur la démocratie locale à ${CITY_NAME}`,
       url: window.location.href
     };
 
@@ -329,11 +330,11 @@ export default function ConsultationPertitellu() {
               <div className="text-center flex-1">
                 <div className="mb-4">
                   <div className="text-5xl font-bold" style={{ color: PRIMARY_COLOR }}>
-                    #PERTITELLU
+                    {HASHTAG}
                   </div>
                   <div className="h-1 my-3 max-w-2xl mx-auto" style={{ backgroundColor: SECONDARY_COLOR }}></div>
                   <div className="text-4xl font-bold" style={{ color: SECONDARY_COLOR }}>
-                    CORTI<br/>CAPITALE
+                    {String(CITY_NAME).toUpperCase()}<br/>{CITY_TAGLINE}
                   </div>
                 </div>
               </div>
@@ -351,7 +352,7 @@ export default function ConsultationPertitellu() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">
-                <span className="text-lg font-semibold text-slate-800">Navigation Pertitellu</span>
+                <span className="text-lg font-semibold text-slate-800">Navigation {MOVEMENT_NAME}</span>
                 <button
                   type="button"
                   className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100"
@@ -401,7 +402,7 @@ export default function ConsultationPertitellu() {
                 </li>
               </ul>
               <div className="mt-6 text-xs text-slate-500">
-                Le Petit Parti — Pertitellu Corte © {new Date().getFullYear()}
+                {PARTY_NAME} — {MOVEMENT_NAME} {CITY_NAME} © {new Date().getFullYear()}
               </div>
             </nav>
           </div>
@@ -421,7 +422,7 @@ export default function ConsultationPertitellu() {
                 onClick={() => setIsFormOpen((open) => !open)}
                 className="flex w-full items-center justify-between bg-slate-100 px-6 py-4 text-left text-lg font-semibold text-slate-800 transition hover:bg-slate-200"
               >
-                <span>Questionnaire citoyen Pertitellu</span>
+                <span>Questionnaire citoyen {MOVEMENT_NAME}</span>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className={`h-5 w-5 transition-transform ${isFormOpen ? 'rotate-180' : ''}`}
@@ -433,10 +434,10 @@ export default function ConsultationPertitellu() {
                 </svg>
               </button>
 
-              {isFormOpen && (
+              {isFormOpen && isCorte && (
                 <div className="bg-white p-8">
                   <h1 className="text-3xl font-bold text-gray-800 mb-2">Consultation citoyenne sur la démocratie locale</h1>
-                  <p className="text-gray-600 mb-6">Une initiative Pertitellu pour les élections municipales de Corte</p>
+              <p className="text-gray-600 mb-6">Une initiative {MOVEMENT_NAME} pour les élections municipales de {CITY_NAME}</p>
 
                   {error && (
                     <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-red-700">
@@ -518,7 +519,7 @@ export default function ConsultationPertitellu() {
                     </div>
 
                     <div className="pl-4" style={{ borderLeft: `4px solid ${SECONDARY_COLOR}` }}>
-                      <h2 className="text-xl font-bold text-gray-800 mb-4">Démocratie locale à Corte</h2>
+                      <h2 className="text-xl font-bold text-gray-800 mb-4">Démocratie locale à {CITY_NAME}</h2>
                       
                       <div className="mb-6">
                         <label className="block text-gray-700 font-semibold mb-2">
@@ -562,12 +563,12 @@ export default function ConsultationPertitellu() {
 
                       <div className="mb-6">
                         <label className="block text-gray-700 font-semibold mb-2">
-                          Pensez-vous que Corte est en déclin ?
+                          Pensez-vous que {CITY_NAME} est en déclin ?
                         </label>
                         <div className="md:hidden">
                           <select
-                            name="declinCorte"
-                            value={formData.declinCorte}
+                            name="declinVille"
+                            value={formData.declinVille}
                             onChange={handleInputChange}
                             className="w-full px-4 py-2 border border-gray-300 rounded-md"
                           >
@@ -585,9 +586,9 @@ export default function ConsultationPertitellu() {
                             <label key={num} className="flex items-center cursor-pointer">
                               <input
                                 type="radio"
-                                name="declinCorte"
+                                name="declinVille"
                                 value={num}
-                                checked={Number(formData.declinCorte) === num}
+                                checked={Number(formData.declinVille) === num}
                                 onChange={handleInputChange}
                                 className="mr-1"
                               />
@@ -673,7 +674,7 @@ export default function ConsultationPertitellu() {
                       
                       <div className="mb-6">
                         <label className="block text-gray-700 font-semibold mb-2">
-                          Êtes-vous inscrit(e) sur les listes électorales à Corte ?
+                          Êtes-vous inscrit(e) sur les listes électorales à {CITY_NAME} ?
                         </label>
                         <div className="space-y-2">
                           {['Oui', 'Non', 'Pas encore mais je compte le faire', 'Je ne souhaite pas répondre'].map(option => (
@@ -694,7 +695,7 @@ export default function ConsultationPertitellu() {
 
                       <div className="mb-6">
                         <label className="block text-gray-700 font-semibold mb-2">
-                          Quartier de Corte
+                          Quartier de {CITY_NAME}
                         </label>
                         <input
                           type="text"
@@ -726,7 +727,7 @@ export default function ConsultationPertitellu() {
 
                       <div className="mb-6">
                         <label className="block text-gray-700 font-semibold mb-2">
-                          Depuis combien de temps habitez-vous Corte ?
+                          Depuis combien de temps habitez-vous {CITY_NAME} ?
                         </label>
                         <select
                           name="dureeHabitation"
@@ -862,11 +863,11 @@ export default function ConsultationPertitellu() {
           <div className="text-center">
             <div className="mb-4">
               <div className="text-5xl font-bold" style={{ color: PRIMARY_COLOR }}>
-                #PERTITELLU
+                {HASHTAG}
               </div>
               <div className="h-1 my-3 max-w-2xl mx-auto" style={{ backgroundColor: SECONDARY_COLOR }}></div>
               <div className="text-4xl font-bold" style={{ color: SECONDARY_COLOR }}>
-                CORTI<br/>CAPITALE
+                {String(CITY_NAME).toUpperCase()}<br/>{CITY_TAGLINE}
               </div>
             </div>
           </div>
@@ -963,7 +964,7 @@ export default function ConsultationPertitellu() {
                 </div>
 
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800 mb-4">État de Corte</h2>
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">État de {CITY_NAME}</h2>
                   <div className="text-center">
                     <div className="text-6xl font-bold" style={{ color: PRIMARY_COLOR }}>
                       {stats.declinMoyen.toFixed(1)}/5

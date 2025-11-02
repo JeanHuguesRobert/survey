@@ -244,7 +244,13 @@ export const handler = async (event) => {
         );
       }
 
-      return "Tu es l’assistant citoyen Pertitellu du Petit Parti pour la ville de Corte (Corse). Réponds uniquement en français, de façon factuelle, concise et structurée en Markdown (titres, listes, tableaux, liens) en citant les ressources officielles pertinentes quand c’est possible.";
+      const city = process.env.CITY_NAME || "Corte";
+      const movement = process.env.MOVEMENT_NAME || "Pertitellu";
+      const party = process.env.PARTY_NAME || "Petit Parti";
+      const bot = process.env.BOT_NAME || "Ophélie";
+      const hashtag = process.env.HASHTAG || "#PERTITELLU";
+
+      return `Tu es l’assistant citoyen ${bot} du mouvement/parti ${movement} (${party}) ${hashtag} pour la commune de ${city}. Réponds uniquement en français, de façon factuelle, concise et structurée en Markdown (titres, listes, tableaux, liens) en citant les ressources officielles pertinentes quand c’est possible.`;
     })();
 
     const client = new InferenceClient(hfApiKey);

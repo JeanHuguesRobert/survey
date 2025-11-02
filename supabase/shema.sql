@@ -16,7 +16,7 @@ CREATE TABLE public.chat_interactions (
 );
 CREATE TABLE public.chatbot_settings (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
-  welcome_message text DEFAULT 'Bonjour ! Comment puis-je vous aider concernant la vie locale à Corte ?'::text,
+  welcome_message text DEFAULT 'Bonjour ! Comment puis-je vous aider concernant la vie locale à {{CITY_NAME}} ?'::text,
   fallback_message text DEFAULT 'Désolé, je ne trouve pas de réponse. Souhaitez-vous créer une proposition ?'::text,
   similarity_threshold double precision DEFAULT 0.65,
   max_sources integer DEFAULT 3,

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import AuditContent from '../components/AuditContent';
+import { HASHTAG, CITY_NAME } from '../constants';
 
 export default function Audit() {
   return (
@@ -10,11 +11,11 @@ export default function Audit() {
           <div className="text-center">
             <div className="mb-4">
               <div className="text-5xl font-bold" style={{ color: '#FF5722' }}>
-                #PERTITELLU
+                {HASHTAG}
               </div>
               <div className="h-1 bg-blue-900 my-3 max-w-2xl mx-auto"></div>
               <div className="text-4xl font-bold text-blue-900">
-                CORTI<br/>CAPITALE
+                {CITY_NAME.toUpperCase()}<br/>CAPITALE
               </div>
             </div>
           </div>

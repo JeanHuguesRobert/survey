@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { HASHTAG, CITY_NAME, MOVEMENT_NAME } from '../constants';
 
 export default function Methodologie() {
   return (
@@ -9,9 +10,9 @@ export default function Methodologie() {
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="text-center">
             <div className="mb-4">
-              <div className="text-5xl font-bold" style={{ color: '#FF5722' }}>#PERTITELLU</div>
+              <div className="text-5xl font-bold" style={{ color: '#FF5722' }}>{HASHTAG}</div>
               <div className="h-1 bg-blue-900 my-3 max-w-2xl mx-auto"></div>
-              <div className="text-4xl font-bold text-blue-900">CORTI<br/>CAPITALE</div>
+              <div className="text-4xl font-bold text-blue-900">{CITY_NAME.toUpperCase()}<br/>CAPITALE</div>
             </div>
           </div>
         </div>
@@ -25,7 +26,7 @@ export default function Methodologie() {
             <section>
               <h2 className="text-xl font-bold text-gray-800 mb-4">Objectifs de la consultation</h2>
               <p className="text-gray-600">
-                Cette consultation citoyenne vise à recueillir l'opinion des Cortenais sur la démocratie locale 
+                Cette consultation citoyenne vise à recueillir l'opinion des habitants de {CITY_NAME} sur la démocratie locale 
                 et leur vision de l'avenir de la ville. Les résultats serviront à orienter nos propositions
                 pour les élections municipales.
               </p>
@@ -113,7 +114,7 @@ export default function Methodologie() {
 
       <footer className="bg-gray-800 text-white py-6 mt-12">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <p className="mb-2">Une initiative #Pertitellu - Corti Capitale</p>
+          <p className="mb-2">Une initiative {HASHTAG} - {CITY_NAME} Capitale</p>
           <a 
             href="https://www.facebook.com/groups/1269635707349220"
             target="_blank"

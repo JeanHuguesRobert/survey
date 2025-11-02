@@ -6,6 +6,7 @@ import { createPropositionWithTags } from '../../lib/propositions';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import AuthModal from '../common/AuthModal';
+import { CITY_NAME, BOT_NAME, HASHTAG, MOVEMENT_NAME, PARTY_NAME, VOLUNTEER_URL } from '../../constants';
 // import RealTimeNotifications from './RealTimeNotifications';
 
 
@@ -13,7 +14,7 @@ function Footer() {
   return (
     <footer className="bg-gray-800 text-white py-6 mt-12">
       <div className="max-w-4xl mx-auto px-4 text-center">
-        <p className="mb-2">Le Petit Parti — déclinaison locale #Pertitellu</p>
+        <p className="mb-2">{PARTY_NAME} — déclinaison locale {HASHTAG}</p>
         
         {/* Deuxième section */}
         <div className="flex flex-col md:flex-row md:flex-wrap justify-center gap-3 md:gap-4 mb-4">
@@ -40,7 +41,7 @@ function Footer() {
             Propositions
           </Link>
           <a
-            href="https://entraide-cortenaise.lovable.app/"
+            href={VOLUNTEER_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="text-orange-400 hover:text-orange-300"
@@ -82,7 +83,7 @@ export default function ChatWindow({ user }) {
   const [isLoading, setIsLoading] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [chatbotSettings, setChatbotSettings] = useState({
-    welcome_message: "Bonjour ! Comment puis-je vous aider concernant la vie locale à Corte ?",
+    welcome_message: `Bonjour ! Comment puis-je vous aider concernant la vie locale à ${CITY_NAME} ?`,
     fallback_message: "Désolé, je n'ai pas trouvé de réponse à votre question. Souhaitez-vous créer une nouvelle proposition sur ce sujet ?",
     similarity_threshold: 0.65,
     max_sources: 3,
@@ -510,7 +511,7 @@ export default function ChatWindow({ user }) {
             <div className="flex items-center">
               <div className="chat-avatar">🤖</div>
               <div className="chat-info">
-                <h2>Assistant Citoyen Corte</h2>
+                <h2>{BOT_NAME} — Assistant citoyen {CITY_NAME}</h2>
                 <p>{chatbotSettings.welcome_message}</p>
               </div>
             </div>
@@ -848,7 +849,7 @@ export default function ChatWindow({ user }) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => hasConsent && e.key === "Enter" && !e.shiftKey && handleSend()}
-            placeholder="Posez votre question sur la vie locale à Corte..."
+            placeholder={`Posez votre question sur la vie locale à ${CITY_NAME}...`}
             disabled={isLoading || !hasConsent}
             className="chat-input resize-none flex-grow w-full px-4 py-2 border border-gray-300 rounded-md"
             rows="3"
