@@ -1,12 +1,46 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 export default function WikiCreate() {
-  const [title, setTitle] = useState('Nouvelle page');
-  const [slug, setSlug] = useState('nouvelle-page');
+  const { slug: initialSlugParam } = useParams();
+
+  const normalizeSlug = (str) => {
+    if (!str) return '';
+    return String(str)
+      .normalize('NFD').replace(/\p{Diacritic}+/gu, '') // remove accents
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .replace(/-{2,}/g, '-');
+  };
+
+  const rawSlug = useMemo(() => initialSlugParam ? decodeURIComponent(initialSlugParam) : '', [initialSlugParam]);
+  const prefilledSlug = useMemo(() => rawSlug ? normalizeSlug(rawSlug) : 'nouvelle-page', [rawSlug]);
+  const [title, setTitle] = useState('');
+  const [slug, setSlug] = useState(prefilledSlug);
   const [content, setContent] = useState('');
+  const [allowSlugEdit, setAllowSlugEdit] = useState(!initialSlugParam);
+  const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Si le paramètre change (navigation), réinitialiser les champs
+    setTitle('');
+    setSlug(prefilledSlug);
+    setAllowSlugEdit(!initialSlugParam);
+    setIsSlugManuallyEdited(false);
+  }, [prefilledSlug, initialSlugParam]);
+
+  const handleTitleChange = (e) => {
+    const t = e.target.value;
+    setTitle(t);
+  };
+
+  const handleSlugChange = (e) => {
+    setSlug(e.target.value);
+    setIsSlugManuallyEdited(true);
+  };
 
   const handleSave = async () => {
     try {
@@ -46,16 +80,31 @@ export default function WikiCreate() {
       <div className="space-y-4">
         <input
           value={title}
-          onChange={e => setTitle(e.target.value)}
+          onChange={handleTitleChange}
           placeholder="Titre"
           className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <input
-          value={slug}
-          onChange={e => setSlug(e.target.value)}
-          placeholder="Adresse de la page (ex : page-exemple)"
-          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <div>
+          {initialSlugParam && (
+            <div className="text-sm text-gray-600 mb-2">
+              Adresse pré-remplie à partir de l’URL.{' '}
+              <button
+                type="button"
+                onClick={() => setAllowSlugEdit((prev) => !prev)}
+                className="underline text-blue-600 hover:text-blue-800"
+              >
+                {allowSlugEdit ? 'Verrouiller l’adresse' : 'Modifier l’adresse'}
+              </button>
+            </div>
+          )}
+          <input
+            value={slug}
+            onChange={handleSlugChange}
+            placeholder="Adresse de la page (ex : page-exemple)"
+            className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 ${allowSlugEdit ? 'border-gray-300 focus:ring-blue-500' : 'border-gray-200 bg-gray-100 cursor-not-allowed'}`}
+            disabled={!allowSlugEdit}
+          />
+        </div>
         <textarea
           value={content}
           onChange={e => setContent(e.target.value)}
