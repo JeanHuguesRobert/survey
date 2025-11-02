@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 export default function WikiCreate() {
   const { slug: initialSlugParam } = useParams();
+  const location = useLocation();
 
   const normalizeSlug = (str) => {
     if (!str) return '';
@@ -15,7 +16,11 @@ export default function WikiCreate() {
       .replace(/-{2,}/g, '-');
   };
 
-  const rawSlug = useMemo(() => initialSlugParam ? decodeURIComponent(initialSlugParam) : '', [initialSlugParam]);
+  const rawSlug = useMemo(() => {
+    const querySlug = new URLSearchParams(location.search).get('slug');
+    const source = initialSlugParam || querySlug || '';
+    return source ? decodeURIComponent(source) : '';
+  }, [initialSlugParam, location.search]);
   const prefilledSlug = useMemo(() => rawSlug ? normalizeSlug(rawSlug) : 'nouvelle-page', [rawSlug]);
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState(prefilledSlug);

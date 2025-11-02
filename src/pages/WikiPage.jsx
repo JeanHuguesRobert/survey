@@ -136,7 +136,7 @@ export default function WikiPage() {
           Cette page n’existe pas encore. Vous pouvez la créer ou revenir à l’accueil du Wiki.
         </p>
         <div className="flex justify-center gap-4">
-          <Link to={`/wiki/new/${slug}`} className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+          <Link to={`/wiki/new/${slug}?slug=${encodeURIComponent(slug)}`} className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
             Créer la page "{slug}"
           </Link>
           <Link to="/wiki" className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
