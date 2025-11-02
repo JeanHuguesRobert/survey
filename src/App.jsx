@@ -314,17 +314,24 @@ export default function ConsultationPertitellu() {
             <div className="flex items-start justify-between">
               <button
                 type="button"
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-sm transition hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-400"
+                className="group flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white/80 text-slate-700 shadow-sm backdrop-blur transition hover:bg-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-400"
                 aria-label={isMenuOpen ? "Fermer la navigation" : "Ouvrir la navigation"}
                 onClick={() => setIsMenuOpen((prev) => !prev)}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  {isMenuOpen ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6 18L18 6M6 6l12 12" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 6h16M4 12h16M4 18h16" />
-                  )}
-                </svg>
+                <div className="relative h-6 w-6">
+                  <span
+                    className={`absolute left-1 top-1 block h-0.5 w-4 rounded-sm transition-transform duration-300 ${isMenuOpen ? 'translate-y-2 rotate-45' : ''}`}
+                    style={{ backgroundColor: SECONDARY_COLOR }}
+                  />
+                  <span
+                    className={`absolute left-1 top-2.5 block h-0.5 w-4 rounded-sm transition-opacity duration-300 ${isMenuOpen ? 'opacity-0' : 'opacity-100'}`}
+                    style={{ backgroundColor: SECONDARY_COLOR }}
+                  />
+                  <span
+                    className={`absolute left-1 top-4 block h-0.5 w-4 rounded-sm transition-transform duration-300 ${isMenuOpen ? '-translate-y-2 -rotate-45' : ''}`}
+                    style={{ backgroundColor: SECONDARY_COLOR }}
+                  />
+                </div>
               </button>
 
               <div className="text-center flex-1">
