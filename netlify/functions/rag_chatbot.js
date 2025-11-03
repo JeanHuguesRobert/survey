@@ -247,7 +247,7 @@ export const handler = async (event) => {
       const city = process.env.CITY_NAME || "Corte";
       const movement = process.env.MOVEMENT_NAME || "Pertitellu";
       const party = process.env.PARTY_NAME || "Petit Parti";
-      const bot = process.env.BOT_NAME || "Ophélie";
+      const bot = process.env.BOT_NAME || "Ophélia";
       const hashtag = process.env.HASHTAG || "#PERTITELLU";
 
       return `Tu es l’assistant citoyen ${bot} du mouvement/parti ${movement} (${party}) ${hashtag} pour la commune de ${city}. Réponds uniquement en français, de façon factuelle, concise et structurée en Markdown (titres, listes, tableaux, liens) en citant les ressources officielles pertinentes quand c’est possible.`;
@@ -255,13 +255,110 @@ export const handler = async (event) => {
 
     const client = new InferenceClient(hfApiKey);
     const attempts = [];
+    const debugTrace = [];
 
     for (const { provider, model } of fallbacks) {
+      const attemptStart = Date.now();
       console.info(`[HF] tentative provider="${provider}" model="${model}"`);
+      debugTrace.push({
+        provider,
+        model,
+        status: 'attempting',
+        timestamp: new Date().toISOString(),
+        startTime: attemptStart
+      });
+      
       try {
-        // branche GPT → OpenAI direct
+        // branche GPT → OpenAI direct avec escalade si pas de réponse
         if (isGPTModel(provider, model) && process.env.OPENAI_API_KEY) {
-          return await runOpenAIAgent({ question, systemPrompt });
+          const result = await runOpenAIAgent({ question, systemPrompt });
+          const resultBody = JSON.parse(result.body);
+          const answerText = (resultBody?.answer || "").trim();
+          const usedModel = resultBody?.model;
+          const smallModel = process.env.OPENAI_SMALL_MODEL || "gpt-4.1-mini";
+          const heavyModel = process.env.OPENAI_HEAVY_MODEL || "gpt-4.1";
+          const noAnswerPhrase = "Je n’ai pas trouvé de réponse.";
+
+          // Si pas de réponse utile et qu'on est sur le petit modèle, escalader vers le modèle lourd
+          if (!answerText || answerText === noAnswerPhrase) {
+            if (usedModel === smallModel) {
+              try {
+                const resp = await fetch(`${OPENAI_BASE_URL}/chat/completions`, {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    model: heavyModel,
+                    temperature: 0.2,
+                    messages: [
+                      { role: "system", content: systemPrompt },
+                      { role: "user", content: question },
+                    ],
+                  }),
+                });
+                const json = await resp.json();
+                const heavyAnswer =
+                  json?.choices?.[0]?.message?.content
+                    ? json.choices[0].message.content.trim()
+                    : "";
+                if (heavyAnswer) {
+                  const attemptEnd = Date.now();
+                  debugTrace[debugTrace.length - 1] = {
+                    ...debugTrace[debugTrace.length - 1],
+                    status: 'success_openai_escalation',
+                    duration: attemptEnd - attemptStart,
+                    endTime: attemptEnd
+                  };
+                  return {
+                    statusCode: 200,
+                    body: JSON.stringify({
+                      answer: heavyAnswer,
+                      sources: [],
+                      cached: false,
+                      provider: 'openai',
+                      model: heavyModel,
+                      debugTrace,
+                    }),
+                  };
+                }
+              } catch (escalationErr) {
+                // Ignorer et marquer comme échec plus bas
+              }
+            }
+
+            // Si toujours pas de réponse utile, considérer comme échec et passer au provider suivant
+            const attemptEnd = Date.now();
+            debugTrace[debugTrace.length - 1] = {
+              ...debugTrace[debugTrace.length - 1],
+              status: 'failed_no_answer_openai',
+              duration: attemptEnd - attemptStart,
+              endTime: attemptEnd,
+              error: 'No useful answer from OpenAI; escalation unsuccessful or not applicable'
+            };
+
+            attempts.push({
+              provider,
+              model: usedModel || model,
+              message: "OpenAI: absence de réponse utile (avec escalade si petit modèle)",
+            });
+            continue;
+          }
+
+          // Succès OpenAI avec réponse utile
+          const attemptEnd = Date.now();
+          debugTrace[debugTrace.length - 1] = {
+            ...debugTrace[debugTrace.length - 1],
+            status: 'success_openai',
+            duration: attemptEnd - attemptStart,
+            endTime: attemptEnd
+          };
+          resultBody.debugTrace = debugTrace;
+          return {
+            statusCode: 200,
+            body: JSON.stringify(resultBody)
+          };
         }
 
         // branche Hugging Face inchangée
@@ -292,9 +389,73 @@ export const handler = async (event) => {
               : "";
           if (delta) out += delta;
         }
+        let trimmed = out.trim();
 
-        const answer =
-          out.trim() || "Je n'ai pas trouvé de réponse à votre question.";
+        // Si le flux est vide, tenter une requête non-stream (fallback API)
+        if (!trimmed) {
+          try {
+            const resp = await client.chatCompletion({
+              provider,
+              model,
+              messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: question },
+              ],
+            });
+            const content =
+              resp &&
+              resp.choices &&
+              resp.choices[0] &&
+              resp.choices[0].message &&
+              resp.choices[0].message.content
+                ? resp.choices[0].message.content.trim()
+                : "";
+            if (content) {
+              trimmed = content;
+              const attemptEnd = Date.now();
+              debugTrace[debugTrace.length - 1] = {
+                ...debugTrace[debugTrace.length - 1],
+                status: 'success_non_stream',
+                duration: attemptEnd - attemptStart,
+                endTime: attemptEnd
+              };
+            }
+          } catch (nonStreamErr) {
+            console.warn(
+              `[HF] réponse vide en streaming, fallback non-stream échoué (${provider}/${model}): ${nonStreamErr?.message}`
+            );
+          }
+        } else {
+          // Succès avec streaming
+          const attemptEnd = Date.now();
+          debugTrace[debugTrace.length - 1] = {
+            ...debugTrace[debugTrace.length - 1],
+            status: 'success_stream',
+            duration: attemptEnd - attemptStart,
+            endTime: attemptEnd
+          };
+        }
+
+        // Si toujours vide, passer au provider suivant au lieu de renvoyer une non-réponse
+        if (!trimmed) {
+          const attemptEnd = Date.now();
+          debugTrace[debugTrace.length - 1] = {
+            ...debugTrace[debugTrace.length - 1],
+            status: 'failed_empty_response',
+            duration: attemptEnd - attemptStart,
+            endTime: attemptEnd,
+            error: 'Empty response from both stream and non-stream'
+          };
+          
+          attempts.push({
+            provider,
+            model,
+            message: "Réponse vide du modèle (stream et non-stream)",
+          });
+          continue;
+        }
+
+        const answer = trimmed;
         const sources = [];
         const cached = false;
 
@@ -303,7 +464,7 @@ export const handler = async (event) => {
         );
         return {
           statusCode: 200,
-          body: JSON.stringify({ answer, sources, cached, provider, model }),
+          body: JSON.stringify({ answer, sources, cached, provider, model, debugTrace }),
         };
       } catch (streamError) {
         console.error(
@@ -319,6 +480,15 @@ export const handler = async (event) => {
           ? "Activez ce provider dans https://huggingface.co/settings/inference-providers ou utilisez un provider que vous avez relié."
           : undefined;
 
+        const attemptEnd = Date.now();
+        debugTrace[debugTrace.length - 1] = {
+          ...debugTrace[debugTrace.length - 1],
+          status: 'failed_error',
+          duration: attemptEnd - attemptStart,
+          endTime: attemptEnd,
+          error: streamError?.message || 'Unknown error'
+        };
+        
         attempts.push({
           provider,
           model,
@@ -332,8 +502,9 @@ export const handler = async (event) => {
       statusCode: 502,
       body: JSON.stringify({
         error:
-          "Aucun provider/modèle n’a pu répondre. Configurez un provider depuis Hugging Face ou fournissez HF_CHAT_PROVIDER / HF_CHAT_MODEL.",
+          "Aucun provider/modèle n'a pu répondre. Configurez un provider depuis Hugging Face ou fournissez HF_CHAT_PROVIDER / HF_CHAT_MODEL.",
         attempts,
+        debugTrace,
       }),
     };
   } catch (error) {
