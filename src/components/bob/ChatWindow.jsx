@@ -1,79 +1,14 @@
 // src/components/ChatWindow.jsx
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, Route, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase';
 import { createPropositionWithTags } from '../../lib/propositions';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import AuthModal from '../common/AuthModal';
+import SiteFooter from '../layout/SiteFooter';
 import { CITY_NAME, BOT_NAME, HASHTAG, MOVEMENT_NAME, PARTY_NAME, VOLUNTEER_URL } from '../../constants';
 // import RealTimeNotifications from './RealTimeNotifications';
-
-
-function Footer() {
-  return (
-    <footer className="bg-gray-800 text-white py-6 mt-12">
-      <div className="max-w-4xl mx-auto px-4 text-center">
-        <p className="mb-2">{PARTY_NAME} — déclinaison locale {HASHTAG}</p>
-        
-        {/* Deuxième section */}
-        <div className="flex flex-col md:flex-row md:flex-wrap justify-center gap-3 md:gap-4 mb-4">
-          <Link to="/" className="text-orange-400 hover:text-orange-300">
-            Accueil
-          </Link>
-          <a
-            href="https://app.tooljet.ai/applications/133a5d8d-9268-4813-8a46-0126a309b52a"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-orange-400 hover:text-orange-300"
-          >
-            Incidents
-          </a>
-          <a
-            href="https://events-agenda-social.deploypad.app/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-orange-400 hover:text-orange-300"
-          >
-            Agenda
-          </a>
-          <Link to="/kudocracy" className="text-orange-400 hover:text-orange-300">
-            Propositions
-          </Link>
-          <a
-            href={VOLUNTEER_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-orange-400 hover:text-orange-300"
-          >
-            Bénévolat
-          </a>
-          <a
-            href="https://www.facebook.com/groups/1269635707349220"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-orange-400 hover:text-orange-300"
-          >
-            Réseaux Sociaux
-          </a>
-          <Link to="/wiki" className="text-orange-400 hover:text-orange-300">
-            Wiki
-          </Link>
-        </div>
-        {/* Liens légaux */}
-        <div className="mt-4 text-xs text-gray-400">
-          <Link to="/legal/terms" className="hover:text-orange-300 underline mr-2">
-            Conditions d'utilisation
-          </Link>
-          <span>|</span>
-          <Link to="/legal/privacy" className="hover:text-orange-300 underline ml-2">
-            Politique de confidentialité
-          </Link>
-        </div>
-      </div>
-    </footer>
-      );
-}
 
 
 export default function ChatWindow({ user }) {
@@ -113,6 +48,9 @@ export default function ChatWindow({ user }) {
     };
     fetchChatbotSettings();
   }, []);
+
+  // Indique si une conversation est en cours (au moins un message non notification)
+  const hasConversation = messages.some(m => !m.isNotification);
 
   // Charger l'historique des conversations
   useEffect(() => {
@@ -246,7 +184,24 @@ export default function ChatWindow({ user }) {
         throw new Error(message);
       }
 
-      const { answer, sources, cached } = payload || {};
+      const { answer, sources, cached, provider, model, debugTrace } = payload || {};
+
+      // Afficher les informations de debugging dans la console
+      if (debugTrace && debugTrace.length > 0) {
+        console.group(`🤖 ${BOT_NAME} - Debug Trace`);
+        console.log(`Question: "${input}"`);
+        console.log(`Réponse finale: Provider="${provider}" Model="${model}"`);
+        console.table(debugTrace.map(trace => ({
+          Provider: trace.provider,
+          Model: trace.model,
+          Status: trace.status,
+          Duration: `${trace.duration}ms`,
+          Error: trace.error || '-'
+        })));
+        console.groupEnd();
+      } else if (provider && model) {
+        console.log(`🤖 ${BOT_NAME} - Provider: ${provider}, Model: ${model}`);
+      }
 
       setMessages(prev => [...prev, {
         id: Date.now() + 1,
@@ -254,6 +209,9 @@ export default function ChatWindow({ user }) {
         sender: "bot",
         sources,
         cached,
+        provider,
+        model,
+        debugTrace,
         timestamp: new Date()
       }]);
 
@@ -280,6 +238,128 @@ export default function ChatWindow({ user }) {
       setIsLoading(false);
     }
   };
+
+  // Normaliser un slug à partir d'un titre
+  function normalizeSlug(str) {
+    if (!str) return '';
+    return String(str)
+      .normalize('NFD').replace(/\p{Diacritic}+/gu, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .replace(/-{2,}/g, '-');
+  }
+
+  // Déterminer un titre par défaut pour la page wiki
+  function deriveDefaultTitle() {
+    const firstUserMsg = messages.find(m => m.sender === 'user' && typeof m.text === 'string');
+    const base = firstUserMsg?.text || input || `Conversation avec ${BOT_NAME}`;
+    const trimmed = base.trim().replace(/\s+/g, ' ');
+    return trimmed.length > 120 ? trimmed.slice(0, 117) + '…' : trimmed;
+  }
+
+  // Convertit les WikiWords (CamelCase) en liens Markdown vers le Wiki
+  function linkifyWardWiki(text) {
+    if (!text || typeof text !== 'string') return '';
+    const parts = text.split(/(```[\s\S]*?```|`[^`]*`)/g);
+    const processed = parts.map(part => {
+      if (/^```[\s\S]*```$/.test(part) || /^`[^`]*`$/.test(part)) {
+        return part;
+      }
+      return part.replace(/(?<!!)\b([A-Z][a-z]+(?:[A-Z][a-z]+)+)\b/g, (m, word) => {
+        // Garder l’href en CamelCase pour pointer vers /wiki/<CamelCase>
+        return `[${word}](${word})`;
+      });
+    });
+    return processed.join('');
+  }
+
+  // Construire le payload de partage
+  function buildSharePayload() {
+    const items = messages.map(m => ({
+      sender: m.sender,
+      text: typeof m.text === 'string' ? m.text : '',
+      sources: m.sources || null
+    }));
+    const lastBot = [...messages].reverse().find(m => m.sender === 'bot');
+    const meta = {
+      generatedAt: new Date().toISOString(),
+      provider: lastBot?.provider || null,
+      model: lastBot?.model || null,
+      debugTrace: lastBot?.debugTrace || null,
+    };
+    return { cityName: CITY_NAME, botName: BOT_NAME, meta, messages: items };
+  }
+
+  // Construire le contenu Markdown à partir du payload
+  function buildMarkdownFromPayload(payload, title) {
+    const header = `# ${title}\n\n*Ville*: ${CITY_NAME}\n\n*Bot*: ${BOT_NAME}\n\n*Généré le*: ${payload.meta.generatedAt}\n\n`;
+    const debug = (payload.meta.provider || payload.meta.model)
+      ? `> Modèle: ${payload.meta.provider || '-'} / ${payload.meta.model || '-'}\n\n`
+      : '';
+    const body = payload.messages
+      .map(m => `**${m.sender === 'user' ? 'Utilisateur' : BOT_NAME}**\n\n${linkifyWardWiki(m.text || '')}`)
+      .join('\n\n');
+    return header + debug + body + '\n';
+  }
+
+  // Publier la conversation comme page Wiki dans Supabase
+  async function handlePublishWiki() {
+    if (!hasConversation) return;
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+
+    try {
+      const payload = buildSharePayload();
+      const title = deriveDefaultTitle();
+      const isCamelCaseTitle = /^(?:[A-Z][a-z]+){2,}$/.test(title);
+      const baseSlug = isCamelCaseTitle ? title : (normalizeSlug(title) || `conversation-${Date.now()}`);
+      let slug = baseSlug;
+
+      // Vérifier l'unicité du slug et ajuster si nécessaire
+      try {
+        const { data: existing } = await supabase
+          .from('wiki_pages')
+          .select('id')
+          .eq('slug', slug)
+          .single();
+        if (existing) {
+          slug = `${baseSlug}-${new Date().toISOString().slice(0,10)}`;
+        }
+      } catch (_) {
+        // slug libre
+      }
+
+      const content = buildMarkdownFromPayload(payload, title);
+      const { data, error } = await supabase
+        .from('wiki_pages')
+        .insert([{ title, content, slug }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Erreur création page Wiki :', error);
+        alert('Impossible de créer la page Wiki. Êtes-vous connecté ?');
+        return;
+      }
+
+      const pageUrl = `${window.location.origin}/wiki/${data.slug}`;
+      try { await navigator.clipboard.writeText(pageUrl); } catch (_) {}
+
+      setMessages(prev => ([
+        ...prev,
+        { id: Date.now(), isNotification: true, text: `Page Wiki créée : ${pageUrl}`, link: pageUrl }
+      ]));
+
+      if (navigator.share) {
+        try { await navigator.share({ title, url: pageUrl }); } catch (_) {}
+      }
+    } catch (err) {
+      console.error('Erreur inattendue lors de la publication Wiki :', err);
+      alert('Une erreur inattendue est survenue lors de la publication dans le Wiki.');
+    }
+  }
 
   // Fonction pour trouver des propositions similaires
   const findRelatedPropositions = async (question) => {
@@ -596,7 +676,7 @@ export default function ChatWindow({ user }) {
                       <div
                         className="message-text"
                         dangerouslySetInnerHTML={{
-                          __html: DOMPurify.sanitize(marked.parse(msg.text ?? ''))
+                          __html: DOMPurify.sanitize(marked.parse(linkifyWardWiki(msg.text ?? '')))
                         }}
                       />
 
@@ -854,6 +934,15 @@ export default function ChatWindow({ user }) {
             className="chat-input resize-none flex-grow w-full px-4 py-2 border border-gray-300 rounded-md"
             rows="3"
           />
+          {hasConversation && (
+            <button
+              onClick={handlePublishWiki}
+              title="Publier la conversation dans le Wiki"
+              className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Publier dans le Wiki
+            </button>
+          )}
           <button
             onClick={handleSend}
             disabled={isLoading || !input.trim() || !hasConsent}
@@ -872,7 +961,7 @@ export default function ChatWindow({ user }) {
             )}
           </button>
         </div>
-        <Footer />
+        <SiteFooter showWiki={hasConversation} showVersionInfo={false} />
       </div>
     </div>
   );
