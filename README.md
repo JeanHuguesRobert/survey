@@ -1,6 +1,6 @@
-# 📊 Consultation Citoyenne Petit Parti / Pertitellu
+# 📊 Survey. Consultation Citoyenne Petit Parti / Pertitellu
 
-Une plateforme de consultation citoyenne pour les élections municipales de Corte, incluant un wiki collaboratif et un système de propositions citoyennes (Kudocratie).
+Une plateforme de consultation citoyenne pour les élections municipales de Corte ou ailleurs, incluant un wiki collaboratif et un système de propositions citoyennes (Kudocratie).
 
 Disponible en version [Prototype LePP.fr](http://lepp.fr/)
 
@@ -43,6 +43,7 @@ Disponible en version [Prototype LePP.fr](http://lepp.fr/)
 - Agenda social partagé
 - Plateforme d’entraide bénévole
 - Accès direct aux réseaux sociaux du mouvement
+ - Page Contact configurable (`/contact`) affichant un email défini via `VITE_CONTACT_EMAIL`
 
 ## 🛠️ Stack technique
 
@@ -54,6 +55,7 @@ Disponible en version [Prototype LePP.fr](http://lepp.fr/)
 - **Markdown** : react-markdown + remark-gfm
 - **Markdown (Bob)** : marked + DOMPurify
  - **Liens wiki Markdown** : `[label](wiki/adresse)` ou `[label](/wiki/adresse)` → route interne `/wiki/:slug`
+ - **Liens wiki automatiques (CamelCase)** : auto-liage des WikiWords vers `/wiki/<Slug>` via `linkifyWardWiki` (désactivation avec `!WikiWord`, ignoré dans les blocs de code)
 
 ## 📁 Structure du projet
 
@@ -72,6 +74,7 @@ src/
 │   ├── Kudocracy.jsx
 │   ├── Proposition.jsx    # Page détail d’une proposition (Markdown + liens wiki)
 │   ├── Methodologie.jsx
+│   ├── Contact.jsx        # Page Contact (email configurable via env)
 │   └── Audit.jsx
 ├── lib/
 │   └── supabase.js
@@ -115,6 +118,7 @@ cp .env.example .env
 # Optionnel : personnaliser la configuration générique (commune, mouvement, parti)
 # Frontend (Vite)
 #   VITE_CITY_NAME, VITE_CITY_TAGLINE, VITE_MOVEMENT_NAME, VITE_PARTY_NAME, VITE_HASHTAG, VITE_BOT_NAME
+#   VITE_CONTACT_EMAIL  # Email pour la page /contact (défaut: jeanhuguesrobert@gmail.com)
 # Backend (fonctions Netlify)
 #   CITY_NAME, MOVEMENT_NAME, PARTY_NAME, HASHTAG, BOT_NAME
 #   HF_SYSTEM_PROMPT ou HF_SYSTEM_PROMPT_PATH pour surcharger le prompt de Bob
@@ -140,6 +144,55 @@ Le projet est déployé automatiquement via Netlify.
 4. **Ouvrir une PR** sur GitHub
 
 ## 📅 Changelog récent (depuis le 2025-10-24)
+
+### 2025-11-03
+
+#### Général
+- Ajout de la page `Contact` (`/contact`) avec email configurable via `VITE_CONTACT_EMAIL` (valeur par défaut `jeanhuguesrobert@gmail.com`).
+- Intégration d’un `ErrorBoundary` autour de `App` pour une gestion d’erreurs de rendu plus robuste.
+
+#### Wiki / Markdown
+- Linkification automatique des WikiWords CamelCase via `linkifyWardWiki` dans les rendus Markdown des pages suivantes :
+  - `src/pages/Proposition.jsx` (description des propositions)
+  - `src/components/LegalLinks.jsx` (pages légales)
+  - `src/components/AuditContent.jsx` (audit éthique)
+  - Déjà en place dans `Wiki.jsx`, `WikiPage.jsx` et `components/bob/ChatWindow.jsx`.
+  - Comportement : CamelCase → `/wiki/<CamelCase>` ; opt-out `!WikiWord` ; exclusion automatique dans les blocs de code.
+
+#### Bob (Assistant IA)
+
+- La publication vers le wiki.
+
+### 2025-11-01 → 2025-11-02
+
+#### Wiki
+- Amélioration du flux de création depuis une page inexistante : le bouton propose désormais de créer la page demandée avec adresse pré-remplie (`/wiki/new/:slug`) et sauvegarde via `?slug=` en cas de perte du paramètre de route.
+- Écran de création : le titre n’est plus déduit automatiquement de l’adresse pour éviter la confusion. L’adresse est pré-remplie et verrouillée par défaut, avec option pour la modifier.
+- Routes: ajout explicite de `/wiki/new/:slug` et durcissement de la navigation pour les pages inexistantes.
+
+#### Consultation (Questionnaire)
+- Passage à une terminologie agnostique à la communauté (municipalité, association, école, entreprise, communauté en ligne).
+- Introduction d’un système modulaire de questionnaire (`src/config/questionnaireModules.js`) permettant d’adapter les questions par type de communauté et de générer l’état initial du formulaire dynamiquement.
+- Mise à jour des en-têtes : « Démocratie locale à {CITY_NAME} » devient « Démocratie {getCommunityLabels().name} ».
+
+#### Général
+- Version générique adaptable à d’autres communes/mouvements.
+- Améliorations cosmétiques (menu hamburger) et redirections vers l’accueil pour certains cas fréquents.
+- Login unifié entre Bob et Kudocracy.
+- Utilisation optimisée des modèles OpenAI si une clé API est disponible.
+- Ajouts de liens légaux et affinement du prompt système de Bob.
+
+#### Fichiers modifiés/non commitées au moment de la mise à jour
+- `.env.example` (ajustements mineurs de configuration)
+- `README.md` (présent fichier)
+- `netlify/functions/rag_chatbot.js` (affinage du routage/modération)
+- `public/prompts/bob-system.md` (affinage du prompt système)
+- `src/App.jsx` (intégration des modules et libellés agnostiques)
+- `src/constants.js` (ajustements pour labels/terminologie)
+- `src/pages/Transparence.jsx` (cohérence UI)
+- `src/pages/WikiCreate.jsx` (pré-remplissage adresse, titre libre)
+- `src/pages/WikiPage.jsx` (lien “Créer la page” robuste)
+- `src/config/questionnaireModules.js` (nouveau fichier)
 
 ### Wiki
 - ✅ Routes dédiées création/édition (`/wiki/new`, `/wiki/:slug/edit`)
@@ -256,7 +309,7 @@ Cette plateforme participe à l’initiative citoyenne « Transparence » visant
 - 🔄 Intégration cartographique pour les propositions locales
 - 🔄 Tableau de bord Transparence
 
-# Pertitellu — Plateforme citoyenne Corte
+# Survey / Pertitellu — Plateforme citoyenne Corte
 
 ## 1. Prérequis
 
@@ -287,7 +340,7 @@ netlify dev          # Fonctions serverless (rag_chatbot)
 - Frontend (Vite) :
   - `VITE_CITY_NAME` (ex. `Corte`), `VITE_CITY_TAGLINE` (ex. `CAPITALE`)
   - `VITE_MOVEMENT_NAME` (ex. `Pertitellu`), `VITE_PARTY_NAME` (ex. `Petit Parti`)
-  - `VITE_HASHTAG` (ex. `#PERTITELLU`), `VITE_BOT_NAME` (ex. `Ophélie`)
+  - `VITE_HASHTAG` (ex. `#PERTITELLU`), `VITE_BOT_NAME` (ex. `Ophélia`)
 - Backend (Netlify functions) :
   - `CITY_NAME`, `MOVEMENT_NAME`, `PARTY_NAME`, `HASHTAG`, `BOT_NAME`
   - `HF_SYSTEM_PROMPT_PATH` ou `HF_SYSTEM_PROMPT` pour surcharger le prompt système
