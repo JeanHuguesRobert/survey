@@ -1,6 +1,6 @@
 {
-  "name": "pertitellu-consultation",
-  "version": "1.0.8",
+  "name": "survey",
+  "version": "1.2.3",
   "type": "module",
   "scripts": {
     "dev": "vite",
