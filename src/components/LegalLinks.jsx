@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { linkifyWardWiki } from "../lib/wikiLinks";
 
 export function LegalMarkdown({ file }) {
   const [content, setContent] = useState("");
@@ -11,7 +12,7 @@ export function LegalMarkdown({ file }) {
   }, [file]);
   return (
     <div className="markdown-content">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{linkifyWardWiki(content)}</ReactMarkdown>
     </div>
   );
 }
