@@ -249,7 +249,7 @@ export default function ChatWindow({ user }) {
     if (!str) return '';
     return String(str)
       .normalize('NFD').replace(/\p{Diacritic}+/gu, '')
-      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/[^a-zA-Z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
       .replace(/-{2,}/g, '-');
   }
