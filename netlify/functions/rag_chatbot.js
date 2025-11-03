@@ -1,121 +1,132 @@
+import Anthropic from "@anthropic-ai/sdk";
 import { InferenceClient } from "@huggingface/inference";
 import fs from "fs";
 import path from "path";
 
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
+
 const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
 
-// détection : est-ce qu'on vise un modèle OpenAI/GPT
-function isGPTModel(provider, model) {
-  if (!model) return false;
-  const m = String(model).toLowerCase();
-  if (provider === "openai") return true;
-  return (
-    m.startsWith("gpt-") ||
-    m.includes("gpt-4o") ||
-    m.includes("gpt-4.1") ||
-    m.startsWith("o1") ||
-    m.startsWith("o3")
-  );
+const MODEL_ALIASES = {
+  "mistral-7b-instruct-v0.1": "mistralai/Mistral-7B-Instruct-v0.1",
+  "mistral-7b-instruct-v0.2": "mistralai/Mistral-7B-Instruct-v0.2",
+  "mistral-large-2": "mistralai/Mistral-Large-Instruct",
+  "mixtral-8x7b-instruct": "mistralai/Mixtral-8x7B-Instruct-v0.1",
+  "llama-3-8b-instruct": "meta-llama/Meta-Llama-3-8B-Instruct",
+  "llama-3-70b-instruct": "meta-llama/Meta-Llama-3-70B-Instruct",
+};
+
+const resolveModel = (alias) => MODEL_ALIASES[alias] || alias;
+
+// ============================================================================
+// SYSTEM PROMPT
+// ============================================================================
+
+function getSystemPrompt() {
+  // 1. Variable d'environnement directe
+  if (process.env.HF_SYSTEM_PROMPT) {
+    return process.env.HF_SYSTEM_PROMPT;
+  }
+
+  // 2. Fichier externe
+  const promptPath =
+    process.env.HF_SYSTEM_PROMPT_PATH ||
+    path.resolve("public", "prompts", "bob-system.md");
+
+  try {
+    const content = fs.readFileSync(promptPath, "utf-8").trim();
+    if (content) return content;
+  } catch (readError) {
+    console.warn(
+      `[System] Impossible de lire le prompt système (${promptPath}) : ${readError.message}`
+    );
+  }
+
+  // 3. Fallback par défaut
+  const city = process.env.CITY_NAME || "Corte";
+  const movement = process.env.MOVEMENT_NAME || "Pertitellu";
+  const party = process.env.PARTY_NAME || "Petit Parti";
+  const bot = process.env.BOT_NAME || "Ophélia";
+  const hashtag = process.env.HASHTAG || "#PERTITELLU";
+
+  return `Tu es l'assistant citoyen ${bot} du mouvement/parti ${movement} (${party}) ${hashtag} pour la commune de ${city}. Réponds uniquement en français, de façon factuelle, concise et structurée en Markdown (titres, listes, tableaux, liens) en citant les ressources officielles pertinentes quand c'est possible.`;
 }
 
-// branche OpenAI complète (modération → routage → modèle final)
+// ============================================================================
+// ANTHROPIC (Claude)
+// ============================================================================
+
+async function runAnthropicAgent({ question, systemPrompt }) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error("ANTHROPIC_API_KEY manquant");
+  }
+
+  const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5-20250929";
+
+  console.log(`[Anthropic] Démarrage avec modèle: ${model}`);
+
+  const client = new Anthropic({ apiKey });
+
+  let fullResponse = "";
+
+  const stream = await client.messages.stream({
+    model,
+    max_tokens: 4096,
+    temperature: 0.3,
+    system: systemPrompt,
+    messages: [
+      {
+        role: "user",
+        content: question,
+      },
+    ],
+  });
+
+  for await (const event of stream) {
+    if (
+      event.type === "content_block_delta" &&
+      event.delta.type === "text_delta"
+    ) {
+      fullResponse += event.delta.text;
+    }
+  }
+
+  console.log(`[Anthropic] Réponse générée (${fullResponse.length} chars)`);
+
+  return {
+    answer: fullResponse.trim(),
+    provider: "anthropic",
+    model,
+  };
+}
+
+// ============================================================================
+// OPENAI (Simplifié - 1 seul appel)
+// ============================================================================
+
 async function runOpenAIAgent({ question, systemPrompt }) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        error:
-          "OPENAI_API_KEY manquant. Définissez-le dans l’environnement pour activer le mode GPT.",
-      }),
-    };
+    throw new Error("OPENAI_API_KEY manquant");
   }
 
-  // 1. modération
-  const moderationModel =
-    process.env.OPENAI_MODERATION_MODEL || "omni-moderation-latest";
+  const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
-  const modRes = await fetch(`${OPENAI_BASE_URL}/moderations`, {
+  console.log(`[OpenAI] Démarrage avec modèle: ${model}`);
+
+  const response = await fetch(`${OPENAI_BASE_URL}/chat/completions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: moderationModel,
-      input: question.slice(0, 4000),
-    }),
-  });
-
-  const modData = await modRes.json();
-  const flagged = modData && modData.results && modData.results[0] && modData.results[0].flagged;
-  if (flagged) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({
-        error: "Contenu refusé par la modération OpenAI.",
-        categories: modData.results[0].categories,
-      }),
-    };
-  }
-
-  // 2. routage léger/lourd
-  const smallModel = process.env.OPENAI_SMALL_MODEL || "gpt-4.1-mini";
-
-  const routerRes = await fetch(`${OPENAI_BASE_URL}/chat/completions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: smallModel,
-      temperature: 0,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content:
-            'Vous êtes un routeur pour un assistant de participation citoyenne communal. Vous recevez la question d’un habitant. Répondez UNIQUEMENT en JSON minifié de la forme {"mode":"léger|lourd","justification":"..."} ; mettez "lourd" dès qu’il y a rédaction officielle, compte rendu, ou explication longue.',
-        },
-        { role: "user", content: question },
-      ],
-    }),
-  });
-
-  const routerJson = await routerRes.json();
-  const routerContent =
-    routerJson &&
-    routerJson.choices &&
-    routerJson.choices[0] &&
-    routerJson.choices[0].message &&
-    routerJson.choices[0].message.content
-      ? routerJson.choices[0].message.content
-      : '{"mode":"léger"}';
-
-  let mode = "léger";
-  try {
-    const parsed = JSON.parse(routerContent);
-    mode = parsed.mode || "léger";
-  } catch (e) {
-    mode = "léger";
-  }
-
-  // 3. modèle final
-  const finalModel =
-    mode === "lourd"
-      ? process.env.OPENAI_HEAVY_MODEL || "gpt-4.1"
-      : smallModel;
-
-  const answerRes = await fetch(`${OPENAI_BASE_URL}/chat/completions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: finalModel,
-      temperature: mode === "lourd" ? 0.2 : 0,
+      model,
+      temperature: 0.3,
+      stream: true,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: question },
@@ -123,28 +134,164 @@ async function runOpenAIAgent({ question, systemPrompt }) {
     }),
   });
 
-  const answerJson = await answerRes.json();
-  const answer =
-    answerJson &&
-    answerJson.choices &&
-    answerJson.choices[0] &&
-    answerJson.choices[0].message &&
-    answerJson.choices[0].message.content
-      ? answerJson.choices[0].message.content.trim()
-      : "Je n’ai pas trouvé de réponse.";
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+  }
+
+  let fullResponse = "";
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const chunk = decoder.decode(value, { stream: true });
+    const lines = chunk.split("\n").filter((line) => line.trim() !== "");
+
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        const data = line.slice(6);
+        if (data === "[DONE]") break;
+
+        try {
+          const parsed = JSON.parse(data);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) {
+            fullResponse += content;
+          }
+        } catch (e) {
+          // Ignorer les lignes mal formées
+        }
+      }
+    }
+  }
+
+  console.log(`[OpenAI] Réponse générée (${fullResponse.length} chars)`);
 
   return {
-    statusCode: 200,
-    body: JSON.stringify({
-      answer,
-      sources: [],
-      cached: false,
-      provider: "openai",
-      model: finalModel,
-      mode,
-    }),
+    answer: fullResponse.trim(),
+    provider: "openai",
+    model,
   };
 }
+
+// ============================================================================
+// HUGGING FACE
+// ============================================================================
+
+async function runHuggingFaceAgent({ question, systemPrompt, provider, model }) {
+  const apiKey = process.env.HF_TOKEN || process.env.HUGGINGFACE_API_KEY;
+  if (!apiKey) {
+    throw new Error("HF_TOKEN manquant");
+  }
+
+  console.log(`[HuggingFace] Démarrage provider="${provider}" model="${model}"`);
+
+  const client = new InferenceClient(apiKey);
+
+  let fullResponse = "";
+
+  const stream = client.chatCompletionStream({
+    provider,
+    model,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: question },
+    ],
+  });
+
+  for await (const chunk of stream) {
+    const delta = chunk?.choices?.[0]?.delta?.content;
+    if (delta) {
+      fullResponse += delta;
+    }
+  }
+
+  console.log(`[HuggingFace] Réponse générée (${fullResponse.length} chars)`);
+
+  return {
+    answer: fullResponse.trim(),
+    provider,
+    model,
+  };
+}
+
+// ============================================================================
+// FALLBACK ORCHESTRATOR
+// ============================================================================
+
+function buildFallbackChain() {
+  const fallbacks = [];
+
+  // 1. Anthropic (Priorité 1)
+  if (process.env.ANTHROPIC_API_KEY) {
+    fallbacks.push({
+      provider: "anthropic",
+      model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5-20250929",
+      executor: runAnthropicAgent,
+    });
+  }
+
+  // 2. OpenAI (Priorité 2)
+  if (process.env.OPENAI_API_KEY) {
+    fallbacks.push({
+      provider: "openai",
+      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      executor: runOpenAIAgent,
+    });
+  }
+
+  // 3. Hugging Face (Fallbacks)
+  if (process.env.HF_TOKEN || process.env.HUGGINGFACE_API_KEY) {
+    const hfProvider = process.env.HF_CHAT_PROVIDER || "together";
+    const hfModel = resolveModel(
+      process.env.HF_CHAT_MODEL || "mistralai/Mixtral-8x7B-Instruct-v0.1"
+    );
+
+    fallbacks.push(
+      {
+        provider: hfProvider,
+        model: hfModel,
+        executor: runHuggingFaceAgent,
+      },
+      {
+        provider: "together",
+        model: resolveModel("mixtral-8x7b-instruct"),
+        executor: runHuggingFaceAgent,
+      },
+      {
+        provider: "groq",
+        model: "llama3-8b-8192",
+        executor: runHuggingFaceAgent,
+      },
+      {
+        provider: "hf-inference",
+        model: resolveModel("meta-llama/Meta-Llama-3-8B-Instruct"),
+        executor: runHuggingFaceAgent,
+      }
+    );
+  }
+
+  // Dédupliquer
+  const unique = fallbacks.filter(
+    (item, index, arr) =>
+      item.provider &&
+      item.model &&
+      index ===
+        arr.findIndex(
+          (other) =>
+            other.provider === item.provider && other.model === item.model
+        )
+  );
+
+  return unique;
+}
+
+// ============================================================================
+// MAIN HANDLER
+// ============================================================================
 
 export const handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -164,356 +311,101 @@ export const handler = async (event) => {
       };
     }
 
-    const hfApiKey = process.env.HF_TOKEN || process.env.HUGGINGFACE_API_KEY;
-    if (!hfApiKey) {
+    const systemPrompt = getSystemPrompt();
+    const fallbackChain = buildFallbackChain();
+
+    if (fallbackChain.length === 0) {
       return {
         statusCode: 500,
         body: JSON.stringify({
           error:
-            "HF_TOKEN manquant. Définissez-le dans Netlify (ou utilisez HUGGINGFACE_API_KEY).",
+            "Aucun provider configuré. Définissez au moins une clé API (ANTHROPIC_API_KEY, OPENAI_API_KEY, ou HF_TOKEN).",
         }),
       };
     }
 
-    const modelAliases = {
-      "mistral-7b-instruct-v0.1": "mistralai/Mistral-7B-Instruct-v0.1",
-      "mistral-7b-instruct-v0.2": "mistralai/Mistral-7B-Instruct-v0.2",
-      "mistral-large-2": "mistralai/Mistral-Large-Instruct",
-      "mixtral-8x7b-instruct": "mistralai/Mixtral-8x7B-Instruct-v0.1",
-      "llama-3-8b-instruct": "meta-llama/Meta-Llama-3-8B-Instruct",
-      "llama-3-70b-instruct": "meta-llama/Meta-Llama-3-70B-Instruct",
-    };
-    const resolveModel = (alias) => modelAliases[alias] || alias;
+    console.log(
+      `[Main] Chaîne de fallback: ${fallbackChain.map((f) => `${f.provider}/${f.model}`).join(" → ")}`
+    );
 
-    const requestedProvider = process.env.HF_CHAT_PROVIDER || "hf-inference";
-    const requestedModel =
-      resolveModel(
-        process.env.HF_CHAT_MODEL || "meta-llama/Meta-Llama-3-8B-Instruct"
-      );
-
-    // on ajoute OpenAI en premier seulement s’il y a une clé
-    const fallbacks = [
-      ...(process.env.OPENAI_API_KEY
-        ? [
-            {
-              provider: "openai",
-              model: process.env.OPENAI_SMALL_MODEL || "gpt-4.1-mini",
-            },
-          ]
-        : []),
-      { provider: requestedProvider, model: requestedModel },
-      {
-        provider: "hf-inference",
-        model: resolveModel("meta-llama/Meta-Llama-3-8B-Instruct"),
-      },
-      { provider: "together", model: resolveModel("mixtral-8x7b-instruct") },
-      { provider: "together", model: resolveModel("llama-3-8b-instruct") },
-      { provider: "groq", model: "groq/llama3-8b-8192" },
-    ].filter((pair, index, arr) => {
-      if (!pair.provider || !pair.model) return false;
-      const firstIndex = arr.findIndex(
-        (other) =>
-          other.provider === pair.provider && other.model === pair.model
-      );
-      return index === firstIndex;
-    });
-
-    if (fallbacks.length === 0) {
-      return {
-        statusCode: 500,
-        body: JSON.stringify({
-          error:
-            "Aucun couple provider/modèle disponible. Configurez HF_CHAT_PROVIDER et HF_CHAT_MODEL ou activez un provider dans Hugging Face.",
-        }),
-      };
-    }
-
-    const systemPrompt = (() => {
-      if (process.env.HF_SYSTEM_PROMPT) return process.env.HF_SYSTEM_PROMPT;
-
-      const promptPath =
-        process.env.HF_SYSTEM_PROMPT_PATH ||
-        path.resolve("public", "prompts", "bob-system.md");
-
-      try {
-        const content = fs.readFileSync(promptPath, "utf-8").trim();
-        if (content) return content;
-      } catch (readError) {
-        console.warn(
-          `[HF] Impossible de lire le prompt système (${promptPath}) : ${readError.message}`
-        );
-      }
-
-      const city = process.env.CITY_NAME || "Corte";
-      const movement = process.env.MOVEMENT_NAME || "Pertitellu";
-      const party = process.env.PARTY_NAME || "Petit Parti";
-      const bot = process.env.BOT_NAME || "Ophélia";
-      const hashtag = process.env.HASHTAG || "#PERTITELLU";
-
-      return `Tu es l’assistant citoyen ${bot} du mouvement/parti ${movement} (${party}) ${hashtag} pour la commune de ${city}. Réponds uniquement en français, de façon factuelle, concise et structurée en Markdown (titres, listes, tableaux, liens) en citant les ressources officielles pertinentes quand c’est possible.`;
-    })();
-
-    const client = new InferenceClient(hfApiKey);
     const attempts = [];
     const debugTrace = [];
 
-    for (const { provider, model } of fallbacks) {
+    for (const { provider, model, executor } of fallbackChain) {
       const attemptStart = Date.now();
-      console.info(`[HF] tentative provider="${provider}" model="${model}"`);
+
+      console.log(`[Main] Tentative: ${provider}/${model}`);
       debugTrace.push({
         provider,
         model,
-        status: 'attempting',
+        status: "attempting",
         timestamp: new Date().toISOString(),
-        startTime: attemptStart
+        startTime: attemptStart,
       });
-      
+
       try {
-        // branche GPT → OpenAI direct avec escalade si pas de réponse
-        if (isGPTModel(provider, model) && process.env.OPENAI_API_KEY) {
-          const result = await runOpenAIAgent({ question, systemPrompt });
-          const resultBody = JSON.parse(result.body);
-          const answerText = (resultBody?.answer || "").trim();
-          const usedModel = resultBody?.model;
-          const smallModel = process.env.OPENAI_SMALL_MODEL || "gpt-4.1-mini";
-          const heavyModel = process.env.OPENAI_HEAVY_MODEL || "gpt-4.1";
-          const noAnswerPhrase = "Je n’ai pas trouvé de réponse.";
-
-          // Si pas de réponse utile et qu'on est sur le petit modèle, escalader vers le modèle lourd
-          if (!answerText || answerText === noAnswerPhrase) {
-            if (usedModel === smallModel) {
-              try {
-                const resp = await fetch(`${OPENAI_BASE_URL}/chat/completions`, {
-                  method: "POST",
-                  headers: {
-                    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    model: heavyModel,
-                    temperature: 0.2,
-                    messages: [
-                      { role: "system", content: systemPrompt },
-                      { role: "user", content: question },
-                    ],
-                  }),
-                });
-                const json = await resp.json();
-                const heavyAnswer =
-                  json?.choices?.[0]?.message?.content
-                    ? json.choices[0].message.content.trim()
-                    : "";
-                if (heavyAnswer) {
-                  const attemptEnd = Date.now();
-                  debugTrace[debugTrace.length - 1] = {
-                    ...debugTrace[debugTrace.length - 1],
-                    status: 'success_openai_escalation',
-                    duration: attemptEnd - attemptStart,
-                    endTime: attemptEnd
-                  };
-                  return {
-                    statusCode: 200,
-                    body: JSON.stringify({
-                      answer: heavyAnswer,
-                      sources: [],
-                      cached: false,
-                      provider: 'openai',
-                      model: heavyModel,
-                      debugTrace,
-                    }),
-                  };
-                }
-              } catch (escalationErr) {
-                // Ignorer et marquer comme échec plus bas
-              }
-            }
-
-            // Si toujours pas de réponse utile, considérer comme échec et passer au provider suivant
-            const attemptEnd = Date.now();
-            debugTrace[debugTrace.length - 1] = {
-              ...debugTrace[debugTrace.length - 1],
-              status: 'failed_no_answer_openai',
-              duration: attemptEnd - attemptStart,
-              endTime: attemptEnd,
-              error: 'No useful answer from OpenAI; escalation unsuccessful or not applicable'
-            };
-
-            attempts.push({
-              provider,
-              model: usedModel || model,
-              message: "OpenAI: absence de réponse utile (avec escalade si petit modèle)",
-            });
-            continue;
-          }
-
-          // Succès OpenAI avec réponse utile
-          const attemptEnd = Date.now();
-          debugTrace[debugTrace.length - 1] = {
-            ...debugTrace[debugTrace.length - 1],
-            status: 'success_openai',
-            duration: attemptEnd - attemptStart,
-            endTime: attemptEnd
-          };
-          resultBody.debugTrace = debugTrace;
-          return {
-            statusCode: 200,
-            body: JSON.stringify(resultBody)
-          };
-        }
-
-        // branche Hugging Face inchangée
-        let out = "";
-        const stream = client.chatCompletionStream({
-          provider,
-          model,
-          messages: [
-            {
-              role: "system",
-              content: systemPrompt,
-            },
-            {
-              role: "user",
-              content: question,
-            },
-          ],
-        });
-
-        for await (const chunk of stream) {
-          const delta =
-            chunk &&
-            chunk.choices &&
-            chunk.choices[0] &&
-            chunk.choices[0].delta &&
-            chunk.choices[0].delta.content
-              ? chunk.choices[0].delta.content
-              : "";
-          if (delta) out += delta;
-        }
-        let trimmed = out.trim();
-
-        // Si le flux est vide, tenter une requête non-stream (fallback API)
-        if (!trimmed) {
-          try {
-            const resp = await client.chatCompletion({
-              provider,
-              model,
-              messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: question },
-              ],
-            });
-            const content =
-              resp &&
-              resp.choices &&
-              resp.choices[0] &&
-              resp.choices[0].message &&
-              resp.choices[0].message.content
-                ? resp.choices[0].message.content.trim()
-                : "";
-            if (content) {
-              trimmed = content;
-              const attemptEnd = Date.now();
-              debugTrace[debugTrace.length - 1] = {
-                ...debugTrace[debugTrace.length - 1],
-                status: 'success_non_stream',
-                duration: attemptEnd - attemptStart,
-                endTime: attemptEnd
-              };
-            }
-          } catch (nonStreamErr) {
-            console.warn(
-              `[HF] réponse vide en streaming, fallback non-stream échoué (${provider}/${model}): ${nonStreamErr?.message}`
-            );
-          }
-        } else {
-          // Succès avec streaming
-          const attemptEnd = Date.now();
-          debugTrace[debugTrace.length - 1] = {
-            ...debugTrace[debugTrace.length - 1],
-            status: 'success_stream',
-            duration: attemptEnd - attemptStart,
-            endTime: attemptEnd
-          };
-        }
-
-        // Si toujours vide, passer au provider suivant au lieu de renvoyer une non-réponse
-        if (!trimmed) {
-          const attemptEnd = Date.now();
-          debugTrace[debugTrace.length - 1] = {
-            ...debugTrace[debugTrace.length - 1],
-            status: 'failed_empty_response',
-            duration: attemptEnd - attemptStart,
-            endTime: attemptEnd,
-            error: 'Empty response from both stream and non-stream'
-          };
-          
-          attempts.push({
-            provider,
-            model,
-            message: "Réponse vide du modèle (stream et non-stream)",
-          });
-          continue;
-        }
-
-        const answer = trimmed;
-        const sources = [];
-        const cached = false;
-
-        console.info(
-          `[HF] réponse générée par provider="${provider}" model="${model}"`
-        );
-        return {
-          statusCode: 200,
-          body: JSON.stringify({ answer, sources, cached, provider, model, debugTrace }),
-        };
-      } catch (streamError) {
-        console.error(
-          `Erreur Hugging Face (${provider}/${model}):`,
-          streamError
-        );
-        const message =
-          (streamError && streamError.message) ||
-          "Provider ou modèle indisponible.";
-        const hint = message.includes("Repository not found")
-          ? "Vérifiez l’identifiant complet du modèle (ex. `mistralai/Mistral-7B-Instruct-v0.1`) et l’accès du provider."
-          : message.includes("inference provider information")
-          ? "Activez ce provider dans https://huggingface.co/settings/inference-providers ou utilisez un provider que vous avez relié."
-          : undefined;
+        const result = await executor({ question, systemPrompt, provider, model });
 
         const attemptEnd = Date.now();
+        const duration = attemptEnd - attemptStart;
+
+        console.log(`[Main] ✅ Succès avec ${provider}/${model} en ${duration}ms`);
+
         debugTrace[debugTrace.length - 1] = {
           ...debugTrace[debugTrace.length - 1],
-          status: 'failed_error',
-          duration: attemptEnd - attemptStart,
+          status: "success",
+          duration,
           endTime: attemptEnd,
-          error: streamError?.message || 'Unknown error'
         };
-        
+
+        return {
+          statusCode: 200,
+          body: JSON.stringify({
+            answer: result.answer,
+            sources: [],
+            cached: false,
+            provider: result.provider,
+            model: result.model,
+            debugTrace,
+          }),
+        };
+      } catch (err) {
+        const attemptEnd = Date.now();
+        const duration = attemptEnd - attemptStart;
+
+        console.error(`[Main] ❌ Échec ${provider}/${model}: ${err.message}`);
+
+        debugTrace[debugTrace.length - 1] = {
+          ...debugTrace[debugTrace.length - 1],
+          status: "error",
+          duration,
+          endTime: attemptEnd,
+          error: err.message,
+        };
+
         attempts.push({
           provider,
           model,
-          message,
-          ...(hint ? { hint } : {}),
+          message: err.message,
         });
       }
     }
 
+    // Échec total
     return {
-      statusCode: 502,
+      statusCode: 500,
       body: JSON.stringify({
         error:
-          "Aucun provider/modèle n'a pu répondre. Configurez un provider depuis Hugging Face ou fournissez HF_CHAT_PROVIDER / HF_CHAT_MODEL.",
+          "Échec de traitement de la demande. Aucune réponse valide reçue des modèles.",
         attempts,
         debugTrace,
       }),
     };
-  } catch (error) {
-    console.error("Erreur lors du traitement de la requête :", error);
+  } catch (err) {
+    console.error(`[Main] Erreur globale: ${err.message}`);
     return {
       statusCode: 500,
-      body: JSON.stringify({
-        error: (error && error.message) || "Erreur interne du serveur.",
-      }),
+      body: JSON.stringify({ error: err.message }),
     };
   }
 };

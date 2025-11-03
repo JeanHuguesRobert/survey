@@ -215,6 +215,11 @@ export default function ChatWindow({ user }) {
         timestamp: new Date()
       }]);
 
+      // Trace utilisation OpenAI
+      if (provider === 'openai') {
+        console.log(`🤖 ${BOT_NAME} - Réponse générée par OpenAI (${model})`);
+      }
+
       // Sauvegarder l'interaction
       await supabase.from('chat_interactions').insert({
         user_id: user?.id,
