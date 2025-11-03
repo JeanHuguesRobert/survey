@@ -2,16 +2,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { CITY_NAME, HASHTAG } from '../constants';
+import { CITY_NAME, HASHTAG, COMMUNITY_NAME, COMMUNITY_TYPE, getCommunityLabels } from '../constants';
+import { getCommunityTransparencyCriteria, calculateTransparencyScore } from '../config/transparencyCriteria';
 
-const CRITERIA = [
-  { key: 'agenda_mentions_location', label: 'Les ordres du jour mentionnent-ils toujours le lieu ?' },
-  { key: 'livestreamed', label: 'Les conseils sont-ils livestreamés ?' },
-  { key: 'minutes_published_under_week', label: 'Les PV sont-ils publiés en ligne < 1 semaine ?' },
-  { key: 'deliberations_open_data', label: 'Les délibérations sont-elles en open data ?' },
-  { key: 'annual_calendar_published', label: 'Un calendrier annuel est-il publié à l\'avance ?' },
-  { key: 'public_can_speak', label: 'Le public peut-il s\'exprimer en séance ?' }
-];
+// Obtenir les critères dynamiques basés sur le type de communauté
+const communityConfig = getCommunityTransparencyCriteria(COMMUNITY_TYPE);
+const communityLabels = getCommunityLabels();
+
+const CRITERIA = communityConfig.criteria.map(criterion => ({
+  key: criterion.id,
+  label: criterion.description,
+  weight: criterion.weight
+}));
 
 const initialFormState = {
   id: null,
@@ -102,17 +104,18 @@ export default function Transparence() {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-3xl mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-4">Transparence municipale</h1>
+          <h1 className="text-3xl font-bold text-slate-900 mb-4">{communityConfig.title}</h1>
           <p className="text-slate-700 mb-6">
-            Cette enquête nationale est rendue disponible dans la commune de Corte, en Corse.
+            Cette enquête de {communityLabels.transparency} est rendue disponible dans la {communityLabels.name} de {COMMUNITY_NAME}.
           </p>
           <a
-            href="https://lepp.fr/transparence"
+            href={communityConfig.externalLink}
             target="_blank"
             rel="noopener noreferrer"
+            aria-label={`Accéder au site officiel de ${COMMUNITY_NAME} (nouvelle fenêtre)`}
             className="inline-block px-4 py-2 bg-blue-900 text-white rounded-md hover:bg-blue-800"
           >
-            Accéder au site de Corte
+            Accéder au site de {COMMUNITY_NAME}
           </a>
         </div>
       </div>
@@ -247,11 +250,10 @@ export default function Transparence() {
             {HASHTAG} - Observatoire citoyen
           </p>
           <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
-            VOTRE MAIRIE EST-ELLE TRANSPARENTE ?
+            VOTRE {communityLabels.name.toUpperCase()} EST-ELLE TRANSPARENTE ?
           </h1>
           <p className="text-slate-600 max-w-2xl mx-auto">
-            Testez votre commune (plus de 3 500 habitants) et contribuez à une base de données ouverte
-            qui suit les pratiques démocratiques locales partout en France.
+            {communityConfig.description}
           </p>
         </div>
       </div>
@@ -261,18 +263,18 @@ export default function Transparence() {
           <h2 className="text-xl font-semibold text-slate-900 mb-4">Scores de référence</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="border border-slate-200 rounded-lg p-5 text-center">
-              <p className="text-sm uppercase text-slate-500 tracking-wide mb-2">Score {CITY_NAME}</p>
+              <p className="text-sm uppercase text-slate-500 tracking-wide mb-2">Score {COMMUNITY_NAME}</p>
               <p className={`text-3xl font-bold ${scoreColor(cityScore ?? 0)}`}>
-                {cityScore !== null ? formatScore(cityScore) : '0/6'}
+                {cityScore !== null ? formatScore(cityScore) : `0/${communityConfig.criteria.length}`}
               </p>
-              <p className="text-xs text-slate-500 mt-2">Données collectées auprès des habitantes et habitants de {CITY_NAME}.</p>
+              <p className="text-xs text-slate-500 mt-2">Données collectées auprès des {communityLabels.citizens} de {COMMUNITY_NAME}.</p>
             </div>
             <div className="border border-slate-200 rounded-lg p-5 text-center">
-              <p className="text-sm uppercase text-slate-500 tracking-wide mb-2">Score moyen national</p>
+              <p className="text-sm uppercase text-slate-500 tracking-wide mb-2">Score moyen</p>
               <p className={`text-3xl font-bold ${scoreColor(nationalAverage ? Number(nationalAverage) : 3.2)}`}>
-                {nationalAverage ? `${nationalAverage}/6` : '3.2/6'}
+                {nationalAverage ? `${nationalAverage}/${communityConfig.criteria.length}` : `3.2/${communityConfig.criteria.length}`}
               </p>
-              <p className="text-xs text-slate-500 mt-2">Calculé sur les communes enregistrées dans la base (≥ 3 500 habitants).</p>
+              <p className="text-xs text-slate-500 mt-2">Calculé sur les {communityLabels.name}s enregistrées dans la base.</p>
             </div>
             <div className="border border-slate-200 rounded-lg p-5 text-center">
               <p className="text-sm uppercase text-slate-500 tracking-wide mb-2">Votre commune</p>
