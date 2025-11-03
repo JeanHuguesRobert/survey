@@ -150,6 +150,8 @@ Le projet est déployé automatiquement via Netlify.
 #### Général
 - Ajout de la page `Contact` (`/contact`) avec email configurable via `VITE_CONTACT_EMAIL` (valeur par défaut `jeanhuguesrobert@gmail.com`).
 - Intégration d’un `ErrorBoundary` autour de `App` pour une gestion d’erreurs de rendu plus robuste.
+- Unification/déduplication du Footer et harmonisation des liens légaux.
+- Préparation du packaging Survey (structure et scripts).
 
 #### Wiki / Markdown
 - Linkification automatique des WikiWords CamelCase via `linkifyWardWiki` dans les rendus Markdown des pages suivantes :
@@ -158,10 +160,17 @@ Le projet est déployé automatiquement via Netlify.
   - `src/components/AuditContent.jsx` (audit éthique)
   - Déjà en place dans `Wiki.jsx`, `WikiPage.jsx` et `components/bob/ChatWindow.jsx`.
   - Comportement : CamelCase → `/wiki/<CamelCase>` ; opt-out `!WikiWord` ; exclusion automatique dans les blocs de code.
+- Bouton de partage ajouté dans le Wiki (Web Share + copie presse-papier).
+- Compatibilité étendue avec GitHub-Flavored Markdown (GFM).
 
 #### Bob (Assistant IA)
 
-- La publication vers le wiki.
+- Support natif OpenAI si `OPENAI_API_KEY` est défini, sinon fallback Hugging Face.
+- Support d’Anthropic via provider compatible (selon configuration).
+- Routage « léger » puis bascule vers un modèle « lourd » si la première réponse n’est pas satisfaisante.
+- Réponses Markdown sécurisées et compatibles GFM côté UI (`marked` + `DOMPurify`).
+- Journaux renforcés côté fonctions : trace du provider et du modèle sélectionnés.
+- Debug de la création de propositions (statut par défaut `active`, gestion des tags).
 
 ### 2025-11-01 → 2025-11-02
 
@@ -359,6 +368,20 @@ netlify dev          # Fonctions serverless (rag_chatbot)
 | `HF_CHAT_MODEL`        | Modèle par défaut (ex. `meta-llama/Meta-Llama-3-8B-Instruct`) |
 | `HF_SYSTEM_PROMPT`     | (Optionnel) Remplace le fichier public de prompt     |
 | `HF_SYSTEM_PROMPT_PATH`| (Optionnel) Chemin personnalisé du prompt Markdown   |
+
+## 5bis. Configuration OpenAI
+
+| Variable                   | Description                                        |
+|---------------------------|----------------------------------------------------|
+| `OPENAI_API_KEY`          | Clé API OpenAI pour activer le provider natif      |
+| `OPENAI_BASE_URL`         | (Optionnel) Base URL API (par défaut `api.openai.com`) |
+| `OPENAI_SMALL_MODEL`      | Modèle léger pour le routage (ex. `gpt-4o-mini`)   |
+| `OPENAI_HEAVY_MODEL`      | Modèle lourd pour les réponses (ex. `gpt-4o`)      |
+| `OPENAI_MODERATION_MODEL` | Modèle de modération (ex. `omni-moderation-latest`) |
+
+Notes
+- Si `OPENAI_API_KEY` est défini, Bob utilise OpenAI en priorité, avec fallback Hugging Face si nécessaire.
+- Les réponses sont modérées via `OPENAI_MODERATION_MODEL` quand disponible.
 
 ## 6. Supabase — tags des propositions
 
