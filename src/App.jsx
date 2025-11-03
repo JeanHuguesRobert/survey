@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Methodologie from './pages/Methodologie';
-import { APP_VERSION, DEPLOY_DATE, GOOGLE_SCRIPT_URL, COLORS, PRIMARY_COLOR, SECONDARY_COLOR, CITY_NAME, CITY_TAGLINE, MOVEMENT_NAME, PARTY_NAME, HASHTAG, VOLUNTEER_URL } from './constants';
+import { APP_VERSION, DEPLOY_DATE, GOOGLE_SCRIPT_URL, COLORS, PRIMARY_COLOR, SECONDARY_COLOR, CITY_NAME, CITY_TAGLINE, MOVEMENT_NAME, PARTY_NAME, HASHTAG, VOLUNTEER_URL, COMMUNITY_NAME, COMMUNITY_TYPE, getCommunityLabels } from './constants';
+import { getCommunityQuestionnaireModules, generateInitialFormState } from './config/questionnaireModules';
 import Audit from './pages/Audit';
 import Kudocracy from './pages/Kudocracy';
 import Wiki from './pages/Wiki';
@@ -12,99 +13,16 @@ import WikiEdit from './pages/WikiEdit';
 import Bob from './pages/Bob';
 import Proposition from './pages/Proposition';
 import Transparence from './pages/Transparence';
+import Survey from './pages/Survey';
+import SiteFooter from "./components/layout/SiteFooter";
 import { LegalPage } from "./components/LegalLinks";
-
-function Footer() {
-  return (
-    <footer className="bg-gray-800 text-white py-6 mt-12">
-      <div className="max-w-4xl mx-auto px-4 text-center">
-        <p className="mb-2">Le Petit Parti — déclinaison locale #Pertitellu</p>
-        <p className="mb-4">
-          <a href="http://lepp.fr" className="text-orange-300 hover:text-orange-200" target="_blank" rel="noopener noreferrer">
-            LePP.fr
-          </a>
-        </p>
-        
-        {/* Première section */}
-        <div className="flex flex-col md:flex-row md:flex-wrap justify-center gap-3 md:gap-4 mb-4">
-          <Link to="/transparence" className="text-orange-400 hover:text-orange-300">
-            Enquête nationale Transparence
-          </Link>
-          <Link to="/methodologie" className="text-orange-400 hover:text-orange-300">
-            Méthodologie
-          </Link>
-        </div>
-
-        {/* Séparateur */}
-        <p className="text-gray-400 mb-3">Autres services (proto)</p>
-
-        {/* Deuxième section */}
-        <div className="flex flex-col md:flex-row md:flex-wrap justify-center gap-3 md:gap-4 mb-4">
-          <a
-            href="https://app.tooljet.ai/applications/133a5d8d-9268-4813-8a46-0126a309b52a"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-orange-400 hover:text-orange-300"
-          >
-            Incidents
-          </a>
-          <a
-            href="https://events-agenda-social.deploypad.app/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-orange-400 hover:text-orange-300"
-          >
-            Agenda
-          </a>
-          <Link to="/kudocracy" className="text-orange-400 hover:text-orange-300">
-            Propositions
-          </Link>
-          <a
-            href={VOLUNTEER_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-orange-400 hover:text-orange-300"
-          >
-            Bénévolat
-          </a>
-          <a
-            href="https://www.facebook.com/groups/1269635707349220"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-orange-400 hover:text-orange-300"
-          >
-            Réseaux Sociaux
-          </a>
-          <Link to="/wiki" className="text-orange-400 hover:text-orange-300">
-            Wiki
-          </Link>
-          <Link to="/bob" className="text-orange-400 hover:text-orange-300">
-            IA
-          </Link>
-        </div>
-
-        {/* Liens légaux */}
-        <div className="text-xs text-gray-400 mt-4 mb-2">
-          <Link to="/legal/terms" className="hover:text-orange-300 mr-2">Conditions d'utilisation</Link>
-          {" | "}
-          <Link to="/legal/privacy" className="hover:text-orange-300 ml-2">Politique de confidentialité</Link>
-        </div>
-        
-        <div className="text-xs text-gray-500 mt-2 cursor-help">
-          Version {APP_VERSION}, déployée le {DEPLOY_DATE}
-        </div>
-      </div>
-    </footer>
-      );
-}
 
 export default function ConsultationPertitellu() {
   const [page, setPage] = useState('form');
+  const baseInitialState = generateInitialFormState(COMMUNITY_TYPE);
   const [formData, setFormData] = useState({
-    connaissanceQuasquara: '',
-    positionQuasquara: '',
-    quiDecide: '',
-    satisfactionDemocratie: 3,
+    ...baseInitialState,
+    satisfactionDemocratie: baseInitialState.satisfactionDemocratie ?? 3,
     declinVille: 3,
     favorableReferendum: '',
     sujetsReferendum: [],
@@ -127,6 +45,7 @@ export default function ConsultationPertitellu() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(true);
   const isCorte = String(CITY_NAME || '').toLowerCase() === 'corte';
+  const modules = getCommunityQuestionnaireModules(COMMUNITY_TYPE);
 
   // Charger les réponses depuis Google Sheets
   useEffect(() => {
@@ -188,10 +107,7 @@ export default function ConsultationPertitellu() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.connaissanceQuasquara || !formData.positionQuasquara || !formData.quiDecide || !formData.favorableReferendum || !formData.horaireConseil) {
-      alert('Veuillez répondre aux questions obligatoires (sections 1 et 2)');
-      return;
-    }
+    // Soumission sans validation spécifique aux anciens champs pour permettre des modules agnostiques
 
     setLoading(true);
     setError('');
@@ -309,6 +225,7 @@ export default function ConsultationPertitellu() {
   if (page === 'form') {
     return (
       <div className="min-h-screen bg-gray-50">
+        <a href="#mainContent" className="sr-only focus:not-sr-only fixed top-2 left-2 z-50 px-3 py-2 rounded-md bg-white text-slate-900 shadow">Aller au contenu principal</a>
         <div className="bg-white shadow-sm">
           <div className="max-w-4xl mx-auto px-4 py-6">
             <div className="flex items-start justify-between">
@@ -316,6 +233,8 @@ export default function ConsultationPertitellu() {
                 type="button"
                 className="group flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white/80 text-slate-700 shadow-sm backdrop-blur transition hover:bg-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-400"
                 aria-label={isMenuOpen ? "Fermer la navigation" : "Ouvrir la navigation"}
+                aria-expanded={isMenuOpen}
+                aria-controls="mainNav"
                 onClick={() => setIsMenuOpen((prev) => !prev)}
               >
                 <div className="relative h-6 w-6">
@@ -332,6 +251,7 @@ export default function ConsultationPertitellu() {
                     style={{ backgroundColor: SECONDARY_COLOR }}
                   />
                 </div>
+                <span className="sr-only">{isMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}</span>
               </button>
 
               <div className="text-center flex-1">
@@ -355,11 +275,14 @@ export default function ConsultationPertitellu() {
             onClick={closeMenu}
           >
             <nav
+              id="mainNav"
+              role="navigation"
+              aria-labelledby="navTitle"
               className="absolute left-1/2 top-6 w-[90%] max-w-sm -translate-x-1/2 rounded-2xl bg-white p-6 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">
-                <span className="text-lg font-semibold text-slate-800">Navigation {MOVEMENT_NAME}</span>
+                <span id="navTitle" className="text-lg font-semibold text-slate-800">Navigation {MOVEMENT_NAME}</span>
                 <button
                   type="button"
                   className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100"
@@ -407,6 +330,11 @@ export default function ConsultationPertitellu() {
                     Audit éthique
                   </Link>
                 </li>
+                <li>
+                  <Link to="/survey" onClick={closeMenu} className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-100">
+                    À propos / Survey
+                  </Link>
+                </li>
               </ul>
               <div className="mt-6 text-xs text-slate-500">
                 {PARTY_NAME} — {MOVEMENT_NAME} {CITY_NAME} © {new Date().getFullYear()}
@@ -442,9 +370,9 @@ export default function ConsultationPertitellu() {
               </button>
 
               {isFormOpen && isCorte && (
-                <div className="bg-white p-8">
-                  <h1 className="text-3xl font-bold text-gray-800 mb-2">Consultation citoyenne sur la démocratie locale</h1>
-              <p className="text-gray-600 mb-6">Une initiative {MOVEMENT_NAME} pour les élections municipales de {CITY_NAME}</p>
+                <div id="mainContent" className="bg-white p-8">
+                  <h1 className="text-3xl font-bold text-gray-800 mb-2">Consultation {getCommunityLabels().citizens} sur la démocratie locale</h1>
+              <p className="text-gray-600 mb-6">Une initiative {MOVEMENT_NAME} pour la {getCommunityLabels().name} de {COMMUNITY_NAME}</p>
 
                   {error && (
                     <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-red-700">
@@ -453,6 +381,78 @@ export default function ConsultationPertitellu() {
                   )}
 
                   <div className="space-y-8">
+                    {/* Modules de questionnaire dynamiques basés sur le type de communauté */}
+                    <div className="mb-8">
+                      <h2 className="text-xl font-bold text-gray-800 mb-4">{modules.title}</h2>
+                      {modules.modules.map((module) => (
+                        <div key={module.id} className="mb-6">
+                          <h3 className="text-lg font-semibold text-gray-800 mb-2">{module.title}</h3>
+                          {module.questions.map((q) => (
+                            <div key={q.id} className="mb-4">
+                              <label className="block text-gray-700 font-medium mb-2">
+                                {q.label}
+                              </label>
+                              {/* Radios */}
+                              {q.type === 'radio' && (
+                                <div className="space-y-2">
+                                  {q.options.map((opt) => (
+                                    <label key={opt} className="flex items-center cursor-pointer">
+                                      <input
+                                        type="radio"
+                                        name={q.id}
+                                        value={opt}
+                                        checked={formData[q.id] === opt}
+                                        onChange={handleInputChange}
+                                        className="mr-2"
+                                      />
+                                      {opt}
+                                    </label>
+                                  ))}
+                                </div>
+                              )}
+                              {/* Échelle 1-5 */}
+                              {q.type === 'scale' && (
+                                <div>
+                                  {/* Version mobile */}
+                                  <div className="md:hidden">
+                                    <select
+                                      name={q.id}
+                                      value={formData[q.id] ?? 3}
+                                      onChange={handleInputChange}
+                                      className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                                    >
+                                      <option value="1">{q.labels?.[0] || '1'}</option>
+                                      <option value="2">{q.labels?.[1] || '2'}</option>
+                                      <option value="3">{q.labels?.[2] || '3'}</option>
+                                      <option value="4">{q.labels?.[3] || '4'}</option>
+                                      <option value="5">{q.labels?.[4] || '5'}</option>
+                                    </select>
+                                  </div>
+                                  {/* Version desktop */}
+                                  <div className="hidden md:flex items-center space-x-4">
+                                    <span className="text-sm text-gray-600">{q.labels?.[0] || '1'}</span>
+                                    {[1,2,3,4,5].map(num => (
+                                      <label key={num} className="flex items-center cursor-pointer">
+                                        <input
+                                          type="radio"
+                                          name={q.id}
+                                          value={num}
+                                          checked={Number(formData[q.id] ?? 3) === num}
+                                          onChange={handleInputChange}
+                                          className="mr-1"
+                                        />
+                                        {num}
+                                      </label>
+                                    ))}
+                                    <span className="text-sm text-gray-600">{q.labels?.[4] || '5'}</span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
                     <div className="pl-4" style={{ borderLeft: `4px solid ${PRIMARY_COLOR}` }}>
                       <h2 className="text-xl font-bold text-gray-800 mb-4">L'affaire de Quasquara</h2>
                       
@@ -526,7 +526,7 @@ export default function ConsultationPertitellu() {
                     </div>
 
                     <div className="pl-4" style={{ borderLeft: `4px solid ${SECONDARY_COLOR}` }}>
-                      <h2 className="text-xl font-bold text-gray-800 mb-4">Démocratie locale à {CITY_NAME}</h2>
+                      <h2 className="text-xl font-bold text-gray-800 mb-4">Démocratie {getCommunityLabels().name}</h2>
                       
                       <div className="mb-6">
                         <label className="block text-gray-700 font-semibold mb-2">
@@ -857,7 +857,7 @@ export default function ConsultationPertitellu() {
           )}
         </div>
         <div className="mt-8">
-          <Footer />
+          <SiteFooter />
         </div>
       </div> 
     );
@@ -1068,16 +1068,32 @@ export default function ConsultationPertitellu() {
         </div>
       </div>
       <div className="mt-8">
-        <Footer />
+        <SiteFooter />
       </div>
     </div>
   );
 }
 
 export function App() {
+  const Contact = ({ children, href, ...props }) => {
+    if (href) {
+      return (
+        <a href={href} {...props}>
+          {children}
+        </a>
+      );
+    }
+    return (
+      <span {...props}>
+        {children}
+      </span>
+    );
+  };
+
   return (
     <Routes>
       <Route path="/" element={<ConsultationPertitellu />} />
+      <Route path="/consultation" element={<ConsultationPertitellu />} />
       <Route path="/transparence" element={<Transparence />} />
       <Route path="/methodologie" element={<Methodologie />} />
       <Route path="/audit" element={<Audit />} />
@@ -1087,17 +1103,13 @@ export function App() {
       <Route path="/bob" element={<Bob />} />
       <Route path="/wiki" element={<Wiki />} />
       <Route path="/wiki/new" element={<WikiCreate />} />
+      <Route path="/wiki/new/:slug" element={<WikiCreate />} />
       <Route path="/wiki/:slug" element={<WikiPage />} />
       <Route path="/wiki/:slug/edit" element={<WikiEdit />} />
       <Route path="/legal/terms" element={<LegalPage type="terms" />} />
       <Route path="/legal/privacy" element={<LegalPage type="privacy" />} />
-      
-      {/* Redirections vers l'accueil */}
-      <Route path="/index.html" element={<ConsultationPertitellu />} />
-      <Route path="/home" element={<ConsultationPertitellu />} />
-      <Route path="/accueil" element={<ConsultationPertitellu />} />
-      <Route path="/index" element={<ConsultationPertitellu />} />
-      <Route path="*" element={<ConsultationPertitellu />} />
+      <Route path="/survey" element={<Survey />} />
+      <Route path="/contact" element={<Contact />} />
     </Routes>
   );
 }
