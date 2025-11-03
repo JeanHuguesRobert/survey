@@ -24,7 +24,7 @@ function App() {
       {
       // jhr
       false && user?.is_admin ? (
-        "Not yet"
+        "Pour l'instant la modération est manuelle, via l'UI de Supabase"
       ) : (
         <ChatWindow user={user} />
       )}
