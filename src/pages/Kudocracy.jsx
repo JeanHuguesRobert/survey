@@ -7,6 +7,7 @@ import VotingDashboard from '../components/kudocracy/VotingDashboard';
 import AuthModal from '../components/common/AuthModal';
 import { Link } from 'react-router-dom';
 import { PRIMARY_COLOR, SECONDARY_COLOR } from '../constants';
+import SiteFooter from '../components/layout/SiteFooter';
 
 export default function Kudocracy() {
   const [activeTab, setActiveTab] = useState('browse');
@@ -118,14 +119,9 @@ export default function Kudocracy() {
         />
       )}
 
-      <footer className="mt-8 flex justify-center">
-        <Link
-          to="/"
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-semibold"
-        >
-          Retour à l'accueil
-        </Link>
-      </footer>
+      <div className="mt-12">
+        <SiteFooter />
+      </div>
     </div>
   );
 }
