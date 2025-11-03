@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { APP_VERSION, DEPLOY_DATE } from '../constants';
+import { linkifyWardWiki } from '../lib/wikiLinks';
 
 export default function AuditContent() {
   const [markdownContent, setMarkdownContent] = useState('');
@@ -47,7 +48,7 @@ export default function AuditContent() {
         <ReactMarkdown 
           remarkPlugins={[remarkGfm]} 
         >
-          {markdownContent}
+          {linkifyWardWiki(markdownContent)}
         </ReactMarkdown>
       </div>
       
