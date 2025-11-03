@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Link } from "react-router-dom";
 import { MOVEMENT_NAME, CITY_NAME, BOT_NAME, PARTY_NAME, HASHTAG } from "../constants";
 
