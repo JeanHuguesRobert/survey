@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm'; // Pour supporter les extensions Markdown comme les tableaux
 import { Link, useParams, useNavigate } from 'react-router-dom'; // Import des hooks pour gérer l'URL
 import ErrorBoundary from '../components/ErrorBoundary'; // Import du composant ErrorBoundary
+import { linkifyWardWiki } from '../lib/wikiLinks';
 
 export default function Wiki() {
   const [pages, setPages] = useState([]);
@@ -152,7 +153,7 @@ export default function Wiki() {
                           }}
                           skipHtml={true} // Ignore les balises HTML non prises en charge
                         >
-                          {activePage.content}
+                          {linkifyWardWiki(activePage.content)}
                         </ReactMarkdown>
                       </ErrorBoundary>
                     </div>

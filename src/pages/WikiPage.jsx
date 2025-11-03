@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { supabase } from '../lib/supabase';
 import ErrorBoundary from '../components/ErrorBoundary';
+import { linkifyWardWiki } from '../lib/wikiLinks';
 
 export function ArchiveButton({ pageId, slug }) {
   const [loading, setLoading] = useState(false);
@@ -105,6 +106,15 @@ export default function WikiPage() {
     };
   }, [page, pages]);
 
+  function renderLink({ href, children }) {
+    const isInternal = href && !href.startsWith('http') && !href.startsWith('//');
+    if (isInternal) {
+      const prefixedHref = `/wiki/${href.replace(/^\//, '')}`;
+      return <Link to={prefixedHref} className="text-blue-600 hover:underline">{children}</Link>;
+    }
+    return <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{children}</a>;
+  }
+
   const handleShare = async () => {
     if (!page) return;
     const shareData = {
@@ -178,8 +188,8 @@ export default function WikiPage() {
         {page.content && typeof page.content === 'string' ? (
           <div className="markdown-content">
             <ErrorBoundary>
-              <ReactMarkdown remarkPlugins={[remarkGfm]} breaks components={{}}>
-                {page.content}
+              <ReactMarkdown remarkPlugins={[remarkGfm]} breaks components={{ a: renderLink }}>
+                {linkifyWardWiki(page.content)}
               </ReactMarkdown>
             </ErrorBoundary>
           </div>
