@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
-    include: ['remark-gfm'], // Ajoutez explicitement remark-gfm ici
+    include: ['remark-gfm'],
   },
   build: {
     sourcemap: true,
@@ -22,7 +22,7 @@ export default defineConfig({
   css: {
     preprocessorOptions: {
       css: {
-        charset: false, // Assurez-vous que les fichiers CSS sont correctement traités
+        charset: false,
       },
     },
   },
