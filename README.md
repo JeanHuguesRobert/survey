@@ -143,7 +143,13 @@ Le projet est déployé automatiquement via Netlify.
 3. **Pousser** : `git push origin feature/ma-fonctionnalite`
 4. **Ouvrir une PR** sur GitHub
 
-## 📅 Changelog récent (depuis le 2025-10-24)
+## 📅 Changelog récent (depuis le 2024-05-03)
+
+### 2024-05-03
+
+#### Général
+- Correction du bug : Les majuscules sont désormais conservées lors de la création de pages Wiki (harmonisation des fonctions `normalizeSlug`).
+- Amélioration UI : Ajout d'un chronomètre en temps réel sur le bouton d'envoi de Bob, affichant le temps écoulé pendant la génération de la réponse.
 
 ### 2025-11-03
 
