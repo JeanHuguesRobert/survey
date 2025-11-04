@@ -1,5 +1,5 @@
 // src/components/ChatWindow.jsx
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase';
 import { createPropositionWithTags } from '../../lib/propositions';
@@ -146,10 +146,26 @@ export default function ChatWindow({ user }) {
   }, [messages]);
 
   // Fonction pour envoyer un message
+  // Chronomètre pendant la génération de la réponse
+  const timerRef = React.useRef(null);
+  const [elapsedMs, setElapsedMs] = useState(0);
+
+  function formatElapsed(ms) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const m = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+    const s = String(totalSeconds % 60).padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
   const handleSend = async () => {
     if (!input.trim()) return;
 
     setIsLoading(true);
+    setElapsedMs(0);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setElapsedMs((prev) => prev + 1000);
+    }, 1000);
     const userMessage = {
       id: Date.now(),
       text: input,
@@ -241,6 +257,10 @@ export default function ChatWindow({ user }) {
     } finally {
       setInput("");
       setIsLoading(false);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     }
   };
 
@@ -955,7 +975,10 @@ export default function ChatWindow({ user }) {
           >
             {isLoading ? (
               <>
-                <span className="loading-dots">⠋</span>
+                <span aria-live="polite" className="inline-flex items-center gap-2">
+                  <span role="img" aria-label="chronomètre">⏱</span>
+                  <span>{formatElapsed(elapsedMs)}</span>
+                </span>
               </>
             ) : (
               <>
