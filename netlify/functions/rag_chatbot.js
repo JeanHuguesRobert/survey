@@ -1,6 +1,6 @@
 import { OpenAI } from "openai";
 import Anthropic from "@anthropic-ai/sdk";
-import { InferenceClient, HfInference } from "@huggingface/inference";
+import { InferenceClient } from "@huggingface/inference";
 import fs from "fs";
 import path from "path";
 import { createClient } from '@supabase/supabase-js';
@@ -35,12 +35,12 @@ async function getSystemPrompt() {
   let basePrompt = "";
 
   // 1. Variable d'environnement directe
-  if (process.env.BOB_SYSTEM_PROMPT) {
-    basePrompt = process.envBOB;
+  if (process.env.HF_SYSTEM_PROMPT) {
+    basePrompt = process.env.HF_SYSTEM_PROMPT;
   } else {
     // 2. Fichier externe
     const promptPath =
-      process.env.BOB_SYSTEM_PROMPT_PATH ||
+      process.env.HF_SYSTEM_PROMPT_PATH ||
       path.resolve("public", "prompts", "bob-system.md");
 
     try {
@@ -61,7 +61,7 @@ async function getSystemPrompt() {
     const bot = process.env.BOT_NAME || "Ophélia";
     const hashtag = process.env.HASHTAG || "#PERTITELLU";
 
-    basePrompt = `Tu es l'assistant citoyen ${bot} du mouvement/parti ${movement} (${party}) ${hashtag} pour la commune de ${city}. Réponds en français, de façon factuelle, concise et structurée en Markdown (titres, listes, tableaux, liens) en citant les ressources officielles pertinentes quand c'est possible.`;
+    basePrompt = `Tu es l'assistant citoyen ${bot} du mouvement/parti ${movement} (${party}) ${hashtag} pour la commune de ${city}. Réponds uniquement en français, de façon factuelle, concise et structurée en Markdown (titres, listes, tableaux, liens) en citant les ressources officielles pertinentes quand c'est possible.`;
   }
 
   // 4. Ajouter le document wiki consolidé
@@ -162,35 +162,6 @@ async function runOpenAIAgent({ question, systemPrompt }) {
 // HUGGING FACE
 // ============================================================================
 
-// Require the official HF client (CommonJS). Si votre projet est en ESM, utilisez `import { HfInference } from "@huggingface/inference";`
-const { HfInference } = require("@huggingface/inference");
-
-// Initialise le client avec la variable d'environnement HF_TOKEN fournie sur Netlify
-const hf = new HfInference({ apiKey: process.env.HF_TOKEN });
-
-// Helper pour génération de texte
-async function generateText(model, prompt, params = {}) {
-	// model par défaut depuis .env si disponible
-	const usedModel = model ?? process.env.HF_CHAT_MODEL ?? "gpt2";
-	const resp = await hf.textGeneration({
-		model: usedModel,
-		inputs: prompt,
-		parameters: params,
-	});
-	// la forme de la réponse dépend du modèle / version du SDK ; ajuster selon besoin
-	return resp;
-}
-
-// Helper pour embeddings (RAG)
-async function getEmbeddings(model, input) {
-	const usedModel = model ?? process.env.HF_EMBEDDING_MODEL ?? "sentence-transformers/all-MiniLM-L6-v2";
-	const resp = await hf.embeddings({
-		model: usedModel,
-		input,
-	});
-	return resp;
-}
-
 async function runHuggingFaceAgent({ question, systemPrompt }) {
   const apiKey = process.env.HF_TOKEN; // Correction ici
   if (!apiKey) {
@@ -201,19 +172,26 @@ async function runHuggingFaceAgent({ question, systemPrompt }) {
 
   console.log(`[HuggingFace] Démarrage avec modèle: ${model}`);
 
+  const client = new HfInference(apiKey);
+
   const formattedPrompt = `<|system|>${systemPrompt}</s><|user|>${question}</s><|assistant|>`;
 
-  const response = await generateText(model, formattedPrompt, {
-    max_new_tokens: 4096,
-    temperature: 0.3,
+  const response = await client.textGeneration({
+    model,
+    inputs: formattedPrompt,
+    parameters: {
+      max_new_tokens: 4096,
+      temperature: 0.3,
+      return_full_text: false,
+    },
   });
 
-  const textResult = Array.isArray(response) ? response[0]?.generated_text ?? "" : response?.generated_text ?? "";
+  const fullResponse = response.generated_text;
 
-  console.log(`[HuggingFace] Réponse générée (${textResult.length} chars)`);
+  console.log(`[HuggingFace] Réponse générée (${fullResponse.length} chars)`);
 
   return {
-    answer: textResult,
+    answer: fullResponse,
     provider: "huggingface",
     model,
   };

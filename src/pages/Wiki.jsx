@@ -5,6 +5,9 @@ import remarkGfm from 'remark-gfm'; // Pour supporter les extensions Markdown co
 import { Link, useParams, useNavigate } from 'react-router-dom'; // Import des hooks pour gérer l'URL
 import ErrorBoundary from '../components/ErrorBoundary'; // Import du composant ErrorBoundary
 import { linkifyWardWiki } from '../lib/wikiLinks';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
+import ShareModal from '../components/wiki/ShareModal';
 
 export default function Wiki() {
   const [pages, setPages] = useState([]);
@@ -17,6 +20,7 @@ export default function Wiki() {
   const [formMode, setFormMode] = useState('view'); // 'view' | 'create' | 'edit'
   const { slug: urlSlug } = useParams(); // Récupère le slug depuis l'URL
   const navigate = useNavigate(); // Pour naviguer entre les pages
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false); // Nouvel état pour le modal de partage
 
   useEffect(() => {
     loadPages();
@@ -52,23 +56,8 @@ export default function Wiki() {
     return <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{children}</a>;
   }
 
-  const handleShare = async () => {
-    const shareData = {
-      title: activePage?.title || 'Wiki',
-      text: `Découvrez la page "${activePage?.title}" sur le Wiki de la consultation citoyenne.`,
-      url: window.location.href
-    };
-
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(window.location.href);
-        alert('Lien copié dans le presse-papier !');
-      }
-    } catch (err) {
-      console.error('Erreur lors du partage :', err);
-    }
+  const handleShare = () => {
+    setIsShareModalOpen(true); // Ouvre le modal de partage
   };
 
   const isWelcomePage = !urlSlug; // Détermine si on est sur la page de bienvenue
@@ -191,8 +180,19 @@ export default function Wiki() {
           {isWelcomePage ? "Retour à l'accueil général" : "Retour à la page d'accueil du Wiki"}
         </Link>
       </footer>
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        shareUrl={window.location.href}
+        shareTitle={activePage?.title || 'Wiki'}
+      />
     </div>
   );
 }
+
+
+/*
+export default Wiki;
+*/
 
 

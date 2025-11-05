@@ -5,6 +5,9 @@ import remarkGfm from 'remark-gfm';
 import { supabase } from '../lib/supabase';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { linkifyWardWiki } from '../lib/wikiLinks';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
+import ShareModal from '../components/wiki/ShareModal';
 
 export function ArchiveButton({ pageId, slug }) {
   const [loading, setLoading] = useState(false);
@@ -73,12 +76,14 @@ export function ArchiveButton({ pageId, slug }) {
   );
 }
 
-export default function WikiPage() {
+const WikiPage = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
   const [page, setPage] = useState(null);
-  const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [pages, setPages] = useState([]); // Déclaration de l'état 'pages'
+  const [showShareModal, setShowShareModal] = useState(false); // Nouvel état pour le modal de partage
 
   useEffect(() => {
     supabase.from('wiki_pages').select('*').order('updated_at', { ascending: false }).then(({ data }) => setPages(data || []));
@@ -106,7 +111,7 @@ export default function WikiPage() {
     };
   }, [page, pages]);
 
-  function renderLink({ href, children }) {
+  const renderLink = ({ href, children }) => {
     const isInternal = href && !href.startsWith('http') && !href.startsWith('//');
     if (isInternal) {
       const prefixedHref = `/wiki/${href.replace(/^\//, '')}`;
@@ -115,23 +120,8 @@ export default function WikiPage() {
     return <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{children}</a>;
   }
 
-  const handleShare = async () => {
-    if (!page) return;
-    const shareData = {
-      title: page.title,
-      text: `Découvrez la page "${page.title}" sur le Wiki de la consultation citoyenne.`,
-      url: window.location.href
-    };
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(shareData.url);
-        alert('Lien copié dans le presse-papier !');
-      }
-    } catch (err) {
-      console.error('Erreur lors du partage :', err);
-    }
+  const handleShare = () => {
+    setShowShareModal(true); // Ouvre le modal de partage
   };
 
   if (loading) {
@@ -224,6 +214,16 @@ export default function WikiPage() {
           {next ? next.title : 'Aucune'} →
         </button>
       </footer>
+
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        pageTitle={page?.title || 'Page Wiki'}
+        pageUrl={window.location.href}
+        pageContent={page?.content || ''}
+      />
     </div>
   );
-}
+};
+
+export default WikiPage;

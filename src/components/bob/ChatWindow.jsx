@@ -218,8 +218,17 @@ export default function ChatWindow({ user }) {
         );
       }
 
+      const parsedResponse = JSON.parse(fullResponse);
+      const botAnswer = parsedResponse.answer;
+
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id === botMessageId ? { ...msg, text: botAnswer } : msg
+        )
+      );
+
       // Mettre à jour l'historique du chat après la réponse complète
-      setChatHistory(prev => [...prev, { question: input, answer: fullResponse }]);
+      setChatHistory(prev => [...prev, { question: input, answer: botAnswer }]);
       setInput(""); // Vider le champ de saisie après l'envoi
 
     } catch (error) {
@@ -977,6 +986,12 @@ export default function ChatWindow({ user }) {
             )}
           </button>
         </div>
+
+        {/* Petit disclaimer : l'IA peut se tromper */}
+        <div className="chat-disclaimer mt-3 mb-2 text-xs text-gray-600" role="note" aria-live="polite">
+          ⚠️ Cette IA peut commettre des erreurs. Il est recommandé de vérifier les informations importantes.
+        </div>
+
         <SiteFooter showWiki={hasConversation} showVersionInfo={false} />
       </div>
     </div>

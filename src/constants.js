@@ -1,7 +1,7 @@
 // centralised app version (single source of truth)
 // hardcoded value is the canonical version; CI/CD can override by setting process.env.APP_VERSION at build time
-export const APP_VERSION = process.env.APP_VERSION ?? '1.2.5;
-export const DEPLOY_DATE = process.env.DEPLOY_DATE ??'2025-11-05';
+export const APP_VERSION = import.meta.env.APP_VERSION ?? "1.2.5";
+export const DEPLOY_DATE = import.meta.env.DEPLOY_DATE ?? "2025-11-05";
 
 
 export const COLORS = ['#F54928', '#0A3F73', '#FFA726', '#42A5F5', '#66BB6A'];
