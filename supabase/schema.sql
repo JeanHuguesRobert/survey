@@ -162,6 +162,15 @@ CREATE TABLE public.wiki_pages (
   author_id uuid,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  summary text NULL,
   CONSTRAINT wiki_pages_pkey PRIMARY KEY (id),
   CONSTRAINT wiki_pages_author_id_fkey FOREIGN KEY (author_id) REFERENCES auth.users(id)
 );
+create table
+  public.consolidated_wiki_documents (
+    id uuid not null default gen_random_uuid (),\
+    created_at timestamp with time zone not null default now(),\
+    content text not null,\
+    updated_at timestamp with time zone not null default now(),\
+    constraint consolidated_wiki_documents_pkey primary key (id)\
+  );
