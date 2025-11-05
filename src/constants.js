@@ -1,8 +1,13 @@
-export const APP_VERSION = '1.2.4';
-export const DEPLOY_DATE = '2025-11-04';
+// centralised app version (single source of truth)
+// hardcoded value is the canonical version; CI/CD can override by setting process.env.APP_VERSION at build time
+export const APP_VERSION = process.env.APP_VERSION ?? '1.2.5;
+export const DEPLOY_DATE = process.env.DEPLOY_DATE ??'2025-11-05';
+
+
 export const COLORS = ['#F54928', '#0A3F73', '#FFA726', '#42A5F5', '#66BB6A'];
 export const PRIMARY_COLOR = '#F54928'; // Orange #Pertitellu
 export const SECONDARY_COLOR = '#0A3F73'; // Bleu Corti Capitale
+
 export const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwyzcR0hiou7CiQTv35Jek8CWgHTBPptps65v76YqISjE64J5tC1PkPVOb_QaIdZ5Vc/exec';
 
 // Configuration générique (commune, mouvement, liste)
