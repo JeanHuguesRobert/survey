@@ -81,7 +81,7 @@ export default function WikiPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.from('wiki_pages').select('*').order('title').then(({ data }) => setPages(data || []));
+    supabase.from('wiki_pages').select('*').order('updated_at', { ascending: false }).then(({ data }) => setPages(data || []));
   }, []);
 
   useEffect(() => {
