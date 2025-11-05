@@ -1,10 +1,78 @@
 import { createClient } from '@supabase/supabase-js';
-import { GITHUB_CONFIG, SUPABASE_CONFIG } from '../constants.js';
+import OpenAI from "openai";
+import { GITHUB_CONFIG } from '../functions/constants.js';
 
 const supabase = createClient(
-  SUPABASE_CONFIG.url,
-  SUPABASE_CONFIG.serviceKey
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// ============================================================================
+// SUMMARY GENERATION
+// ============================================================================
+
+async function generatePageSummary(pageContent, pageTitle) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    console.warn("OPENAI_API_KEY manquant pour la génération de résumé.");
+    return null;
+  }
+
+  const client = new OpenAI({ apiKey });
+
+  const systemPrompt = `Tu es un assistant expert en résumé. Ton rôle est de créer un résumé concis et informatif d'une page wiki. Le résumé doit capturer les points clés et l'essence du contenu, être autonome et ne pas dépasser 200 mots.`;
+  const userQuestion = `Résume la page wiki suivante intitulée "${pageTitle}":\n\n${pageContent}`; 
+
+  try {
+    const response = await client.chat.completions.create({
+      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      max_tokens: 500, // Suffisant pour un résumé de 200 mots
+      temperature: 0.3,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userQuestion },
+      ],
+    });
+
+    return response.choices[0].message.content;
+  } catch (error) {
+    console.error("Erreur lors de la génération du résumé avec OpenAI:", error);
+    return null;
+  }
+}
+
+// ============================================================================
+// CONSOLIDATED WIKI DOCUMENT GENERATION
+// ============================================================================
+
+async function generateConsolidatedWikiDocument() {
+  const { data: pages, error } = await supabase
+    .from('wiki_pages')
+    .select('title, slug, summary');
+
+  if (error) {
+    console.error("Erreur lors de la récupération des pages wiki:", error);
+    return null;
+  }
+
+  let consolidatedContent = "# Résumé consolidé du Wiki\n\n";
+
+  if (pages && pages.length > 0) {
+    for (const page of pages) {
+      consolidatedContent += `## [${page.title}](/wiki/${page.slug})\n\n`;
+      if (page.summary) {
+        consolidatedContent += `${page.summary}\n\n`;
+      } else {
+        consolidatedContent += `(Pas de résumé disponible pour cette page.)\n\n`;
+      }
+      consolidatedContent += `---\n\n`;
+    }
+  } else {
+    consolidatedContent += "Aucune page wiki disponible pour le moment.\n\n";
+  }
+
+  return consolidatedContent;
+}
 
 export default async (req, context) => {
   // Vérifier la méthode
@@ -77,6 +145,42 @@ updated_at: ${page.updated_at}
     // 4. Commit sur GitHub
     const filePath = `${GITHUB_CONFIG.wikiPath}/${page.slug}.md`;
     const commitSha = await commitToGitHub(filePath, content, page.title);
+
+    // 4.1. Générer et sauvegarder le résumé de la page
+    const summary = await generatePageSummary(page.content, page.title);
+    if (summary) {
+      const { error: updateError } = await supabase
+        .from('wiki_pages')
+        .update({ summary: summary })
+        .eq('id', page.id);
+
+      if (updateError) {
+        console.error("Erreur lors de la sauvegarde du résumé dans Supabase:", updateError);
+      } else {
+        console.log(`Résumé généré et sauvegardé pour la page ${page.title}`);
+      }
+    }
+
+    // Générer le document wiki consolidé
+    const consolidatedDocument = await generateConsolidatedWikiDocument();
+    if (consolidatedDocument) {
+      // Sauvegarder le document consolidé sur GitHub
+      const consolidatedFileName = "consolidated_wiki_document.md";
+      const commitMessage = "Mise à jour du document wiki consolidé";
+      await commitToGitHub(consolidatedFileName, consolidatedDocument, commitMessage);
+      console.log("Document wiki consolidé sauvegardé sur GitHub.");
+
+      // Sauvegarder le document consolidé dans Supabase
+      const { error: consolidatedDocError } = await supabase
+        .from('consolidated_wiki_documents') // Assuming this table exists as per instruction
+        .insert({ content: consolidatedDocument, updated_at: new Date().toISOString() });
+
+      if (consolidatedDocError) {
+        console.error("Erreur lors de la sauvegarde du document consolidé dans Supabase:", consolidatedDocError);
+      } else {
+        console.log("Document wiki consolidé sauvegardé dans Supabase.");
+      }
+    }
 
     // 5. Logger le sync
     await supabase.from('git_sync_log').insert({
