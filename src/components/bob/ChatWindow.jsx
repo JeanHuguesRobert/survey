@@ -1,6 +1,6 @@
 // src/components/ChatWindow.jsx
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { createPropositionWithTags } from '../../lib/propositions';
 import { marked } from 'marked';
@@ -179,7 +179,7 @@ export default function ChatWindow({ user }) {
       const related = await findRelatedPropositions(input);
       setRelatedPropositions(related);
 
-      // 2. Envoyer la question au chatbot
+            // 2. Envoyer la question au chatbot
       const response = await fetch("/.netlify/functions/rag_chatbot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -194,73 +194,47 @@ export default function ChatWindow({ user }) {
         }),
       });
 
-      const payload = await response.json().catch(() => null);
       if (!response.ok) {
-        const message = payload?.error || `Erreur API : ${response.status} ${response.statusText}`;
-        throw new Error(message);
+        const errorText = await response.text();
+        throw new Error(`Erreur réseau ou serveur: ${response.status} - ${errorText}`);
       }
 
-      const { answer, sources, cached, provider, model, debugTrace } = payload || {};
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullResponse = "";
+      let botMessageId = Date.now();
 
-      // Afficher les informations de debugging dans la console
-      if (debugTrace && debugTrace.length > 0) {
-        console.group(`🤖 ${BOT_NAME} - Debug Trace`);
-        console.log(`Question: "${input}"`);
-        console.log(`Réponse finale: Provider="${provider}" Model="${model}"`);
-        console.table(debugTrace.map(trace => ({
-          Provider: trace.provider,
-          Model: trace.model,
-          Status: trace.status,
-          Duration: `${trace.duration}ms`,
-          Error: trace.error || '-'
-        })));
-        console.groupEnd();
-      } else if (provider && model) {
-        console.log(`🤖 ${BOT_NAME} - Provider: ${provider}, Model: ${model}`);
+      setMessages(prev => [...prev, { id: botMessageId, text: "", sender: "bot", timestamp: new Date() }]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        fullResponse += chunk;
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === botMessageId ? { ...msg, text: fullResponse } : msg
+          )
+        );
       }
 
-      setMessages(prev => [...prev, {
-        id: Date.now() + 1,
-        text: answer,
-        sender: "bot",
-        sources,
-        cached,
-        provider,
-        model,
-        debugTrace,
-        timestamp: new Date()
-      }]);
-
-      // Trace utilisation OpenAI
-      if (provider === 'openai') {
-        console.log(`🤖 ${BOT_NAME} - Réponse générée par OpenAI (${model})`);
-      }
-
-      // Sauvegarder l'interaction
-      await supabase.from('chat_interactions').insert({
-        user_id: user?.id,
-        question: input,
-        answer,
-        sources,
-        metadata: { user_agent: navigator.userAgent }
-      });
+      // Mettre à jour l'historique du chat après la réponse complète
+      setChatHistory(prev => [...prev, { question: input, answer: fullResponse }]);
+      setInput(""); // Vider le champ de saisie après l'envoi
 
     } catch (error) {
       console.error("Erreur lors de l'envoi du message:", error);
-      setMessages(prev => [...prev, {
-        id: Date.now() + 1,
-        text: error?.message || "Désolé, une erreur est survenue. Veuillez réessayer plus tard.",
-        sender: "bot",
-        error: true,
-        timestamp: new Date()
-      }]);
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now(),
+          text: "Désolé, une erreur est survenue. Veuillez réessayer.",
+          sender: "bot",
+          timestamp: new Date(),
+        },
+      ]);
     } finally {
-      setInput("");
       setIsLoading(false);
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
     }
   };
 
@@ -328,7 +302,7 @@ export default function ChatWindow({ user }) {
   }
 
   // Publier la conversation comme page Wiki dans Supabase
-  async function handlePublishWiki() {
+  async function handlePublishWiki(conversationId) {
     if (!hasConversation) return;
     if (!user) {
       setShowAuthModal(true);
@@ -336,32 +310,42 @@ export default function ChatWindow({ user }) {
     }
 
     try {
-      const payload = buildSharePayload();
-      const title = deriveDefaultTitle();
-      const isCamelCaseTitle = /^(?:[A-Z][a-z]+){2,}$/.test(title);
-      const baseSlug = isCamelCaseTitle ? title : (normalizeSlug(title) || `conversation-${Date.now()}`);
-      let slug = baseSlug;
-
-      // Vérifier l'unicité du slug et ajuster si nécessaire
-      try {
-        const { data: existing } = await supabase
-          .from('wiki_pages')
-          .select('id')
-          .eq('slug', slug)
+      setIsLoading(true);
+      // Fetch conversation messages
+      const { data: conversation, error: conversationError } = await supabase
+          .from('conversations')
+          .select('messages')
+          .eq('id', conversationId)
           .single();
-        if (existing) {
-          slug = `${baseSlug}-${new Date().toISOString().slice(0,10)}`;
-        }
-      } catch (_) {
-        // slug libre
+
+      if (conversationError) throw conversationError;
+
+      const pageContent = conversation.messages
+          .filter(msg => msg.role === 'assistant')
+          .map(msg => msg.content)
+          .join('\n\n');
+
+      const defaultTitle = deriveDefaultTitle(conversation.messages);
+
+      // Appel de la fonction Netlify pour optimiser le titre et le slug
+      const optimizeResponse = await fetch('/.netlify/functions/optimize-wiki-title', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ defaultTitle, pageContent }),
+      });
+
+      if (!optimizeResponse.ok) {
+          throw new Error(`Erreur lors de l'optimisation du titre: ${optimizeResponse.statusText}`);
       }
 
-      const content = buildMarkdownFromPayload(payload, title);
+      const { optimizedTitle, optimizedSlug } = await optimizeResponse.json();
+
       const { data, error } = await supabase
         .from('wiki_pages')
-        .insert([{ title, content, slug }])
-        .select()
-        .single();
+        .insert([{ title: optimizedTitle, content: pageContent, slug: optimizedSlug, author_id: user.id }])
+        .select();
 
       if (error) {
         console.error('Erreur création page Wiki :', error);
@@ -369,7 +353,7 @@ export default function ChatWindow({ user }) {
         return;
       }
 
-      const pageUrl = `${window.location.origin}/wiki/${data.slug}`;
+      const pageUrl = `${window.location.origin}/wiki/${data[0].slug}`;
       try { await navigator.clipboard.writeText(pageUrl); } catch (_) {}
 
       setMessages(prev => ([
@@ -378,11 +362,14 @@ export default function ChatWindow({ user }) {
       ]));
 
       if (navigator.share) {
-        try { await navigator.share({ title, url: pageUrl }); } catch (_) {}
+        try { await navigator.share({ title: optimizedTitle, url: pageUrl }); } catch (_) {}
       }
+      navigate(`/wiki/${data[0].slug}`);
     } catch (err) {
       console.error('Erreur inattendue lors de la publication Wiki :', err);
       alert('Une erreur inattendue est survenue lors de la publication dans le Wiki.');
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -562,7 +549,8 @@ export default function ChatWindow({ user }) {
     try {
       setIsClearingHistory(true);
       await supabase.from('chat_interactions').delete().eq('user_id', user.id);
-      setMessages(prev => prev.filter(msg => msg.sender === "system" && msg.isNotification));
+      setMessages([]); // Réinitialiser tous les messages
+      setInput(""); // Réinitialiser le champ de saisie
       setRelatedPropositions([]);
       setChatHistory([]);
     } catch (error) {
