@@ -31,7 +31,7 @@ export default function Wiki() {
   }, [urlSlug]);
 
   async function loadPages() {
-    const { data } = await supabase.from('wiki_pages').select('*').order('title');
+    const { data } = await supabase.from('wiki_pages').select('*').order('updated_at', { ascending: false });
     setPages(data || []);
   }
 
