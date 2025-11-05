@@ -2,7 +2,6 @@ import { supabase } from '../lib/supabase';
 import { useState, useEffect } from 'react'
 
 import ChatWindow from '../components/bob/ChatWindow'
-// jhr import AdminDashboard from './pages/admin'
 
 function App() {
   const [user, setUser] = useState(null)

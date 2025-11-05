@@ -988,11 +988,17 @@ export default function ChatWindow({ user }) {
         </div>
 
         {/* Petit disclaimer : l'IA peut se tromper */}
-        <div className="chat-disclaimer mt-3 mb-2 text-xs text-gray-600" role="note" aria-live="polite">
+        <div
+          className="chat-disclaimer mt-3 mb-2 text-xs text-gray-600 relative z-50"
+          role="note"
+          aria-live="polite"
+          style={{ pointerEvents: 'none' }}
+        >
           ⚠️ Cette IA peut commettre des erreurs. Il est recommandé de vérifier les informations importantes.
         </div>
 
-        <SiteFooter showWiki={hasConversation} showVersionInfo={false} />
+        {/* Forcer l'affichage des éléments Wiki dans le footer pour éviter un comportement masqué */}
+        <SiteFooter showWiki={true} showVersionInfo={false} />
       </div>
     </div>
   );
