@@ -322,7 +322,7 @@ export default function ChatWindow({ user }) {
       setIsLoading(true);
       // Fetch conversation messages
       const { data: conversation, error: conversationError } = await supabase
-          .from('conversations')
+          .from('chat_interactions')
           .select('messages')
           .eq('id', conversationId)
           .single();
