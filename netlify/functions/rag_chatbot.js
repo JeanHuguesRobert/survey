@@ -1,7 +1,14 @@
+import { OpenAI } from "openai";
 import Anthropic from "@anthropic-ai/sdk";
-import { InferenceClient } from "@huggingface/inference";
+import { InferenceClient, HfInference } from "@huggingface/inference";
 import fs from "fs";
 import path from "path";
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 // ============================================================================
 // CONFIGURATION
@@ -24,34 +31,58 @@ const resolveModel = (alias) => MODEL_ALIASES[alias] || alias;
 // SYSTEM PROMPT
 // ============================================================================
 
-function getSystemPrompt() {
+async function getSystemPrompt() {
+  let basePrompt = "";
+
   // 1. Variable d'environnement directe
-  if (process.env.HF_SYSTEM_PROMPT) {
-    return process.env.HF_SYSTEM_PROMPT;
+  if (process.env.BOB_SYSTEM_PROMPT) {
+    basePrompt = process.envBOB;
+  } else {
+    // 2. Fichier externe
+    const promptPath =
+      process.env.BOB_SYSTEM_PROMPT_PATH ||
+      path.resolve("public", "prompts", "bob-system.md");
+
+    try {
+      const content = fs.readFileSync(promptPath, "utf-8").trim();
+      if (content) basePrompt = content;
+    } catch (readError) {
+      console.warn(
+        `[System] Impossible de lire le prompt système (${promptPath}) : ${readError.message}`
+      );
+    }
   }
 
-  // 2. Fichier externe
-  const promptPath =
-    process.env.HF_SYSTEM_PROMPT_PATH ||
-    path.resolve("public", "prompts", "bob-system.md");
+  // 3. Fallback par défaut si aucun prompt n'a été trouvé
+  if (!basePrompt) {
+    const city = process.env.CITY_NAME || "Corte";
+    const movement = process.env.MOVEMENT_NAME || "Pertitellu";
+    const party = process.env.PARTY_NAME || "Petit Parti";
+    const bot = process.env.BOT_NAME || "Ophélia";
+    const hashtag = process.env.HASHTAG || "#PERTITELLU";
 
+    basePrompt = `Tu es l'assistant citoyen ${bot} du mouvement/parti ${movement} (${party}) ${hashtag} pour la commune de ${city}. Réponds en français, de façon factuelle, concise et structurée en Markdown (titres, listes, tableaux, liens) en citant les ressources officielles pertinentes quand c'est possible.`;
+  }
+
+  // 4. Ajouter le document wiki consolidé
   try {
-    const content = fs.readFileSync(promptPath, "utf-8").trim();
-    if (content) return content;
-  } catch (readError) {
-    console.warn(
-      `[System] Impossible de lire le prompt système (${promptPath}) : ${readError.message}`
-    );
+    const { data: consolidatedDoc, error } = await supabase
+      .from('consolidated_wiki_documents')
+      .select('content')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) {
+      console.error("Erreur lors de la récupération du document wiki consolidé:", error);
+    } else if (consolidatedDoc) {
+      basePrompt += `\n\nVoici un résumé consolidé des pages wiki disponibles. Utilise ces informations pour répondre aux questions si elles sont pertinentes:\n\n${consolidatedDoc.content}`;
+    }
+  } catch (dbError) {
+    console.error("Erreur inattendue lors de la récupération du document consolidé:", dbError);
   }
 
-  // 3. Fallback par défaut
-  const city = process.env.CITY_NAME || "Corte";
-  const movement = process.env.MOVEMENT_NAME || "Pertitellu";
-  const party = process.env.PARTY_NAME || "Petit Parti";
-  const bot = process.env.BOT_NAME || "Ophélia";
-  const hashtag = process.env.HASHTAG || "#PERTITELLU";
-
-  return `Tu es l'assistant citoyen ${bot} du mouvement/parti ${movement} (${party}) ${hashtag} pour la commune de ${city}. Réponds uniquement en français, de façon factuelle, concise et structurée en Markdown (titres, listes, tableaux, liens) en citant les ressources officielles pertinentes quand c'est possible.`;
+  return basePrompt;
 }
 
 // ============================================================================
@@ -68,36 +99,22 @@ async function runAnthropicAgent({ question, systemPrompt }) {
 
   console.log(`[Anthropic] Démarrage avec modèle: ${model}`);
 
-  const client = new Anthropic({ apiKey });
+  const client = new Anthropic({ apiKey }); // Initialisation du client Anthropic
 
-  let fullResponse = "";
-
-  const stream = await client.messages.stream({
+  const response = await client.messages.create({
     model,
     max_tokens: 4096,
     temperature: 0.3,
     system: systemPrompt,
     messages: [
-      {
-        role: "user",
-        content: question,
-      },
+      { role: "user", content: question },
     ],
   });
 
-  for await (const event of stream) {
-    if (
-      event.type === "content_block_delta" &&
-      event.delta.type === "text_delta"
-    ) {
-      fullResponse += event.delta.text;
-    }
-  }
-
-  console.log(`[Anthropic] Réponse générée (${fullResponse.length} chars)`);
+  const fullResponse = response.content[0].text;
 
   return {
-    answer: fullResponse.trim(),
+    answer: fullResponse,
     provider: "anthropic",
     model,
   };
@@ -117,61 +134,25 @@ async function runOpenAIAgent({ question, systemPrompt }) {
 
   console.log(`[OpenAI] Démarrage avec modèle: ${model}`);
 
-  const response = await fetch(`${OPENAI_BASE_URL}/chat/completions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.3,
-      stream: true,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: question },
-      ],
-    }),
+  const client = new OpenAI({ apiKey });
+
+  const response = await client.chat.completions.create({
+    model,
+    max_tokens: 4096,
+    temperature: 0.3,
+    messages: [
+      { role: "system", content: systemPrompt }, // Déplacé ici
+      { role: "user", content: question },
+    ],
+    stream: false,
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
-  }
-
-  let fullResponse = "";
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    const chunk = decoder.decode(value, { stream: true });
-    const lines = chunk.split("\n").filter((line) => line.trim() !== "");
-
-    for (const line of lines) {
-      if (line.startsWith("data: ")) {
-        const data = line.slice(6);
-        if (data === "[DONE]") break;
-
-        try {
-          const parsed = JSON.parse(data);
-          const content = parsed.choices?.[0]?.delta?.content;
-          if (content) {
-            fullResponse += content;
-          }
-        } catch (e) {
-          // Ignorer les lignes mal formées
-        }
-      }
-    }
-  }
+  const fullResponse = response.choices[0].message.content;
 
   console.log(`[OpenAI] Réponse générée (${fullResponse.length} chars)`);
 
   return {
-    answer: fullResponse.trim(),
+    answer: fullResponse,
     provider: "openai",
     model,
   };
@@ -181,39 +162,59 @@ async function runOpenAIAgent({ question, systemPrompt }) {
 // HUGGING FACE
 // ============================================================================
 
-async function runHuggingFaceAgent({ question, systemPrompt, provider, model }) {
-  const apiKey = process.env.HF_TOKEN || process.env.HUGGINGFACE_API_KEY;
+// Require the official HF client (CommonJS). Si votre projet est en ESM, utilisez `import { HfInference } from "@huggingface/inference";`
+const { HfInference } = require("@huggingface/inference");
+
+// Initialise le client avec la variable d'environnement HF_TOKEN fournie sur Netlify
+const hf = new HfInference({ apiKey: process.env.HF_TOKEN });
+
+// Helper pour génération de texte
+async function generateText(model, prompt, params = {}) {
+	// model par défaut depuis .env si disponible
+	const usedModel = model ?? process.env.HF_CHAT_MODEL ?? "gpt2";
+	const resp = await hf.textGeneration({
+		model: usedModel,
+		inputs: prompt,
+		parameters: params,
+	});
+	// la forme de la réponse dépend du modèle / version du SDK ; ajuster selon besoin
+	return resp;
+}
+
+// Helper pour embeddings (RAG)
+async function getEmbeddings(model, input) {
+	const usedModel = model ?? process.env.HF_EMBEDDING_MODEL ?? "sentence-transformers/all-MiniLM-L6-v2";
+	const resp = await hf.embeddings({
+		model: usedModel,
+		input,
+	});
+	return resp;
+}
+
+async function runHuggingFaceAgent({ question, systemPrompt }) {
+  const apiKey = process.env.HF_TOKEN; // Correction ici
   if (!apiKey) {
-    throw new Error("HF_TOKEN manquant");
+    throw new Error("HF_API_KEY manquant");
   }
 
-  console.log(`[HuggingFace] Démarrage provider="${provider}" model="${model}"`);
+  const model = process.env.HF_MODEL || "HuggingFaceH4/zephyr-7b-beta";
 
-  const client = new InferenceClient(apiKey);
+  console.log(`[HuggingFace] Démarrage avec modèle: ${model}`);
 
-  let fullResponse = "";
+  const formattedPrompt = `<|system|>${systemPrompt}</s><|user|>${question}</s><|assistant|>`;
 
-  const stream = client.chatCompletionStream({
-    provider,
-    model,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: question },
-    ],
+  const response = await generateText(model, formattedPrompt, {
+    max_new_tokens: 4096,
+    temperature: 0.3,
   });
 
-  for await (const chunk of stream) {
-    const delta = chunk?.choices?.[0]?.delta?.content;
-    if (delta) {
-      fullResponse += delta;
-    }
-  }
+  const textResult = Array.isArray(response) ? response[0]?.generated_text ?? "" : response?.generated_text ?? "";
 
-  console.log(`[HuggingFace] Réponse générée (${fullResponse.length} chars)`);
+  console.log(`[HuggingFace] Réponse générée (${textResult.length} chars)`);
 
   return {
-    answer: fullResponse.trim(),
-    provider,
+    answer: textResult,
+    provider: "huggingface",
     model,
   };
 }
@@ -311,7 +312,7 @@ export const handler = async (event) => {
       };
     }
 
-    const systemPrompt = getSystemPrompt();
+    const systemPrompt = await getSystemPrompt();
     const fallbackChain = buildFallbackChain();
 
     if (fallbackChain.length === 0) {
@@ -328,13 +329,14 @@ export const handler = async (event) => {
       `[Main] Chaîne de fallback: ${fallbackChain.map((f) => `${f.provider}/${f.model}`).join(" → ")}`
     );
 
+    let finalAnswer = "";
+    let finalProvider = "";
+    let finalModel = "";
     const attempts = [];
     const debugTrace = [];
 
     for (const { provider, model, executor } of fallbackChain) {
       const attemptStart = Date.now();
-
-      console.log(`[Main] Tentative: ${provider}/${model}`);
       debugTrace.push({
         provider,
         model,
@@ -344,12 +346,15 @@ export const handler = async (event) => {
       });
 
       try {
-        const result = await executor({ question, systemPrompt, provider, model });
+        const { answer, provider: p, model: m } = await executor({
+          question,
+          systemPrompt,
+          provider,
+          model,
+        });
 
         const attemptEnd = Date.now();
         const duration = attemptEnd - attemptStart;
-
-        console.log(`[Main] ✅ Succès avec ${provider}/${model} en ${duration}ms`);
 
         debugTrace[debugTrace.length - 1] = {
           ...debugTrace[debugTrace.length - 1],
@@ -358,22 +363,13 @@ export const handler = async (event) => {
           endTime: attemptEnd,
         };
 
-        return {
-          statusCode: 200,
-          body: JSON.stringify({
-            answer: result.answer,
-            sources: [],
-            cached: false,
-            provider: result.provider,
-            model: result.model,
-            debugTrace,
-          }),
-        };
+        finalAnswer = answer;
+        finalProvider = p;
+        finalModel = m;
+        break; // Exit after first successful executor
       } catch (err) {
         const attemptEnd = Date.now();
         const duration = attemptEnd - attemptStart;
-
-        console.error(`[Main] ❌ Échec ${provider}/${model}: ${err.message}`);
 
         debugTrace[debugTrace.length - 1] = {
           ...debugTrace[debugTrace.length - 1],
@@ -388,16 +384,28 @@ export const handler = async (event) => {
           model,
           message: err.message,
         });
+        // Continue to next fallback if error
       }
     }
 
-    // Échec total
+    if (!finalAnswer) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          error: "Échec de traitement de la demande. Aucune réponse valide reçue des modèles.",
+          attempts,
+          debugTrace,
+        }),
+      };
+    }
+
     return {
-      statusCode: 500,
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        error:
-          "Échec de traitement de la demande. Aucune réponse valide reçue des modèles.",
-        attempts,
+        answer: finalAnswer,
+        provider: finalProvider,
+        model: finalModel,
         debugTrace,
       }),
     };
