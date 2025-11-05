@@ -1,6 +1,6 @@
 # 📊 Survey. Consultation Citoyenne Petit Parti / Pertitellu
 
-Une plateforme de consultation citoyenne pour les élections municipales de Corte ou ailleurs, incluant un wiki collaboratif et un système de propositions citoyennes (Kudocratie).
+Une plateforme de consultation citoyenne pour les élections municipales de Corte ou ailleurs, incluant une IA conversationnelle, un wiki collaboratif et un système de propositions citoyennes (Kudocratie).
 
 Disponible en version [Prototype LePP.fr](http://lepp.fr/)
 
@@ -23,27 +23,24 @@ Disponible en version [Prototype LePP.fr](http://lepp.fr/)
 - Création et vote de propositions
 - Délégation de vote sur des sujets spécifiques
 - Tableau de bord des résultats
-- Tags créés/associés automatiquement via `public.proposition_tags`
- - Page détail de proposition: `/propositions/:id` (alias `/proposition/:id`)
  - Description en Markdown (GFM) avec liens internes vers le wiki
 
 ### 4. Assistant IA « Bob »
-- Assistant conversationnel en français (Hugging Face Inference)
+- Assistant conversationnel en français
 - Prompt système public (`public/prompts/bob-system.md`) chargeable via env
-- Réponses Markdown sécurisées dans l’UI (`marked` + `DOMPurify`)
-- Création de propositions et tags directement depuis le chat
+- Création de propositions et tags à la demande
+- Création de pages dans le wiki à la demande
 
 ### 4. Transparence & participation renforcée
 - **Enquête Transparence** : sur le respect du public lors des conseils municipaux
 - **Engagement collectif** : publication des audits, engagements éthiques et résultats de consultation
 - **IA pour tous** *(à venir)* : programme d’expérimentation citoyenne sur l’IA conversationnelle
 
-### 5. Services additionnels
+### 5. Services additionnels, externes
 - Signalement d’incidents urbains
 - Agenda social partagé
 - Plateforme d’entraide bénévole
 - Accès direct aux réseaux sociaux du mouvement
- - Page Contact configurable (`/contact`) affichant un email défini via `VITE_CONTACT_EMAIL`
 
 ## 🛠️ Stack technique
 
@@ -54,8 +51,6 @@ Disponible en version [Prototype LePP.fr](http://lepp.fr/)
 - **Graphiques** : Recharts
 - **Markdown** : react-markdown + remark-gfm
 - **Markdown (Bob)** : marked + DOMPurify
- - **Liens wiki Markdown** : `[label](wiki/adresse)` ou `[label](/wiki/adresse)` → route interne `/wiki/:slug`
- - **Liens wiki automatiques (CamelCase)** : auto-liage des WikiWords vers `/wiki/<Slug>` via `linkifyWardWiki` (désactivation avec `!WikiWord`, ignoré dans les blocs de code)
 
 ## 📁 Structure du projet
 
@@ -82,25 +77,13 @@ src/
 └── index.css              # Styles Markdown
 ```
 
-## 🗄️ Base de données (Supabase)
 
-### Table `wiki_pages`
-```sql
-CREATE TABLE wiki_pages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title TEXT NOT NULL,
-  slug TEXT UNIQUE NOT NULL,
-  content TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-```
 
 ## 🚀 Installation et déploiement
 
 ### Prérequis
 - Node.js ≥ 18
-- npm ou yarn
+- npm
 - Compte Supabase
 
 ### Installation locale
@@ -114,46 +97,34 @@ npm install
 
 # Configurer les variables d'environnement
 cp .env.example .env
-# Renseigner VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY
-# Optionnel : personnaliser la configuration générique (commune, mouvement, parti)
-# Frontend (Vite)
-#   VITE_CITY_NAME, VITE_CITY_TAGLINE, VITE_MOVEMENT_NAME, VITE_PARTY_NAME, VITE_HASHTAG, VITE_BOT_NAME
-#   VITE_CONTACT_EMAIL  # Email pour la page /contact (défaut: jeanhuguesrobert@gmail.com)
-# Backend (fonctions Netlify)
-#   CITY_NAME, MOVEMENT_NAME, PARTY_NAME, HASHTAG, BOT_NAME
-#   HF_SYSTEM_PROMPT ou HF_SYSTEM_PROMPT_PATH pour surcharger le prompt de Bob
 
 # Lancer en développement
-npm run dev
+netlify dev
 ```
 
 ### Build de production
 ```bash
 npm run build
-# Les fichiers sont générés dans dist/
 ```
 
 ### Déploiement
 Le projet est déployé automatiquement via Netlify.
 
-## 📝 Workflow de contribution
+## 📅 Changelog récent
 
-1. **Créer une branche** : `git checkout -b feature/ma-fonctionnalite`
-2. **Commiter** : `git commit -m "feat: ajouter X"`
-3. **Pousser** : `git push origin feature/ma-fonctionnalite`
-4. **Ouvrir une PR** sur GitHub
+### 2025-11-05
 
-## 📅 Changelog récent (depuis le 2024-05-03)
-
-### 2024-05-03
-
-#### Général
-- Correction du bug : Les majuscules sont désormais conservées lors de la création de pages Wiki (harmonisation des fonctions `normalizeSlug`).
-- Amélioration UI : Ajout d'un chronomètre en temps réel sur le bouton d'envoi de Bob, affichant le temps écoulé pendant la génération de la réponse.
+#### Wiki
+- Génération automatique de résumés pour chaque page wiki lors de l'archivage.
+- Création d'un document wiki consolidé à partir des titres, slugs et résumés de toutes les pages wiki.
+- Sauvegarde du document wiki consolidé sur GitHub et dans une nouvelle table `consolidated_wiki_documents` de Supabase.
+- Intégration du document wiki consolidé dans le prompt système du chatbot pour améliorer sa "mémoire" et sa pertinence.
 
 ### 2025-11-03
 
 #### Général
+- Correction du bug : Les majuscules sont désormais conservées lors de la création de pages Wiki (harmonisation des fonctions `normalizeSlug`).
+- Amélioration UI : Ajout d'un chronomètre en temps réel sur le bouton d'envoi de Bob, affichant le temps écoulé pendant la génération de la réponse.
 - Ajout de la page `Contact` (`/contact`) avec email configurable via `VITE_CONTACT_EMAIL` (valeur par défaut `jeanhuguesrobert@gmail.com`).
 - Intégration d’un `ErrorBoundary` autour de `App` pour une gestion d’erreurs de rendu plus robuste.
 - Unification/déduplication du Footer et harmonisation des liens légaux.
@@ -196,18 +167,6 @@ Le projet est déployé automatiquement via Netlify.
 - Login unifié entre Bob et Kudocracy.
 - Utilisation optimisée des modèles OpenAI si une clé API est disponible.
 - Ajouts de liens légaux et affinement du prompt système de Bob.
-
-#### Fichiers modifiés/non commitées au moment de la mise à jour
-- `.env.example` (ajustements mineurs de configuration)
-- `README.md` (présent fichier)
-- `netlify/functions/rag_chatbot.js` (affinage du routage/modération)
-- `public/prompts/bob-system.md` (affinage du prompt système)
-- `src/App.jsx` (intégration des modules et libellés agnostiques)
-- `src/constants.js` (ajustements pour labels/terminologie)
-- `src/pages/Transparence.jsx` (cohérence UI)
-- `src/pages/WikiCreate.jsx` (pré-remplissage adresse, titre libre)
-- `src/pages/WikiPage.jsx` (lien “Créer la page” robuste)
-- `src/config/questionnaireModules.js` (nouveau fichier)
 
 ### Wiki
 - ✅ Routes dédiées création/édition (`/wiki/new`, `/wiki/:slug/edit`)
@@ -308,6 +267,7 @@ Cette plateforme participe à l’initiative citoyenne « Transparence » visant
 - **v1.1.0** : Lancement de l’enquête Transparence et intégration du programme “IA pour tous”
 
 ### Phase 5 : IA conversationnelle
+- **v1.2.5** : Ajout d'un résumé du wiki dans le prompt de Bob
 - **v1.2.0** : Assistant IA « Bob » amélioré (streaming, fallback provider)
 - Création de propositions et tags directement depuis le chat (statut par défaut `active`)
 - Rendu des réponses en Markdown sécurisé (`marked` + `DOMPurify`), prompt système configurable (`public/prompts/bob-system.md` ou variables d’environnement)
