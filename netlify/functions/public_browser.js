@@ -8,36 +8,7 @@ import path from 'node:path';
     - path=docs/officiel or path=docs/officiel/file.pdf
     - download=1 to force raw download (binary served base64 if needed)
 */
-
-function resolvePublicRoot() {
-  const fromImport = path.dirname(fileURLToPath(import.meta.url));
-  const candidates = [
-    path.join(process.cwd(), 'public'),
-    path.resolve('public'),
-    path.join(fromImport, '..', '..', 'public'),
-    path.join(fromImport, '..', '..', '..', 'public'),
-    path.join(process.cwd(), '..', 'public')
-  ].map(p => path.resolve(p));
-
-  for (const candidate of candidates) {
-    try {
-      const stat = fsSync.statSync(candidate);
-      if (stat.isDirectory()) {
-        return candidate;
-      }
-    } catch (err) {
-      // ignore ENOENT/ENOTDIR and keep trying other candidates
-      if (err && err.code && !['ENOENT', 'ENOTDIR'].includes(err.code)) {
-        console.warn('[public_browser] unexpected error while probing candidate', candidate, err);
-      }
-    }
-  }
-
-  // fallback to process.cwd()/public even if it does not exist.
-  return path.join(process.cwd(), 'public');
-}
-
-const ROOT = resolvePublicRoot();
+const ROOT = path.join(process.cwd(), 'public');
 
 const MIME = {
   '.md': 'text/markdown; charset=utf-8',
@@ -59,8 +30,7 @@ function jsonResponse(status, body) {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET,OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-      'Content-Type': 'application/json; charset=utf-8'
+      'Access-Control-Allow-Headers': 'Content-Type'
     },
     body: typeof body === 'string' ? body : JSON.stringify(body)
   };
@@ -84,7 +54,7 @@ export async function handler(event) {
     return jsonResponse(400, { error: 'Invalid path', message: 'Chemin invalide' });
   }
 
-  // Additional diagnostics: check common files (bob prompt) and basic public visibility
+  // Diagnostics quick probe
   let diag = { cwd: process.cwd(), public_resolved: resolvedRoot, requested: relRaw };
   try {
     const bobCandidate = path.join(resolvedRoot, 'docs', 'bob_prompt.md');
