@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Routes, Route, Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Routes, Route, Link, useNavigate, useParams } from 'react-router-dom';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Methodologie from './pages/Methodologie';
 import { APP_VERSION, DEPLOY_DATE, GOOGLE_SCRIPT_URL, COLORS, PRIMARY_COLOR, SECONDARY_COLOR, CITY_NAME, CITY_TAGLINE, MOVEMENT_NAME, PARTY_NAME, HASHTAG, VOLUNTEER_URL, COMMUNITY_NAME, COMMUNITY_TYPE, getCommunityLabels } from './constants';
@@ -1110,6 +1112,256 @@ export function App() {
       <Route path="/legal/privacy" element={<LegalPage type="privacy" />} />
       <Route path="/survey" element={<Survey />} />
       <Route path="/contact" element={<Contact />} />
+      <Route path="/browser/*" element={<PublicBrowser />} />
     </Routes>
+  );
+}
+
+// Public browser component: browse /docs (served from public/docs)
+function PublicBrowser() {
+  const baseRoot = '/docs'; // correspond à public/docs
+  const [path, setPath] = useState('/');
+  const [items, setItems] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [viewFile, setViewFile] = useState(null);
+  const [content, setContent] = useState('');
+  const navigate = useNavigate();
+
+  const fullPath = useMemo(() => {
+    // normalise: /foo/bar -> docs/foo/bar (no leading slash for API)
+    const p = path.replace(/^\/*/, '').replace(/\/*$/, '');
+    return p ? `${baseRoot}/${p}` : baseRoot;
+  }, [path]);
+
+  useEffect(() => {
+    async function listDir() {
+      setLoading(true);
+      setItems(null);
+      setViewFile(null);
+      setContent('');
+      try {
+        const apiPath = encodeURIComponent(fullPath.replace(/^\//,''));
+        const r = await fetch(`/.netlify/functions/public_browser?path=${apiPath}`);
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const json = await r.json();
+        // expected array for directory listing
+        if (Array.isArray(json)) {
+          setItems(json);
+        } else {
+          setItems([]);
+        }
+      } catch (err) {
+        console.warn('Listing failed:', err);
+        setItems([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    listDir();
+  }, [fullPath]);
+
+  async function openEntry(entry) {
+    if (entry.isDir || entry.href.endsWith('/')) {
+      // compute new relative path (display path only)
+      const name = entry.name.replace(/\/$/, '');
+      setPath(prev => (prev === '/' ? `/${name}` : `${prev}/${name}`));
+      return;
+    }
+
+    setLoading(true);
+    setViewFile(entry);
+    setContent('');
+    try {
+      const filePath = `${fullPath.replace(/^\//,'')}/${entry.name}`;
+      const apiPath = encodeURIComponent(filePath);
+      const r = await fetch(`/.netlify/functions/public_browser?path=${apiPath}`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const j = await r.json();
+      if (j && j.file) {
+        if (!j.base64) {
+          setContent(j.body);
+        } else {
+          // base64 binary: check mime to display or offer download link
+          if (/^text\/|json|csv|markdown/.test(j.mime)) {
+            // base64 text content
+            const txt = atob(j.body);
+            setContent(txt);
+          } else {
+            // binary - do not attempt to render, offer download via function
+            setContent(`Fichier binaire (${j.mime}). Utilisez le lien "Télécharger".`);
+          }
+        }
+      } else {
+        setContent('Contenu indisponible');
+      }
+    } catch (e) {
+      setContent(`Erreur de lecture: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function goUp() {
+    if (path === '/' || path === '') return;
+    const parts = path.replace(/^\//,'').split('/');
+    parts.pop();
+    const np = parts.length ? `/${parts.join('/')}` : '/';
+    setPath(np);
+  }
+
+  function renderFileContent(name, txt) {
+    const ext = (name.split('.').pop() || '').toLowerCase();
+    if (ext === 'md' || ext === 'markdown') {
+      const rawHtml = marked.parse(txt || '');
+      // Ensure links open in a new tab and add rel for security
+      try {
+        const doc = new DOMParser().parseFromString(rawHtml, 'text/html');
+        doc.querySelectorAll('a').forEach(a => {
+          if (!a.getAttribute('target')) a.setAttribute('target', '_blank');
+          if (!a.getAttribute('rel')) a.setAttribute('rel', 'noopener noreferrer');
+        });
+        const sanitized = DOMPurify.sanitize(doc.body.innerHTML);
+        // Use wiki / prose classes to reuse site styling
+        return <div className="markdown-content prose max-w-none" dangerouslySetInnerHTML={{ __html: sanitized }} />;
+      } catch (e) {
+        // fallback
+        const sanitized = DOMPurify.sanitize(rawHtml);
+        return <div className="markdown-content prose max-w-none" dangerouslySetInnerHTML={{ __html: sanitized }} />;
+      }
+    }
+    if (ext === 'json') {
+      try { return <pre>{JSON.stringify(JSON.parse(txt || '{}'), null, 2)}</pre>; }
+      catch { return <pre>{txt}</pre>; }
+    }
+    if (ext === 'csv') {
+      const lines = (txt || '').trim().split(/\r?\n/).filter(Boolean);
+      const rows = lines.map(l => l.split(','));
+      return (
+        <div className="browser-csv">
+          <table>
+            <thead>
+              <tr>{(rows[0]||[]).map((c,i)=>(<th key={i}>{c}</th>))}</tr>
+            </thead>
+            <tbody>
+              {rows.slice(1).map((r,ri)=>(<tr key={ri}>{r.map((c,ci)=>(<td key={ci}>{c}</td>))}</tr>))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+    // txt or fallback
+    return <pre style={{whiteSpace:'pre-wrap'}}>{txt}</pre>;
+  }
+
+  // helper to build download URL via function
+  function fileDownloadUrl(entry) {
+    const filePath = `${fullPath.replace(/^\//,'')}/${entry.name}`;
+    return `/.netlify/functions/public_browser?path=${encodeURIComponent(filePath)}&download=1`;
+  }
+
+  return (
+    <div className="public-browser">
+      <div className="browser-header" style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
+        <h2>Explorateur public (docs)</h2>
+        <div>
+          <button
+            onClick={() => { setPath('/'); }}
+            className="px-3 py-1 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 mr-2"
+            aria-label="Aller à la racine"
+          >
+            Racine
+          </button>
+          <button
+            onClick={goUp}
+            className="px-3 py-1 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50"
+            aria-label="Remonter d'un niveau"
+          >
+            Remonter
+          </button>
+        </div>
+      </div>
+
+      <div className="browser-body" style={{display:'flex',gap:20}}>
+        <div
+          className="browser-list"
+          style={{
+            width: 480,                // agrandi pour longs noms
+            minWidth: 360,            // responsive minimum
+            maxWidth: 560,            // éviter qu'il prenne tout l'écran
+            borderRight: '1px solid #eee',
+            paddingRight: 12,
+            boxSizing: 'border-box'
+          }}
+         >
+          <p><strong>Chemin :</strong> {path}</p>
+           {loading && <p>Chargement...</p>}
+           {!loading && items && items.length === 0 && <p>Pas de listing disponible pour {fullPath}.</p>}
+           {!loading && items && items.length > 0 && (
+             <ul style={{listStyle:'none',padding:0}}>
+               {items.map((it, i) => {
+                 const displayName = it.name || it.href;
+                 return (
+                  <li key={i} style={{marginBottom:8, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+                     <button
+                       onClick={() => openEntry(it)}
+                       className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-100 w-full text-left"
+                       style={{ gap: 8 }}
+                     >
+                       <span className="mr-2">{it.isDir ? '📁' : '📄'}</span>
+                       <span
+                        style={{
+                          display: 'inline-block',
+                          wordBreak: 'break-word',    // autorise le retour à la ligne pour longs noms
+                          overflowWrap: 'anywhere',
+                          whiteSpace: 'normal',
+                          lineHeight: 1.2,
+                          maxWidth: '100%'
+                        }}
+                      >
+                        {displayName}
+                      </span>
+                     </button>
+                     {!it.isDir && (
+                       <a
+                         href={ fileDownloadUrl(it) }
+                         target="_blank"
+                         rel="noreferrer"
+                         className="ml-3 inline-flex items-center gap-2 px-2 py-1 border border-gray-200 rounded-md bg-white text-sm text-gray-700 hover:bg-gray-50"
+                         title="Télécharger le fichier"
+                       >
+                         ⬇
+                       </a>
+                     )}
+                   </li>
+                 );
+               })}
+             </ul>
+           )}
+         </div>
+
+        <div className="browser-view" style={{flex:1}}>
+          {viewFile ? (
+            <>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <h3>{viewFile.name}</h3>
+                <div>
+                  <a
+                    href={ fileDownloadUrl(viewFile) }
+                    download
+                    className="px-3 py-1 rounded-md text-white"
+                    style={{ backgroundColor: SECONDARY_COLOR, color: '#fff', textDecoration: 'none' }}
+                  >
+                    Télécharger
+                  </a>
+                </div>
+              </div>
+              {loading ? <p>Chargement du fichier...</p> : renderFileContent(viewFile.name, content)}
+            </>
+          ) : (
+            <p>Sélectionnez un fichier à prévisualiser.</p>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

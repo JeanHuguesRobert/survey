@@ -54,27 +54,32 @@ Disponible en version [Prototype LePP.fr](http://lepp.fr/)
 
 ## 📁 Structure du projet
 
+Structure du projet (extrait)
 ```
-src/
-├── components/
-│   ├── ErrorBoundary.jsx
-│   └── kudocracy/
-├── pages/
-│   ├── Wiki.jsx
-│   ├── WikiPage.jsx
-│   ├── WikiCreate.jsx
-│   ├── WikiEdit.jsx
-│   ├── Transparence.jsx
-│   ├── Bob.jsx            # Assistant IA conversationnel
-│   ├── Kudocracy.jsx
-│   ├── Proposition.jsx    # Page détail d’une proposition (Markdown + liens wiki)
-│   ├── Methodologie.jsx
-│   ├── Contact.jsx        # Page Contact (email configurable via env)
-│   └── Audit.jsx
-├── lib/
-│   └── supabase.js
-├── constants.js
-└── index.css              # Styles Markdown
+\survey
+├─ .env                              # variables d'environnement locales (ne pas committer)
+├─ package.json                      # dépendances & scripts (installer à la racine)
+├─ netlify/
+│  └─ functions/
+│     ├─ rag_chatbot.js              # Netlify Function : RAG chatbot (HF / OpenAI)
+│     ├─ optimize-wiki-title.js      # Netlify Function : optimisation titre/slug
+│     └─ ...                         # autres fonctions serverless
+├─ public/                           # assets statiques (favicon, images...)
+├─ src/
+│  ├─ components/
+│  │  ├─ bob/
+│  │  │  └─ ChatWindow.jsx           # UI du chatbot — disclaimer ajouté ici
+│  │  ├─ common/
+│  │  │  └─ AuthModal.jsx
+│  │  └─ layout/
+│  │     └─ SiteFooter.jsx           # footer (showWiki flag)
+│  ├─ lib/
+│  │  ├─ supabase.js                 # client Supabase
+│  │  └─ propositions.js             # helpers création propositions
+│  ├─ constants.js                   # constantes partagées (CITY_NAME, BOT_NAME, APP_VERSION...)
+│  └─ main.jsx / App.jsx             # point d'entrée React
+├─ README.md                         # documentation du projet
+└─ ...                               # autres fichiers / dossiers
 ```
 
 
@@ -404,3 +409,20 @@ MIT - Projet open-source pour la démocratie locale
 
 Initiative #PERTITELLU - Corti Capitale  
 📧 [jeanhuguesrobert@gmail.com](mailto:jeanhuguesrobert@gmail.com)
+
+## Audit en cours — ODJ ↔ Actes (Commune de Corte)
+
+Un audit automatique compare les convocations / ordres du jour (ODJ) aux actes publiés (PV / délibérations) afin d'identifier :
+- correspondances, modifications d'ordre, libellés divergents, périmètres modifiés, absences et ajouts.
+
+
+### Sorties générées
+
+- rapports : rapport-odj-acts-ai.md, rapport-odj-acts-ai.csv, rapport-odj-acts-ai.json (créés à la racine après exécution)
+- archives officielles : les PDFs téléchargés sont sauvegardés dans public/docs/officiel/
+  - Nommage : mairie-corte_<type>_<date>_<original>.pdf
+  - <type> vaut convocation-odj / proces-verbal / deliberations selon le document
+  - Exemple : public/docs/officiel/mairie-corte_convocation-odj_2025-10-28_modules-downloads-1910.pdf
+
+Consultation via l'interface
+- Une page d'exploration publique a été ajoutée à l'app : /browser
