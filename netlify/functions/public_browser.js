@@ -41,42 +41,6 @@ export async function handler(event) {
     return jsonResponse(200, { ok: true });
   }
 
-  // --- Preflight: check public dir accessibility and provide diagnostics if not ---
-  try {
-    // resolvedRoot is defined earlier as path.resolve(ROOT)
-    const resolvedRoot = path.resolve(ROOT);
-    // ensure the directory exists and is readable
-    await fs.stat(resolvedRoot);
-  } catch (err) {
-    // Collect a small diagnostic snapshot (non-sensitive)
-    let cwdList = [];
-    try {
-      cwdList = (await fs.readdir(process.cwd())).slice(0, 20);
-    } catch (_) {
-      cwdList = ['(unable to list cwd)'];
-    }
-    console.warn(`[public_browser] public directory not accessible: ${String(err.message || err)}`);
-    return {
-      statusCode: 503,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json; charset=utf-8'
-      },
-      body: JSON.stringify({
-        error: 'public_unavailable',
-        message: 'Le répertoire "public" n\'est pas accessible depuis l\'environnement d\'exécution des fonctions. ' +
-                 'Cela peut arriver en production chez Netlify (les fonctions n\'ont pas accès au filesystem déployé) ou si ' +
-                 'le dossier n\'a pas été déployé/present.',
-        diagnostics: {
-          process_cwd: process.cwd(),
-          cwd_preview: cwdList,
-          expected_public_path: path.resolve(ROOT)
-        },
-        hint: 'Pour résoudre: stocker les PDFs dans un espace persisté (S3 / Supabase storage / Netlify deploy step) ou générer les archives au moment du build plutôt qu\'à l\'exécution.'
-      })
-    };
-  }
-
   const q = event.queryStringParameters || {};
   const relRaw = String(q.path || '').replace(/^\/+/, ''); // e.g. "docs/officiel"
   const download = q.download === '1' || q.download === 'true';
@@ -88,6 +52,20 @@ export async function handler(event) {
   if (!resolvedTarget.startsWith(resolvedRoot)) {
     console.warn(`[public_browser] path traversal attempt: ${relRaw}`);
     return jsonResponse(400, { error: 'Invalid path', message: 'Chemin invalide' });
+  }
+
+  // Additional diagnostics: check common files (bob prompt) and basic public visibility
+  let diag = { cwd: process.cwd(), public_resolved: resolvedRoot, requested: relRaw };
+  try {
+    const bobCandidate = path.join(resolvedRoot, 'docs', 'bob_prompt.md');
+    try {
+      const s = fsSync.statSync(bobCandidate);
+      diag.bob_prompt = { exists: true, size: s.size, mtime: s.mtime.toISOString(), path: bobCandidate };
+    } catch (e) {
+      diag.bob_prompt = { exists: false, reason: e.code || String(e.message || e), path: bobCandidate };
+    }
+  } catch (e) {
+    diag.bob_probe_error = String(e.message || e);
   }
 
   try {
@@ -107,10 +85,10 @@ export async function handler(event) {
 
       if (items.length === 0) {
         console.info(`[public_browser] empty directory: ${relRaw}`);
-        return jsonResponse(200, { items: [], message: `Aucun document trouvé dans /${relRaw}. L'archive peut être en cours de génération.` });
+        return jsonResponse(200, { items: [], message: `Aucun document trouvé dans /${relRaw}. L'archive peut être en cours de génération.`, diagnostics: diag });
       }
 
-      return jsonResponse(200, { items });
+      return jsonResponse(200, { items, diagnostics: diag });
     }
 
     if (stat.isFile()) {
@@ -134,13 +112,15 @@ export async function handler(event) {
         };
       }
 
+      // Default: return JSON wrapper describing file and content (text or base64)
       const body = isBinary ? buf.toString('base64') : buf.toString('utf8');
       return jsonResponse(200, {
         file: true,
         name: path.basename(resolvedTarget),
         mime,
         base64: isBinary,
-        body
+        body,
+        diagnostics: diag
       });
     }
 
@@ -148,9 +128,9 @@ export async function handler(event) {
   } catch (e) {
     if (e.code === 'ENOENT') {
       console.info(`[public_browser] not found: ${relRaw}`);
-      return jsonResponse(404, { error: 'Not found', message: `Aucun document trouvé pour /${relRaw} (404). Vérifiez que les archives ont été générées.` });
+      return jsonResponse(404, { error: 'Not found', message: `Aucun document trouvé pour /${relRaw} (404). Vérifiez que les archives ont été générées.`, diagnostics: diag });
     }
     console.error('[public_browser] unexpected error:', e);
-    return jsonResponse(500, { error: String(e.message || e), message: 'Erreur serveur. Le problème est identifié.' });
+    return jsonResponse(500, { error: String(e.message || e), message: 'Erreur serveur. Le problème est identifié.', diagnostics: diag });
   }
 }

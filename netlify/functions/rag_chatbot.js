@@ -1,8 +1,8 @@
 import { OpenAI } from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { InferenceClient } from "@huggingface/inference";
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -272,7 +272,11 @@ function buildFallbackChain() {
 // MAIN HANDLER
 // ============================================================================
 
-export const handler = async (event) => {
+async function handlerInternal(event, context) {
+  // Charge le prompt de Bob de façon résiliente (voir ensureBobPrompt défini plus haut dans ce fichier)
+  const { prompt: BOB_PROMPT, diagnostics: BOB_PROMPT_DIAG } = await ensureBobPrompt();
+  console.info('[rag_chatbot] bob prompt diagnostics:', BOB_PROMPT_DIAG);
+
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
@@ -394,51 +398,93 @@ export const handler = async (event) => {
       body: JSON.stringify({ error: err.message }),
     };
   }
-};
+}
 
-// anciennement : const PROMPT = fs.readFileSync(path.join(process.cwd(),'public','docs','bob_prompt.md'),'utf8');
+// si globalThis.fetch n'existe pas, on fera un import dynamique plus bas dans ensureBobPrompt()
+let _bobPromptCache = null;
+let _bobPromptDiag = null;
+
+function tryReadFileSync(filePath) {
+  try {
+    const txt = fs.readFileSync(filePath, 'utf8');
+    return { ok: true, text: txt };
+  } catch (e) {
+    return { ok: false, err: e };
+  }
+}
 
 async function loadBobPrompt() {
-  // 1) prompt from env (fast, recommended for prod)
-  if (process.env.BOB_PROMPT && process.env.BOB_PROMPT.trim()) {
-    return process.env.BOB_PROMPT;
+  const diag = { tried: [], cwd: process.cwd(), timestamp: new Date().toISOString() };
+
+  // 1) env variable (fast)
+  if (process.env.BOB_PROMPT && String(process.env.BOB_PROMPT).trim()) {
+    diag.tried.push({ source: 'env', note: 'BOB_PROMPT' });
+    _bobPromptDiag = diag;
+    return { prompt: String(process.env.BOB_PROMPT), diagnostics: diag };
   }
 
-  // 2) prompt from remote URL (e.g. public docs served by CDN)
-  const url = process.env.BOB_PROMPT_URL || (process.env.SITE_BASE_URL ? `${process.env.SITE_BASE_URL.replace(/\/$/,'')}/docs/bob_prompt.md` : null);
+  // 2) candidate filesystem paths (multi-location)
+  const candidates = [
+    path.join(process.cwd(), 'public', 'prompts', 'bob-system.md'),
+    path.join(process.cwd(), 'public', 'prompts', 'bob.md'),
+    path.join(process.cwd(), 'public', 'prompts', 'bob-system.txt'),
+    path.join(process.cwd(), 'public', 'docs', 'bob_prompt.md'),
+    path.join(process.cwd(), 'public', 'docs', 'bob-system.md'),
+    path.join(process.cwd(), 'public', 'bob-system.md'),
+    path.join(process.cwd(), 'prompts', 'bob-system.md'), // alternate
+  ];
+
+  for (const p of candidates) {
+    diag.tried.push({ source: 'fs', path: p });
+    const res = tryReadFileSync(p);
+    if (res.ok && res.text && res.text.trim().length > 0) {
+      diag.found = { path: p, size: res.text.length };
+      _bobPromptDiag = diag;
+      return { prompt: res.text, diagnostics: diag };
+    }
+    if (!res.ok) {
+      diag[`err_${path.basename(p)}`] = String(res.err.code || res.err.message || res.err);
+    }
+  }
+
+  // 3) remote URL (publicly served file)
+  const url = process.env.BOB_PROMPT_URL || (process.env.SITE_BASE_URL ? `${String(process.env.SITE_BASE_URL).replace(/\/$/,'')}/prompts/bob-system.md` : null);
   if (url) {
+    diag.tried.push({ source: 'http', url });
     try {
-      const res = await fetch(url);
-      if (res.ok) {
-        const txt = await res.text();
-        if (txt && txt.trim().length > 0) return txt;
+      const r = await fetch(url);
+      if (r.ok) {
+        const text = await r.text();
+        if (text && text.trim().length > 0) {
+          diag.found = { url, size: text.length };
+          _bobPromptDiag = diag;
+          return { prompt: text, diagnostics: diag };
+        }
+        diag.http_empty = true;
       } else {
-        console.warn(`bob prompt fetch failed ${res.status} ${url}`);
+        diag.http_status = r.status;
       }
     } catch (e) {
-      console.warn('bob prompt fetch error', e?.message || e);
+      diag.http_err = String(e.message || e);
     }
   }
 
-  // 3) fallback hardcoded prompt (safe fallback)
-  return `Bonjour, je suis ${process.env.BOT_NAME || 'Assistant'} — posez votre question sur la vie locale.`;
+  // 4) fallback default
+  diag.tried.push({ source: 'fallback', note: 'using default inline prompt' });
+  const fallback = process.env.BOB_PROMPT_FALLBACK || `Bonjour, je suis l'IA civique. Posez votre question.`;
+  _bobPromptDiag = diag;
+  return { prompt: fallback, diagnostics: diag };
 }
 
-// -- REMOVAL: remove any top-level await usage like:
-// const BOB_PROMPT = await loadBobPrompt();
-// -- REPLACEMENT: add a cached async getter to avoid top-level await
-
-let _bobPromptCache = null;
 async function ensureBobPrompt() {
-  if (_bobPromptCache) return _bobPromptCache;
-  try {
-    _bobPromptCache = await loadBobPrompt();
-    if (!_bobPromptCache || !_bobPromptCache.trim()) {
-      _bobPromptCache = process.env.BOB_PROMPT || 'Bonjour, je suis l\'assistant. (prompt par défaut)';
-    }
-  } catch (err) {
-    console.warn('[rag_chatbot] loadBobPrompt failed:', err?.message || err);
-    _bobPromptCache = process.env.BOB_PROMPT || 'Bonjour, je suis l\'assistant. (prompt par défaut)';
-  }
-  return _bobPromptCache;
+  if (_bobPromptCache) return { prompt: _bobPromptCache, diagnostics: _bobPromptDiag };
+  const loaded = await loadBobPrompt();
+  _bobPromptCache = loaded.prompt;
+  _bobPromptDiag = loaded.diagnostics;
+  // log summary (do not leak sensitive content)
+  console.info('[rag_chatbot] Bob prompt source diagnostics:', JSON.stringify(_bobPromptDiag, null, 2));
+  return { prompt: _bobPromptCache, diagnostics: _bobPromptDiag };
 }
+
+// Export final unique du handler — référence la fonction interne définie plus haut.
+export const handler = handlerInternal;
