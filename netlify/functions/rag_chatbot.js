@@ -395,3 +395,50 @@ export const handler = async (event) => {
     };
   }
 };
+
+// anciennement : const PROMPT = fs.readFileSync(path.join(process.cwd(),'public','docs','bob_prompt.md'),'utf8');
+
+async function loadBobPrompt() {
+  // 1) prompt from env (fast, recommended for prod)
+  if (process.env.BOB_PROMPT && process.env.BOB_PROMPT.trim()) {
+    return process.env.BOB_PROMPT;
+  }
+
+  // 2) prompt from remote URL (e.g. public docs served by CDN)
+  const url = process.env.BOB_PROMPT_URL || (process.env.SITE_BASE_URL ? `${process.env.SITE_BASE_URL.replace(/\/$/,'')}/docs/bob_prompt.md` : null);
+  if (url) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        const txt = await res.text();
+        if (txt && txt.trim().length > 0) return txt;
+      } else {
+        console.warn(`bob prompt fetch failed ${res.status} ${url}`);
+      }
+    } catch (e) {
+      console.warn('bob prompt fetch error', e?.message || e);
+    }
+  }
+
+  // 3) fallback hardcoded prompt (safe fallback)
+  return `Bonjour, je suis ${process.env.BOT_NAME || 'Assistant'} — posez votre question sur la vie locale.`;
+}
+
+// -- REMOVAL: remove any top-level await usage like:
+// const BOB_PROMPT = await loadBobPrompt();
+// -- REPLACEMENT: add a cached async getter to avoid top-level await
+
+let _bobPromptCache = null;
+async function ensureBobPrompt() {
+  if (_bobPromptCache) return _bobPromptCache;
+  try {
+    _bobPromptCache = await loadBobPrompt();
+    if (!_bobPromptCache || !_bobPromptCache.trim()) {
+      _bobPromptCache = process.env.BOB_PROMPT || 'Bonjour, je suis l\'assistant. (prompt par défaut)';
+    }
+  } catch (err) {
+    console.warn('[rag_chatbot] loadBobPrompt failed:', err?.message || err);
+    _bobPromptCache = process.env.BOB_PROMPT || 'Bonjour, je suis l\'assistant. (prompt par défaut)';
+  }
+  return _bobPromptCache;
+}

@@ -9,6 +9,7 @@ import https from 'node:https';
 import http from 'node:http';
 import { URL } from 'node:url';
 import OpenAI from 'openai';
+import os from 'node:os';
 import { getDocumentProxy, extractText as unpdfExtractText } from 'unpdf';
 
 if (!process.env.OPENAI_API_KEY) {
@@ -234,20 +235,14 @@ export function fetchBytes(url, maxRedirects = 5) {
   });
 }
 
-// new: save downloaded PDF bytes into public/doc/officiel with improved name
+// save downloaded PDF bytes into public/docs/officiel (robuste + fallback)
 function savePdfArchive(bytesUint8, url, dateLabel = '', docType = '') {
-  try {
-    const dir = path.join(process.cwd(), 'public', 'docs', 'officiel');
-    fs.mkdirSync(dir, { recursive: true });
-
-    // infer original name but avoid "modules.php"
+  const makeOrigName = () => {
     let origName = 'document.pdf';
     try {
       const u = new URL(url);
       const baseName = path.basename(u.pathname) || origName;
-
       if (/modules\.php$/i.test(baseName)) {
-        // prefer descriptive parts from query params
         const lid = u.searchParams.get('lid') || '';
         const nameParam = u.searchParams.get('name') || '';
         if (nameParam && lid) origName = `${nameParam}-${lid}.pdf`;
@@ -257,37 +252,65 @@ function savePdfArchive(bytesUint8, url, dateLabel = '', docType = '') {
       } else {
         origName = baseName;
       }
-    } catch { /* keep default origName */ }
+    } catch (_) { /* ignore */ }
+    return origName;
+  };
 
-    // map docType to friendly label
-    const typeMap = {
-      odj: 'convocation-odj',
-      pv: 'proces-verbal',
-      delib: 'deliberations',
-      deliberation: 'deliberations'
-    };
-    const typeLabel = typeMap[(docType || '').toLowerCase()] || 'document';
+  const typeMap = { odj: 'convocation-odj', pv: 'proces-verbal', delib: 'deliberations', deliberation: 'deliberations' };
+  const typeLabel = typeMap[(docType || '').toLowerCase()] || 'document';
+  const datePart = dateLabel ? String(dateLabel).replace(/[^0-9A-Za-z-_]/g, '') : String(Date.now());
+  const rawName = `mairie-corte_${typeLabel}_${datePart}_${makeOrigName()}`;
+  const safeName = rawName.normalize('NFKD').replace(/[^\w.\-]/g, '_').replace(/_+/g, '_').toLowerCase();
 
-    // prefix + date + type + original name
-    const datePart = dateLabel ? String(dateLabel).replace(/[^0-9A-Za-z-_]/g, '') : String(Date.now());
-    const rawName = `mairie-corte_${typeLabel}_${datePart}_${origName}`;
+  const primaryDir = path.join(process.cwd(), 'public', 'docs', 'officiel');
+  const fallbackDir = path.join(process.cwd(), 'tmp', 'officiel');
+  const systemTmpDir = path.join(os.tmpdir(), 'audit-odj-officiel');
 
-    // sanitize filename
-    const safeName = rawName
-      .normalize('NFKD')
-      .replace(/[^\w.\-]/g, '_')
-      .replace(/_+/g, '_')
-      .toLowerCase();
+  const tryWrite = (dir) => {
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+      const outPath = path.join(dir, safeName.endsWith('.pdf') ? safeName : `${safeName}.pdf`);
+      fs.writeFileSync(outPath, Buffer.from(bytesUint8));
+      return outPath;
+    } catch (err) {
+      // return error to caller
+      return { error: String(err.message || err) };
+    }
+  };
 
-    const outPath = path.join(dir, safeName.endsWith('.pdf') ? safeName : `${safeName}.pdf`);
-    fs.writeFileSync(outPath, Buffer.from(bytesUint8));
-    console.log(`  📁 Archive PDF sauvegardé: ${path.relative(process.cwd(), outPath)}`);
-  } catch (e) {
-    console.warn('  ⚠ Échec sauvegarde archive PDF:', e?.message || e);
+  // Try primary location
+  const primaryResult = tryWrite(primaryDir);
+  if (typeof primaryResult === 'string') {
+    console.log(`  📁 Archive PDF sauvegardé (primary): ${path.relative(process.cwd(), primaryResult)}`);
+    return primaryResult;
   }
+
+  console.warn(`  ⚠ Impossible d'écrire dans ${primaryDir}: ${primaryResult.error}`);
+  // Try fallback in repo tmp
+  const fallbackResult = tryWrite(fallbackDir);
+  if (typeof fallbackResult === 'string') {
+    console.log(`  📁 Archive PDF sauvegardé (fallback tmp): ${path.relative(process.cwd(), fallbackResult)}`);
+    return fallbackResult;
+  }
+
+  console.warn(`  ⚠ Impossible d'écrire dans ${fallbackDir}: ${fallbackResult.error}`);
+  // Try system tmp
+  const sysResult = tryWrite(systemTmpDir);
+  if (typeof sysResult === 'string') {
+    console.log(`  📁 Archive PDF sauvegardé (system tmp): ${sysResult}`);
+    return sysResult;
+  }
+
+  // All failed — log and return null
+  console.error('  ❌ Tous les emplacements d\'archive ont échoué :', {
+    primary: primaryResult.error,
+    fallback: fallbackResult.error,
+    system: sysResult.error
+  });
+  return null;
 }
 
-// update signature to accept docType and forward to savePdfArchive
+// ---- Extraction PDF (sans OCR) ----
 async function extractTextFromPdf(url, dateLabel = '', docType = '') {
   // 1) Télécharge
   const bytes = await fetchBytes(url);

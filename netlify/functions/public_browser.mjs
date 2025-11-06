@@ -41,6 +41,42 @@ export async function handler(event) {
     return jsonResponse(200, { ok: true });
   }
 
+  // --- Preflight: check public dir accessibility and provide diagnostics if not ---
+  try {
+    // resolvedRoot is defined earlier as path.resolve(ROOT)
+    const resolvedRoot = path.resolve(ROOT);
+    // ensure the directory exists and is readable
+    await fs.stat(resolvedRoot);
+  } catch (err) {
+    // Collect a small diagnostic snapshot (non-sensitive)
+    let cwdList = [];
+    try {
+      cwdList = (await fs.readdir(process.cwd())).slice(0, 20);
+    } catch (_) {
+      cwdList = ['(unable to list cwd)'];
+    }
+    console.warn(`[public_browser] public directory not accessible: ${String(err.message || err)}`);
+    return {
+      statusCode: 503,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json; charset=utf-8'
+      },
+      body: JSON.stringify({
+        error: 'public_unavailable',
+        message: 'Le répertoire "public" n\'est pas accessible depuis l\'environnement d\'exécution des fonctions. ' +
+                 'Cela peut arriver en production chez Netlify (les fonctions n\'ont pas accès au filesystem déployé) ou si ' +
+                 'le dossier n\'a pas été déployé/present.',
+        diagnostics: {
+          process_cwd: process.cwd(),
+          cwd_preview: cwdList,
+          expected_public_path: path.resolve(ROOT)
+        },
+        hint: 'Pour résoudre: stocker les PDFs dans un espace persisté (S3 / Supabase storage / Netlify deploy step) ou générer les archives au moment du build plutôt qu\'à l\'exécution.'
+      })
+    };
+  }
+
   const q = event.queryStringParameters || {};
   const relRaw = String(q.path || '').replace(/^\/+/, ''); // e.g. "docs/officiel"
   const download = q.download === '1' || q.download === 'true';
