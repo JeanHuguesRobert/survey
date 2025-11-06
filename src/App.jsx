@@ -1125,6 +1125,7 @@ function PublicBrowser() {
   const [loading, setLoading] = useState(false);
   const [viewFile, setViewFile] = useState(null);
   const [content, setContent] = useState('');
+  const [backendMessage, setBackendMessage] = useState(null);
   const navigate = useNavigate();
 
   const fullPath = useMemo(() => {
@@ -1139,20 +1140,38 @@ function PublicBrowser() {
       setItems(null);
       setViewFile(null);
       setContent('');
+      setBackendMessage(null);
       try {
         const apiPath = encodeURIComponent(fullPath.replace(/^\//,''));
         const r = await fetch(`/.netlify/functions/public_browser?path=${apiPath}`);
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        if (!r.ok) {
+          // try to parse possible JSON error body
+          let errJson = null;
+          try { errJson = await r.json(); } catch(_) {}
+          const msg = errJson?.message || `Erreur ${r.status}`;
+          setItems([]);
+          setBackendMessage(msg);
+          return;
+        }
         const json = await r.json();
-        // expected array for directory listing
-        if (Array.isArray(json)) {
+        if (json && Array.isArray(json.items)) {
+          setItems(json.items);
+          setBackendMessage(json.message || null);
+        } else if (Array.isArray(json)) {
+          // backward compatibility (rare)
           setItems(json);
+          setBackendMessage(null);
+        } else if (json && json.items === undefined && json.message) {
+          setItems([]);
+          setBackendMessage(json.message);
         } else {
           setItems([]);
+          setBackendMessage(null);
         }
       } catch (err) {
         console.warn('Listing failed:', err);
         setItems([]);
+        setBackendMessage('Impossible de contacter le service d’archives (/public). Le problème est en cours d\'investigation.');
       } finally {
         setLoading(false);
       }
@@ -1294,8 +1313,13 @@ function PublicBrowser() {
           }}
          >
           <p><strong>Chemin :</strong> {path}</p>
+          {backendMessage && (
+            <div className="mb-2 p-2 text-sm text-yellow-800 bg-yellow-50 border border-yellow-100 rounded">
+              {backendMessage}
+            </div>
+          )}
            {loading && <p>Chargement...</p>}
-           {!loading && items && items.length === 0 && <p>Pas de listing disponible pour {fullPath}.</p>}
+           {!loading && items && items.length === 0 && !backendMessage && <p>Pas de listing disponible pour {fullPath}.</p>}
            {!loading && items && items.length > 0 && (
              <ul style={{listStyle:'none',padding:0}}>
                {items.map((it, i) => {

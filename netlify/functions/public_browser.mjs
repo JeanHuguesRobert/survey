@@ -50,7 +50,8 @@ export async function handler(event) {
   const resolvedRoot = path.resolve(ROOT);
   const resolvedTarget = path.resolve(target);
   if (!resolvedTarget.startsWith(resolvedRoot)) {
-    return jsonResponse(400, { error: 'Invalid path' });
+    console.warn(`[public_browser] path traversal attempt: ${relRaw}`);
+    return jsonResponse(400, { error: 'Invalid path', message: 'Chemin invalide' });
   }
 
   try {
@@ -59,7 +60,6 @@ export async function handler(event) {
       const names = await fs.readdir(resolvedTarget, { withFileTypes: true });
       const items = names.map(d => {
         const isDir = d.isDirectory();
-        // build href as posix path relative to root (frontend expects '/docs/...')
         const href = path.posix.join('/', relRaw || '', d.name) + (isDir ? '/' : '');
         return {
           name: d.name,
@@ -68,7 +68,13 @@ export async function handler(event) {
           size: isDir ? 0 : (fsSync.statSync(path.join(resolvedTarget, d.name)).size || 0)
         };
       }).sort((a,b) => (a.isDir === b.isDir) ? a.name.localeCompare(b.name) : (a.isDir ? -1 : 1));
-      return jsonResponse(200, items);
+
+      if (items.length === 0) {
+        console.info(`[public_browser] empty directory: ${relRaw}`);
+        return jsonResponse(200, { items: [], message: `Aucun document trouvé dans /${relRaw}. L'archive peut être en cours de génération.` });
+      }
+
+      return jsonResponse(200, { items });
     }
 
     if (stat.isFile()) {
@@ -92,7 +98,6 @@ export async function handler(event) {
         };
       }
 
-      // Default: return JSON wrapper describing file and content (text or base64)
       const body = isBinary ? buf.toString('base64') : buf.toString('utf8');
       return jsonResponse(200, {
         file: true,
@@ -103,9 +108,13 @@ export async function handler(event) {
       });
     }
 
-    return jsonResponse(404, { error: 'Not found' });
+    return jsonResponse(404, { error: 'Not found', message: `Chemin introuvable: /${relRaw}` });
   } catch (e) {
-    if (e.code === 'ENOENT') return jsonResponse(404, { error: 'Not found' });
-    return jsonResponse(500, { error: String(e.message || e) });
+    if (e.code === 'ENOENT') {
+      console.info(`[public_browser] not found: ${relRaw}`);
+      return jsonResponse(404, { error: 'Not found', message: `Aucun document trouvé pour /${relRaw} (404). Vérifiez que les archives ont été générées.` });
+    }
+    console.error('[public_browser] unexpected error:', e);
+    return jsonResponse(500, { error: String(e.message || e), message: 'Erreur serveur. Le problème est identifié.' });
   }
 }
