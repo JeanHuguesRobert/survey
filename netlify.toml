@@ -10,6 +10,7 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+  included_files = ["public/**"]
 
 [[redirects]]
   from = "/api/*"
@@ -17,8 +18,8 @@
   status = 200
 
 [[redirects]]
-  from = "/docs/*"
-  to = "/docs/:splat"
+  from = "/public/*"
+  to = "/:splat"
   status = 200
 
 [[redirects]]

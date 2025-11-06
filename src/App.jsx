@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Routes, Route, Link, useNavigate, useParams } from 'react-router-dom';
+import { Routes, Route, Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -1117,9 +1117,9 @@ export function App() {
   );
 }
 
-// Public browser component: browse /docs (served from public/docs)
+// Public browser component: browse /public/docs (served from public/docs)
 function PublicBrowser() {
-  const baseRoot = '/docs'; // correspond à public/docs
+  const baseRoot = '/public/docs'; // correspond à public/docs
   const [path, setPath] = useState('/');
   const [items, setItems] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -1129,10 +1129,24 @@ function PublicBrowser() {
   const navigate = useNavigate();
 
   const fullPath = useMemo(() => {
-    // normalise: /foo/bar -> docs/foo/bar (no leading slash for API)
     const p = path.replace(/^\/*/, '').replace(/\/*$/, '');
     return p ? `${baseRoot}/${p}` : baseRoot;
   }, [path]);
+
+  // Synchronise le chemin affiché avec l'URL du navigateur (/browser/..)
+  useEffect(() => {
+    const suffix = location.pathname.replace(/^\/browser/, '') || '/';
+    if (suffix !== path) {
+      setPath(suffix);
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const target = path === '/' ? '/browser' : `/browser${path}`;
+    if (location.pathname !== target) {
+      navigate(target);
+    }
+  }, [path, location.pathname, navigate]);
 
   useEffect(() => {
     async function listDir() {
@@ -1141,40 +1155,61 @@ function PublicBrowser() {
       setViewFile(null);
       setContent('');
       setBackendMessage(null);
-      try {
-        const apiPath = encodeURIComponent(fullPath.replace(/^\//,''));
-        const r = await fetch(`/.netlify/functions/public_browser?path=${apiPath}`);
-        if (!r.ok) {
-          // try to parse possible JSON error body
-          let errJson = null;
-          try { errJson = await r.json(); } catch(_) {}
-          const msg = errJson?.message || `Erreur ${r.status}`;
-          setItems([]);
-          setBackendMessage(msg);
-          return;
-        }
-        const json = await r.json();
-        if (json && Array.isArray(json.items)) {
-          setItems(json.items);
-          setBackendMessage(json.message || null);
-        } else if (Array.isArray(json)) {
-          // backward compatibility (rare)
-          setItems(json);
-          setBackendMessage(null);
-        } else if (json && json.items === undefined && json.message) {
-          setItems([]);
-          setBackendMessage(json.message);
-        } else {
-          setItems([]);
-          setBackendMessage(null);
-        }
-      } catch (err) {
-        console.warn('Listing failed:', err);
-        setItems([]);
-        setBackendMessage('Impossible de contacter le service d’archives (/public). Le problème est en cours d\'investigation.');
-      } finally {
-        setLoading(false);
+
+      // build candidate API paths (relative to "public")
+      const rel0 = fullPath.replace(/^\//, ''); // e.g. "public/docs" or "public/docs/sub"
+      const candidates = [];
+      if (rel0.startsWith('public/')) {
+        candidates.push(rel0.slice('public/'.length)); // "docs/..."
+        candidates.push(rel0);                        // "public/docs/..."
+      } else {
+        candidates.push(rel0);                        // "docs/..." or "docs/sub"
+        candidates.push(`public/${rel0}`);            // "public/docs/..."
       }
+      // add generic fallbacks
+      candidates.push('docs');
+      candidates.push('public/docs');
+      // unique
+      const uniq = [...new Set(candidates)];
+
+      let foundItems = null;
+      let lastMessage = null;
+
+      for (const c of uniq) {
+        try {
+          const apiPath = encodeURIComponent(c);
+          const r = await fetch(`/.netlify/functions/public_browser?path=${apiPath}`);
+          let json;
+          try { json = await r.json(); } catch(e){ json = null; }
+          // If function returns array (old style) or object { items }
+          if (Array.isArray(json)) {
+            if (json.length) { foundItems = json; lastMessage = null; break; }
+            lastMessage = null;
+          } else if (json && Array.isArray(json.items)) {
+            lastMessage = json.message || null;
+            if (json.items.length) { foundItems = json.items; break; }
+          } else if (r.ok && !json) {
+            // no json (unexpected), skip
+            lastMessage = `Aucune réponse JSON pour path=${c}`;
+          } else {
+            // non ok response: try to parse body text for hints
+            const txt = await r.text().catch(()=>null);
+            lastMessage = txt || `HTTP ${r.status} for ${c}`;
+          }
+        } catch (err) {
+          lastMessage = String(err.message || err);
+        }
+      }
+
+      if (foundItems) {
+        setItems(foundItems);
+        setBackendMessage(null);
+      } else {
+        setItems([]);
+        setBackendMessage(lastMessage || `Pas de listing disponible pour ${fullPath}.`);
+      }
+
+      setLoading(false);
     }
     listDir();
   }, [fullPath]);
@@ -1191,7 +1226,9 @@ function PublicBrowser() {
     setViewFile(entry);
     setContent('');
     try {
-      const filePath = `${fullPath.replace(/^\//,'')}/${entry.name}`;
+      // Build file path relative to public for the function
+      let filePath = `${fullPath.replace(/^\//,'')}/${entry.name}`; // e.g. "public/docs/xxx"
+      if (filePath.startsWith('public/')) filePath = filePath.slice('public/'.length); // -> "docs/xxx"
       const apiPath = encodeURIComponent(filePath);
       const r = await fetch(`/.netlify/functions/public_browser?path=${apiPath}`);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -1230,24 +1267,25 @@ function PublicBrowser() {
 
   function renderFileContent(name, txt) {
     const ext = (name.split('.').pop() || '').toLowerCase();
+
     if (ext === 'md' || ext === 'markdown') {
       const rawHtml = marked.parse(txt || '');
-      // Ensure links open in a new tab and add rel for security
       try {
-        const doc = new DOMParser().parseFromString(rawHtml, 'text/html');
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(rawHtml, 'text/html');
         doc.querySelectorAll('a').forEach(a => {
           if (!a.getAttribute('target')) a.setAttribute('target', '_blank');
           if (!a.getAttribute('rel')) a.setAttribute('rel', 'noopener noreferrer');
         });
         const sanitized = DOMPurify.sanitize(doc.body.innerHTML);
-        // Use wiki / prose classes to reuse site styling
-        return <div className="markdown-content prose max-w-none" dangerouslySetInnerHTML={{ __html: sanitized }} />;
+        return <div className="wiki-markdown prose max-w-none" dangerouslySetInnerHTML={{ __html: sanitized }} />;
       } catch (e) {
-        // fallback
+        // Fallback safe rendering if DOMParser/processing fails
         const sanitized = DOMPurify.sanitize(rawHtml);
-        return <div className="markdown-content prose max-w-none" dangerouslySetInnerHTML={{ __html: sanitized }} />;
+        return <div className="wiki-markdown prose max-w-none" dangerouslySetInnerHTML={{ __html: sanitized }} />;
       }
     }
+
     if (ext === 'json') {
       try { return <pre>{JSON.stringify(JSON.parse(txt || '{}'), null, 2)}</pre>; }
       catch { return <pre>{txt}</pre>; }
@@ -1272,31 +1310,13 @@ function PublicBrowser() {
     return <pre style={{whiteSpace:'pre-wrap'}}>{txt}</pre>;
   }
 
-  // helper to build download URL via function
-  function fileDownloadUrl(entry) {
-    const filePath = `${fullPath.replace(/^\//,'')}/${entry.name}`;
-    return `/.netlify/functions/public_browser?path=${encodeURIComponent(filePath)}&download=1`;
-  }
-
   return (
     <div className="public-browser">
       <div className="browser-header" style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
-        <h2>Explorateur public (docs)</h2>
+        <h2>Explorateur public (public/docs)</h2>
         <div>
-          <button
-            onClick={() => { setPath('/'); }}
-            className="px-3 py-1 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 mr-2"
-            aria-label="Aller à la racine"
-          >
-            Racine
-          </button>
-          <button
-            onClick={goUp}
-            className="px-3 py-1 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50"
-            aria-label="Remonter d'un niveau"
-          >
-            Remonter
-          </button>
+          <button onClick={() => { setPath('/'); }} className="btn">Racine</button>
+          <button onClick={goUp} className="btn">Remonter</button>
         </div>
       </div>
 
