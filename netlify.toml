@@ -11,6 +11,7 @@
 [functions]
   directory = "src/netlify/functions"
   node_bundler = "esbuild"
+  included_files = ["public/**"]
 
 [functions.public_browser]
   included_files = ["public/**"]

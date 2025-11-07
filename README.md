@@ -1,544 +1,533 @@
----
-title: 📊 Kudocracy.Survey - Plateforme de Consultation Citoyenne
-author: unknown
-date: "2026-07-12"
-document_role: source
-document_kind: documentation
-visibility: public
-lifecycle_state: working
-update_policy: UP-DEFAULT-REVIEWED
-provenance:
-  origin_type: repository
-  origin_repository: JeanHuguesRobert/survey
-  origin_ref: 251c6c6
-  origin_date: "2026-07-12"
-  derived_from: []
-review:
-  status: unreviewed
-  reviewed_by: []
----
+# 📊 Survey. Consultation Citoyenne Petit Parti / Pertitellu
 
-# 📊 Kudocracy.Survey - Plateforme de Consultation Citoyenne
+Une plateforme de consultation citoyenne pour les élections municipales de Corte ou ailleurs,
+incluant une IA conversationnelle, un wiki collaboratif et un système de propositions citoyennes
+(Kudocratie).
 
-Kudocracy.Survey is a generic open-source platform for citizen consultation and participatory
-democracy, reusable by any municipality or collective worldwide. It belongs to the Kudocracy family
-of projects.
+Disponible en version [Prototype LePP.fr](http://lepp.fr/)
 
-The Corte (Corsica) deployment is the first real-world pilot.
-[![Netlify Status](https://api.netlify.com/api/v1/badges/e01f01b7-130b-4749-abc7-7b81cfd591e0/deploy-status)](https://app.netlify.com/projects/lucky-concha-a9fcd2/deploys)
+## 🚀 Fonctionnalités principales
 
-## Documentation and corpus
+### 1. Consultation citoyenne
 
-This repository contains the legacy Survey/Ophélia platform and its civic consultation tooling. For
-a maintained reading path, use:
+- Questionnaire sur la démocratie locale à Corte
+- **Nouvelle question** : Les horaires actuels des conseils municipaux vous paraissent-ils pratiques
+  ?
+- Visualisation en temps réel des résultats (graphiques interactifs)
+- Partage social et anonymisation des réponses
 
-- [Research index](research/index.md) — curated architecture, API, product and deployment documents.
-- [Corpus status](research/corpus-status.md) — generated structural coverage and cross-repository
-  links.
-- [Ophélia plan](docs/plan-ophelia.md) — centralization, openness and interoperability direction.
-- [Ophélia API](docs/API-OPHELIA.md) — public REST interface.
-- [Multi-instance architecture](docs/ARCHITECTURE_MULTI_INSTANCE.md) — deployment model.
-- [Governance](GOVERNANCE.md) and [roadmap](ROADMAP.md) — project rules and planned evolution.
+### 2. Wiki collaboratif
 
-## Neutrality & Scope
+- **Navigation intuitive** : liste des pages, recherche par adresse
+- **Édition/Création** : routes dédiées `/wiki/new` et `/wiki/:slug/edit`
+- **Rendu Markdown** : support H1-H6, listes, citations, liens internes/externes, code
+- **Navigation contextuelle** : boutons précédent/suivant entre les pages
+- **Partage social** : API Web Share + copie dans le presse-papier
 
-Kudocracy is a neutral open-source infrastructure.
+### 3. Kudocratie (Propositions citoyennes)
 
-It does not fund, promote or support:
+- Création et vote de propositions
+- Délégation de vote sur des sujets spécifiques
+- Tableau de bord des résultats
+- Description en Markdown (GFM) avec liens internes vers le wiki
 
-- any political party
-- any electoral campaign
-- any candidate or list
+### 4. Assistant IA « Bob »
 
-It provides digital tools that may be used by any citizen, collective or institution.
+- Assistant conversationnel en français
+- Prompt système public (`public/prompts/bob-system.md`) chargeable via env
+- Création de propositions et tags à la demande
+- Création de pages dans le wiki à la demande
 
----
+### 4. Transparence & participation renforcée
 
-## Pilote à Corte
+- **Enquête Transparence** : sur le respect du public lors des conseils municipaux
+- **Engagement collectif** : publication des audits, engagements éthiques et résultats de
+  consultation
+- **IA pour tous** _(à venir)_ : programme d’expérimentation citoyenne sur l’IA conversationnelle
 
-A l'occasion des futures élections municipales, la plateforme sera utilisé pour la première fois en
-production. L'agent IA Ophélia est utilisé pour répondre aux questions des citoyens en faisant
-figure de candidate citoyenne virtuelle.
+### 5. Services additionnels, externes
 
-> Prototype disponible sur [LePP.fr](https://lepp.fr/)
+- Signalement d’incidents urbains
+- Agenda social partagé
+- Plateforme d’entraide bénévole
+- Accès direct aux réseaux sociaux du mouvement
 
-Kudocracy.Survey est une plateforme numérique conçue pour renforcer la démocratie participative
-locale. Elle permet aux citoyens de donner leur avis, de proposer des idées et de participer
-activement à la vie de leur commune ou communauté.
+## 🛠️ Stack technique
 
----
+- **Frontend** : React 18 + Vite
+- **Routing** : React Router v6
+- **Styles** : Tailwind CSS + CSS modules
+- **Backend** : Supabase (PostgreSQL)
+- **Graphiques** : Recharts
+- **Markdown** : react-markdown + remark-gfm
+- **Markdown (Bob)** : marked + DOMPurify
 
-## 🎯 À quoi ça sert ?
+## 📁 Structure du projet
 
-Kudocracy.Survey rassemble plusieurs espaces complémentaires. Chacun s'adresse à un usage simple du
-quotidien : discuter, s'informer, voter ou s'organiser.
+Structure du projet (extrait)
 
-### 1. ☕ Café — Discuter entre voisins
+```
+\survey
+├─ .env                              # variables d'environnement locales (ne pas committer)
+├─ package.json                      # dépendances & scripts (installer à la racine)
+├─ netlify/
+│  └─ functions/
+│     ├─ rag_chatbot.js              # Netlify Function : RAG chatbot (HF / OpenAI)
+│     ├─ optimize-wiki-title.js      # Netlify Function : optimisation titre/slug
+│     └─ ...                         # autres fonctions serverless
+├─ public/                           # assets statiques (favicon, images...)
+├─ src/
+│  ├─ components/
+│  │  ├─ bob/
+│  │  │  └─ ChatWindow.jsx           # UI du chatbot — disclaimer ajouté ici
+│  │  ├─ common/
+│  │  │  └─ AuthModal.jsx
+│  │  └─ layout/
+│  │     └─ SiteFooter.jsx           # footer (showWiki flag)
+│  ├─ lib/
+│  │  ├─ supabase.js                 # client Supabase
+│  │  └─ propositions.js             # helpers création propositions
+│  ├─ constants.js                   # constantes partagées (CITY_NAME, BOT_NAME, APP_VERSION...)
+│  └─ main.jsx / App.jsx             # point d'entrée React
+├─ README.md                         # documentation du projet
+└─ ...                               # autres fichiers / dossiers
+```
 
-Le Café est un lieu convivial où les habitants créent des groupes par quartier, par association ou
-par thème. On y publie des messages courts ou de vrais billets, on réagit avec des emojis, on suit
-les conversations qui nous intéressent et on peut se présenter grâce à un profil public. Tout est
-pensé pour rendre les échanges lisibles et bienveillants.
+## 🚀 Installation et déploiement
 
-### 2. 💬 Ophélia — Une assistante qui répond
+### Prérequis
 
-Ophélia est l'IA de la plateforme. Elle répond en français aux questions des citoyens, aide à
-formuler une idée, guide vers les démarches utiles et relit les propositions avant publication. Plus
-vous nourrissez le wiki et les consultations, plus ses réponses sont pertinentes.
+- Node.js ≥ 18
+- npm
+- Compte Supabase
 
-### 3. 📖 Wiki collaboratif — La mémoire commune
-
-Le wiki sert de carnet de bord collectif : comptes rendus, fiches pratiques, idées de quartier… La
-recherche est instantanée et l'interface reste simple, même pour une première contribution. Chaque
-page indique son auteur, ses dates de mise à jour et peut être partagée en un clic.
-
-### 4. 🗳️ Kudocratie — Débattre et voter
-
-Cette section permet de déposer une proposition, de voter pour ou contre et, si l’on préfère, de
-déléguer sa voix à quelqu’un de confiance sur un sujet précis. Les citoyens suivent l’avancée des
-propositions en temps réel et voient quels thèmes mobilisent la communauté.
-
-### 5. 📊 Consultations — Prendre le pouls
-
-Les enquêtes recueillent des avis rapides sur les projets locaux. Elles s’adaptent à un quartier,
-une association ou une ville entière. Les résultats sont anonymes, présentés sous forme de
-graphiques lisibles et peuvent alimenter les décisions publiques.
-
-### 6. 🔍 Transparence — Comprendre comment la ville décide
-
-Un tableau de bord synthétise les engagements de transparence : comptes rendus publiés, accès aux
-archives, participation aux conseils… Les habitants comparent leur territoire à d'autres et suivent
-les progrès dans le temps.
-
-### 7. 📰 La Gazette — Raconter l'actualité locale
-
-La Gazette reprend les codes d'un journal papier : rubriques hebdomadaires, articles illustrés, ton
-chaleureux. Les membres du collectif peuvent devenir rédacteurs, publier des chroniques et renvoyer
-vers le Café pour poursuivre la discussion.
-
----
-
-## ✨ Fonctionnalités supplémentaires
-
-- **Audit de transparence** : pour évaluer le respect du public lors des conseils municipaux
-- **Liens vers des services externes** : signalement d'incidents urbains, agenda social, entraide
-  bénévole
-- **Configuration adaptable** : la plateforme peut être personnalisée pour n'importe quelle commune
-  ou mouvement citoyen
-
----
-
-## 🚀 Comment l'utiliser ?
-
-### Pour les citoyens (utilisateurs)
-
-1. **Visitez le site** : [lepp.fr](https://lepp.fr/)
-2. **Explorez sans compte** : la plupart des contenus sont accessibles sans inscription
-3. **Créez un compte** (optionnel) pour :
-   - Discuter avec Ophélia
-   - Proposer et voter sur des idées (Kudocratie)
-   - Contribuer au wiki
-
-### Pour les développeurs et techniciens
-
-#### Prérequis
-
-- Node.js version 18 ou supérieure
-- Un compte Supabase (base de données)
-- Netlify CLI (pour les fonctions serverless)
-
-#### Installation locale
+### Installation locale
 
 ```bash
-# 1. Cloner le projet
-git clone <url-du-depot>
+# Cloner le projet
+git clone <repo-url>
 cd survey
 
-# 2. Installer les dépendances
+# Installer les dépendances
 npm install
 
-# 3. Configurer les variables d'environnement
+# Configurer les variables d'environnement
 cp .env.example .env
-# Éditez le fichier .env avec vos propres clés API
-# Note: Le projet utilise un système de "vault" centralisé qui permet de stocker
-# la configuration en base de données. Voir docs/CONFIGURATION_VAULT.md pour plus de détails.
 
-# 4. Lancer en mode développement
-netlify dev
-```
-
-L'application sera accessible sur `http://localhost:8888`
-
----
-
-### CLI : Tests RAG & SQL
-
-Le script `scripts/rag_chat_cli.js` fournit deux modes utiles pour les développeurs :
-
-- **Mode RAG (par défaut)** :
-
-  ```bash
-  node scripts/rag_chat_cli.js "Question pour Ophélia" --top 8 --fetch-limit 1500 --json
-  ```
-
-  - Requiert `OPENAI_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
-  - `--top` ajuste le nombre de chunks retournés (5 par défaut).
-  - `--fetch-limit` limite le nombre total de chunks téléchargés depuis Supabase.
-  - `--json` affiche une réponse structurée (sinon le script rend un format humain).
-
-- **Mode SQL direct** :
-
-  ```bash
-  RAG_SQL_ENDPOINT=https://<votre-site>/api/chat-stream \
-  CLI_TOKEN=<token aligné sur Netlify> \
-  node scripts/rag_chat_cli.js --sql "SELECT id, title FROM wiki_pages ORDER BY updated_at DESC" --limit 50 --json
-  ```
-
-  - Utilise le short-cut `?sql=` de l'edge function pour exécuter `sql_query` sans passer par le
-    LLM.
-  - Variables utiles :
-    - `RAG_SQL_ENDPOINT` (URL complète) ou `RAG_CHAT_ENDPOINT`/`URL` (base, `/api/chat-stream` sera
-      ajouté).
-    - `CLI_TOKEN` pour l'entête `x-cli-token` (doit correspondre à `CLI_TOKEN` côté Netlify).
-    - `SQL_AUTH_TOKEN` ou `SUPABASE_JWT` si l'autorisation doit se faire via
-      `Authorization: Bearer`.
-  - Options :
-    - `--sql "SELECT …"` ou `--sql-file ./ma-requete.sql`.
-    - `--limit 200` pour surcharger la limite côté outil (100 par défaut).
-    - `--format markdown` pour un tableau prêt à copier-coller (sinon JSON).
-    - `--endpoint`, `--cli-token`, `--auth` pour surcharger l'environnement sans modifier `.env`.
-
-Ce flux permet de valider localement le format JSON enrichi de `sql_query` (métadonnées, comptage,
-erreurs détaillées) sans démarrer d'interface web.
-
----
-
-## 🛠️ Technologies utilisées
-
-**Pour les curieux et les développeurs :**
-
-- **Frontend** : React 18 avec Vite (rapide et moderne)
-- **Routage** : React Router v6
-- **Design** : Tailwind CSS pour un look moderne et responsive
-- **Base de données** : Supabase (PostgreSQL)
-- **Graphiques** : Recharts
-- **Rendu Markdown** : react-markdown avec support GitHub Flavored Markdown
-- **IA** : Support OpenAI, Hugging Face, Anthropic et autres
-- **Hébergement** : Netlify (avec fonctions serverless)
-
----
-
-## 📅 Dernières améliorations (Fin Novembre 2025 - v1.3.0)
-
-### 🤖 Ophélia V2 (Assistant "Bob" IA optimisé pour la ville de Corte)
-
-- ✨ **Nouvelle Interface (UI v2)** : Design modernisé et plus intuitif.
-- ✨ **Mode "Raisonnement"** : Affichage du processus de pensée (`<Think>`) pour des réponses plus
-  transparentes.
-- ✨ **Widget d'intégration** : Possibilité d'intégrer Ophélia sur des sites web externes (en
-  cours).
-- ✨ **RAG Avancé** : Ingestion de documents via Google Gemini 3.0 et Supabase Storage pour des
-  réponses plus précises (en cours).
-- ✨ **Connaissance Locale** : Amélioration du prompt sur les quartiers de Corte.
-- 🔧 **API & Intégrations** : Nouvelle API Javascript et développement d'un serveur MCP (Model
-  Context Protocol) (en cours).
-
-### 💾 Données & Fonctionnalités
-
-- ✨ **Flux de Données** : Nouvelles tables pour l'intégration de flux type RSS et données externes.
-- ✨ **Gestion Documentaire** : Amélioration du stockage et du traçage des documents sources
-  (`document_source`).
-- ✨ **Expérience Utilisateur** : Page de contact, édition de posts améliorée, et corrections sur
-  les réactions.
-
-### Système d'abonnements universel
-
-- ✨ **Abonnez-vous à n'importe quel contenu** : posts, propositions, pages wiki
-- ✨ **Fil d'abonnements personnalisé** avec filtres par type de contenu
-- ✨ **Compteur d'abonnés** visible sur chaque contenu
-
-### Café Pertitellu & Profils
-
-- ✨ **Espace social complet** : forums, blogs, quartiers, associations
-- ✨ **Page de profil dédiée** avec gestion des informations personnelles
-- ✨ **Hook `useUserProfile`** pour une gestion unifiée des données utilisateur
-
-### 📆 Agenda & Centre Incidents
-
-- ✨ **Nouvelles pages dédiées** `/agenda` et `/incidents` regroupent toutes les publications de
-  type événement/incident issues du Café Pertitellu.
-- ✨ **Double mode liste ↔ carte** grâce à `CitizenMap`, avec calques spécialisés (`EventsLayer`,
-  `IncidentsLayer`) pour visualiser la cartographie des déclarations.
-- ✨ **Filtres par Gazette** et tri chronologique/critique pour isoler rapidement les rendez-vous
-  citoyens, les incidents actifs et ceux résolus.
-- ✨ **Contributions citoyennes sur la géolocalisation** : un modal permet d'ajouter ou corriger les
-  coordonnées d'un événement/incident, instantanément reflété dans la carte.
-
-### 🧭 Missions & Tâches Kanban
-
-- ✨ **Lien missions ↔ projets de tâches** : chaque projet Kanban (`/tasks/:id`) peut pointer vers
-  une mission (`linked_mission_id`) et remonter l'état côté mission.
-- ✨ **Tableau de bord utilisateur enrichi** : la page `/user-dashboard` affiche désormais les
-  missions rejointes et les tâches assignées (statut, projet d'origine) pour l'utilisateur courant.
-- ✨ **Badges contextuels** : les cartes mission/tâche indiquent lieu, statut et accès direct aux
-  pages `/missions/:id` ou aux cartes Kanban.
-- ✨ **Statistiques consolidées** : les compteurs missions/tâches alimentent les sections « Actions
-  rapides » et les CTA du dashboard afin d'encourager l'engagement.
-
----
-
-## 🗂️ Structure du projet
-
-```
-survey/
-├── netlify/
-│   ├── functions/          # Fonctions serverless classiques
-│   └── edge-functions/     # Fonctions Edge (IA streaming, RAG)
-├── public/
-│   ├── prompts/            # Configuration de l'assistant IA
-│   └── docs/               # Documents publics (audit éthique, annonces, etc.)
-├── src/
-│   ├── components/
-│   │   ├── bob/           # Interface de l'assistant Ophélia (v1 & v2)
-│   │   ├── common/        # Composants réutilisables (AuthModal, UserDisplay, SubscribeButton, etc.)
-│   │   ├── kudocracy/     # Système de propositions et votes
-│   │   ├── layout/        # Layouts (SiteFooter, etc.)
-│   │   ├── social/        # Composants du Café Pertitellu
-│   │   └── wiki/          # Composants du wiki
-│   ├── pages/             # Pages de l'application
-│   │   ├── Social.jsx     # Page principale du Café Pertitellu
-│   │   ├── GroupPage.jsx  # Page d'un groupe
-│   │   ├── PostPage.jsx   # Page d'une publication
-│   │   ├── UserProfile.jsx # Profil utilisateur
-│   │   ├── SubscriptionFeed.jsx # Fil des abonnements
-│   │   └── ...
-│   ├── lib/               # Utilitaires et helpers
-│   │   ├── supabase.js    # Client Supabase et hooks d'authentification
-│   │   ├── useUserProfile.js # Hook pour gérer les profils
-│   │   ├── useSubscription.js # Hook pour gérer les abonnements
-│   │   └── socialMetadata.js # Métadonnées pour le système social
-│   └── config/            # Configuration (questionnaires, critères transparence)
-├── supabase/
-│   ├── schema.sql         # Schéma de base de données
-│   └── migrations/        # Migrations SQL
-└── README.md              # Ce fichier
-```
-
----
-
-## ⚙️ Configuration personnalisée
-
-La plateforme est **générique et adaptable** à n'importe quelle commune ou communauté. Vous pouvez
-personnaliser :
-
-- Le nom de votre commune (ex: `Corte`)
-- Le nom de votre mouvement (ex: `Pertitellu`)
-- Le nom de l'assistant IA (ex: `Ophélia`)
-- Les couleurs et le logo
-- Les questions des consultations
-
-Toute la configuration se fait via le fichier `.env` ou via le **vault** en base de données.
-Consultez `.env.example` pour les variables disponibles et `docs/CONFIGURATION_VAULT.md` pour le
-système de configuration centralisée.
-
----
-
-## 🧭 Engagement pour la transparence
-
-Cette plateforme participe à l'initiative citoyenne **"Transparence"** qui vise à :
-
-- Rendre les consultations locales **lisibles et compréhensibles** par tous
-- Garantir l'**auditabilité** des données
-- Favoriser la **comparaison** entre territoires
-- Encourager la **publication responsable** des résultats
-
-**Respect de vos données :**
-
-- Aucune donnée sensible collectée
-- Anonymisation des réponses
-- Conformité RGPD stricte
-- Email optionnel uniquement si vous souhaitez être recontacté
-
----
-
-## 🔮 À venir
-
-- 🔄 **Abonnements wiki** : suivre les modifications des pages wiki
-- 🔄 **Notifications** pour les nouveaux contenus du Café
-- 🔄 **Messagerie publique** entre utilisateurs
-- 🔄 **Système de badges** pour récompenser l'engagement citoyen
-- 🔄 Recherche avancée dans le wiki
-- 🔄 Export PDF des résultats
-- 🔄 Carte interactive des propositions locales
-- 🔄 Tableau de bord "Transparence" national
-- 🔄 **Intégration calendrier** pour les événements du Café
-
----
-
-## 💰 Financement & Association C.O.R.S.I.C.A.
-
-Survey est un **commun numérique open source** porté par l'association loi 1901 **C.O.R.S.I.C.A.**
-(Corse Organisant la Réunion Sur Internet de Compétences Autonomes).
-
-### 💚 Faire un don
-
-Le projet est **100% gratuit** et financé exclusivement par les dons :
-
-En cours de mise en place :
-
-👉 **[HelloAsso](https://www.helloasso.com/associations/corsica)** (plateforme principale, 0%
-commission)
-
-Autres plateformes : [Open Collective](https://opencollective.com/kudocracy) •
-[Liberapay](https://liberapay.com/)
-
-### Ce que votre soutien finance
-
-- Hébergement & infrastructure (~700€/an)
-- APIs IA et embeddings (~200€/an)
-- Noms de domaine (~50€/an)
-- Sécurité & audits
-
-### Ce que Survey ne finance jamais
-
-- ❌ Aucune campagne politique
-- ❌ Aucune liste électorale
-- ❌ Aucune action partisane
-
-Kudocracy.Survey est une **infrastructure open source neutre**, réutilisable par tous.
-
-👉 Voir [FUNDING.md](FUNDING.md) pour tous les détails.
-
----
-
-## 🗳️ Municipales 2026 : Engagez-vous !
-
-À l'approche des élections municipales, la plateforme permet aux **listes électorales** de démontrer
-leur engagement concret pour la transparence **avant même d'être élues**.
-
-### Comment ça marche ?
-
-1. **Signez la Charte Transparence** (8 engagements mesurables)
-2. **Déployez une instance** pour votre liste/commune
-3. **Publiez vos données** et répondez aux citoyens
-4. **Comparez votre score** avec les autres listes
-
-👉 **[S'engager pour la transparence](/engagement)**
-
-👉 **[Voir les communes engagées](/transparence/communes)**
-
----
-
-## 📜 Licence
-
-**MIT** - Projet open-source pour la démocratie locale
-
----
-
-## 🤝 Contact et contribution
-
-**Initiative #PERTITELLU - Corti Capitale**
-
-📧 Email : [jean_hugues_robert@yahoo.com](mailto:jean_hugues_robert@yahoo.com) 🌐 Site :
-[lepp.fr](https://lepp.fr/)
-
-**Vous souhaitez contribuer ?**
-
-- Testez la plateforme et signalez les bugs
-- Proposez des améliorations via GitHub Issues
-- Partagez la plateforme dans votre commune
-- Contactez-nous pour adapter Kudocracy.Survey à votre territoire
-
----
-
-## 📖 Annexes techniques
-
-<details>
-<summary><strong>Système de Configuration Centralisé (Vault)</strong></summary>
-
-Le projet utilise un système de configuration centralisé qui permet de :
-
-- Stocker la configuration en base de données (table `instance_config`)
-- Gérer des valeurs par défaut cohérentes
-
-Voir `docs/CONFIGURATION_VAULT.md` pour la documentation complète.
-
-</details>
-
-<details>
-<summary><strong>Configuration des providers IA</strong></summary>
-
-### OpenAI
-
-```bash
-OPENAI_API_KEY=votre_clé
-OPENAI_SMALL_MODEL=gpt-4o-mini
-OPENAI_HEAVY_MODEL=gpt-4o
-```
-
-### Hugging Face
-
-```bash
-HUGGINGFACE_API_KEY=votre_clé
-HUGGINGFACE_CHAT_MODEL=meta-llama/Meta-Llama-3-8B-Instruct
-```
-
-Si `OPENAI_API_KEY` est défini, OpenAI est utilisé en priorité.
-
-</details>
-
-<details>
-<summary><strong>Configuration Supabase</strong></summary>
-
-### Tables principales
-
-- `users` : profils utilisateurs (display_name, neighborhood, interests, etc.)
-- `content_subscriptions` : abonnements aux contenus (posts, propositions, wiki)
-- `groups` : groupes du Café Pertitellu (forums, blogs, quartiers, associations)
-- `posts` : publications dans les groupes
-- `comments` : commentaires sur les publications
-- `reactions` : réactions (👍 ❤️ etc.) sur posts et commentaires
-- `group_members` : membres des groupes
-- `read_tracking` : suivi de lecture des posts
-- `activity_log` : journal d'activité
-- `wiki_pages` : pages du wiki
-- `propositions` : propositions citoyennes
-- `tags` : étiquettes pour les propositions
-- `votes` : votes des utilisateurs
-- `delegations` : délégations de vote
-- `municipal_transparency` : données de transparence des communes
-
-### Métadonnées JSONB
-
-Toutes les tables principales utilisent une colonne `metadata` au format JSONB avec `schemaVersion`
-pour faciliter les évolutions futures :
-
-```json
-{
-  "schemaVersion": 1,
-  "customField": "valeur"
-}
-```
-
-</details>
-
-<details>
-<summary><strong>Commandes utiles</strong></summary>
-
-```bash
 # Lancer en développement
 netlify dev
-
-# Build de production
-npm run build
-
-# Lister les variables d'environnement (nécessaires pour les connexion Supabase)
-netlify env:list
-
 ```
 
-</details>
+### Notes pour PowerShell 7 (Windows)
 
----
+Si vous développez sous Windows avec PowerShell 7, les commandes ci-dessus fonctionnent également.
+Quelques exemples adaptés :
 
-**Fait avec ❤️ pour la démocratie participative**
+```powershell
+# Se placer dans le dossier du projet
+Set-Location -Path survey
+
+# Créer le dossier du composant (s'il n'existe pas) puis ouvrir le fichier dans Notepad ou VS Code
+New-Item -ItemType Directory -Path src/components -Force | Out-Null
+notepad .\src\components\PublicBrowser.jsx
+
+# Ajouter les fichiers modifiés au commit Git
+git add .\src\components\PublicBrowser.jsx .\src\App.jsx .\netlify\functions\public_browser.js
+
+# Valider la modification
+git commit -m "Ajoute le navigateur de fichiers public"
+```
+
+> 💡 Remplacez `notepad` par `code` si vous utilisez Visual Studio Code
+> (`code .\src\components\PublicBrowser.jsx`). Pour coller le contenu du composant, ouvrez le
+> fichier puis copiez/collez le code fourni dans la fenêtre d'édition avant d'enregistrer.
+
+### Build de production
+
+```bash
+npm run build
+```
+
+### Déploiement
+
+Le projet est déployé automatiquement via Netlify.
+
+## 📅 Changelog récent
+
+### 2025-11-05
+
+#### Wiki
+
+- Génération automatique de résumés pour chaque page wiki lors de l'archivage.
+- Création d'un document wiki consolidé à partir des titres, slugs et résumés de toutes les pages
+  wiki.
+- Sauvegarde du document wiki consolidé sur GitHub et dans une nouvelle table
+  `consolidated_wiki_documents` de Supabase.
+- Intégration du document wiki consolidé dans le prompt système du chatbot pour améliorer sa
+  "mémoire" et sa pertinence.
+
+### 2025-11-03
+
+#### Général
+
+- Correction du bug : Les majuscules sont désormais conservées lors de la création de pages Wiki
+  (harmonisation des fonctions `normalizeSlug`).
+- Amélioration UI : Ajout d'un chronomètre en temps réel sur le bouton d'envoi de Bob, affichant le
+  temps écoulé pendant la génération de la réponse.
+- Ajout de la page `Contact` (`/contact`) avec email configurable via `VITE_CONTACT_EMAIL` (valeur
+  par défaut `jeanhuguesrobert@gmail.com`).
+- Intégration d’un `ErrorBoundary` autour de `App` pour une gestion d’erreurs de rendu plus robuste.
+- Unification/déduplication du Footer et harmonisation des liens légaux.
+- Préparation du packaging Survey (structure et scripts).
+
+#### Wiki / Markdown
+
+- Linkification automatique des WikiWords CamelCase via `linkifyWardWiki` dans les rendus Markdown
+  des pages suivantes :
+  - `src/pages/Proposition.jsx` (description des propositions)
+  - `src/components/LegalLinks.jsx` (pages légales)
+  - `src/components/AuditContent.jsx` (audit éthique)
+  - Déjà en place dans `Wiki.jsx`, `WikiPage.jsx` et `components/bob/ChatWindow.jsx`.
+  - Comportement : CamelCase → `/wiki/<CamelCase>` ; opt-out `!WikiWord` ; exclusion automatique
+    dans les blocs de code.
+- Bouton de partage ajouté dans le Wiki (Web Share + copie presse-papier).
+- Compatibilité étendue avec GitHub-Flavored Markdown (GFM).
+
+#### Bob (Assistant IA)
+
+- Support natif OpenAI si `OPENAI_API_KEY` est défini, sinon fallback Hugging Face.
+- Support d’Anthropic via provider compatible (selon configuration).
+- Routage « léger » puis bascule vers un modèle « lourd » si la première réponse n’est pas
+  satisfaisante.
+- Réponses Markdown sécurisées et compatibles GFM côté UI (`marked` + `DOMPurify`).
+- Journaux renforcés côté fonctions : trace du provider et du modèle sélectionnés.
+- Debug de la création de propositions (statut par défaut `active`, gestion des tags).
+
+### 2025-11-01 → 2025-11-02
+
+#### Wiki
+
+- Amélioration du flux de création depuis une page inexistante : le bouton propose désormais de
+  créer la page demandée avec adresse pré-remplie (`/wiki/new/:slug`) et sauvegarde via `?slug=` en
+  cas de perte du paramètre de route.
+- Écran de création : le titre n’est plus déduit automatiquement de l’adresse pour éviter la
+  confusion. L’adresse est pré-remplie et verrouillée par défaut, avec option pour la modifier.
+- Routes: ajout explicite de `/wiki/new/:slug` et durcissement de la navigation pour les pages
+  inexistantes.
+
+#### Consultation (Questionnaire)
+
+- Passage à une terminologie agnostique à la communauté (municipalité, association, école,
+  entreprise, communauté en ligne).
+- Introduction d’un système modulaire de questionnaire (`src/config/questionnaireModules.js`)
+  permettant d’adapter les questions par type de communauté et de générer l’état initial du
+  formulaire dynamiquement.
+- Mise à jour des en-têtes : « Démocratie locale à {CITY_NAME} » devient « Démocratie
+  {getCommunityLabels().name} ».
+
+#### Général
+
+- Version générique adaptable à d’autres communes/mouvements.
+- Améliorations cosmétiques (menu hamburger) et redirections vers l’accueil pour certains cas
+  fréquents.
+- Login unifié entre Bob et Kudocracy.
+- Utilisation optimisée des modèles OpenAI si une clé API est disponible.
+- Ajouts de liens légaux et affinement du prompt système de Bob.
+
+### Wiki
+
+- ✅ Routes dédiées création/édition (`/wiki/new`, `/wiki/:slug/edit`)
+- ✅ Navigation précédent/suivant entre pages
+- ✅ Boutons Partager et Modifier
+- ✅ Contrôle d'unicité de l'adresse (slug)
+- ✅ Pré-remplissage automatique en mode édition
+- ✅ Hiérarchie typographique H1-H6 rétablie
+- ✅ Styles Markdown améliorés (listes, citations, code)
+- ✅ Renommage "slug" → "adresse de la page" dans l'UI
+- ✅ Bouton "Archiver" →
+  [dépot github "pertidellu"](https://github.com/JeanHuguesRobert/pertitellu/tree/main/wiki)
+
+### Général
+
+- ✅ Correction affichage version/date de déploiement
+- ✅ Amélioration des messages d'erreur
+
+### Kudocratie
+
+- ✅ Ajout de la page détail des propositions `src/pages/Proposition.jsx`
+- ✅ Routes dédiées : `/propositions/:id` (+ alias `/proposition/:id`)
+- ✅ Description rendue en Markdown via `react-markdown` + `remark-gfm`
+- ✅ Conversion automatique des liens wiki Markdown vers routes internes (`[label](wiki/adresse)` →
+  `/wiki/:slug`)
+- ✅ Propositions créées via Bob désormais en statut `active` par défaut
+
+### Audit éthique
+
+- ✅ Intégration du composant `AuditContent` avec rendu Markdown dynamique (`react-markdown` +
+  `remark-gfm`)
+- ✅ Fichier `audit-ethique.md` servi depuis `public/docs/` et accessible via la page `/audit`
+- ✅ Correction de la navigation vers `/audit` (remplacement des balises `<a>` par `Link` React
+  Router)
+- ✅ Encapsulation du contenu Markdown dans `div.markdown-content` pour une application fiable des
+  styles
+
+### Consultation
+
+- ✅ Ajout d’une case à cocher « Je veux participer à l’étude IA pour tous » après la question de
+  consentement
+- ✅ Icône d’information ouvrant une publication externe (nouvel onglet)
+- ✅ Prise en charge de la nouvelle colonne Google Sheet « IA pour tous » pour les réponses
+- ✅ Ajout d’une question « Les horaires actuels des conseils municipaux vous paraissent-ils
+  pratiques ? » avec les options Oui, Non, Je ne sais pas, Je préfère ne pas répondre.
+- ✅ Affichage des résultats sous forme de graphique circulaire dans la section des résultats.
+- ✅ Mise à jour de la feuille Google Sheet pour inclure une colonne `Horaire Conseil Municipal`.
+
+### Sécurité (CSP)
+
+- ✅ Mise à jour de `netlify.toml` (directive `default-src`) : ajout de `fonts.googleapis.com`,
+  `fonts.gstatic.com`, `*.w3.org` et `data:` pour corriger les blocages de polices et SVG
+
+### Transparence (Enquête nationale)
+
+- ✅ Documentation ajoutée et alignement avec l’initiative « Transparence »
+- ✅ Résultats agrégés et partageables depuis la page des résultats et Google Sheets
+- ✅ Respect des principes d’auditabilité, lisibilité et interopérabilité des données
+
+## 🧭 Enquête nationale « Transparence »
+
+Cette plateforme participe à l’initiative citoyenne « Transparence » visant à rendre les
+consultations locales lisibles, auditables et interopérables à l’échelle nationale.
+
+- Objectifs
+  - Rendre les résultats compréhensibles par tous, vérifiables et réutilisables
+  - Favoriser la comparaison entre territoires et thématiques
+  - Encourager la participation citoyenne et la publication responsable des données
+
+- Intégration dans ce projet
+  - Les réponses sont anonymisées et agrégées pour les visualisations
+  - Les résultats sont accessibles depuis la page `Résultats` de l’application
+  - Les exports (CSV/Sheets) facilitent le partage et la réutilisation
+
+- Données et confidentialité
+  - Respect du RGPD : aucune donnée sensible collectée
+  - L’email est facultatif et uniquement si l’utilisateur souhaite être recontacté
+  - La case « IA pour tous » permet de signaler une participation volontaire à une étude connexe
+
+- Participer et contribuer
+  - Remplir le formulaire de consultation
+  - Partager la consultation via le bouton `Partager` pour élargir la participation
+  - Proposer des améliorations via issues/PR (voir section Contribution)
+
+- Références
+  - Contact : `contact@lepp.fr`
+  - Documentation complémentaire à ajouter par les mainteneurs (lien officiel « Transparence »)
+
+## 📜 Historique du projet
+
+### Phase 1 : Consultation citoyenne
+
+- **v0.1.0** : Formulaire de consultation sur la démocratie locale
+- **v0.2.0** : Intégration Google Sheets pour stockage des réponses
+- **v0.3.0** : Graphiques interactifs (Recharts) pour visualisation des résultats
+- **v0.4.0** : Page Méthodologie et Audit éthique
+
+### Phase 2 : Kudocratie
+
+- **v0.5.0** : Système de propositions citoyennes
+- **v0.6.0** : Vote et délégation de vote
+- **v0.7.0** : Tableau de bord avec statistiques en temps réel
+- **v0.8.0** : Migration vers Supabase (PostgreSQL)
+
+### Phase 3 : Wiki collaboratif
+
+- **v0.9.0** : Base du wiki avec affichage Markdown
+- **v0.9.5** : Édition inline et création de pages
+- **v1.0.0** : Lancement officiel avec wiki fonctionnel
+
+### Phase 4 : Améliorations UX
+
+- **v1.0.1** : Refonte navigation wiki (routes dédiées)
+- **v1.0.2** : Boutons Partager et navigation prev/next
+- **v1.0.3** : Amélioration styles Markdown (H1-H6, listes, code)
+- **v1.0.4** : Renommage "slug" → "adresse", corrections finales
+- **v1.1.0** : Lancement de l’enquête Transparence et intégration du programme “IA pour tous”
+
+### Phase 5 : IA conversationnelle
+
+- **v1.2.5** : Ajout d'un résumé du wiki dans le prompt de Bob
+- **v1.2.0** : Assistant IA « Bob » amélioré (streaming, fallback provider)
+- Création de propositions et tags directement depuis le chat (statut par défaut `active`)
+- Rendu des réponses en Markdown sécurisé (`marked` + `DOMPurify`), prompt système configurable
+  (`public/prompts/bob-system.md` ou variables d’environnement)
+- Fonction serverless `netlify/functions/rag_chatbot.js` avec modération et routage léger/lourd
+- Prise en charge des liens wiki dans le Markdown (`[label](wiki/adresse)` → `/wiki/:slug`)
+- Intégration aux routes de détail `/propositions/:id` lors de la création depuis le chat
+- Journaux et gestion d’erreurs renforcés côté fonctions et UI
+
+### Roadmap future
+
+- 🔄 Système de notifications pour nouveaux contenus
+- 🔄 Recherche full-text dans le wiki
+- 🔄 Modération collaborative (signalement de pages)
+- 🔄 Export PDF des résultats de consultation
+- 🔄 Intégration cartographique pour les propositions locales
+- 🔄 Tableau de bord Transparence
+
+# Survey / Pertitellu — Plateforme citoyenne Corte
+
+## 1. Prérequis
+
+- Node.js 18+
+- Netlify CLI (déploiement local des fonctions serverless)
+- Supabase CLI (facultatif, pour appliquer les migrations)
+
+## 2. Installation
+
+```bash
+npm install
+```
+
+## 3. Lancement
+
+```bash
+npm run dev          # Front + Vite
+netlify dev          # Fonctions serverless (rag_chatbot)
+```
+
+## 4. Prompt système de Bob
+
+- Le prompt par défaut est stocké dans `public/prompts/bob-system.md`.
+- Optionnel : sur Netlify, définissez `HF_SYSTEM_PROMPT` ou `HF_SYSTEM_PROMPT_PATH` pour
+  personnaliser rapidement le rôle de Bob.
+- Le prompt fallback côté fonction utilise les variables d’environnement génériques (`CITY_NAME`,
+  `MOVEMENT_NAME`, `PARTY_NAME`, `HASHTAG`, `BOT_NAME`) si aucun fichier ou texte n’est fourni.
+
+## ⚙️ Configuration générique (toutes communes)
+
+- Personnalisez la plateforme pour votre commune et mouvement/liste via `.env`.
+- Frontend (Vite) :
+  - `VITE_CITY_NAME` (ex. `Corte`), `VITE_CITY_TAGLINE` (ex. `CAPITALE`)
+  - `VITE_MOVEMENT_NAME` (ex. `Pertitellu`), `VITE_PARTY_NAME` (ex. `Petit Parti`)
+  - `VITE_HASHTAG` (ex. `#PERTITELLU`), `VITE_BOT_NAME` (ex. `Ophélia`)
+- Backend (Netlify functions) :
+  - `CITY_NAME`, `MOVEMENT_NAME`, `PARTY_NAME`, `HASHTAG`, `BOT_NAME`
+  - `HF_SYSTEM_PROMPT_PATH` ou `HF_SYSTEM_PROMPT` pour surcharger le prompt système
+- Effets UI principaux :
+  - Page Transparence affiche le score par défaut pour `CITY_NAME` et utilise `HASHTAG` dans
+    l’en-tête
+  - Navigation et libellés dynamiques s’appuient sur les constantes du frontend
+- Les réponses sont renvoyées en Markdown et sécurisées côté UI (`marked` + `DOMPurify`).
+- Lors de la création de propositions depuis le chat, le statut par défaut est `active` afin
+  qu’elles apparaissent dans la liste Kudocratie.
+
+## 5. Configuration Hugging Face & Netlify
+
+| Variable                | Description                                                   |
+| ----------------------- | ------------------------------------------------------------- |
+| `HF_TOKEN`              | Jeton Hugging Face Inference API                              |
+| `HF_CHAT_PROVIDER`      | Provider par défaut (ex. `hf-inference`, `together`)          |
+| `HF_CHAT_MODEL`         | Modèle par défaut (ex. `meta-llama/Meta-Llama-3-8B-Instruct`) |
+| `HF_SYSTEM_PROMPT`      | (Optionnel) Remplace le fichier public de prompt              |
+| `HF_SYSTEM_PROMPT_PATH` | (Optionnel) Chemin personnalisé du prompt Markdown            |
+
+## 5bis. Configuration OpenAI
+
+| Variable                  | Description                                            |
+| ------------------------- | ------------------------------------------------------ |
+| `OPENAI_API_KEY`          | Clé API OpenAI pour activer le provider natif          |
+| `OPENAI_BASE_URL`         | (Optionnel) Base URL API (par défaut `api.openai.com`) |
+| `OPENAI_SMALL_MODEL`      | Modèle léger pour le routage (ex. `gpt-4o-mini`)       |
+| `OPENAI_HEAVY_MODEL`      | Modèle lourd pour les réponses (ex. `gpt-4o`)          |
+| `OPENAI_MODERATION_MODEL` | Modèle de modération (ex. `omni-moderation-latest`)    |
+
+Notes
+
+- Si `OPENAI_API_KEY` est défini, Bob utilise OpenAI en priorité, avec fallback Hugging Face si
+  nécessaire.
+- Les réponses sont modérées via `OPENAI_MODERATION_MODEL` quand disponible.
+
+## 6. Supabase — tags des propositions
+
+1. Vérifiez la présence de la colonne `tags` (table `propositions`).
+   ```sql
+   ALTER TABLE public.propositions
+     ADD COLUMN IF NOT EXISTS tags text[] DEFAULT '{}';
+   ```
+2. Les nouveaux tags saisis dans l’UI :
+   - créent une entrée dans `public.tags` si nécessaire ;
+   - sont attachés via la table pivot `public.proposition_tags`.
+3. Rappelez-vous de mettre à jour vos règles RLS pour autoriser ces opérations.
+
+## 6bis. Supabase — propositions et statuts
+
+- Colonne `status` attendue dans `public.propositions` avec valeurs usuelles: `active`, `draft`,
+  `closed`.
+- Affichage dans l’application:
+  - Les listes (Kudocracy, tableau de bord) filtrent sur `status = 'active'`.
+  - Les auteurs peuvent voir leurs propres propositions selon RLS, mais la liste publique reste sur
+    `active`.
+- Création via UI/Chat: par défaut `status = 'active'` (modération manuelle côté administrateur en
+  BD).
+
+### Routes de détail
+
+- `/propositions/:id` (principal) et `/proposition/:id` (alias) renvoient vers la page détail
+  `Proposition.jsx`.
+
+### Markdown de la description
+
+- Rendu via `react-markdown` + `remark-gfm` (titres, listes, liens, tableaux, code).
+- HTML brut désactivé pour sécurité (pas d’injection).
+- Liens wiki au format Markdown sont réécrits vers des routes internes:
+  - `[label](wiki/adresse)`
+  - `[label](/wiki/adresse)`
+  - `[label](wiki:adresse)` → mène à `/wiki/:slug` (navigation interne React Router).
+
+### Styles
+
+- Les contenus Markdown utilisent la classe `markdown-content` (voir `src/index.css`).
+
+## 7. Commandes utiles
+
+```bash
+netlify env:list
+supabase db diff   # si vous utilisez Supabase CLI
+```
+
+## 8. Points de vigilance
+
+- En local, `VITE_HUGGINGFACE_API_KEY` est optionnelle (désactive la recherche/suggestion de tags).
+- `cdn.tailwindcss.com` est utilisé uniquement en développement ; configurez Tailwind via PostCSS
+  pour la production.
+- Les fonctions Netlify (`/.netlify/functions/rag_chatbot`) se lancent via `netlify dev`.
+
+## 📄 Licence
+
+MIT - Projet open-source pour la démocratie locale
+
+## 🤝 Contact
+
+Initiative #PERTITELLU - Corti Capitale  
+📧 [jeanhuguesrobert@gmail.com](mailto:jeanhuguesrobert@gmail.com)
+
+## Audit en cours — ODJ ↔ Actes (Commune de Corte)
+
+Un audit automatique compare les convocations / ordres du jour (ODJ) aux actes publiés (PV /
+délibérations) afin d'identifier :
+
+- correspondances, modifications d'ordre, libellés divergents, périmètres modifiés, absences et
+  ajouts.
+
+### Sorties générées
+
+- rapports : rapport-odj-acts-ai.md, rapport-odj-acts-ai.csv, rapport-odj-acts-ai.json (créés à la
+  racine après exécution)
+- archives officielles : les PDFs téléchargés sont sauvegardés dans public/docs/officiel/
+  - Nommage : mairie-corte*<type>*<date>\_<original>.pdf
+  - <type> vaut convocation-odj / proces-verbal / deliberations selon le document
+  - Exemple :
+    public/docs/officiel/mairie-corte_convocation-odj_2025-10-28_modules-downloads-1910.pdf
+
+Consultation via l'interface
+
+- Une page d'exploration publique a été ajoutée à l'app : /browser
