@@ -107,6 +107,27 @@ cp .env.example .env
 netlify dev
 ```
 
+### Notes pour PowerShell 7 (Windows)
+
+Si vous développez sous Windows avec PowerShell 7, les commandes ci-dessus fonctionnent également. Quelques exemples adaptés :
+
+```powershell
+# Se placer dans le dossier du projet
+Set-Location -Path survey
+
+# Créer le dossier du composant (s'il n'existe pas) puis ouvrir le fichier dans Notepad ou VS Code
+New-Item -ItemType Directory -Path src/components -Force | Out-Null
+notepad .\src\components\PublicBrowser.jsx
+
+# Ajouter les fichiers modifiés au commit Git
+git add .\src\components\PublicBrowser.jsx .\src\App.jsx .\netlify\functions\public_browser.js
+
+# Valider la modification
+git commit -m "Ajoute le navigateur de fichiers public"
+```
+
+> 💡 Remplacez `notepad` par `code` si vous utilisez Visual Studio Code (`code .\src\components\PublicBrowser.jsx`). Pour coller le contenu du composant, ouvrez le fichier puis copiez/collez le code fourni dans la fenêtre d'édition avant d'enregistrer.
+
 ### Build de production
 ```bash
 npm run build
