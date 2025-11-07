@@ -430,25 +430,52 @@ async function fetchText(url, headers = undefined) {
 }
 
 async function loadBobPrompt() {
-  const diag = { tried: [], cwd: process.cwd(), ts: new Date().toISOString() };
+  const diag = { tried: [], cwd: process.cwd(), timestamp: new Date().toISOString() };
 
-  // 1) Env var (production recommended)
+  // 1) FILESYSTEM FIRST (local bundle in functions / public/)
+  const fsCandidates = [
+    path.resolve(process.cwd(), 'public', 'prompts', 'bob-system.md'),
+    path.resolve(process.cwd(), 'public', 'prompts', 'bob.md'),
+    path.resolve(process.cwd(), 'public', 'docs', 'bob_prompt.md'),
+    path.resolve(process.cwd(), 'public', 'docs', 'bob-system.md'),
+    path.resolve(process.cwd(), 'public', 'bob-system.md'),
+    path.resolve(process.cwd(), 'prompts', 'bob-system.md'),
+    // also allow function-local prompts directory
+    path.resolve(process.cwd(), 'netlify', 'functions', 'prompts', 'bob-system.md'),
+  ];
+  for (const p of fsCandidates) {
+    diag.tried.push({ source: 'fs', path: p });
+    try {
+      if (fs.existsSync && fs.existsSync(p)) {
+        const txt = fs.readFileSync(p, 'utf8');
+        if (txt && txt.trim().length > 0) {
+          diag.found = { via: 'fs', path: p, len: txt.length };
+          _bobPromptDiag = diag;
+          return { prompt: txt, diagnostics: diag };
+        } else {
+          diag[`fs_empty:${p}`] = true;
+        }
+      }
+    } catch (e) {
+      diag[`fs_err:${p}`] = String(e.code || e.message || e);
+    }
+  }
+
+  // 2) ENV variable (fast, recommended for prod)
   if (process.env.BOB_PROMPT && String(process.env.BOB_PROMPT).trim()) {
     diag.tried.push({ source: 'env', note: 'BOB_PROMPT' });
     _bobPromptDiag = diag;
     return { prompt: String(process.env.BOB_PROMPT), diagnostics: diag };
   }
 
-  // 2) Remote public URL (CDN) — prefer SITE_BASE_URL / URL / NETLIFY env
+  // 3) Remote public URL (site CDN) — try SITE/SITE_BASE_URL/SITE_URL/URL/DEPLOY envs
   const siteCandidates = [
     process.env.BOB_PROMPT_URL,
     process.env.SITE_BASE_URL,
     process.env.SITE_URL,
     process.env.URL,
-    process.env.DEPLOY_PRIME_URL, // Vercel/Netlify-like fallbacks
+    process.env.DEPLOY_PRIME_URL
   ].filter(Boolean);
-
-  // build candidate file paths under each site
   const remotePaths = [];
   for (const base of siteCandidates) {
     const baseClean = String(base).replace(/\/+$/, '');
@@ -456,7 +483,6 @@ async function loadBobPrompt() {
     remotePaths.push(`${baseClean}/prompts/bob.md`);
     remotePaths.push(`${baseClean}/docs/bob_prompt.md`);
   }
-
   for (const url of remotePaths) {
     diag.tried.push({ source: 'http', url });
     try {
@@ -473,14 +499,11 @@ async function loadBobPrompt() {
     }
   }
 
-  // --- NOUVEAU : essayer la base GitHub raw si fournie ---
-  // Définir la variable d'environnement GITHUB_RAW_BASE = "https://raw.githubusercontent.com/owner/repo/branch"
+  // 4) GitHub raw fallback if configured (GITHUB_RAW_BASE)
   if (process.env.GITHUB_RAW_BASE) {
     const ghBase = String(process.env.GITHUB_RAW_BASE).replace(/\/+$/, '');
     const ghCandidates = [
-      `${ghBase}/prompts/bob-system.md`,
-      `${ghBase}/prompts/bob.md`,
-      `${ghBase}/docs/bob_prompt.md`
+      `${ghBase}/prompts/bob-system.md`
     ];
     const ghToken = process.env.GITHUB_TOKEN ? String(process.env.GITHUB_TOKEN).trim() : null;
     for (const url of ghCandidates) {
@@ -501,28 +524,9 @@ async function loadBobPrompt() {
     }
   }
 
-  // 3) Dev/local fallback: try a few filesystem locations (only if present)
-  const fsCandidates = [
-    path.join(process.cwd(), 'public', 'prompts', 'bob-system.md'),
-    path.join(process.cwd(), 'public', 'prompts', 'bob.md'),
-    path.join(process.cwd(), 'public', 'docs', 'bob_prompt.md'),
-    path.join(process.cwd(), 'public', 'bob-system.md'),
-    path.join(process.cwd(), 'prompts', 'bob-system.md')
-  ];
-  for (const p of fsCandidates) {
-    diag.tried.push({ source: 'fs', path: p });
-    const r = tryReadSync(p);
-    if (r.ok && r.text && r.text.trim().length) {
-      diag.found = { via: 'fs', path: p, len: r.text.length };
-      _bobPromptDiag = diag;
-      return { prompt: r.text, diagnostics: diag };
-    }
-    if (!r.ok) diag[`fs_err:${p}`] = String(r.err.code || r.err.message || r.err);
-  }
-
-  // 4) fallback hardcoded / env fallback
-  diag.tried.push({ source: 'fallback', note: 'BOB_PROMPT_FALLBACK / internal' });
-  const fallback = process.env.BOB_PROMPT_FALLBACK || `Bonjour, je suis l'IA civique — répondez en français.`;
+  // 5) Final fallback (env fallback or built-in)
+  diag.tried.push({ source: 'fallback', note: 'BOB_PROMPT_FALLBACK / inline default' });
+  const fallback = process.env.BOB_PROMPT_FALLBACK || `Bonjour, je suis l'IA civique. Posez votre question.`;
   _bobPromptDiag = diag;
   return { prompt: fallback, diagnostics: diag };
 }
