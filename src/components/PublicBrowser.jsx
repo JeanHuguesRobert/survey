@@ -165,11 +165,9 @@ function PublicBrowser() {
       if (fileRequestIdRef.current !== requestId) {
         return;
       }
-
-      if (j && j.file) {
-        if (!j.base64) {
-          setContent(j.body);
-        } else {
+      if (j?.file) {
+        if (!j.base64) setContent(j.body || '');
+        else {
           if (/^text\/|json|csv|markdown/.test(j.mime)) {
             const txt = atob(j.body);
             setContent(txt);
@@ -341,7 +339,7 @@ function PublicBrowser() {
           {viewFile ? (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3>{viewFile.name}</h3>
+                <h3 style={{ wordBreak: 'break-word' }}>{viewFile.name}</h3>
                 <div>
                   <a
                     href={fileDownloadUrl(viewFile)}

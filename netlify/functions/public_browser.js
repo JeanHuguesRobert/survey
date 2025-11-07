@@ -84,7 +84,7 @@ export async function handler(event) {
     return jsonResponse(400, { error: 'Invalid path', message: 'Chemin invalide' });
   }
 
-  // Additional diagnostics: check common files (bob prompt) and basic public visibility
+  // Diagnostics quick probe
   let diag = { cwd: process.cwd(), public_resolved: resolvedRoot, requested: relRaw };
   try {
     const bobCandidate = path.join(resolvedRoot, 'docs', 'bob_prompt.md');

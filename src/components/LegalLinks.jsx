@@ -11,7 +11,8 @@ export function LegalMarkdown({ file }) {
       .then(setContent);
   }, [file]);
   return (
-    <div className="markdown-content">
+    // apply site markdown typography (Tailwind Typography / prose) while keeping legacy "markdown-content"
+    <div className="markdown-content prose max-w-none">
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{linkifyWardWiki(content)}</ReactMarkdown>
     </div>
   );

@@ -1,8 +1,6 @@
 import { OpenAI } from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { InferenceClient } from "@huggingface/inference";
-import fs from "node:fs";
-import path from "node:path";
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -400,77 +398,134 @@ async function handlerInternal(event, context) {
   }
 }
 
-// si globalThis.fetch n'existe pas, on fera un import dynamique plus bas dans ensureBobPrompt()
+// --- Remplacement/ajout : loader résilient pour le prompt de "Bob" ---
+// Ne pas effectuer de top-level await ici. Appeler ensureBobPrompt() depuis le handler.
+
+import fs from 'node:fs';
+import path from 'node:path';
+
+// helper safe sync read (used only in dev fallback)
+function tryReadSync(filePath) {
+  try {
+    return { ok: true, text: fs.readFileSync(filePath, 'utf8') };
+  } catch (e) {
+    return { ok: false, err: e };
+  }
+}
+
 let _bobPromptCache = null;
 let _bobPromptDiag = null;
 
-function tryReadFileSync(filePath) {
-  try {
-    const txt = fs.readFileSync(filePath, 'utf8');
-    return { ok: true, text: txt };
-  } catch (e) {
-    return { ok: false, err: e };
+async function fetchText(url, headers = undefined) {
+  if (typeof globalThis.fetch === 'function') {
+    const r = await fetch(url, { redirect: 'follow', headers });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return await r.text();
+  } else {
+    const { default: nodeFetch } = await import('node-fetch');
+    const r = await nodeFetch(url, { redirect: 'follow', headers });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return await r.text();
   }
 }
 
 async function loadBobPrompt() {
   const diag = { tried: [], cwd: process.cwd(), timestamp: new Date().toISOString() };
 
-  // 1) env variable (fast)
+  // 1) FILESYSTEM FIRST (local bundle in functions / public/)
+  const fsCandidates = [
+    path.resolve(process.cwd(), 'public', 'prompts', 'bob-system.md'),
+    path.resolve(process.cwd(), 'public', 'prompts', 'bob.md'),
+    path.resolve(process.cwd(), 'public', 'docs', 'bob_prompt.md'),
+    path.resolve(process.cwd(), 'public', 'docs', 'bob-system.md'),
+    path.resolve(process.cwd(), 'public', 'bob-system.md'),
+    path.resolve(process.cwd(), 'prompts', 'bob-system.md'),
+    // also allow function-local prompts directory
+    path.resolve(process.cwd(), 'netlify', 'functions', 'prompts', 'bob-system.md'),
+  ];
+  for (const p of fsCandidates) {
+    diag.tried.push({ source: 'fs', path: p });
+    try {
+      if (fs.existsSync && fs.existsSync(p)) {
+        const txt = fs.readFileSync(p, 'utf8');
+        if (txt && txt.trim().length > 0) {
+          diag.found = { via: 'fs', path: p, len: txt.length };
+          _bobPromptDiag = diag;
+          return { prompt: txt, diagnostics: diag };
+        } else {
+          diag[`fs_empty:${p}`] = true;
+        }
+      }
+    } catch (e) {
+      diag[`fs_err:${p}`] = String(e.code || e.message || e);
+    }
+  }
+
+  // 2) ENV variable (fast, recommended for prod)
   if (process.env.BOB_PROMPT && String(process.env.BOB_PROMPT).trim()) {
     diag.tried.push({ source: 'env', note: 'BOB_PROMPT' });
     _bobPromptDiag = diag;
     return { prompt: String(process.env.BOB_PROMPT), diagnostics: diag };
   }
 
-  // 2) candidate filesystem paths (multi-location)
-  const candidates = [
-    path.join(process.cwd(), 'public', 'prompts', 'bob-system.md'),
-    path.join(process.cwd(), 'public', 'prompts', 'bob.md'),
-    path.join(process.cwd(), 'public', 'prompts', 'bob-system.txt'),
-    path.join(process.cwd(), 'public', 'docs', 'bob_prompt.md'),
-    path.join(process.cwd(), 'public', 'docs', 'bob-system.md'),
-    path.join(process.cwd(), 'public', 'bob-system.md'),
-    path.join(process.cwd(), 'prompts', 'bob-system.md'), // alternate
-  ];
-
-  for (const p of candidates) {
-    diag.tried.push({ source: 'fs', path: p });
-    const res = tryReadFileSync(p);
-    if (res.ok && res.text && res.text.trim().length > 0) {
-      diag.found = { path: p, size: res.text.length };
-      _bobPromptDiag = diag;
-      return { prompt: res.text, diagnostics: diag };
-    }
-    if (!res.ok) {
-      diag[`err_${path.basename(p)}`] = String(res.err.code || res.err.message || res.err);
-    }
+  // 3) Remote public URL (site CDN) — try SITE/SITE_BASE_URL/SITE_URL/URL/DEPLOY envs
+  const siteCandidates = [
+    process.env.BOB_PROMPT_URL,
+    process.env.SITE_BASE_URL,
+    process.env.SITE_URL,
+    process.env.URL,
+    process.env.DEPLOY_PRIME_URL
+  ].filter(Boolean);
+  const remotePaths = [];
+  for (const base of siteCandidates) {
+    const baseClean = String(base).replace(/\/+$/, '');
+    remotePaths.push(`${baseClean}/prompts/bob-system.md`);
+    remotePaths.push(`${baseClean}/prompts/bob.md`);
+    remotePaths.push(`${baseClean}/docs/bob_prompt.md`);
   }
-
-  // 3) remote URL (publicly served file)
-  const url = process.env.BOB_PROMPT_URL || (process.env.SITE_BASE_URL ? `${String(process.env.SITE_BASE_URL).replace(/\/$/,'')}/prompts/bob-system.md` : null);
-  if (url) {
+  for (const url of remotePaths) {
     diag.tried.push({ source: 'http', url });
     try {
-      const r = await fetch(url);
-      if (r.ok) {
-        const text = await r.text();
-        if (text && text.trim().length > 0) {
-          diag.found = { url, size: text.length };
-          _bobPromptDiag = diag;
-          return { prompt: text, diagnostics: diag };
-        }
-        diag.http_empty = true;
+      const txt = await fetchText(url);
+      if (txt && txt.trim().length) {
+        diag.found = { via: 'http', url, len: txt.length };
+        _bobPromptDiag = diag;
+        return { prompt: txt, diagnostics: diag };
       } else {
-        diag.http_status = r.status;
+        diag[`http_empty:${url}`] = true;
       }
     } catch (e) {
-      diag.http_err = String(e.message || e);
+      diag[`http_err:${url}`] = String(e.message || e);
     }
   }
 
-  // 4) fallback default
-  diag.tried.push({ source: 'fallback', note: 'using default inline prompt' });
+  // 4) GitHub raw fallback if configured (GITHUB_RAW_BASE)
+  if (process.env.GITHUB_RAW_BASE) {
+    const ghBase = String(process.env.GITHUB_RAW_BASE).replace(/\/+$/, '');
+    const ghCandidates = [
+      `${ghBase}/prompts/bob-system.md`
+    ];
+    const ghToken = process.env.GITHUB_TOKEN ? String(process.env.GITHUB_TOKEN).trim() : null;
+    for (const url of ghCandidates) {
+      diag.tried.push({ source: 'github_raw', url });
+      try {
+        const headers = ghToken ? { Authorization: `token ${ghToken}` } : undefined;
+        const txt = await fetchText(url, headers);
+        if (txt && txt.trim().length) {
+          diag.found = { via: 'github_raw', url, len: txt.length };
+          _bobPromptDiag = diag;
+          return { prompt: txt, diagnostics: diag };
+        } else {
+          diag[`gh_empty:${url}`] = true;
+        }
+      } catch (e) {
+        diag[`gh_err:${url}`] = String(e.message || e);
+      }
+    }
+  }
+
+  // 5) Final fallback (env fallback or built-in)
+  diag.tried.push({ source: 'fallback', note: 'BOB_PROMPT_FALLBACK / inline default' });
   const fallback = process.env.BOB_PROMPT_FALLBACK || `Bonjour, je suis l'IA civique. Posez votre question.`;
   _bobPromptDiag = diag;
   return { prompt: fallback, diagnostics: diag };
@@ -481,10 +536,12 @@ async function ensureBobPrompt() {
   const loaded = await loadBobPrompt();
   _bobPromptCache = loaded.prompt;
   _bobPromptDiag = loaded.diagnostics;
-  // log summary (do not leak sensitive content)
-  console.info('[rag_chatbot] Bob prompt source diagnostics:', JSON.stringify(_bobPromptDiag, null, 2));
+  console.info('[rag_chatbot] Bob prompt source diagnostics:', JSON.stringify(_bobPromptDiag));
   return { prompt: _bobPromptCache, diagnostics: _bobPromptDiag };
 }
+
+// Example usage inside your handler (replace any fs.readFileSync(...) for bob-system.md):
+// const { prompt: BOB_PROMPT, diagnostics } = await ensureBobPrompt();
 
 // Export final unique du handler — référence la fonction interne définie plus haut.
 export const handler = handlerInternal;

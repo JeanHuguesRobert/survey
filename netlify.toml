@@ -18,8 +18,8 @@
   status = 200
 
 [[redirects]]
-  from = "/docs/*"
-  to = "/docs/:splat"
+  from = "/public/*"
+  to = "/:splat"
   status = 200
 
 [[redirects]]
