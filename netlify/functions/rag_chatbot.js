@@ -30,11 +30,19 @@ const resolveModel = (alias) => MODEL_ALIASES[alias] || alias;
 // ============================================================================
 
 async function getSystemPrompt() {
-  let basePrompt = "";
+  // **AJOUTER LA DATE ACTUELLE**
+  const currentDate = new Date().toLocaleDateString('fr-FR', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+  
+  let basePrompt = `Date actuelle : ${currentDate}\n\n`;
 
   // 1. Variable d'environnement directe
   if (process.env.HF_SYSTEM_PROMPT) {
-    basePrompt = process.env.HF_SYSTEM_PROMPT;
+    basePrompt += process.env.HF_SYSTEM_PROMPT;
   } else {
     // 2. Fichier externe
     const promptPath =
@@ -43,7 +51,7 @@ async function getSystemPrompt() {
 
     try {
       const content = fs.readFileSync(promptPath, "utf-8").trim();
-      if (content) basePrompt = content;
+      if (content) basePrompt += content;
     } catch (readError) {
       console.warn(
         `[System] Impossible de lire le prompt système (${promptPath}) : ${readError.message}`
@@ -52,14 +60,14 @@ async function getSystemPrompt() {
   }
 
   // 3. Fallback par défaut si aucun prompt n'a été trouvé
-  if (!basePrompt) {
+  if (basePrompt === `Date actuelle : ${currentDate}\n\n`) {
     const city = process.env.CITY_NAME || "Corte";
     const movement = process.env.MOVEMENT_NAME || "Pertitellu";
     const party = process.env.PARTY_NAME || "Petit Parti";
     const bot = process.env.BOT_NAME || "Ophélia";
     const hashtag = process.env.HASHTAG || "#PERTITELLU";
 
-    basePrompt = `Tu es l'assistant citoyen ${bot} du mouvement/parti ${movement} (${party}) ${hashtag} pour la commune de ${city}. Réponds uniquement en français, de façon factuelle, concise et structurée en Markdown (titres, listes, tableaux, liens) en citant les ressources officielles pertinentes quand c'est possible.`;
+    basePrompt += `Tu es l'assistant citoyen ${bot} du mouvement/parti ${movement} (${party}) ${hashtag} pour la commune de ${city}. Réponds uniquement en français, de façon factuelle, concise et structurée en Markdown (titres, listes, tableaux, liens) en citant les ressources officielles pertinentes quand c'est possible.`;
   }
 
   // 4. Ajouter le document wiki consolidé
