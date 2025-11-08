@@ -1,6 +1,3 @@
-import { OpenAI } from "openai";
-import Anthropic from "@anthropic-ai/sdk";
-import { InferenceClient } from "@huggingface/inference";
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -95,6 +92,80 @@ async function getSystemPrompt() {
 // ANTHROPIC (Claude)
 // ============================================================================
 
+/**
+ * Effectue une recherche web via Brave Search API
+ */
+async function performWebSearch(query) {
+  const apiKey = process.env.BRAVE_SEARCH_API_KEY;
+  
+  if (!apiKey) {
+    console.warn("[WebSearch] ⚠️ BRAVE_SEARCH_API_KEY manquant");
+    return {
+      error: "Recherche web non configurée",
+      message: "Clé API Brave Search requise",
+      query: query
+    };
+  }
+
+  try {
+    const url = new URL("https://api.search.brave.com/res/v1/web/search");
+    url.searchParams.append("q", query);
+    url.searchParams.append("count", "3"); // RÉDUIT À 3 pour éviter surcharge
+    url.searchParams.append("search_lang", "fr");
+    url.searchParams.append("country", "FR");
+
+    console.log(`[WebSearch] 🌐 Appel API Brave pour: "${query}"`);
+
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        "Accept": "application/json",
+        "X-Subscription-Token": apiKey
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Brave API: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // FORMAT ULTRA-CONCIS pour Claude
+    let resultText = `Résultats pour "${query}":\n\n`;
+    
+    if (data.web && data.web.results) {
+      data.web.results.slice(0, 3).forEach((result, i) => {
+        // Limiter la description à 150 caractères
+        const shortDesc = result.description?.substring(0, 150) || "";
+        resultText += `${i+1}. ${result.title}\n`;
+        resultText += `   ${shortDesc}...\n`;
+        resultText += `   Source: ${result.url}\n\n`;
+      });
+    }
+
+    // Résultats locaux (très utile pour mairie, commerces, etc.)
+    if (data.locations && data.locations.results && data.locations.results.length > 0) {
+      resultText += `\nINFOS LOCALES:\n`;
+      data.locations.results.slice(0, 2).forEach(loc => {
+        resultText += `- ${loc.title}\n`;
+        if (loc.address) resultText += `  Adresse: ${loc.address}\n`;
+        if (loc.phone) resultText += `  Tél: ${loc.phone}\n`;
+        if (loc.hours) resultText += `  Horaires: ${loc.hours}\n`;
+      });
+    }
+
+    console.log(`[WebSearch] ✅ ${data.web?.results?.length || 0} résultats formatés`);
+
+    return resultText; // RETOURNE DU TEXTE au lieu d'un objet JSON
+
+  } catch (error) {
+    console.error("[WebSearch] ❌", error.message);
+    return `Erreur recherche: ${error.message}`;
+  }
+}
+
+const Anthropic = require("@anthropic-ai/sdk");
+
 async function runAnthropicAgent({ question, systemPrompt }) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -103,32 +174,143 @@ async function runAnthropicAgent({ question, systemPrompt }) {
 
   const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5-20250929";
 
-  console.log(`[Anthropic] Démarrage avec modèle: ${model}`);
+  console.log(`[Anthropic] 🚀 Démarrage avec modèle: ${model}`);
+  console.log(`[Anthropic] 📝 Question: "${question}"`);
 
-  const client = new Anthropic({ apiKey }); // Initialisation du client Anthropic
+  const client = new Anthropic({ apiKey });
 
-  const response = await client.messages.create({
+  let messages = [{ role: "user", content: question }];
+  
+  const tools = [
+    {
+      name: "web_search",
+      description: "Search the web for current information. Use this to find up-to-date information about Corte, municipal services, local events, or verify facts that may have changed since January 2025.",
+      input_schema: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description: "Search query in French (2-6 words). Examples: 'mairie corte horaires', 'conseil municipal corte 2025'"
+          }
+        },
+        required: ["query"]
+      }
+    }
+  ];
+
+  console.log("[Anthropic] 🔧 Tools configurés:", JSON.stringify(tools, null, 2));
+
+  const initialParams = {
     model,
-    max_tokens: 4096,
+    max_tokens: 8192,
     temperature: 0.3,
     system: systemPrompt,
-    messages: [
-      { role: "user", content: question },
-    ],
-  });
+    messages,
+    tools
+  };
 
-  const fullResponse = response.content[0].text;
+  let response = await client.messages.create(initialParams);
+  
+  // DEBUG CRITIQUE
+  // console.log("[DEBUG] ⚠️ stop_reason:", response.stop_reason);
+  // console.log("[DEBUG] ⚠️ content types:", response.content.map(b => `${b.type}${b.name ? ` (${b.name})` : ''}`));
+  
+  let iterationCount = 0;
+  const MAX_ITERATIONS = 5;
 
+  while (response.stop_reason === "tool_use" && iterationCount < MAX_ITERATIONS) {
+    iterationCount++;
+    console.log(`[Anthropic] 🔄 Itération ${iterationCount}: Claude utilise des tools...`);
+
+    const toolUseBlocks = response.content.filter(block => block.type === "tool_use");
+    //console.log(`[DEBUG] ${toolUseBlocks.length} tool(s) détecté(s)`);
+    
+    messages.push({
+      role: "assistant",
+      content: response.content
+    });
+
+    const toolResults = [];
+    for (const toolUse of toolUseBlocks) {
+      // console.log(`[DEBUG] Tool name: ${toolUse.name}, id: ${toolUse.id}`);
+      
+      if (toolUse.name === "web_search") {
+        const query = toolUse.input.query;
+        console.log(`[Anthropic] 🔍 Recherche web: "${query}"`);
+        
+        try {
+          const searchResults = await performWebSearch(query);
+          // console.log(`[DEBUG] 📦 Type:`, typeof searchResults);
+          // console.log(`[DEBUG] 📄 Contenu (200 chars):`, 
+          //   typeof searchResults === 'string' 
+          //   ? searchResults.substring(0, 200) 
+          //  : JSON.stringify(searchResults).substring(0, 200)
+          // );
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: toolUse.id,
+            content: String(searchResults)
+          });
+        } catch (error) {
+          console.error("[Anthropic] ❌ Erreur recherche web:", error);
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: toolUse.id,
+            content: JSON.stringify({
+              error: "Erreur lors de la recherche web",
+              message: error.message
+            }),
+            is_error: true
+          });
+        }
+      }
+    }
+
+    messages.push({
+      role: "user",
+      content: toolResults
+    });
+
+    response = await client.messages.create({
+      model,
+      max_tokens: 8192,
+      temperature: 0.3,
+      system: systemPrompt,
+      messages,
+      tools
+    });
+    
+    // console.log("[DEBUG] Nouvelle stop_reason:", response.stop_reason);
+  }
+
+  if (iterationCount >= MAX_ITERATIONS) {
+    console.warn("[Anthropic] ⚠️ Limite de recherches atteinte");
+  }
+
+  const fullResponse = response.content
+    .filter(block => block.type === "text")
+    .map(block => block.text)
+    .join("\n");
+
+  console.log(`[Anthropic] 📝 Longueur réponse finale: ${fullResponse.length} caractères`);
+  console.log(`[Anthropic] 📄 Extrait:`, fullResponse.substring(0, 200));
+
+  if (!fullResponse || fullResponse.trim().length === 0) {
+    console.error("[Anthropic] ⚠️ RÉPONSE VIDE ! Contenu brut:", JSON.stringify(response.content, null, 2));
+  }
   return {
     answer: fullResponse,
     provider: "anthropic",
     model,
+    searchCount: iterationCount
   };
 }
 
 // ============================================================================
 // OPENAI (Simplifié - 1 seul appel)
 // ============================================================================
+
+import { OpenAI } from "openai";
 
 async function runOpenAIAgent({ question, systemPrompt }) {
   const apiKey = process.env.OPENAI_API_KEY;
