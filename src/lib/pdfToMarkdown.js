@@ -1,4 +1,69 @@
-import { extractText, renderPageAsImage } from 'unpdf';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
+
+const require = createRequire(import.meta.url);
+
+function resolveStandardFontDataUrl() {
+  try {
+    const pkgPath = require.resolve('pdfjs-dist/package.json');
+    const dir = path.join(path.dirname(pkgPath), 'standard_fonts') + path.sep; // trailing slash
+    return pathToFileURL(dir).href; // file:///.../standard_fonts/
+  } catch {
+    return undefined;
+  }
+}
+
+import fs from 'node:fs/promises';
+import { getDocumentProxy, extractText } from 'unpdf';
+
+async function loadCanvasImportIfNode() {
+  if (typeof process === 'undefined') return null;
+  if (process?.versions?.node == null) return null;
+  try {
+    const mod = await import('canvas');
+    const m = mod?.default ? { ...mod.default, ...mod } : mod;
+    if (typeof m.createCanvas !== 'function') return null;
+    return { createCanvas: m.createCanvas, Canvas: m.Canvas, Image: m.Image, loadImage: m.loadImage };
+  } catch { return null; }
+}
+
+// Factory polices standard pour pdf.js via FS (évite les URLs file://)
+function makeStandardFontDataFactory() {
+  const pkgPath = require.resolve('pdfjs-dist/package.json');
+  const dir = path.join(path.dirname(pkgPath), 'standard_fonts');
+  return async (filename) => new Uint8Array(await fs.readFile(path.join(dir, filename)));
+}
+
+// CanvasFactory minimal pour pdf.js en Node
+function makeCanvasFactory(canvasImport) {
+  return {
+    create(w, h) {
+      const W = Math.ceil(w), H = Math.ceil(h);
+      const canvas = canvasImport.createCanvas(W, H);
+      const context = canvas.getContext('2d');
+      return { canvas, context };
+    },
+    reset(canvas, w, h) { canvas.width = Math.ceil(w); canvas.height = Math.ceil(h); },
+    destroy(canvas) { canvas.width = 0; canvas.height = 0; },
+  };
+}
+
+// Rend une page du PDF déjà ouvert en image
+async function renderPageAsImageFromPdf(pdf, pageNumber, { scale = 2, toDataURL = true, canvasImport }) {
+  if (!canvasImport) throw new Error('Parameter "canvasImport" is required in Node.js environment.');
+  const canvasFactory = makeCanvasFactory(canvasImport);
+  const page = await pdf.getPage(pageNumber);
+  const viewport = page.getViewport({ scale });
+  const { canvas, context } = canvasFactory.create(viewport.width, viewport.height);
+  await page.render({ canvasContext: context, viewport, canvasFactory }).promise;
+  const out = (toDataURL && typeof canvas.toDataURL === 'function')
+    ? canvas.toDataURL('image/png')
+    : (canvas.toBuffer ? canvas.toBuffer('image/png')
+                       : Buffer.from(canvas.toDataURL('image/png').split(',')[1], 'base64'));
+  canvasFactory.destroy(canvas);
+  return out;
+}
 
 /**
  * Options for the PDF to Markdown conversion helper.
@@ -30,10 +95,11 @@ import { extractText, renderPageAsImage } from 'unpdf';
 export const DEFAULT_OPTIONS = {
   baseHeadingLevel: 2,
   includePageBreaks: true,
-  ocrImages: false,
-  ocrLanguages: 'fra+eng',
+  ocrImages: "auto",
+  ocrLanguages: 'fra',
   ocrTextThreshold: 32,
   ocrScale: 2,
+  aiRefiner: null,
 };
 
 /**
@@ -46,89 +112,118 @@ export const DEFAULT_OPTIONS = {
  * @param {PdfToMarkdownOptions} [options]
  * @returns {Promise<{ markdown: string, pages: string[], meta: Record<string, any> }>} markdown result with metadata.
  */
+
+async function ensureOcrWorker() {
+  if (ocrWorker) return ocrWorker;
+  const { createWorker } = await import('tesseract.js');
+  ocrWorker = await createWorker({ logger: null });
+
+  await ocrWorker.load();
+
+  const langs = Array.isArray(settings.ocrLanguages)
+    ? settings.ocrLanguages
+    : String(settings.ocrLanguages || 'fra').split(/[+,\s]+/).filter(Boolean);
+
+  try { await ocrWorker.loadLanguage(langs); } catch { await ocrWorker.loadLanguage(langs.join('+')); }
+  try { await ocrWorker.initialize(langs);   } catch { await ocrWorker.initialize(langs.join('+')); }
+
+  if (settings.ocrParameters) await ocrWorker.setParameters(settings.ocrParameters);
+  return ocrWorker;
+}
+
 export async function convertPdfToMarkdown(pdfData, options = {}) {
   const settings = { ...DEFAULT_OPTIONS, ...options };
 
-  const { text: pages, totalPages } = await extractText(pdfData, { mergePages: false });
+  // Ouverture PDF avec factory de polices standard
+  const standardFontDataFactory = makeStandardFontDataFactory();
+  const bytes = pdfData instanceof Uint8Array ? pdfData : new Uint8Array(pdfData);
+  const pdf = await getDocumentProxy(bytes, { standardFontDataFactory });
+
+  // Extraction texte native
+  let { text, totalPages } = await extractText(pdf, { mergePages: false });
+  const pages = Array.isArray(text) ? text : String(text || '').split('\f');
+  if (!Number.isFinite(totalPages)) totalPages = pdf.numPages || pages.length;
+
   const pageMarkdown = [];
   const ocrPages = [];
-
   let ocrWorker = null;
 
-  try {
-    for (let index = 0; index < pages.length; index += 1) {
-      const pageNumber = index + 1;
-      let pageText = sanitisePageText(pages[index] ?? '');
+  // Import canvas automatiquement si OCR demandé ou utile
+  const autoCanvas = await loadCanvasImportIfNode();
+  const enableOcr = (settings.ocrImages === true || settings.ocrImages === 'auto') && !!autoCanvas;
 
-      if (settings.ocrImages && needsOcr(pageText, settings.ocrTextThreshold)) {
-        const ocrResult = await runOcrOnPage(pdfData, pageNumber, settings, ensureOcrWorker);
-        if (ocrResult.trim()) {
-          pageText = ocrResult;
-          ocrPages.push(pageNumber);
+  async function ensureOcrWorker() {
+    if (ocrWorker) return ocrWorker;
+    const { createWorker } = await import('tesseract.js');
+    ocrWorker = await createWorker({ logger: null });
+    await ocrWorker.load();
+    const langs = Array.isArray(settings.ocrLanguages)
+      ? settings.ocrLanguages
+      : String(settings.ocrLanguages || 'fra').split(/[+,\s]+/).filter(Boolean);
+    try { await ocrWorker.loadLanguage(langs); } catch { await ocrWorker.loadLanguage(langs.join('+')); }
+    try { await ocrWorker.initialize(langs);   } catch { await ocrWorker.initialize(langs.join('+')); }
+    if (settings.ocrParameters) await ocrWorker.setParameters(settings.ocrParameters);
+    return ocrWorker;
+  }
+
+  try {
+    for (let i = 0; i < pages.length; i++) {
+      const pageNumber = i + 1;
+      let pageText = sanitisePageText(pages[i] ?? '');
+
+      if (enableOcr && needsOcr(pageText, settings.ocrTextThreshold)) {
+        try {
+          const dataUrl = await renderPageAsImageFromPdf(pdf, pageNumber, {
+            scale: settings.ocrScale,
+            toDataURL: true,
+            canvasImport: autoCanvas,
+          });
+          const worker = await ensureOcrWorker();
+          const { data: { text } } = await worker.recognize(dataUrl);
+          if ((text || '').trim()) {
+            pageText = text;
+            ocrPages.push(pageNumber);
+          }
+        } catch (e) {
+          console.warn(`OCR fallback failed on page ${pageNumber}:`, e);
         }
       }
 
-      const markdown = formatPage(pageText, pageNumber, settings);
-      pageMarkdown.push(markdown);
+      pageMarkdown.push(formatPage(pageText, pageNumber, settings));
     }
   } finally {
-    if (ocrWorker) {
-      await ocrWorker.terminate();
-    }
-  }
-
-  async function ensureOcrWorker() {
-    if (!ocrWorker) {
-      const { createWorker } = await import('tesseract.js');
-      ocrWorker = await createWorker(settings.ocrLanguages);
-      if (settings.ocrParameters) {
-        await ocrWorker.setParameters(settings.ocrParameters);
-      }
-    }
-    return ocrWorker;
+    if (ocrWorker) { try { await ocrWorker.terminate(); } catch {} }
   }
 
   let markdown = composeDocument(pageMarkdown, settings);
 
-  let aiMeta;
   if (typeof settings.aiRefiner === 'function') {
-    const context = { totalPages, ocrPages, pageMarkdown };
-    const refined = await settings.aiRefiner(markdown, context);
-    if (typeof refined === 'string') {
-      markdown = refined;
-    } else if (refined && typeof refined === 'object') {
-      if (typeof refined.markdown === 'string') {
-        markdown = refined.markdown;
-      }
-      if (refined.meta) {
-        aiMeta = refined.meta;
-      }
+    const ctx = { totalPages, ocrPages, pageMarkdown };
+    const refined = await settings.aiRefiner(markdown, ctx);
+    if (typeof refined === 'string') markdown = refined;
+    else if (refined && typeof refined === 'object') {
+      if (typeof refined.markdown === 'string') markdown = refined.markdown;
+      // optional meta
     }
   }
 
-  return {
-    markdown,
-    pages: pageMarkdown,
-    meta: {
-      totalPages,
-      ocrPages,
-      ...(aiMeta ? { ai: aiMeta } : {}),
-    },
-  };
+  return { markdown, pages: pageMarkdown, meta: { totalPages, ocrPages } };
+}
 
-  async function runOcrOnPage(data, pageNumber, opts, workerFactory) {
-    try {
-      const dataUrl = await renderPageAsImage(data, pageNumber, {
-        scale: opts.ocrScale,
-        toDataURL: true,
-      });
-      const worker = await workerFactory();
-      const { data: { text } } = await worker.recognize(dataUrl);
-      return text;
-    } catch (error) {
-      console.warn(`OCR fallback failed on page ${pageNumber}:`, error);
-      return '';
-    }
+
+async function runOcrOnPage(pdf, pageNumber, opts, workerFactory) {
+  try {
+    const dataUrl = await renderPageAsImageFromPdf(pdf, pageNumber, {
+      scale: opts.ocrScale,
+      toDataURL: true,
+      canvasImport: opts.canvasImport,
+    });
+    const worker = await workerFactory();
+    const { data: { text } } = await worker.recognize(dataUrl);
+    return text;
+  } catch (error) {
+    console.warn(`OCR fallback failed on page ${pageNumber}:`, error);
+    return '';
   }
 }
 
