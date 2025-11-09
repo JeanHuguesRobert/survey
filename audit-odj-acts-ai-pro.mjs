@@ -117,7 +117,7 @@ if (!process.env.OPENAI_API_KEY) {
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const OCR_ENABLED = (process.env.OCR_ENABLED ?? '1') !== '0';
-const CANON_MODEL = process.env.CANON_MODEL || 'gpt-4.1-mini';
+const CANON_MODEL = process.env.CANON_MODEL || 'gpt-5';
 const EMBED_MODEL = process.env.EMBED_MODEL || 'text-embedding-3-large';
 const JUDGE_MODEL = process.env.JUDGE_MODEL || CANON_MODEL;
 const LOW_SIM  = Number.parseFloat(process.env.LOW_SIM  || '0.55');
