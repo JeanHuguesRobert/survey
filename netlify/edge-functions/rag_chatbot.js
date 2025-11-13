@@ -149,7 +149,7 @@ async function performWebSearch(query) {
 // ANTHROPIC AGENT (avec tools et streaming)
 // ============================================================================
 
-async function* runAnthropicAgentStream(question, systemPrompt) {
+async function* runAnthropicAgentStream(question, systemPrompt, conversationHistory = []) {
   const model = Deno.env.get("ANTHROPIC_MODEL") || "claude-sonnet-4-5-20250929";
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
 
@@ -178,11 +178,28 @@ async function* runAnthropicAgentStream(question, systemPrompt) {
 
   console.log(`[Anthropic] 🚀 Model: ${model}`);
   console.log(`[Anthropic] 📝 Question: "${question}"`);
+  console.log(`[Anthropic] 📚 Historique: ${conversationHistory.length} messages`);
   console.log(`[Anthropic] ⏱️ Start: ${new Date().toISOString()}`);
 
-  let messages = [
-    { role: "user", content: question }
-  ];
+  // ✅ Construire l'historique intelligent (max 5 derniers échanges)
+  const MAX_HISTORY = 5;
+  const recentHistory = conversationHistory.slice(-MAX_HISTORY);
+  
+  let messages = [];
+  
+  // Ajouter l'historique formaté
+  for (const item of recentHistory) {
+    if (item.role === "user" && item.content) {
+      messages.push({ role: "user", content: item.content });
+    } else if (item.role === "assistant" && item.content) {
+      messages.push({ role: "assistant", content: item.content });
+    }
+  }
+  
+  // Ajouter la question actuelle
+  messages.push({ role: "user", content: question });
+  
+  console.log(`[Anthropic] 💬 Messages context: ${messages.length} (${recentHistory.length} historique + 1 nouvelle)`);
 
   let iterationCount = 0;
   const MAX_ITERATIONS = 1;
@@ -307,7 +324,7 @@ async function* runAnthropicAgentStream(question, systemPrompt) {
 // OPENAI FALLBACK (streaming)
 // ============================================================================
 
-async function* runOpenAIAgentStream(question, systemPrompt) {
+async function* runOpenAIAgentStream(question, systemPrompt, conversationHistory = []) {
   const apiKey = Deno.env.get("OPENAI_API_KEY");
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY manquant");
@@ -316,6 +333,25 @@ async function* runOpenAIAgentStream(question, systemPrompt) {
   const model = Deno.env.get("OPENAI_MODEL") || "gpt-4o-mini";
 
   console.log(`[OpenAI] 🚀 Model: ${model}`);
+  console.log(`[OpenAI] 📚 Historique: ${conversationHistory.length} messages`);
+
+  // ✅ Construire les messages avec historique
+  const MAX_HISTORY = 5;
+  const recentHistory = conversationHistory.slice(-MAX_HISTORY);
+  
+  const messages = [
+    { role: "system", content: systemPrompt }
+  ];
+  
+  // Ajouter l'historique
+  for (const item of recentHistory) {
+    if (item.role && item.content) {
+      messages.push({ role: item.role, content: item.content });
+    }
+  }
+  
+  // Ajouter la question actuelle
+  messages.push({ role: "user", content: question });
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -328,10 +364,7 @@ async function* runOpenAIAgentStream(question, systemPrompt) {
       max_tokens: 4096,
       temperature: 0.3,
       stream: true,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: question }
-      ]
+      messages // ✅ Avec historique
     })
   });
 
@@ -392,7 +425,7 @@ export default async (request) => {
 
   try {
     const body = await request.json();
-    const { question } = body;
+    const { question, conversation_history } = body; // ✅ Nouveau paramètre
 
     if (!question) {
       return new Response(
@@ -403,6 +436,7 @@ export default async (request) => {
 
     console.log(`[EdgeFunction] ========================================`);
     console.log(`[EdgeFunction] 🎯 Question: "${question}"`);
+    console.log(`[EdgeFunction] 📚 Historique: ${conversation_history?.length || 0} messages`);
     console.log(`[EdgeFunction] ⏱️ Start: ${new Date().toISOString()}`);
 
     const systemPrompt = await getSystemPrompt();
@@ -417,7 +451,11 @@ export default async (request) => {
           if (Deno.env.get("ANTHROPIC_API_KEY")) {
             console.log(`[EdgeFunction] 🔄 Tentative Anthropic...`);
             try {
-              for await (const chunk of runAnthropicAgentStream(question, systemPrompt)) {
+              for await (const chunk of runAnthropicAgentStream(
+                question, 
+                systemPrompt,
+                conversation_history // ✅ Passer l'historique
+              )) {
                 controller.enqueue(encoder.encode(chunk));
               }
               console.log(`[EdgeFunction] ✅ Succès Anthropic`);
@@ -433,7 +471,11 @@ export default async (request) => {
           // Fallback OpenAI
           if (Deno.env.get("OPENAI_API_KEY")) {
             console.log(`[EdgeFunction] 🔄 Tentative OpenAI...`);
-            for await (const chunk of runOpenAIAgentStream(question, systemPrompt)) {
+            for await (const chunk of runOpenAIAgentStream(
+              question, 
+              systemPrompt,
+              conversation_history // ✅ Passer l'historique
+            )) {
               controller.enqueue(encoder.encode(chunk));
             }
             console.log(`[EdgeFunction] ✅ Succès OpenAI`);

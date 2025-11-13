@@ -194,13 +194,25 @@ export default function ChatWindow({ user }) {
         isStreaming: true
       }]);
 
-      // 3. Appeler l'Edge Function avec streaming
+      // ✅ 3. Construire l'historique conversationnel (max 10 derniers messages)
+      const conversationHistory = messages
+        .filter(m => !m.isNotification && !m.error) // Exclure notifications et erreurs
+        .slice(-10) // Max 10 derniers messages (5 échanges)
+        .map(m => ({
+          role: m.sender === "user" ? "user" : "assistant",
+          content: m.text
+        }));
+
+      console.log(`[ChatWindow] 📚 Envoi historique: ${conversationHistory.length} messages`);
+
+      // 4. Appeler l'Edge Function avec streaming + historique
       const response = await fetch("/api/chat-stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question: currentQuestion,
-          user_id: user?.id
+          user_id: user?.id,
+          conversation_history: conversationHistory // ✅ Nouveau
         }),
       });
 
@@ -208,7 +220,7 @@ export default function ChatWindow({ user }) {
         throw new Error(`Erreur réseau: ${response.status}`);
       }
 
-      // 4. Lire le stream progressivement
+      // 5. Lire le stream progressivement
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let fullResponse = "";
@@ -230,7 +242,7 @@ export default function ChatWindow({ user }) {
         );
       }
 
-      // 5. Finaliser le message (plus de streaming)
+      // 6. Finaliser le message (plus de streaming)
       setMessages(prev =>
         prev.map(msg =>
           msg.id === botMessageId
@@ -239,7 +251,7 @@ export default function ChatWindow({ user }) {
         )
       );
 
-      // 6. Sauvegarder dans l'historique si l'utilisateur est connecté
+      // 7. Sauvegarder dans l'historique si l'utilisateur est connecté
       if (user) {
         try {
           await supabase.from('chat_interactions').insert([{
@@ -254,7 +266,7 @@ export default function ChatWindow({ user }) {
         }
       }
 
-      // 7. Mettre à jour l'historique local
+      // 8. Mettre à jour l'historique local
       setChatHistory(prev => [...prev, { question: currentQuestion, answer: fullResponse }]);
 
     } catch (error) {
