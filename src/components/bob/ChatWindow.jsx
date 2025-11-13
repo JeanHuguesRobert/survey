@@ -8,6 +8,7 @@ import DOMPurify from 'dompurify';
 import AuthModal from '../common/AuthModal';
 import SiteFooter from '../layout/SiteFooter';
 import { CITY_NAME, BOT_NAME, HASHTAG, MOVEMENT_NAME, PARTY_NAME, VOLUNTEER_URL } from '../../constants';
+import './ChatWindow.css';
 // import RealTimeNotifications from './RealTimeNotifications';
 
 
@@ -166,6 +167,7 @@ export default function ChatWindow({ user }) {
     timerRef.current = setInterval(() => {
       setElapsedMs((prev) => prev + 1000);
     }, 1000);
+    
     const userMessage = {
       id: Date.now(),
       text: input,
@@ -173,77 +175,113 @@ export default function ChatWindow({ user }) {
       timestamp: new Date()
     };
     setMessages(prev => [...prev, userMessage]);
+    
+    const currentQuestion = input;
+    setInput(""); // Vider le champ immédiatement après l'envoi
 
     try {
       // 1. Chercher des propositions liées
-      const related = await findRelatedPropositions(input);
+      const related = await findRelatedPropositions(currentQuestion);
       setRelatedPropositions(related);
 
-            // 2. Envoyer la question au chatbot
-      const response = await fetch("/.netlify/functions/rag_chatbot", {
+      // 2. Créer un message bot vide pour le streaming
+      const botMessageId = Date.now() + 1;
+      setMessages(prev => [...prev, {
+        id: botMessageId,
+        text: "",
+        sender: "bot",
+        timestamp: new Date(),
+        isStreaming: true
+      }]);
+
+      // 3. Appeler l'Edge Function avec streaming
+      const response = await fetch("/api/chat-stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          question: input,
-          user_id: user?.id,
-          settings: {
-            similarity_threshold: chatbotSettings.similarity_threshold,
-            max_sources: chatbotSettings.max_sources,
-            enable_proposition_creation: chatbotSettings.enable_proposition_creation
-          }
+          question: currentQuestion,
+          user_id: user?.id
         }),
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Erreur réseau ou serveur: ${response.status} - ${errorText}`);
+        throw new Error(`Erreur réseau: ${response.status}`);
       }
 
+      // 4. Lire le stream progressivement
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let fullResponse = "";
-      let botMessageId = Date.now();
-
-      setMessages(prev => [...prev, { id: botMessageId, text: "", sender: "bot", timestamp: new Date() }]);
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+
         const chunk = decoder.decode(value, { stream: true });
         fullResponse += chunk;
+
+        // Mettre à jour le message en temps réel
         setMessages(prev =>
           prev.map(msg =>
-            msg.id === botMessageId ? { ...msg, text: fullResponse } : msg
+            msg.id === botMessageId
+              ? { ...msg, text: fullResponse, isStreaming: true }
+              : msg
           )
         );
       }
 
-      const parsedResponse = JSON.parse(fullResponse);
-      const botAnswer = parsedResponse.answer;
-
+      // 5. Finaliser le message (plus de streaming)
       setMessages(prev =>
         prev.map(msg =>
-          msg.id === botMessageId ? { ...msg, text: botAnswer } : msg
+          msg.id === botMessageId
+            ? { ...msg, text: fullResponse, isStreaming: false }
+            : msg
         )
       );
 
-      // Mettre à jour l'historique du chat après la réponse complète
-      setChatHistory(prev => [...prev, { question: input, answer: botAnswer }]);
-      setInput(""); // Vider le champ de saisie après l'envoi
+      // 6. Sauvegarder dans l'historique si l'utilisateur est connecté
+      if (user) {
+        try {
+          await supabase.from('chat_interactions').insert([{
+            user_id: user.id,
+            question: currentQuestion,
+            answer: fullResponse,
+            sources: [], // L'Edge Function ne retourne pas de sources pour l'instant
+            created_at: new Date().toISOString()
+          }]);
+        } catch (dbError) {
+          console.error("Erreur sauvegarde historique:", dbError);
+        }
+      }
+
+      // 7. Mettre à jour l'historique local
+      setChatHistory(prev => [...prev, { question: currentQuestion, answer: fullResponse }]);
 
     } catch (error) {
       console.error("Erreur lors de l'envoi du message:", error);
+      
+      // Arrêter le timer
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      
       setMessages(prev => [
         ...prev,
         {
           id: Date.now(),
-          text: "Désolé, une erreur est survenue. Veuillez réessayer.",
+          text: `❌ Erreur: ${error.message}\n\nVeuillez réessayer.`,
           sender: "bot",
           timestamp: new Date(),
+          error: true
         },
       ]);
     } finally {
       setIsLoading(false);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     }
   };
 
@@ -701,6 +739,15 @@ export default function ChatWindow({ user }) {
                           __html: DOMPurify.sanitize(marked.parse(linkifyWardWiki(msg.text ?? '')))
                         }}
                       />
+                      
+                      {/* Indicateur de streaming */}
+                      {msg.isStreaming && (
+                        <div className="streaming-indicator">
+                          <span className="typing-dots">
+                            <span>.</span><span>.</span><span>.</span>
+                          </span>
+                        </div>
+                      )}
 
                       {msg.sources?.length > 0 && (
                         <div className="message-sources">

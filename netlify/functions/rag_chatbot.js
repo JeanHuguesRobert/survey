@@ -208,8 +208,7 @@ async function performWebSearch(query) {
 
 async function runAnthropicAgent({ question, systemPrompt }) {
 
-  // const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5-20250929";
-  const model = process.env.ANTHROPIC_MODEL || "claude-haiku-4.5";
+  const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5-20250929";
   
   const tools = [
     {
@@ -230,84 +229,18 @@ async function runAnthropicAgent({ question, systemPrompt }) {
 
   console.log(`[Anthropic] 🚀 Démarrage avec modèle: ${model}`);
   console.log(`[Anthropic] 📝 Question: "${question}"`);
+  console.log(`[Anthropic] ⏱️ Timestamp début: ${new Date().toISOString()}`);
 
-  // Timeout dur < 30 s
-  const ac = new AbortController();
-  const t = setTimeout(() => ac.abort(), 25000);
-
-  console.log("[Anthropic] 🔧 Tools configurés:", JSON.stringify(tools, null, 2));
-  let messages = [{ role: "user", content: question }];
-  let response = await anthropicClient.messages.create({
-    model,
-    max_tokens: 8192,
-    temperature: 0.3,
-    system: systemPrompt,
-    messages,
-    tools,
-    signal: ac.signal
-  });
-
-  // DEBUG CRITIQUE
-  // console.log("[DEBUG] ⚠️ stop_reason:", response.stop_reason);
-  // console.log("[DEBUG] ⚠️ content types:", response.content.map(b => `${b.type}${b.name ? ` (${b.name})` : ''}`));
-  
-  let iterationCount = 0;
-  const MAX_ITERATIONS = 1; // 5;
-
-  while (response.stop_reason === "tool_use" && iterationCount < MAX_ITERATIONS) {
-    iterationCount++;
-    console.log(`[Anthropic] 🔄 Itération ${iterationCount}: Claude utilise des tools...`);
-
-    const toolUseBlocks = response.content.filter(block => block.type === "tool_use");
-    //console.log(`[DEBUG] ${toolUseBlocks.length} tool(s) détecté(s)`);
+  try {
+    console.log("[Anthropic] 🔧 Tools configurés:", JSON.stringify(tools, null, 2));
+    console.log("[Anthropic] 📏 Longueur system prompt:", systemPrompt.length);
     
-    messages.push({
-      role: "assistant",
-      content: response.content
-    });
-
-    const toolResults = [];
-    for (const toolUse of toolUseBlocks) {
-      // console.log(`[DEBUG] Tool name: ${toolUse.name}, id: ${toolUse.id}`);
-      
-      if (toolUse.name === "web_search") {
-        const query = toolUse.input.query;
-        console.log(`[Anthropic] 🔍 Recherche web: "${query}"`);
-        
-        try {
-          const searchResults = await performWebSearch(query);
-          // console.log(`[DEBUG] 📦 Type:`, typeof searchResults);
-          // console.log(`[DEBUG] 📄 Contenu (200 chars):`, 
-          //   typeof searchResults === 'string' 
-          //   ? searchResults.substring(0, 200) 
-          //  : JSON.stringify(searchResults).substring(0, 200)
-          // );
-          toolResults.push({
-            type: "tool_result",
-            tool_use_id: toolUse.id,
-            content: String(searchResults)
-          });
-        } catch (error) {
-          console.error("[Anthropic] ❌ Erreur recherche web:", error);
-          toolResults.push({
-            type: "tool_result",
-            tool_use_id: toolUse.id,
-            content: JSON.stringify({
-              error: "Erreur lors de la recherche web",
-              message: error.message
-            }),
-            is_error: true
-          });
-        }
-      }
-    }
-
-    messages.push({
-      role: "user",
-      content: toolResults
-    });
-
-    response = await client.messages.create({
+    let messages = [{ role: "user", content: question }];
+    
+    console.log("[Anthropic] 📡 Appel initial API Claude...");
+    const apiCallStart = Date.now();
+    
+    let response = await anthropicClient.messages.create({
       model,
       max_tokens: 8192,
       temperature: 0.3,
@@ -315,34 +248,125 @@ async function runAnthropicAgent({ question, systemPrompt }) {
       messages,
       tools
     });
+
+    const apiCallDuration = Date.now() - apiCallStart;
+    console.log(`[Anthropic] ✅ Réponse API reçue en ${apiCallDuration}ms`);
+    console.log(`[Anthropic] 🛑 Stop reason: ${response.stop_reason}`);
+    console.log(`[Anthropic] 📦 Content blocks: ${response.content.length}`);
+    console.log(`[Anthropic] 🔍 Block types: ${response.content.map(b => b.type).join(', ')}`);
     
-    // console.log("[DEBUG] Nouvelle stop_reason:", response.stop_reason);
+    let iterationCount = 0;
+    const MAX_ITERATIONS = 1; // 5;
+
+    while (response.stop_reason === "tool_use" && iterationCount < MAX_ITERATIONS) {
+      iterationCount++;
+      console.log(`[Anthropic] 🔄 Itération ${iterationCount}/${MAX_ITERATIONS}: Claude utilise des tools...`);
+
+      const toolUseBlocks = response.content.filter(block => block.type === "tool_use");
+      console.log(`[Anthropic] 🔧 ${toolUseBlocks.length} tool(s) détecté(s): ${toolUseBlocks.map(t => t.name).join(', ')}`);
+      
+      messages.push({
+        role: "assistant",
+        content: response.content
+      });
+
+      const toolResults = [];
+      for (const toolUse of toolUseBlocks) {
+        console.log(`[Anthropic] 🛠️ Exécution tool: ${toolUse.name} (id: ${toolUse.id})`);
+        
+        if (toolUse.name === "web_search") {
+          const query = toolUse.input.query;
+          console.log(`[Anthropic] 🔍 Recherche web: "${query}"`);
+          
+          const searchStart = Date.now();
+          try {
+            const searchResults = await performWebSearch(query);
+            const searchDuration = Date.now() - searchStart;
+            console.log(`[Anthropic] ✅ Recherche terminée en ${searchDuration}ms`);
+            console.log(`[Anthropic] 📄 Résultats (preview): ${String(searchResults).substring(0, 100)}...`);
+            
+            toolResults.push({
+              type: "tool_result",
+              tool_use_id: toolUse.id,
+              content: String(searchResults)
+            });
+          } catch (error) {
+            const searchDuration = Date.now() - searchStart;
+            console.error(`[Anthropic] ❌ Erreur recherche web après ${searchDuration}ms:`, error.message);
+            toolResults.push({
+              type: "tool_result",
+              tool_use_id: toolUse.id,
+              content: JSON.stringify({
+                error: "Erreur lors de la recherche web",
+                message: error.message
+              }),
+              is_error: true
+            });
+          }
+        }
+      }
+
+      console.log(`[Anthropic] 📤 Envoi ${toolResults.length} résultats de tools à Claude...`);
+      messages.push({
+        role: "user",
+        content: toolResults
+      });
+
+      console.log(`[Anthropic] 📡 Appel API Claude (itération ${iterationCount})...`);
+      const iterationStart = Date.now();
+      
+      response = await anthropicClient.messages.create({
+        model,
+        max_tokens: 8192,
+        temperature: 0.3,
+        system: systemPrompt,
+        messages,
+        tools
+      });
+      
+      const iterationDuration = Date.now() - iterationStart;
+      console.log(`[Anthropic] ✅ Réponse itération ${iterationCount} reçue en ${iterationDuration}ms`);
+      console.log(`[Anthropic] 🛑 Nouveau stop_reason: ${response.stop_reason}`);
+    }
+
+    if (iterationCount >= MAX_ITERATIONS) {
+      console.warn(`[Anthropic] ⚠️ Limite de ${MAX_ITERATIONS} recherches atteinte`);
+    }
+
+    const textBlocks = response.content.filter(block => block.type === "text");
+    console.log(`[Anthropic] 📝 ${textBlocks.length} bloc(s) texte trouvé(s)`);
+    
+    const fullResponse = textBlocks
+      .map(block => block.text)
+      .join("\n")
+      .trim();
+
+    console.log(`[Anthropic] ✅ Réponse finale générée (${fullResponse.length} caractères).`);
+    console.log(`[Anthropic] 📄 Extrait (200 chars):`, fullResponse.substring(0, 200));
+
+    if (!fullResponse || fullResponse.trim().length === 0) {
+      console.error("[Anthropic] ⚠️ RÉPONSE VIDE ! Contenu brut:", JSON.stringify(response.content, null, 2));
+      console.error("[Anthropic] ⚠️ Messages history:", JSON.stringify(messages, null, 2));
+      throw new Error("Anthropic a retourné une réponse vide");
+    }
+    
+    console.log(`[Anthropic] ⏱️ Timestamp fin: ${new Date().toISOString()}`);
+    
+    return {
+      answer: fullResponse,
+      provider: "anthropic",
+      model,
+      searchCount: iterationCount
+    };
+  } catch (error) {
+    console.error(`[Anthropic] ❌❌❌ ÉCHEC CRITIQUE ❌❌❌`);
+    console.error(`[Anthropic] ❌ Type erreur: ${error.constructor.name}`);
+    console.error(`[Anthropic] ❌ Message: ${error.message}`);
+    console.error(`[Anthropic] ❌ Stack:`, error.stack);
+    console.error(`[Anthropic] ⏱️ Timestamp échec: ${new Date().toISOString()}`);
+    
+    throw error; // Re-throw pour déclencher le fallback
   }
-
-  clearTimeout(t);
-
-  if (iterationCount >= MAX_ITERATIONS) {
-    console.warn("[Anthropic] ⚠️ Limite de recherches atteinte");
-  }
-
-  const fullResponse = response.content
-    .filter(block => block.type === "text")
-    .map(block => block.text)
-    .join("\n")
-    .trim();
-
-  console.log(`[Anthropic] 📝 Longueur réponse finale: ${fullResponse.length} caractères`);
-  console.log(`[Anthropic] 📄 Extrait:`, fullResponse.substring(0, 200));
-
-  if (!fullResponse || fullResponse.trim().length === 0) {
-    console.error("[Anthropic] ⚠️ RÉPONSE VIDE ! Contenu brut:", JSON.stringify(response.content, null, 2));
-  }
-  return {
-    answer: fullResponse,
-    provider: "anthropic",
-    model,
-    searchCount: iterationCount
-  };
 }
 
 // ============================================================================
@@ -414,7 +438,7 @@ function buildFallbackChain() {
   if (process.env.ANTHROPIC_API_KEY) {
     fallbacks.push({
       provider: "anthropic",
-      model: process.env.ANTHROPIC_MODEL || "claude-haiku-4.5", // "claude-sonnet-4-5-20250929",
+      model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5-20250929", // "claude-sonnet-4-5-20250929",
       executor: runAnthropicAgent,
     });
   }
@@ -500,10 +524,19 @@ async function handlerInternal(event, context) {
       };
     }
 
+    console.log(`[Main] ========================================`);
+    console.log(`[Main] 🎯 Nouvelle requête reçue`);
+    console.log(`[Main] 📝 Question: "${question}"`);
+    console.log(`[Main] ⏱️ Timestamp: ${new Date().toISOString()}`);
+    console.log(`[Main] ========================================`);
+
     const systemPrompt = await getSystemPrompt();
+    console.log(`[Main] 📏 System prompt chargé (${systemPrompt.length} chars)`);
+    
     const fallbackChain = buildFallbackChain();
 
     if (fallbackChain.length === 0) {
+      console.error(`[Main] ❌ Aucun provider configuré !`);
       return {
         statusCode: 500,
         body: JSON.stringify({
@@ -513,9 +546,10 @@ async function handlerInternal(event, context) {
       };
     }
 
-    console.log(
-      `[Main] Chaîne de fallback: ${fallbackChain.map((f) => `${f.provider}/${f.model}`).join(" → ")}`
-    );
+    console.log(`[Main] 🔗 Chaîne de fallback (${fallbackChain.length} providers):`);
+    fallbackChain.forEach((f, idx) => {
+      console.log(`[Main]    ${idx + 1}. ${f.provider}/${f.model}`);
+    });
 
     let finalAnswer = "";
     let finalProvider = "";
@@ -523,7 +557,13 @@ async function handlerInternal(event, context) {
     const attempts = [];
     const debugTrace = [];
 
-    for (const { provider, model, executor } of fallbackChain) {
+    for (let i = 0; i < fallbackChain.length; i++) {
+      const { provider, model, executor } = fallbackChain[i];
+      
+      console.log(`[Main] ========================================`);
+      console.log(`[Main] 🔄 Tentative ${i + 1}/${fallbackChain.length}: ${provider}/${model}`);
+      console.log(`[Main] ⏱️ Start: ${new Date().toISOString()}`);
+      
       const attemptStart = Date.now();
       debugTrace.push({
         provider,
@@ -531,33 +571,71 @@ async function handlerInternal(event, context) {
         status: "attempting",
         timestamp: new Date().toISOString(),
         startTime: attemptStart,
+        attemptNumber: i + 1,
       });
 
       try {
-        const { answer, provider: p, model: m } = await executor({
+        console.log(`[Main] 📡 Appel executor pour ${provider}...`);
+        
+        const result = await executor({
           question,
           systemPrompt,
           provider,
           model,
         });
 
+        console.log(`[Main] 📦 Résultat reçu de ${provider}:`, {
+          hasAnswer: !!result.answer,
+          answerLength: result.answer?.length || 0,
+          answerType: typeof result.answer,
+          provider: result.provider,
+          model: result.model
+        });
+
+        // Si l'agent retourne un objet avec une propriété 'error', le considérer comme un échec
+        if (result.answer && typeof result.answer === 'object' && result.answer.error) {
+          console.error(`[Main] ❌ ${provider} a retourné une erreur:`, result.answer.error);
+          throw new Error(result.answer.error);
+        }
+
+        // Vérifier que la réponse n'est pas vide
+        if (!result.answer || (typeof result.answer === 'string' && result.answer.trim().length === 0)) {
+          console.error(`[Main] ❌ ${provider} a retourné une réponse vide`);
+          throw new Error("Réponse vide du provider");
+        }
+
         const attemptEnd = Date.now();
         const duration = attemptEnd - attemptStart;
+
+        console.log(`[Main] ✅ SUCCÈS avec ${provider} en ${duration}ms`);
+        console.log(`[Main] 📄 Extrait réponse: ${String(result.answer).substring(0, 150)}...`);
 
         debugTrace[debugTrace.length - 1] = {
           ...debugTrace[debugTrace.length - 1],
           status: "success",
           duration,
           endTime: attemptEnd,
+          answerLength: result.answer.length,
         };
 
-        finalAnswer = answer;
-        finalProvider = p;
-        finalModel = m;
+        finalAnswer = result.answer;
+        finalProvider = result.provider;
+        finalModel = result.model;
+        
+        console.log(`[Main] 🎉 Réponse finale sélectionnée: ${finalProvider}/${finalModel}`);
+        console.log(`[Main] ========================================`);
         break; // Exit after first successful executor
+        
       } catch (err) {
         const attemptEnd = Date.now();
         const duration = attemptEnd - attemptStart;
+
+        console.error(`[Main] ========================================`);
+        console.error(`[Main] ❌ ÉCHEC ${provider} après ${duration}ms`);
+        console.error(`[Main] ❌ Type: ${err.constructor.name}`);
+        console.error(`[Main] ❌ Message: ${err.message}`);
+        console.error(`[Main] ❌ Stack:`, err.stack?.substring(0, 500));
+        console.error(`[Main] ========================================`);
 
         debugTrace[debugTrace.length - 1] = {
           ...debugTrace[debugTrace.length - 1],
@@ -565,18 +643,30 @@ async function handlerInternal(event, context) {
           duration,
           endTime: attemptEnd,
           error: err.message,
+          errorType: err.constructor.name,
         };
 
         attempts.push({
           provider,
           model,
           message: err.message,
+          duration,
+          attemptNumber: i + 1,
         });
+        
+        if (i < fallbackChain.length - 1) {
+          console.log(`[Main] 🔄 Passage au fallback suivant...`);
+        } else {
+          console.error(`[Main] ❌ Tous les fallbacks épuisés`);
+        }
         // Continue to next fallback if error
       }
     }
 
     if (!finalAnswer) {
+      console.error(`[Main] ❌❌❌ ÉCHEC TOTAL - Aucune réponse valide`);
+      console.error(`[Main] 📊 Tentatives:`, JSON.stringify(attempts, null, 2));
+      
       return {
         statusCode: 500,
         body: JSON.stringify({
@@ -586,6 +676,14 @@ async function handlerInternal(event, context) {
         }),
       };
     }
+
+    console.log(`[Main] ========================================`);
+    console.log(`[Main] 🎉 SUCCÈS GLOBAL`);
+    console.log(`[Main] 📊 Provider: ${finalProvider}`);
+    console.log(`[Main] 📊 Model: ${finalModel}`);
+    console.log(`[Main] 📊 Réponse: ${finalAnswer.length} caractères`);
+    console.log(`[Main] ⏱️ Timestamp fin: ${new Date().toISOString()}`);
+    console.log(`[Main] ========================================`);
 
     return {
       statusCode: 200,
@@ -598,7 +696,10 @@ async function handlerInternal(event, context) {
       }),
     };
   } catch (err) {
-    console.error(`[Main] Erreur globale: ${err.message}`);
+    console.error(`[Main] ❌❌❌ ERREUR GLOBALE NON GÉRÉE ❌❌❌`);
+    console.error(`[Main] ❌ Message: ${err.message}`);
+    console.error(`[Main] ❌ Stack:`, err.stack);
+    
     return {
       statusCode: 500,
       body: JSON.stringify({ error: err.message }),
