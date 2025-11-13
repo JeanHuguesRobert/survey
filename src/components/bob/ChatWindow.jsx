@@ -303,22 +303,6 @@ export default function ChatWindow({ user }) {
     return trimmed.length > 120 ? trimmed.slice(0, 117) + '…' : trimmed;
   }
 
-  // Convertit les WikiWords (CamelCase) en liens Markdown vers le Wiki
-  function linkifyWardWiki(text) {
-    if (!text || typeof text !== 'string') return '';
-    const parts = text.split(/(```[\s\S]*?```|`[^`]*`)/g);
-    const processed = parts.map(part => {
-      if (/^```[\s\S]*```$/.test(part) || /^`[^`]*`$/.test(part)) {
-        return part;
-      }
-      return part.replace(/(?<!!)\b([A-Z][a-z]+(?:[A-Z][a-z]+)+)\b/g, (m, word) => {
-        // Garder l’href en CamelCase pour pointer vers /wiki/<CamelCase>
-        return `[${word}](${word})`;
-      });
-    });
-    return processed.join('');
-  }
-
   // Construire le payload de partage
   function buildSharePayload() {
     const items = messages.map(m => ({
@@ -343,7 +327,7 @@ export default function ChatWindow({ user }) {
       ? `> Modèle: ${payload.meta.provider || '-'} / ${payload.meta.model || '-'}\n\n`
       : '';
     const body = payload.messages
-      .map(m => `**${m.sender === 'user' ? 'Utilisateur' : BOT_NAME}**\n\n${linkifyWardWiki(m.text || '')}`)
+      .map(m => `**${m.sender === 'user' ? 'Utilisateur' : BOT_NAME}**\n\n${m.text || ''}`)
       .join('\n\n');
     return header + debug + body + '\n';
   }
@@ -736,7 +720,7 @@ export default function ChatWindow({ user }) {
                       <div
                         className="message-text"
                         dangerouslySetInnerHTML={{
-                          __html: DOMPurify.sanitize(marked.parse(linkifyWardWiki(msg.text ?? '')))
+                          __html: DOMPurify.sanitize(marked.parse(msg.text ?? ''))
                         }}
                       />
                       
