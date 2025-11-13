@@ -1,9 +1,19 @@
-import { createClient } from '@supabase/supabase-js';
+import fs from "node:fs";
+import path from "node:path";
+
+import { createClient } from "@supabase/supabase-js";
+import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
+import { HfInference } from "@huggingface/inference";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+const anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const hfClient = new HfInference(process.env.HF_TOKEN);
 
 // ============================================================================
 // CONFIGURATION
@@ -22,9 +32,25 @@ const MODEL_ALIASES = {
 
 const resolveModel = (alias) => MODEL_ALIASES[alias] || alias;
 
+
+
+
 // ============================================================================
 // SYSTEM PROMPT
 // ============================================================================
+
+const STATIC_CONSOLIDATED = path.resolve(process.cwd(), "public", "docs", "conseils", "conseil-consolidated.md");
+
+function readStaticConsolidated() {
+  try {
+    if (fs.existsSync(STATIC_CONSOLIDATED)) {
+      const txt = fs.readFileSync(STATIC_CONSOLIDATED, "utf8");
+      return txt?.trim() ? txt : "";
+    }
+  } catch { /* ignore */ }
+  return "";
+}
+
 
 async function getSystemPrompt() {
   // **AJOUTER LA DATE ACTUELLE**
@@ -84,6 +110,22 @@ async function getSystemPrompt() {
   } catch (dbError) {
     console.error("Erreur inattendue lors de la récupération du document consolidé:", dbError);
   }
+
+  try {
+  const councilContext = readStaticConsolidated();
+  if (councilContext) {
+    basePrompt += `
+
+===== CONTEXTE MUNICIPAL (sources locales) =====
+
+${councilContext}
+`;
+  } else {
+    console.warn("[System] conseil-consolidated.md absent ou vide.");
+  }
+} catch (e) {
+  console.error("[System] Erreur lecture conseil-consolidated.md:", e.message);
+}
 
   return basePrompt;
 }
@@ -164,22 +206,10 @@ async function performWebSearch(query) {
   }
 }
 
-const Anthropic = require("@anthropic-ai/sdk");
-
 async function runAnthropicAgent({ question, systemPrompt }) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY manquant");
-  }
 
-  const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5-20250929";
-
-  console.log(`[Anthropic] 🚀 Démarrage avec modèle: ${model}`);
-  console.log(`[Anthropic] 📝 Question: "${question}"`);
-
-  const client = new Anthropic({ apiKey });
-
-  let messages = [{ role: "user", content: question }];
+  // const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5-20250929";
+  const model = process.env.ANTHROPIC_MODEL || "claude-haiku-4.5";
   
   const tools = [
     {
@@ -198,25 +228,31 @@ async function runAnthropicAgent({ question, systemPrompt }) {
     }
   ];
 
-  console.log("[Anthropic] 🔧 Tools configurés:", JSON.stringify(tools, null, 2));
+  console.log(`[Anthropic] 🚀 Démarrage avec modèle: ${model}`);
+  console.log(`[Anthropic] 📝 Question: "${question}"`);
 
-  const initialParams = {
+  // Timeout dur < 30 s
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), 25000);
+
+  console.log("[Anthropic] 🔧 Tools configurés:", JSON.stringify(tools, null, 2));
+  let messages = [{ role: "user", content: question }];
+  let response = await anthropicClient.messages.create({
     model,
     max_tokens: 8192,
     temperature: 0.3,
     system: systemPrompt,
     messages,
-    tools
-  };
+    tools,
+    signal: ac.signal
+  });
 
-  let response = await client.messages.create(initialParams);
-  
   // DEBUG CRITIQUE
   // console.log("[DEBUG] ⚠️ stop_reason:", response.stop_reason);
   // console.log("[DEBUG] ⚠️ content types:", response.content.map(b => `${b.type}${b.name ? ` (${b.name})` : ''}`));
   
   let iterationCount = 0;
-  const MAX_ITERATIONS = 5;
+  const MAX_ITERATIONS = 1; // 5;
 
   while (response.stop_reason === "tool_use" && iterationCount < MAX_ITERATIONS) {
     iterationCount++;
@@ -283,6 +319,8 @@ async function runAnthropicAgent({ question, systemPrompt }) {
     // console.log("[DEBUG] Nouvelle stop_reason:", response.stop_reason);
   }
 
+  clearTimeout(t);
+
   if (iterationCount >= MAX_ITERATIONS) {
     console.warn("[Anthropic] ⚠️ Limite de recherches atteinte");
   }
@@ -290,7 +328,8 @@ async function runAnthropicAgent({ question, systemPrompt }) {
   const fullResponse = response.content
     .filter(block => block.type === "text")
     .map(block => block.text)
-    .join("\n");
+    .join("\n")
+    .trim();
 
   console.log(`[Anthropic] 📝 Longueur réponse finale: ${fullResponse.length} caractères`);
   console.log(`[Anthropic] 📄 Extrait:`, fullResponse.substring(0, 200));
@@ -309,8 +348,6 @@ async function runAnthropicAgent({ question, systemPrompt }) {
 // ============================================================================
 // OPENAI (Simplifié - 1 seul appel)
 // ============================================================================
-
-import { OpenAI } from "openai";
 
 async function runOpenAIAgent({ question, systemPrompt }) {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -351,33 +388,14 @@ async function runOpenAIAgent({ question, systemPrompt }) {
 // ============================================================================
 
 async function runHuggingFaceAgent({ question, systemPrompt }) {
-  const apiKey = process.env.HF_TOKEN; // Correction ici
-  if (!apiKey) {
-    throw new Error("HF_API_KEY manquant");
-  }
-
   const model = process.env.HF_MODEL || "HuggingFaceH4/zephyr-7b-beta";
-
   console.log(`[HuggingFace] Démarrage avec modèle: ${model}`);
-
-  const client = new HfInference(apiKey);
-
   const formattedPrompt = `<|system|>${systemPrompt}</s><|user|>${question}</s><|assistant|>`;
-
-  const response = await client.textGeneration({
-    model,
-    inputs: formattedPrompt,
-    parameters: {
-      max_new_tokens: 4096,
-      temperature: 0.3,
-      return_full_text: false,
-    },
+  const response = await hfClient.textGeneration({
+    model, inputs: formattedPrompt, parameters: { max_new_tokens: 4096, temperature: 0.3, return_full_text: false }
   });
-
   const fullResponse = response.generated_text;
-
   console.log(`[HuggingFace] Réponse générée (${fullResponse.length} chars)`);
-
   return {
     answer: fullResponse,
     provider: "huggingface",
@@ -396,7 +414,7 @@ function buildFallbackChain() {
   if (process.env.ANTHROPIC_API_KEY) {
     fallbacks.push({
       provider: "anthropic",
-      model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5-20250929",
+      model: process.env.ANTHROPIC_MODEL || "claude-haiku-4.5", // "claude-sonnet-4-5-20250929",
       executor: runAnthropicAgent,
     });
   }
@@ -591,9 +609,6 @@ async function handlerInternal(event, context) {
 // --- Remplacement/ajout : loader résilient pour le prompt de "Bob" ---
 // Ne pas effectuer de top-level await ici. Appeler ensureBobPrompt() depuis le handler.
 
-import fs from 'node:fs';
-import path from 'node:path';
-
 // helper safe sync read (used only in dev fallback)
 function tryReadSync(filePath) {
   try {
@@ -606,17 +621,10 @@ function tryReadSync(filePath) {
 let _bobPromptCache = null;
 let _bobPromptDiag = null;
 
-async function fetchText(url, headers = undefined) {
-  if (typeof globalThis.fetch === 'function') {
-    const r = await fetch(url, { redirect: 'follow', headers });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return await r.text();
-  } else {
-    const { default: nodeFetch } = await import('node-fetch');
-    const r = await nodeFetch(url, { redirect: 'follow', headers });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return await r.text();
-  }
+async function fetchText(url, headers) {
+  const r = await fetch(url, { redirect: "follow", headers });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return await r.text();
 }
 
 async function loadBobPrompt() {
