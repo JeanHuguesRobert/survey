@@ -4,6 +4,31 @@ import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.32.1";
 // SYSTEM PROMPT
 // ============================================================================
 
+async function fetchPublicSystemPrompt(siteUrl) {
+  if (!siteUrl) {
+    console.warn("[SystemPrompt] ⚠️ URL du déploiement introuvable pour charger le prompt public");
+    return null;
+  }
+
+  try {
+    const promptUrl = `${siteUrl}/prompts/bob-system.md`;
+    const response = await fetch(promptUrl);
+    if (response.ok) {
+      const content = await response.text();
+      if (content.trim()) {
+        const firstLine = content.split(/\r?\n/).find(line => line.trim()) || "";
+        console.log(`[SystemPrompt] ✅ Prompt public chargé via ${promptUrl}`);
+        console.log(`[SystemPrompt] 📄 Première ligne du prompt public: ${firstLine}`);
+        return content;
+      }
+    }
+  } catch (error) {
+    console.warn("[SystemPrompt] ⚠️ Erreur fetch prompt public:", error.message);
+  }
+
+  return null;
+}
+
 async function getSystemPrompt() {
   const currentDate = new Date().toLocaleDateString('fr-FR', {
     weekday: 'long',
@@ -14,19 +39,25 @@ async function getSystemPrompt() {
 
   let basePrompt = `Date actuelle : ${currentDate}\n\n`;
 
-  // 1. Variable d'environnement directe
-  const envPrompt = Deno.env.get("HF_SYSTEM_PROMPT");
-  if (envPrompt) {
-    basePrompt += envPrompt;
-  } else {
-    // 2. Fallback avec paramètres
-    const city = Deno.env.get("CITY_NAME") || "Corte";
-    const movement = Deno.env.get("MOVEMENT_NAME") || "Pertitellu";
-    const party = Deno.env.get("PARTY_NAME") || "Petit Parti";
-    const bot = Deno.env.get("BOT_NAME") || "Ophélia";
-    const hashtag = Deno.env.get("HASHTAG") || "#PERTITELLU";
+  const siteUrl = Deno.env.get("URL") || Deno.env.get("DEPLOY_PRIME_URL");
 
-    basePrompt += `Tu es l'assistant citoyen ${bot} du mouvement/parti ${movement} (${party}) ${hashtag} pour la commune de ${city}. Réponds uniquement en français, de façon factuelle, concise et structurée en Markdown (titres, listes, tableaux, liens) en citant les ressources officielles pertinentes quand c'est possible.`;
+  const localPrompt = await fetchPublicSystemPrompt(siteUrl);
+  if (localPrompt) {
+    basePrompt += localPrompt;
+  } else {
+    const envPrompt = Deno.env.get("BOB_SYSTEM_PROMPT");
+    if (envPrompt) {
+      basePrompt += envPrompt;
+    } else {
+      // 2. Fallback avec paramètres
+      const city = Deno.env.get("CITY_NAME") || "Corte";
+      const movement = Deno.env.get("MOVEMENT_NAME") || "Pertitellu";
+      const party = Deno.env.get("PARTY_NAME") || "Petit Parti";
+      const bot = Deno.env.get("BOT_NAME") || "Ophélia";
+      const hashtag = Deno.env.get("HASHTAG") || "#PERTITELLU";
+
+      basePrompt += `Tu es l'assistant citoyen ${bot} du mouvement/parti ${movement} (${party}) ${hashtag} pour la commune de ${city}. Réponds uniquement en français, de façon factuelle, concise et structurée en Markdown (titres, listes, tableaux, liens) en citant les ressources officielles pertinentes quand c'est possible.`;
+    }
   }
 
   // 3. Charger le wiki consolidé depuis Supabase
@@ -59,7 +90,6 @@ async function getSystemPrompt() {
   }
 
   // 4. Charger conseil-consolidated.semantic.md via HTTP si déployé
-  const siteUrl = Deno.env.get("URL") || Deno.env.get("DEPLOY_PRIME_URL");
   if (siteUrl) {
     try {
       const councilUrl = `${siteUrl}/docs/conseils/conseil-consolidated.semantic.md`;
