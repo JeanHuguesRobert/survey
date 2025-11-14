@@ -58,11 +58,11 @@ async function getSystemPrompt() {
     }
   }
 
-  // 4. Charger conseil-consolidated.md via HTTP si déployé
+  // 4. Charger conseil-consolidated.semantic.md via HTTP si déployé
   const siteUrl = Deno.env.get("URL") || Deno.env.get("DEPLOY_PRIME_URL");
   if (siteUrl) {
     try {
-      const councilUrl = `${siteUrl}/docs/conseils/conseil-consolidated.md`;
+      const councilUrl = `${siteUrl}/docs/conseils/conseil-consolidated.semantic.md`;
       const response = await fetch(councilUrl);
       if (response.ok) {
         const councilContext = await response.text();
@@ -72,7 +72,7 @@ async function getSystemPrompt() {
         }
       }
     } catch (error) {
-      console.warn("[SystemPrompt] conseil-consolidated.md non disponible:", error.message);
+      console.warn("[SystemPrompt] conseil-consolidated.semantic.md non disponible:", error.message);
     }
   }
 
@@ -361,7 +361,7 @@ async function* runOpenAIAgentStream(question, systemPrompt, conversationHistory
     },
     body: JSON.stringify({
       model,
-      max_tokens: 4096,
+      max_tokens: 8192,
       temperature: 0.3,
       stream: true,
       messages // ✅ Avec historique
@@ -369,7 +369,10 @@ async function* runOpenAIAgentStream(question, systemPrompt, conversationHistory
   });
 
   if (!response.ok) {
-    throw new Error(`OpenAI API: ${response.status}`);
+    const body = await response.text();
+    const err = new Error(`OpenAI API ${response.status}: ${body}`);
+    err.isProviderError = true;
+    throw err;
   }
 
   const reader = response.body.getReader();
@@ -401,6 +404,42 @@ async function* runOpenAIAgentStream(question, systemPrompt, conversationHistory
   console.log(`[OpenAI] ✅ Stream terminé`);
 }
 
+async function runOpenAIAgent({ question, systemPrompt }) {
+  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY manquant");
+  }
+
+  const model = Deno.env.get("OPENAI_MODEL") || "gpt-4o-mini";
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 8192,
+      temperature: 0.3,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: question }
+      ]
+    })
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    const err = new Error(`OpenAI API ${response.status}: ${body}`);
+    err.isProviderError = true;
+    throw err;
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content?.trim() || "";
+}
+
 // ============================================================================
 // MAIN HANDLER
 // ============================================================================
@@ -425,7 +464,7 @@ export default async (request) => {
 
   try {
     const body = await request.json();
-    const { question, conversation_history } = body; // ✅ Nouveau paramètre
+    const { question, conversation_history } = body;
 
     if (!question) {
       return new Response(
@@ -485,8 +524,10 @@ export default async (request) => {
 
           controller.close();
         } catch (error) {
-          console.error("[EdgeFunction] ❌ Erreur globale:", error);
-          console.error("[EdgeFunction] Stack:", error.stack);
+          console.error("[EdgeFunction] ❌ Erreur globale:", error.message);
+          if (!error.isProviderError) {
+            console.error("[EdgeFunction] Stack:", error.stack);
+          }
           controller.enqueue(
             encoder.encode(`\n\n❌ Erreur: ${error.message}`)
           );

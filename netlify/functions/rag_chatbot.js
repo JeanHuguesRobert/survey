@@ -39,7 +39,7 @@ const resolveModel = (alias) => MODEL_ALIASES[alias] || alias;
 // SYSTEM PROMPT
 // ============================================================================
 
-const STATIC_CONSOLIDATED = path.resolve(process.cwd(), "public", "docs", "conseils", "conseil-consolidated.md");
+const STATIC_CONSOLIDATED = path.resolve(process.cwd(), "public", "docs", "conseils", "conseil-consolidated.semantic.md");
 
 function readStaticConsolidated() {
   try {
@@ -121,10 +121,10 @@ async function getSystemPrompt() {
 ${councilContext}
 `;
   } else {
-    console.warn("[System] conseil-consolidated.md absent ou vide.");
+    console.warn("[System] conseil-consolidated?semantic.md absent ou vide.");
   }
 } catch (e) {
-  console.error("[System] Erreur lecture conseil-consolidated.md:", e.message);
+  console.error("[System] Erreur lecture conseil-consolidated.semantic.md:", e.message);
 }
 
   return basePrompt;

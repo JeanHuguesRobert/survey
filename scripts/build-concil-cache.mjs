@@ -4,8 +4,8 @@ import crypto from "node:crypto";
 
 const COUNCIL_ROOT_DIR = path.resolve("public", "docs", "conseils");
 const OUTPUT_FILE = path.join(COUNCIL_ROOT_DIR, "conseil-consolidated.md");
-const COUNCIL_MAX_CHARS = Number(process.env.COUNCIL_MAX_CHARS || 120_000);
-const COUNCIL_FILE_EXT = new Set([".md", ".markdown", ".mdown", ".mkd", ".txt"]);
+const COUNCIL_MAX_CHARS = Number(process.env.COUNCIL_MAX_CHARS || 500_000);
+const COUNCIL_FILE_EXT = new Set([".md", ".txt"]);
 
 function* walkDir(dirAbs) {
   if (!fs.existsSync(dirAbs)) return;
@@ -36,7 +36,7 @@ function canonicalizeMarkdown(md) {
   let out = md;
   out = out.replace(/!\[[^\]]*\]\([^)]+\)/g, "");     // images
   out = out.replace(/<[^>]+>/g, "");                  // HTML
-  const FENCE_LIMIT = 4000;
+  const FENCE_LIMIT = 500000;
   out = out.replace(/```[\s\S]*?```/g, b => (b.length > FENCE_LIMIT ? b.slice(0, FENCE_LIMIT) + "\n```" : b));
   out = out.replace(/[ \t]+/g, " ");                  // espaces
   out = out.replace(/\n{3,}/g, "\n\n");               // sauts de ligne
