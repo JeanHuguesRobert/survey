@@ -311,6 +311,7 @@ async function* runAnthropicAgentStream(question, systemPrompt, conversationHist
 
     for (const toolUse of toolUseBlocks) {
       if (toolUse.name === "web_search") {
+        yield "\n\n🔍 Recherche sur Internet en cours…\n\n";
         const query = toolUse.input.query;
         console.log(`[Anthropic] 🔍 Recherche: "${query}"`);
 
@@ -471,6 +472,69 @@ async function runOpenAIAgent({ question, systemPrompt }) {
 }
 
 // ============================================================================
+// DEBUG LOGGER
+// ============================================================================
+
+function createDebugLogger() {
+	const pendingLogs = [];
+	let controllerRef = null;
+	let encoderRef = null;
+	let enabled = false;
+	const originals = {};
+
+	const formatArgs = (args) =>
+		args.map((arg) => (typeof arg === "string" ? arg : JSON.stringify(arg))).join(" ");
+
+	const emit = (level, args) => {
+		const line = `[DEBUG] ${level.toUpperCase()}: ${formatArgs(args)}`;
+		if (controllerRef && encoderRef) {
+			controllerRef.enqueue(encoderRef.encode(`\n\n${line}\n\n`));
+		} else {
+			pendingLogs.push(line);
+		}
+	};
+
+	const wrap = (level) => (...args) => {
+		originals[level](...args);
+		emit(level, args);
+	};
+
+	return {
+		enable() {
+			if (enabled) return;
+			enabled = true;
+			originals.log = console.log;
+			originals.warn = console.warn;
+			originals.error = console.error;
+			console.log = wrap("log");
+			console.warn = wrap("warn");
+			console.error = wrap("error");
+		},
+		attachStream(controller, encoder) {
+			if (!enabled) return;
+			controllerRef = controller;
+			encoderRef = encoder;
+			if (pendingLogs.length > 0) {
+				for (const line of pendingLogs) {
+					controller.enqueue(encoder.encode(`\n\n${line}\n\n`));
+				}
+				pendingLogs.length = 0;
+			}
+		},
+		disable() {
+			if (!enabled) return;
+			console.log = originals.log;
+			console.warn = originals.warn;
+			console.error = originals.error;
+			enabled = false;
+			controllerRef = null;
+			encoderRef = null;
+			pendingLogs.length = 0;
+		}
+	};
+}
+
+// ============================================================================
 // MAIN HANDLER
 // ============================================================================
 
@@ -496,12 +560,19 @@ export default async (request) => {
     const body = await request.json();
     const { question, conversation_history } = body;
 
+    const debugMode = question && /mode debug/i.test(question);
+    const sanitizedQuestion = debugMode ? question.replace(/mode debug/gi, "").trim() : question;
+    const userQuestion = sanitizedQuestion || question;
+
     if (!question) {
       return new Response(
         JSON.stringify({ error: "La question est requise." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const debugLogger = debugMode ? createDebugLogger() : null;
+    debugLogger?.enable();
 
     console.log(`[EdgeFunction] ========================================`);
     console.log(`[EdgeFunction] 🎯 Question: "${question}"`);
@@ -513,17 +584,20 @@ export default async (request) => {
 
     // Créer le stream de réponse
     const encoder = new TextEncoder();
+    let streamCreated = false;
+
     const readable = new ReadableStream({
       async start(controller) {
+        debugLogger?.attachStream(controller, encoder);
         try {
           // Essayer Anthropic d'abord
           if (Deno.env.get("ANTHROPIC_API_KEY")) {
             console.log(`[EdgeFunction] 🔄 Tentative Anthropic...`);
             try {
               for await (const chunk of runAnthropicAgentStream(
-                question, 
+                userQuestion,
                 systemPrompt,
-                conversation_history // ✅ Passer l'historique
+                conversation_history
               )) {
                 controller.enqueue(encoder.encode(chunk));
               }
@@ -532,7 +606,12 @@ export default async (request) => {
               return;
             } catch (error) {
               console.error(`[EdgeFunction] ❌ Anthropic failed:`, error.message);
-              console.error(`[EdgeFunction] Stack:`, error.stack);
+              // console.error(`[EdgeFunction] Stack:`, error.stack);
+              if (/credit balance/i.test(error.message)) {
+                controller.enqueue(
+                  encoder.encode(`\n\n[⚠️ Anthropic bloqué : crédits insuffisants.]\n\n`)
+                );
+              }
               controller.enqueue(encoder.encode(`\n\n[⚠️ Basculement sur OpenAI...]\n\n`));
             }
           }
@@ -541,9 +620,9 @@ export default async (request) => {
           if (Deno.env.get("OPENAI_API_KEY")) {
             console.log(`[EdgeFunction] 🔄 Tentative OpenAI...`);
             for await (const chunk of runOpenAIAgentStream(
-              question, 
+              userQuestion,
               systemPrompt,
-              conversation_history // ✅ Passer l'historique
+              conversation_history
             )) {
               controller.enqueue(encoder.encode(chunk));
             }
@@ -562,9 +641,12 @@ export default async (request) => {
             encoder.encode(`\n\n❌ Erreur: ${error.message}`)
           );
           controller.close();
+        } finally {
+          debugLogger?.disable();
         }
       }
     });
+    streamCreated = true;
 
     return new Response(readable, {
       headers: {
