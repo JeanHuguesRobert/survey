@@ -175,6 +175,32 @@ async function performWebSearch(query) {
   }
 }
 
+const WEB_SEARCH_FUNCTION = {
+  name: "web_search",
+  description: "Rechercher des informations locales et municipales actualisées pour Corte.",
+  parameters: {
+    type: "object",
+    properties: {
+      query: {
+        type: "string",
+        description: "Une question courte (2-6 mots) ciblée sur Corte/mairie/événements.",
+        minLength: 3
+      }
+    },
+    required: ["query"]
+  }
+};
+
+const TOOL_HANDLERS = {
+  web_search: async (input) => {
+    const query = input?.query?.trim();
+    if (!query) {
+      throw new Error("Le paramètre 'query' est requis pour le web_search.");
+    }
+    return await performWebSearch(query);
+  }
+};
+
 // ============================================================================
 // ANTHROPIC AGENT (avec tools et streaming)
 // ============================================================================
@@ -310,27 +336,26 @@ async function* runAnthropicAgentStream(question, systemPrompt, conversationHist
     const toolResults = [];
 
     for (const toolUse of toolUseBlocks) {
-      if (toolUse.name === "web_search") {
-        yield "\n\n🔍 Recherche sur Internet en cours…\n\n";
-        const query = toolUse.input.query;
-        console.log(`[Anthropic] 🔍 Recherche: "${query}"`);
-
-        try {
-          const searchResults = await performWebSearch(query);
-          toolResults.push({
-            type: "tool_result",
-            tool_use_id: toolUse.id,
-            content: searchResults
-          });
-        } catch (error) {
-          console.error(`[Anthropic] ❌ Erreur recherche:`, error.message);
-          toolResults.push({
-            type: "tool_result",
-            tool_use_id: toolUse.id,
-            content: `Erreur: ${error.message}`,
-            is_error: true
-          });
-        }
+      const handler = TOOL_HANDLERS[toolUse.name];
+      if (!handler) continue;
+      yield "\n\n🔍 Recherche sur Internet en cours…\n\n";
+      const query = toolUse.input?.query;
+      console.log(`[Anthropic] 🔍 Recherche: "${query}"`);
+      try {
+        const searchResults = await handler(toolUse.input);
+        toolResults.push({
+          type: "tool_result",
+          tool_use_id: toolUse.id,
+          content: searchResults
+        });
+      } catch (error) {
+        console.error(`[Anthropic] ❌ Erreur recherche:`, error.message);
+        toolResults.push({
+          type: "tool_result",
+          tool_use_id: toolUse.id,
+          content: `Erreur: ${error.message}`,
+          is_error: true
+        });
       }
     }
 
@@ -366,73 +391,127 @@ async function* runOpenAIAgentStream(question, systemPrompt, conversationHistory
   console.log(`[OpenAI] 🚀 Model: ${model}`);
   console.log(`[OpenAI] 📚 Historique: ${conversationHistory.length} messages`);
 
-  // ✅ Construire les messages avec historique
   const MAX_HISTORY = 5;
   const recentHistory = conversationHistory.slice(-MAX_HISTORY);
-  
+
   const messages = [
-    { role: "system", content: systemPrompt }
+    { role: "system", content: systemPrompt },
+    ...recentHistory.filter(item => item.role && item.content),
+    { role: "user", content: question }
   ];
-  
-  // Ajouter l'historique
-  for (const item of recentHistory) {
-    if (item.role && item.content) {
-      messages.push({ role: item.role, content: item.content });
+
+  const functions = [WEB_SEARCH_FUNCTION];
+  const MAX_ITERATIONS = 3;
+
+  for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
+    console.log(`[OpenAI] 🔄 Iteration ${iteration + 1} (fonctionnalités web)`);
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 8192,
+        temperature: 0.3,
+        stream: true,
+        messages,
+        functions,
+        function_call: "auto"
+      })
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      const err = new Error(`OpenAI API ${response.status}: ${body}`);
+      err.isProviderError = true;
+      throw err;
     }
-  }
-  
-  // Ajouter la question actuelle
-  messages.push({ role: "user", content: question });
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 8192,
-      temperature: 0.3,
-      stream: true,
-      messages // ✅ Avec historique
-    })
-  });
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
 
-  if (!response.ok) {
-    const body = await response.text();
-    const err = new Error(`OpenAI API ${response.status}: ${body}`);
-    err.isProviderError = true;
-    throw err;
-  }
+    let finishReason = null;
+    let functionCall = null;
+    let functionArgsBuffer = "";
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+      const chunk = decoder.decode(value);
+      const lines = chunk.split("\n").filter(line => line.trim().startsWith("data: "));
 
-    const chunk = decoder.decode(value);
-    const lines = chunk.split("\n").filter(line => line.trim().startsWith("data: "));
+      for (const line of lines) {
+        const data = line.replace("data: ", "").trim();
+        if (data === "[DONE]") continue;
 
-    for (const line of lines) {
-      const data = line.replace("data: ", "").trim();
-      if (data === "[DONE]") continue;
+        try {
+          const parsed = JSON.parse(data);
+          const choice = parsed.choices?.[0];
+          finishReason = choice?.finish_reason || finishReason;
+          const delta = choice?.delta || {};
 
-      try {
-        const parsed = JSON.parse(data);
-        const delta = parsed.choices?.[0]?.delta?.content;
-        if (delta) {
-          yield delta;
+          if (delta.content) {
+            yield delta.content;
+          }
+
+          if (delta.function_call) {
+            functionCall = functionCall || { name: null, arguments: "" };
+            if (delta.function_call.name) {
+              functionCall.name = delta.function_call.name;
+            }
+            if (delta.function_call.arguments) {
+              functionArgsBuffer += delta.function_call.arguments;
+            }
+          }
+        } catch {
+          // Ignorer les lignes mal formées
         }
-      } catch {
-        // Ignorer les lignes mal formées
       }
     }
-  }
 
-  console.log(`[OpenAI] ✅ Stream terminé`);
+    console.log(`[OpenAI] 🧾 Finish reason: ${finishReason || 'unknown'}`);
+    if (finishReason === "function_call" && functionCall?.name) {
+      let parsedArgs = {};
+      try {
+        parsedArgs = JSON.parse(functionArgsBuffer || "{}");
+      } catch {
+        console.warn("[OpenAI] ⚠️ Arguments de fonction non JSON, on continue avec un objet vide.");
+      }
+
+      const handler = TOOL_HANDLERS[functionCall.name];
+      if (!handler) {
+        console.warn(`[OpenAI] ⚠️ Aucun handler pour la fonction ${functionCall.name}`);
+        break;
+      }
+
+      console.log(`[OpenAI] 🔍 Fonction '${functionCall.name}' invoquée avec ${JSON.stringify(parsedArgs)}`);
+      yield "\n\n🔍 Recherche sur Internet en cours…\n\n";
+
+      const toolResult = await handler(parsedArgs);
+
+      messages.push({
+        role: "assistant",
+        content: null,
+        function_call: {
+          name: functionCall.name,
+          arguments: functionArgsBuffer
+        }
+      });
+      messages.push({
+        role: "function",
+        name: functionCall.name,
+        content: toolResult
+      });
+
+      continue;
+    }
+
+    console.log(`[OpenAI] ✅ Stream terminé`);
+    break;
+  }
 }
 
 async function runOpenAIAgent({ question, systemPrompt }) {
