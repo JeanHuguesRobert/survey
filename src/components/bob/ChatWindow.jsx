@@ -1,5 +1,5 @@
 // src/components/ChatWindow.jsx
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { createPropositionWithTags } from '../../lib/propositions';
@@ -11,6 +11,63 @@ import { CITY_NAME, BOT_NAME, HASHTAG, MOVEMENT_NAME, PARTY_NAME, VOLUNTEER_URL 
 import './ChatWindow.css';
 // import RealTimeNotifications from './RealTimeNotifications';
 
+const MODEL_MODES = {
+  mistral: {
+    fast: "mistral-small-latest",
+    strong: "mistral-large-latest",
+    reasoning: "magistral-medium-latest"
+  },
+  anthropic: {
+    main: "claude-sonnet-4-5-20250929",
+    cheap: "claude-3-haiku-20240307"
+  },
+  openai: {
+    main: "gpt-4.1-mini",
+    reasoning: "gpt-5.1",
+    cheap: "gpt-4.1-nano"
+  },
+  huggingface: {
+  // Chat généraliste (non limité au reasoning)
+  main: "deepseek-ai/DeepSeek-V3",
+
+  // Version plus légère (distill, toujours capable de reasoning mais moins coûteuse)
+  small: "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+
+  // Gros modèle reasoning quand tu veux l’artillerie lourde
+  reasoning: "deepseek-ai/DeepSeek-R1",
+}
+};
+
+const DEFAULT_MODEL_MODE = {
+  mistral: "fast",
+  anthropic: "main",
+  openai: "main",
+  huggingface: "main"
+};
+
+const MODEL_MODE_LABELS = {
+  fast: "Rapide",
+  strong: "Puissant",
+  reasoning: "Raisonnement",
+  main: "Standard",
+  cheap: "Éco",
+  small: "Petit"
+};
+
+const quickPresets = [
+  { label: "Plus puissant (OpenAI)", provider: "openai", mode: "reasoning" },
+  { label: "Rapide et équilibré (Mistral)", provider: "mistral", mode: "strong" },
+  { label: "Économique (HuggingFace)", provider: "huggingface", mode: "main" }
+];
+const AVAILABLE_PROVIDERS = ["openai", "mistral", "huggingface", "anthropic"];
+const getProviderLabel = (provider) => ({
+  mistral: "Mistral",
+  anthropic: "Anthropic",
+  openai: "OpenAI",
+  huggingface: "HuggingFace"
+}[provider] || provider);
+
+const PROVIDER_META_PREFIX  = "__PROVIDER_INFO__";
 
 export default function ChatWindow({ user }) {
   // États principaux
@@ -35,6 +92,81 @@ export default function ChatWindow({ user }) {
   const [chatHistory, setChatHistory] = useState([]);
   const [hasConsent, setHasConsent] = useState(null);
   const [isClearingHistory, setIsClearingHistory] = useState(false);
+  const [modelMode, setModelMode] = useState(DEFAULT_MODEL_MODE.mistral);
+  const [providerMeta, setProviderMeta] = useState(null);
+  const timerRef = useRef(null);
+  const abortControllerRef = useRef(null);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const formatElapsed = (ms) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const m = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+    const s = String(totalSeconds % 60).padStart(2, '0');
+    return `${m}:${s}`;
+  };
+
+  const [modelModalOpen, setModelModalOpen] = useState(false);
+  const [modalProvider, setModalProvider] = useState("mistral");
+  const [modalMode, setModalMode] = useState(DEFAULT_MODEL_MODE["mistral"] || "fast");
+  const [customModel, setCustomModel] = useState("");
+  const [directivePrefix, setDirectivePrefix] = useState("");
+  const [activeProviderInfo, setActiveProviderInfo] = useState({ provider: null, model: null });
+  const availableProviders = useMemo(() => AVAILABLE_PROVIDERS, []);
+  useEffect(() => {
+    setModalProvider(prev => availableProviders.includes(prev) ? prev : availableProviders[0]);
+  }, [availableProviders]);
+  useEffect(() => {
+    const providerModes = MODEL_MODES[modalProvider] || {};
+    const fallbackMode = DEFAULT_MODEL_MODE[modalProvider] || Object.keys(providerModes)[0] || "";
+    setModalMode(fallbackMode);
+  }, [modalProvider]);
+
+  const buildDirective = ({ provider, mode, manualModel }) => {
+    if (!provider) return "";
+    const parts = [`provider=${provider}`];
+    if (manualModel) {
+      parts.push(`model=${manualModel}`);
+    } else if (mode) {
+      parts.push(`model_mode=${mode}`);
+    }
+    return parts.join(" ; ");
+  };
+
+  const handleModelSelection = ({ provider, mode, manualModel }) => {
+    const prefix = buildDirective({ provider, mode, manualModel });
+    if (!prefix) return;
+    setDirectivePrefix(prefix);
+    setModelMode(manualModel ? "" : (mode || DEFAULT_MODEL_MODE[provider] || ""));
+    setCustomModel("");
+    setModelModalOpen(false);
+  };
+
+  const handleQuickPreset = (preset) => {
+    if (!availableProviders.includes(preset.provider)) return;
+    setModalProvider(preset.provider);
+    setModalMode(preset.mode);
+    handleModelSelection({ provider: preset.provider, mode: preset.mode });
+  };
+
+  const handleNotUsefulClick = (msg) => {
+		handleFeedback(msg.id, "not_useful");
+		if (!availableProviders.length) return;
+		const lastUserQuestion = [...messages].reverse().find(m => m.sender === "user" && typeof m.text === "string");
+		setInput(lastUserQuestion?.text || msg.text || "");
+		setModalProvider(prev => availableProviders.includes(prev) ? prev : availableProviders[0]);
+		setCustomModel("");
+		setModelModalOpen(true);
+	};
+
+  const handleModelConfirm = () => {
+    handleModelSelection({
+      provider: modalProvider,
+      mode: customModel ? null : modalMode,
+      manualModel: customModel || null
+    });
+  };
+
+  const prefixedQuestion = (message) =>
+    directivePrefix ? `${directivePrefix} ; ${message}` : message;
 
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
@@ -147,17 +279,6 @@ export default function ChatWindow({ user }) {
   }, [messages]);
 
   // Fonction pour envoyer un message
-  // Chronomètre pendant la génération de la réponse
-  const timerRef = React.useRef(null);
-  const [elapsedMs, setElapsedMs] = useState(0);
-
-  function formatElapsed(ms) {
-    const totalSeconds = Math.floor(ms / 1000);
-    const m = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
-    const s = String(totalSeconds % 60).padStart(2, '0');
-    return `${m}:${s}`;
-  }
-
   const handleSend = async () => {
     if (!input.trim()) return;
 
@@ -168,6 +289,8 @@ export default function ChatWindow({ user }) {
       setElapsedMs((prev) => prev + 1000);
     }, 1000);
     
+    abortControllerRef.current = new AbortController();
+    
     const userMessage = {
       id: Date.now(),
       text: input,
@@ -177,8 +300,8 @@ export default function ChatWindow({ user }) {
     setMessages(prev => [...prev, userMessage]);
     
     const currentQuestion = input;
-    setInput(""); // Vider le champ immédiatement après l'envoi
-
+    setInput("");
+    
     try {
       // 1. Chercher des propositions liées
       const related = await findRelatedPropositions(currentQuestion);
@@ -210,14 +333,29 @@ export default function ChatWindow({ user }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          question: currentQuestion,
+          question: prefixedQuestion(currentQuestion),
           user_id: user?.id,
-          conversation_history: conversationHistory // ✅ Nouveau
+          conversation_history: conversationHistory,
+          modelMode
         }),
+        signal: abortControllerRef.current.signal
       });
 
       if (!response.ok) {
-        throw new Error(`Erreur réseau: ${response.status}`);
+        let detail = "";
+        try {
+          detail = await response.text();
+        } catch {}
+        let friendly = `Erreur serveur (${response.status})`;
+        if (detail) {
+          try {
+            const j = JSON.parse(detail);
+            friendly += j?.error ? ` — ${j.error}` : ` — ${detail}`;
+          } catch {
+            friendly += ` — ${detail}`;
+          }
+        }
+        throw new Error(friendly);
       }
 
       // 5. Lire le stream progressivement
@@ -229,10 +367,25 @@ export default function ChatWindow({ user }) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        fullResponse += chunk;
+        let chunk = decoder.decode(value, { stream: true });
+        let appendChunk = "";
+        while (chunk.includes(PROVIDER_META_PREFIX )) {
+          const [before, rest] = chunk.split(PROVIDER_META_PREFIX, 2);
+          appendChunk += before;
+          const newlineIndex = rest.indexOf("\n");
+          const payload = newlineIndex >= 0 ? rest.slice(0, newlineIndex) : rest;
+          try {
+            const meta = JSON.parse(payload);
+            setProviderMeta(meta);
+            console.log(`[ChatWindow] Provider info: ${meta.provider} (${meta.model})`);
+          } catch (err) {
+            console.warn("[ChatWindow] metadata parse failed", err);
+          }
+          chunk = newlineIndex >= 0 ? rest.slice(newlineIndex + 1) : "";
+        }
+        appendChunk += chunk;
+        fullResponse += appendChunk;
 
-        // Mettre à jour le message en temps réel
         setMessages(prev =>
           prev.map(msg =>
             msg.id === botMessageId
@@ -242,7 +395,6 @@ export default function ChatWindow({ user }) {
         );
       }
 
-      // 6. Finaliser le message (plus de streaming)
       setMessages(prev =>
         prev.map(msg =>
           msg.id === botMessageId
@@ -271,29 +423,58 @@ export default function ChatWindow({ user }) {
 
     } catch (error) {
       console.error("Erreur lors de l'envoi du message:", error);
-      
-      // Arrêter le timer
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
-      
-      setMessages(prev => [
-        ...prev,
-        {
-          id: Date.now(),
-          text: `❌ Erreur: ${error.message}\n\nVeuillez réessayer.`,
-          sender: "bot",
-          timestamp: new Date(),
-          error: true
-        },
-      ]);
+
+      const isAborted = error.name === 'AbortError';
+      const errText = isAborted
+        ? `⚠️ Requête annulée par l'utilisateur.`
+        : `❌ ${error.message}`;
+
+      // ⇩⇩ Nouveau: mettre à jour le message en streaming si présent
+      setMessages(prev => {
+        let updated = false;
+        const mapped = prev.map(m => {
+          if (m.isStreaming) {
+            updated = true;
+            return { ...m, isStreaming: false, error: true, text: errText };
+          }
+          return m;
+        });
+        if (updated) return mapped;
+        return [
+          ...mapped,
+          { id: Date.now(), text: errText, sender: "bot", timestamp: new Date(), error: true }
+        ];
+      });
     } finally {
       setIsLoading(false);
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
+      abortControllerRef.current = null;
+    }
+  };
+
+  const handleAbortRequest = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      // ⇩⇩ Nouveau: arrêter proprement le placeholder en cours
+      setMessages(prev =>
+        prev.map(m => m.isStreaming
+          ? { ...m, isStreaming: false, error: true, text: (m.text && m.text.trim() ? m.text + "\n\n" : "") + "⚠️ Requête annulée par l'utilisateur." }
+          : m
+        )
+      );
+      setIsLoading(false);
+      setElapsedMs(0);
     }
   };
 
@@ -345,7 +526,7 @@ export default function ChatWindow({ user }) {
   }
 
   // Publier la conversation comme page Wiki dans Supabase
-  async function handlePublishWiki(conversationId) {
+  async function handlePublishWiki() {
     if (!hasConversation) return;
     if (!user) {
       setShowAuthModal(true);
@@ -354,40 +535,36 @@ export default function ChatWindow({ user }) {
 
     try {
       setIsLoading(true);
-      // Fetch conversation messages
-      const { data: conversation, error: conversationError } = await supabase
-          .from('chat_interactions')
-          .select('messages')
-          .eq('id', conversationId)
-          .single();
+      // Construire le contenu à partir des messages actuels
+      const conversationContent = messages
+        .filter(m => m.sender !== "system" || m.isNotification) // Inclure notifications si pertinent
+        .map(m => {
+          const sender = m.sender === "user" ? "Utilisateur" : BOT_NAME;
+          return `**${sender}**: ${m.text}`;
+        })
+        .join("\n\n");
 
-      if (conversationError) throw conversationError;
-
-      const pageContent = conversation.messages
-          .filter(msg => msg.role === 'assistant')
-          .map(msg => msg.content)
-          .join('\n\n');
-
-      const defaultTitle = deriveDefaultTitle(conversation.messages);
+      const defaultTitle = deriveDefaultTitle();
 
       // Appel de la fonction Netlify pour optimiser le titre et le slug
       const optimizeResponse = await fetch('/.netlify/functions/optimize-wiki-title', {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ defaultTitle, pageContent }),
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ defaultTitle, pageContent: conversationContent }),
       });
 
       if (!optimizeResponse.ok) {
-          throw new Error(`Erreur lors de l'optimisation du titre: ${optimizeResponse.statusText}`);
+        throw new Error(`Erreur lors de l'optimisation du titre: ${optimizeResponse.statusText}`);
       }
 
       const { optimizedTitle, optimizedSlug } = await optimizeResponse.json();
 
+      // Créer la page wiki
       const { data, error } = await supabase
         .from('wiki_pages')
-        .insert([{ title: optimizedTitle, content: pageContent, slug: optimizedSlug, author_id: user.id }])
+        .insert([{ title: optimizedTitle, content: conversationContent, slug: optimizedSlug, author_id: user.id }])
         .select();
 
       if (error) {
@@ -397,16 +574,33 @@ export default function ChatWindow({ user }) {
       }
 
       const pageUrl = `${window.location.origin}/wiki/${data[0].slug}`;
-      try { await navigator.clipboard.writeText(pageUrl); } catch (_) {}
 
-      setMessages(prev => ([
-        ...prev,
-        { id: Date.now(), isNotification: true, text: `Page Wiki créée : ${pageUrl}`, link: pageUrl }
-      ]));
+      // Générer un texte de partage
+      const shareResponse = await fetch('/.netlify/functions/generateShareText', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pageTitle: optimizedTitle,
+          pageUrl,
+          pageContent: conversationContent,
+          selectedDestinations: "Twitter", // Exemple, peut être dynamique
+          currentShareText: ""
+        }),
+      });
 
-      if (navigator.share) {
-        try { await navigator.share({ title: optimizedTitle, url: pageUrl }); } catch (_) {}
+      let shareText = "";
+      if (shareResponse.ok) {
+        const shareData = await shareResponse.json();
+        shareText = shareData.generatedText;
+        // Copier dans le presse-papiers
+        try { await navigator.clipboard.writeText(shareText); } catch (_) {}
       }
+
+      setMessages(prev => [
+        ...prev,
+        { id: Date.now(), isNotification: true, text: `Page Wiki créée : ${pageUrl}${shareText ? `\n\nTexte de partage : ${shareText}` : ""}`, link: pageUrl }
+      ]);
+
       navigate(`/wiki/${data[0].slug}`);
     } catch (err) {
       console.error('Erreur inattendue lors de la publication Wiki :', err);
@@ -782,7 +976,7 @@ export default function ChatWindow({ user }) {
                               ✅ {msg.feedback === "useful" ? "Merci pour votre avis !" : "Utile"}
                             </button>
                             <button
-                              onClick={() => handleFeedback(msg.id, "not_useful")}
+                              onClick={() => handleNotUsefulClick(msg)}
                               className={`feedback-btn not-useful ${msg.feedback === "not_useful" ? "active" : ""}`}
                               disabled={msg.feedback === "not_useful"}
                             >
@@ -1009,13 +1203,14 @@ export default function ChatWindow({ user }) {
             </button>
           )}
           <button
-            onClick={handleSend}
-            disabled={isLoading || !input.trim() || !hasConsent}
+            onClick={isLoading ? handleAbortRequest : handleSend}
+            disabled={!isLoading && (!input.trim() || !hasConsent)}
             className="send-btn px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            title={isLoading ? "Cliquer pour annuler" : "Envoyer"}
           >
             {isLoading ? (
               <>
-                <span aria-live="polite" className="inline-flex items-center gap-2">
+                <span aria-live="polite" className="inline-flex items-center gap-2 cursor-pointer" title="Cliquer pour annuler">
                   <span role="img" aria-label="chronomètre">⏱</span>
                   <span>{formatElapsed(elapsedMs)}</span>
                 </span>
@@ -1042,6 +1237,84 @@ export default function ChatWindow({ user }) {
 
         {/* Forcer l'affichage des éléments Wiki dans le footer pour éviter un comportement masqué */}
         <SiteFooter showWiki={true} showVersionInfo={false} />
+
+        {modelModalOpen && (
+          <div className="model-mode-overlay" role="dialog" aria-modal="true">
+            <div className="model-mode-panel">
+              <header>
+                <h3>Changer de modèle</h3>
+              </header>
+              {providerMeta?.provider && (
+                <div className="current-provider-info">
+                  <strong>Dernier modèle :</strong> {getProviderLabel(providerMeta.provider)} — {providerMeta.model}
+                </div>
+              )}
+
+              <section className="model-mode-presets">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDirectivePrefix("");
+                    setCustomModel("");
+                    setModelMode(DEFAULT_MODEL_MODE[modalProvider] || "");
+                    setProviderMeta(null);
+                    setModelModalOpen(false);
+                  }}
+                >
+                  Mode automatique
+                </button>
+                {quickPresets
+                  .filter(preset => availableProviders.includes(preset.provider))
+                  .map((preset) => (
+                   <button
+                     key={preset.label}
+                     type="button"
+                     onClick={() => handleQuickPreset(preset)}
+                   >
+                     {preset.label}
+                   </button>
+                 ))}
+              </section>
+              <section className="model-mode-control">
+                <label>Provider</label>
+                <select value={modalProvider} onChange={(e) => setModalProvider(e.target.value)}>
+                  {availableProviders.length > 0 ? (
+                    availableProviders.map((provider) => (
+                      <option key={provider} value={provider}>
+                        {getProviderLabel(provider)}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="mistral">Aucun provider configuré</option>
+                  )}
+                </select>
+              </section>
+              <section className="model-mode-control">
+                <label>Mode prédéfini</label>
+                <select value={modalMode} onChange={(e) => setModalMode(e.target.value)}>
+                  {Object.entries(MODEL_MODES[modalProvider] || {}).map(([key, modelId]) => (
+                    <option key={key} value={key}>
+                      {MODEL_MODE_LABELS[key] || key} — {modelId}
+                    </option>
+                  ))}
+                </select>
+              </section>
+              <section className="model-mode-control">
+                <label>Modèle personnalisé (facultatif)</label>
+                <input
+                  type="text"
+                  value={customModel}
+                  onChange={(e) => setCustomModel(e.target.value.trim())}
+                  placeholder="Ex: gpt-4o-mini"
+                />
+              </section>
+              <footer className="model-mode-actions">
+                <button type="button" onClick={handleModelConfirm}>Valider</button>
+                <button type="button" onClick={() => setModelModalOpen(false)}>Annuler</button>
+              </footer>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

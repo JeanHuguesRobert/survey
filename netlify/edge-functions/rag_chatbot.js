@@ -1,69 +1,830 @@
-import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.32.1";
+// ============================================================================
+// CONFIGURATION - Modèles et paramètres par défaut
+// ============================================================================
+const PROVIDER_META_PREFIX = "__PROVIDER_INFO__";
+
+const MODEL_MODES = {
+  mistral: {
+    fast: "mistral-small-latest",
+    strong: "mistral-large-latest",
+    reasoning: "magistral-medium-latest"
+  },
+  anthropic: {
+    main: "claude-sonnet-4-5-20250929",
+    cheap: "claude-3-haiku-20240307"
+  },
+  openai: {
+    main: "gpt-4.1-mini",
+    reasoning: "gpt-5.1",
+    cheap: "gpt-4.1-nano"
+  },
+  huggingface: {
+  // Chat généraliste (non limité au reasoning)
+  main: "deepseek-ai/DeepSeek-V3",
+
+  // Version plus légère (distill, toujours capable de reasoning mais moins coûteuse)
+  small: "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+
+  // Gros modèle reasoning quand tu veux l’artillerie lourde
+  reasoning: "deepseek-ai/DeepSeek-R1",
+}
+};
+
+const DEFAULT_MODEL_MODE = {
+  mistral: "fast",
+  anthropic: "main",
+  openai: "reasoning", // Changé à reasoning pour gpt-5.1
+  huggingface: "main"
+};
+
+const MODEL_MODE_DIRECTIVE_REGEX = /model_mode\s*=\s*([^\s;]+)/i;
+const resolveModelForProvider = (provider, overrideMode) => {
+  const providerModes = MODEL_MODES[provider];
+  if (!providerModes) return undefined;
+  const candidateMode = overrideMode && providerModes[overrideMode]
+    ? overrideMode
+    : DEFAULT_MODEL_MODE[provider] || Object.keys(providerModes)[0];
+  return providerModes[candidateMode];
+};
 
 // ============================================================================
-// SYSTEM PROMPT
+// OUTILS (TOOLS) - Définition centralisée
 // ============================================================================
+const TOOLS = {
+  web_search: {
+    name: "web_search",
+    description: "Recherche des informations actualisées sur Internet. Utilise cet outil pour des questions sur des actualités, horaires, ou données externes (ex: 'horaires mairie corte 2025').",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "Requête de recherche courte et précise (3-8 mots).",
+          minLength: 3,
+          maxLength: 50
+        }
+      },
+      required: ["query"]
+    }
+  },
+  // Ajoute d'autres outils ici (ex: search_local_db, weather, etc.)
+};
 
-async function fetchPublicSystemPrompt(siteUrl) {
-  if (!siteUrl) {
-    console.warn("[SystemPrompt] ⚠️ URL du déploiement introuvable pour charger le prompt public");
-    return null;
+// ============================================================================
+// GESTIONNAIRES D'OUTILS - Fonctions d'exécution
+// ============================================================================
+const TOOL_HANDLERS = {
+  async web_search({ query }) {
+    return performWebSearch(query);
+  }
+  // Ajoute d'autres handlers ici
+};
+
+// UTIL: small preview helper for logs
+function previewForLog(value, max = 400) {
+  try {
+    const s = typeof value === "string" ? value : JSON.stringify(value);
+    return s.length > max ? s.slice(0, max) + "..." : s;
+  } catch {
+    return String(value).slice(0, max) + (String(value).length > max ? "..." : "");
+  }
+}
+
+// ============================================================================
+// BRAVE SEARCH - Outil de recherche web (amélioré)
+// ============================================================================
+async function performWebSearch(query) {
+  console.log(`[WebSearch] ➜ request query=${previewForLog(query)}`);
+  const apiKey = Deno.env.get("BRAVE_SEARCH_API_KEY");
+  if (!apiKey) {
+    console.warn("[WebSearch] ⚠️ BRAVE_SEARCH_API_KEY manquant");
+    return `Recherche web non configurée pour: "${query}". Réponds en t'excusant et en proposant une alternative si possible.`;
   }
 
   try {
-    const promptUrl = `${siteUrl}/prompts/bob-system.md`;
-    const response = await fetch(promptUrl);
-    if (response.ok) {
-      const content = await response.text();
-      if (content.trim()) {
-        const firstLine = content.split(/\r?\n/).find(line => line.trim()) || "";
-        console.log(`[SystemPrompt] ✅ Prompt public chargé via ${promptUrl}`);
-        console.log(`[SystemPrompt] 📄 Première ligne du prompt public: ${firstLine}`);
-        return content;
+    const url = new URL("https://api.search.brave.com/res/v1/web/search");
+    url.searchParams.append("q", query);
+    url.searchParams.append("count", "10");
+    url.searchParams.append("search_lang", "fr");
+    url.searchParams.append("country", "FR");
+
+    console.log(`[WebSearch] 🌐 fetch url=${previewForLog(url.toString())}`);
+    const response = await fetch(url.toString(), {
+      headers: {
+        "Accept": "application/json",
+        "X-Subscription-Token": apiKey
       }
+    });
+
+    console.log(`[WebSearch] ⬅ status=${response.status}`);
+    if (!response.ok) throw new Error(`Brave API: ${response.status}`);
+
+    const data = await response.json();
+    console.log(`[WebSearch] ⬅ data preview: ${previewForLog(data)}`);
+
+    let resultText = `🔍 Résultats pour "${query}":\n\n`;
+
+    // Résultats web classiques
+    if (data.web?.results?.length > 0) {
+      data.web.results.slice(0, 10).forEach((result, i) => {
+        resultText += `📄 ${i + 1}. **${result.title}**\n`;
+        resultText += `${result.description?.substring(0, 300) || "Pas de description"}...\n`;
+        resultText += `🔗 [Source](${result.url})\n\n`;
+      });
+    } else {
+      resultText += "Aucun résultat web trouvé.\n\n";
     }
+
+    // Résultats locaux
+    if (data.locations?.results?.length > 0) {
+      resultText += `📍 **Infos locales :**\n`;
+      data.locations.results.slice(0, 10).forEach(loc => {
+        resultText += `- **${loc.title}**\n`;
+        if (loc.address) resultText += `  📍 ${loc.address}\n`;
+        if (loc.phone) resultText += `  📞 ${loc.phone}\n`;
+        if (loc.hours) resultText += `  ⏰ ${loc.hours}\n`;
+      });
+    }
+
+    console.log(`[WebSearch] ✅ ${data.web?.results?.length || 0} résultats formatés`);
+    return resultText;
   } catch (error) {
-    console.warn("[SystemPrompt] ⚠️ Erreur fetch prompt public:", error.message);
+    console.error("[WebSearch] ❌ Erreur:", error.message);
+    return `⚠️ Erreur de recherche: ${error.message}. Je ne peux pas accéder à Internet pour le moment.`;
+  }
+}
+
+// ============================================================================
+// UTILITAIRES - Fonctions communes
+// ============================================================================
+const parseToolArguments = (raw) => {
+  if (!raw) return {};
+  try {
+    return typeof raw === "string" ? JSON.parse(raw) : raw;
+  } catch {
+    return {};
+  }
+};
+
+const isAsyncIterable = (value) =>
+  Boolean(value && typeof value[Symbol.asyncIterator] === "function");
+
+// Update executeToolCalls to accept a fallbackContext for missing arguments
+async function executeToolCalls(toolCalls, provider = "mistral", fallbackContext = {}) {
+  console.log(`[${provider}] 🔁 executeToolCalls called count=${toolCalls.length}`);
+  const results = [];
+  for (const call of toolCalls) {
+    try {
+      const toolName = call.function?.name || call.name;
+      let args = parseToolArguments(call.function?.arguments || call.arguments);
+      console.log(`[${provider}] ➜ Tool call: ${toolName} args=${previewForLog(args, 400)}`);
+
+      // Apply fallback logic for web_search: use question if query is missing
+      if (toolName === "web_search") {
+        if (!args || !args.query) {
+          // fallbackContext may contain a default query string
+          const fallbackQuery = (fallbackContext?.web_search?.query) || fallbackContext?.defaultQuery;
+          if (fallbackQuery && typeof fallbackQuery === "string" && fallbackQuery.trim()) {
+            args = { ...args, query: fallbackQuery };
+            console.log(`[${provider}] ℹ️ web_search fallback -> query="${fallbackQuery}"`);
+          }
+        }
+      }
+
+      // Validate required parameters based on TOOLS definition
+      const toolDef = Object.values(TOOLS).find(t => t.name === toolName);
+      if (toolDef) {
+        const required = (toolDef.parameters?.required) || [];
+        let hasAllRequired = true;
+        for (const r of required) {
+          if (!args || args[r] === undefined || args[r] === null || (typeof args[r] === "string" && args[r].trim() === "")) {
+            hasAllRequired = false;
+            break;
+          }
+        }
+        if (!hasAllRequired) {
+          console.warn(`[${provider}] ⚠️ Paramètres manquants pour ${toolName} (call id=${call.id}). Ignoré.`);
+          continue;
+        }
+      }
+
+      const handler = TOOL_HANDLERS[toolName];
+      if (!handler) {
+        console.warn(`[${provider}] Outil non géré: ${toolName}`);
+        continue;
+      }
+
+      console.log(`[${provider}] 🛠 Exécution de ${toolName} avec:`, args);
+      const output = await handler(args);
+      console.log(`[${provider}] ⬅ Tool result for ${toolName} preview: ${previewForLog(output, 400)}`);
+      results.push({
+        role: "tool",
+        tool_call_id: call.id,
+        name: toolName,
+        content: output,
+      });
+    } catch (error) {
+      console.error(`[${provider}] ❌ Erreur outil:`, error);
+      results.push({
+        role: "tool",
+        tool_call_id: call.id,
+        name: call.function?.name || call.name,
+        content: `⚠️ Erreur: ${error.message}`,
+      });
+    }
+  }
+  return results;
+}
+
+
+// ============================================================================
+// APPels API - Gestion unifiée des LLM (Mistral, Anthropic, OpenAI)
+// ============================================================================
+const PROVIDER_CONFIGS = {
+  mistral: {
+    apiUrl: "https://api.mistral.ai/v1/chat/completions",
+    defaultModel: "mistral-large-latest",
+    toolFormat: "openai" // Mistral utilise le même format qu'OpenAI
+  },
+  anthropic: {
+    apiUrl: "https://api.anthropic.com/v1/messages",
+    defaultModel: "claude-3-opus-20240229",
+    toolFormat: "anthropic" // Format spécifique
+  },
+  openai: {
+    apiUrl: "https://api.openai.com/v1/chat/completions",
+    defaultModel: "gpt-4o-mini",
+    toolFormat: "openai" // ✅ Identique à Mistral (SSE)
+  },
+  huggingface: {
+    apiUrl: (model) => `https://router.huggingface.co/v1/chat/completions`,
+    defaultModel: "mistralai/Mixtral-8x22B-Instruct-v0.1",
+    toolFormat: null // Pas de support des outils
+  }
+};
+
+
+function formatToolsForProvider(tools, provider) {
+  const config = PROVIDER_CONFIGS[provider];
+  if (config.toolFormat === "anthropic") {
+    return tools.map(tool => ({
+      name: tool.name,
+      description: tool.description,
+      input_schema: tool.parameters
+    }));
+  } else if (config.toolFormat === "openai") {
+    return tools.map(tool => ({
+      type: "function",
+      function: tool
+    }));
+  } else {
+    return []; // Pas de support des outils
+  }
+}
+
+async function callLLMAPI({
+  provider,
+  model,
+  messages,
+  tools = [],
+  toolChoice = "auto",
+  stream = true
+}) {
+  const config = PROVIDER_CONFIGS[provider];
+  const apiKey = Deno.env.get(`${provider.toUpperCase()}_API_KEY`);
+  if (!apiKey) throw new Error(`Clé API manquante pour ${provider}`);
+
+  const formattedTools = formatToolsForProvider(Object.values(TOOLS), provider);
+  const payload = {
+    model: model || config.defaultModel,
+    messages,
+    ...(formattedTools.length ? { tools: formattedTools } : {}),
+    ...(toolChoice !== "none" ? { tool_choice: toolChoice } : {}),
+    stream: stream && provider !== "huggingface",
+    temperature: 0.3,
+    top_p: 0.95
+  };
+
+  // Debug: request payload summary
+  console.log(`[LLM] ➜ ${provider} request: model=${payload.model}, messages=${payload.messages?.length || 0}, tools=${formattedTools.length}, stream=${payload.stream}`);
+  console.log(`[LLM] ➜ ${provider} payload preview: ${previewForLog({ model: payload.model, firstMessage: payload.messages?.[0]?.content || "", toolCount: formattedTools.length }, 100)}`);
+
+  const apiUrl = typeof config.apiUrl === 'function' ? config.apiUrl(model) : config.apiUrl;
+
+  // Headers spécifiques par provider
+  let headers = {
+    "Content-Type": "application/json"
+  };
+  if (provider === "anthropic") {
+    headers["x-api-key"] = apiKey;
+    headers["anthropic-version"] = "2023-06-01";
+  } else {
+    headers["Authorization"] = `Bearer ${apiKey}`;
   }
 
+  const response = await fetch(apiUrl, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload)
+  });
+
+  console.log(`[LLM] ⬅ ${provider} response status=${response.status} stream=${stream}`);
+
+  if (!response.ok) {
+    const body = await response.text();
+    console.error(`[LLM] ❌ ${provider} error body preview: ${previewForLog(body)}`);
+    throw new Error(`${provider} API ${response.status}: ${body}`);
+  }
+
+  if (!stream || provider === "huggingface") {
+    const data = await response.json();
+    console.log(`[LLM] ⬅ ${provider} non-stream preview: ${previewForLog(data, 1000)}`);
+    return handleDirectResponse(data, provider);
+  } else {
+    console.log(`[LLM] ⬅ ${provider} streaming start`);
+    return handleStreamingResponse(response, provider);
+  }
+}
+
+// Update handleStreamingResponse to yield event objects instead of raw strings
+async function* handleStreamingResponse(response, provider) {
+	const reader = response.body.getReader();
+	const decoder = new TextDecoder();
+	let buffer = "";
+	let toolCalls = [];
+	let fullContent = "";
+
+	// Buffering for tool call fragments: id -> { name, argsStr }
+	const pendingToolArgs = new Map();
+	const pushedToolIds = new Set();
+	const context = { pendingToolArgs, pushedToolIds, toolCalls, toolFragmentCounter: 0 };
+
+	while (true) {
+		const { done, value } = await reader.read();
+		if (done) break;
+
+		buffer += decoder.decode(value, { stream: true });
+		const lines = buffer.split("\n");
+		buffer = lines.pop() || "";
+
+		for (const line of lines) {
+			const trimmed = line.trim();
+			if (!trimmed) continue;
+
+			const payload = trimmed.startsWith("data:")
+				? trimmed.slice(trimmed.indexOf(":") + 1).trim()
+				: trimmed;
+			if (!payload || payload === "[DONE]") continue;
+
+			try {
+				// Small preview to help debugging
+				const preview = payload.length > 300 ? payload.slice(0, 300) + "..." : payload;
+				const data = JSON.parse(payload);
+				const delta = provider === "anthropic"
+					? data.delta
+					: data.choices?.[0]?.delta;
+				const hasToolDelta =
+					Boolean(delta?.tool_calls?.length) ||
+					Boolean(delta?.tool_call) ||
+					Boolean(delta?.tool_use?.length);
+				const onlyContentDelta =
+					Boolean(delta?.content) &&
+					!hasToolDelta &&
+					!delta?.tool_use?.length;
+				const shouldLogPayload = !onlyContentDelta;
+
+				if (shouldLogPayload) {
+					console.log(`[${provider}] [SSE] incoming payload preview: ${preview}`);
+					console.log(`[${provider}] [SSE] parsed keys: ${Object.keys(data).join(",")}`);
+					if (delta) {
+						console.log(`[${provider}] [SSE] delta keys: ${Object.keys(delta).join(",")}`);
+					}
+				}
+
+				if (provider === "anthropic") {
+					if (delta?.text) {
+						fullContent += delta.text;
+						yield delta.text;
+					}
+					const calls = delta?.tool_use
+						? delta.tool_use.map(normalizeToolCall)
+						: [];
+					if (calls.length) toolCalls.push(...calls);
+				} else {
+					if (delta?.content) {
+						fullContent += delta.content;
+						yield delta.content;
+					}
+					const rawToolCalls =
+						delta?.tool_calls ||
+						(delta?.tool_call ? [delta.tool_call] : []);
+					if (rawToolCalls.length) {
+						for (const raw of rawToolCalls) {
+							processToolCallFragment(context, raw, provider);
+						}
+						while (context.toolCalls.length > 0) {
+							const call = context.toolCalls.shift();
+							toolCalls.push(call);
+							yield { type: "tool_call", call };
+						}
+					}
+				}
+			} catch (err) {
+				console.error(`[${provider}] [SSE] Erreur parsing payload: ${err.message}`, { payloadPreview: payload.slice(0, 200) });
+			}
+		}
+	}
+
+	return {
+		content: fullContent,
+		toolCalls: toolCalls.length > 0 ? toolCalls : undefined
+	};
+}
+
+
+
+function handleDirectResponse(data, provider) {
+  if (provider === "anthropic") {
+    return {
+      content: data.content[0].text,
+      toolCalls: data.tool_uses || []
+    };
+  } else {
+    return {
+      content: data.choices[0].message.content,
+      toolCalls: data.choices[0].message.tool_calls || []
+    };
+  }
+}
+
+// Replace previous normalizeToolCall definition:
+const normalizeToolCall = (call, idx = 0) => {
+  // Accept multiple possible shapes and extract function-like properties
+  const fnShape = call.function || call.tool || call.action || call.intent || call.metadata || {};
+  let name = fnShape.name || call.name || call.tool?.name || call.action?.name || call.intent?.name || call.metadata?.name || "";
+  let args = fnShape.arguments ?? call.arguments ?? call.params ?? call.payload ?? "{}";
+
+  if (args == null) args = "{}";
+  if (typeof args !== "string") {
+    try {
+      args = JSON.stringify(args);
+    } catch {
+      args = String(args);
+    }
+  }
+
+  // Heuristic inference for missing function name
+  if (!name || !name.trim()) {
+    try {
+      const parsedArgs = JSON.parse(args || "{}");
+      if (parsedArgs && typeof parsedArgs === "object") {
+        if (parsedArgs.query) {
+          name = "web_search";
+        }
+        // Add additional heuristics here as needed
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  name = (name || "").trim();
+
+  return {
+    id: call.id || `tool-${Date.now()}-${idx}`,
+    type: "function",
+    function: {
+      name,
+      arguments: args
+    }
+  };
+};
+const normalizeToolCalls = (calls = []) => calls.map(normalizeToolCall);
+
+// New helper: assemble tool call fragments and push complete calls to toolCalls
+function processToolCallFragment(context, raw, provider) {
+  const { pendingToolArgs, pushedToolIds, toolCalls } = context;
+  context.toolFragmentCounter = context.toolFragmentCounter || 0;
+
+  const id = raw.id || raw.tool_call_id || raw.tool_call?.id || `tool-${Date.now()}-${context.toolFragmentCounter++}`;
+
+  const fn = raw.function || raw.tool || raw.tool_call || raw;
+  let name = fn?.name || "";
+  let argsFragment = fn?.arguments ?? fn?.args ?? fn?.arguments_text ?? "";
+
+  if (argsFragment === undefined || argsFragment === null) {
+    argsFragment = "";
+  } else if (typeof argsFragment !== "string") {
+    try {
+      argsFragment = JSON.stringify(argsFragment);
+    } catch {
+      argsFragment = String(argsFragment);
+    }
+  }
+
+  const existing = pendingToolArgs.get(id) || { name: "", argsStr: "" };
+  const combinedName = existing.name || name;
+  const combinedArgsStr = existing.argsStr + argsFragment;
+
+  pendingToolArgs.set(id, { name: combinedName, argsStr: combinedArgsStr });
+
+  // Try to parse the combined string as JSON only if it looks like JSON
+  let parsedArgs;
+  try {
+    const trimmedArgs = combinedArgsStr.trim();
+    if (trimmedArgs.startsWith("{") || trimmedArgs.startsWith("[")) {
+      parsedArgs = JSON.parse(trimmedArgs);
+    }
+  } catch {
+    parsedArgs = null; // Not complete / invalid JSON yet
+  }
+
+  // If parsed and not already pushed
+  if (parsedArgs !== undefined && parsedArgs !== null && !pushedToolIds.has(id)) {
+    // Infer a name if missing
+    let finalName = combinedName || "";
+    if (!finalName && parsedArgs && typeof parsedArgs === "object") {
+      if (parsedArgs.query) finalName = "web_search";
+      // Add more heuristics here if needed
+    }
+
+    if (finalName && TOOL_HANDLERS[finalName]) {
+      const fullCall = {
+        id,
+        type: "function",
+        function: {
+          name: finalName,
+          arguments: JSON.stringify(parsedArgs)
+        }
+      };
+      toolCalls.push(fullCall);
+      pushedToolIds.add(id);
+      pendingToolArgs.delete(id);
+    } else {
+      // Mark as pushed/handled so we don't loop forever on fragments
+      pushedToolIds.add(id);
+      pendingToolArgs.delete(id);
+      console.warn(`[${provider}] Outil ignoré après assemblage : ${finalName || "(no-name)"} (id=${id})`);
+    }
+  }
+}
+
+// ============================================================================
+// ANALYSE DES DIRECTIVES - Extraction des directives utilisateur
+// ============================================================================
+
+const MODEL_DIRECTIVE_REGEX = /model\s*=\s*([^\s;]+)/i;
+const PROVIDER_DIRECTIVE_REGEX = /provider\s*=\s*(anthropic|openai|huggingface|mistral)/i;
+const MODE_DIRECTIVE_REGEX = /mode\s*=\s*(debug)/i;
+
+const MODEL_PROVIDER_PATTERNS = {
+  anthropic: ["claude", "anthropic"],
+  openai: ["gpt-", "gpt", "openai", "oai"],
+  mistral: ["mistral"],
+  huggingface: ["huggingface", "hf"]
+};
+const PROVIDERS = ["openai", "mistral", "huggingface", "anthropic"];
+
+const parseDirectives = (rawQuestion = "") => {
+  const trimmed = String(rawQuestion).trim();
+  const semicolonIndex = trimmed.indexOf(";");
+  const directiveSource = semicolonIndex >= 0 ? trimmed.slice(0, semicolonIndex).trim() : trimmed;
+  let userQuestion = semicolonIndex >= 0 ? trimmed.slice(semicolonIndex + 1).trim() : trimmed;
+
+  if (semicolonIndex < 0) {
+    userQuestion = userQuestion
+      .replace(MODE_DIRECTIVE_REGEX, "")
+      .replace(MODEL_DIRECTIVE_REGEX, "")
+      .replace(PROVIDER_DIRECTIVE_REGEX, "")
+      .replace(MODEL_MODE_DIRECTIVE_REGEX, "")
+      .trim();
+  }
+
+  const modelModeMatch = directiveSource.match(MODEL_MODE_DIRECTIVE_REGEX);
+  const providerMatch = directiveSource.match(PROVIDER_DIRECTIVE_REGEX);
+  const modelMatch = directiveSource.match(MODEL_DIRECTIVE_REGEX);
+
+  return {
+    rawDirective: directiveSource,
+    userQuestion,
+    hasDirectiveBlock: semicolonIndex >= 0,
+    directiveModelMode: modelModeMatch ? modelModeMatch[1].toLowerCase() : null,
+    directiveProvider: providerMatch ? providerMatch[1].toLowerCase() : null,
+    directiveModel: modelMatch ? modelMatch[1].toLowerCase() : null
+  };
+};
+
+const detectModelProvider = (model) => {
+  if (!model) return null;
+  const target = model.toLowerCase();
+  return PROVIDERS.find(provider =>
+    MODEL_PROVIDER_PATTERNS[provider]?.some(pattern => target.includes(pattern))
+  );
+};
+
+const PROVIDER_ENV_CHECKERS = {
+  anthropic: () => Boolean(Deno.env.get("ANTHROPIC_API_KEY")),
+  openai: () => Boolean(Deno.env.get("OPENAI_API_KEY")),
+  mistral: () => Boolean(Deno.env.get("MISTRAL_API_KEY")),
+  huggingface: () => Boolean(Deno.env.get("HUGGINGFACE_API_KEY"))
+};
+const isProviderAvailable = (provider) => Boolean(PROVIDER_ENV_CHECKERS[provider]?.());
+
+const isMistralCapacityError = (error) => {
+  const msg = error?.message || "";
+  return /service_tier_capacity_exceeded|capacity|3505|429/i.test(msg);
+};
+
+const SHOULD_RANDOMIZE_PROVIDERS = Deno.env.get("DISABLE_PROVIDER_RANDOMIZATION") !== "1";
+const shuffleProviders = (providers) => {
+  const arr = [...providers];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+};
+
+const buildProviderOrder = (modelProvider, failedProviders = new Set()) => {
+  const order = [...PROVIDERS];
+  if (modelProvider && order.includes(modelProvider)) {
+    return [modelProvider, ...order.filter(p => p !== modelProvider)];
+  }
+  // Prioriser OpenAI si non échoué
+  if (!failedProviders.has("openai") && order.includes("openai")) {
+    return ["openai", ...order.filter(p => p !== "openai")];
+  }
+  return order; // Si OpenAI échoué, garder l'ordre par défaut (sera mélangé si SHOULD_RANDOMIZE)
+};
+
+const parseRetryAfter = (errorMessage) => {
+  const match = errorMessage.match(/Please try again in (\d+(?:\.\d+)?)s/);
+  return match ? parseFloat(match[1]) * 1000 : 5000; // default 5s if not found
+};
+
+const isRateLimitError = (error) => {
+  const msg = error?.message || "";
+  return /rate.?limit|429/i.test(msg) && /tokens?|requests?/i.test(msg);
+};
+
+function createDebugLogger() {
+  const pendingLogs = [];
+  let controllerRef = null;
+  let encoderRef = null;
+  let enabled = false;
+  const originals = {};
+
+  const formatArgs = (args) =>
+    args.map(arg => (typeof arg === "string" ? arg : JSON.stringify(arg))).join(" ");
+
+  const safeEnqueue = (line) => {
+    if (!controllerRef || !encoderRef) {
+      pendingLogs.push(line);
+      return;
+    }
+    try {
+      controllerRef.enqueue(encoderRef.encode(`\n\n${line}\n\n`));
+    } catch (err) {
+      // Controller may be closed; fallback to pending logs and detach controller
+      pendingLogs.push(line);
+      controllerRef = null;
+      encoderRef = null;
+    }
+  };
+
+  const emit = (level, args) => {
+    const line = `[DEBUG] ${level.toUpperCase()}: ${formatArgs(args)}`;
+    safeEnqueue(line);
+  };
+
+  const wrap = (level) => (...args) => {
+    originals[level](...args);
+    emit(level, args);
+  };
+
+  return {
+    enable() {
+      if (enabled) return;
+      enabled = true;
+      originals.log = console.log;
+      originals.warn = console.warn;
+      originals.error = console.error;
+      console.log = wrap("log");
+      console.warn = wrap("warn");
+      console.error = wrap("error");
+    },
+    attachStream(controller, encoder) {
+      if (!enabled) return;
+      controllerRef = controller;
+      encoderRef = encoder;
+      if (pendingLogs.length > 0) {
+        // try to flush, keep safe if controller throws
+        const logsToFlush = pendingLogs.splice(0);
+        for (const line of logsToFlush) {
+          try {
+            controller.enqueue(encoder.encode(`\n\n${line}\n\n`));
+          } catch (err) {
+            // If fails, put the remaining lines back to pending logs
+            pendingLogs.unshift(line);
+            controllerRef = null;
+            encoderRef = null;
+            break;
+          }
+        }
+      }
+    },
+    disable() {
+      if (!enabled) return;
+      console.log = originals.log;
+      console.warn = originals.warn;
+      console.error = originals.error;
+      enabled = false;
+      controllerRef = null;
+      encoderRef = null;
+    }
+  };
+}
+
+// ============================================================================
+// SYSTEM PROMPT - Chargement dynamique
+// ============================================================================
+async function fetchPublicSystemPrompt(siteUrl) {
+  if (!siteUrl) return null;
+  try {
+    const promptUrl = `${siteUrl}/prompts/bob-system.md`;
+    console.log(`[Prompt] ➜ fetching system prompt from ${promptUrl}`);
+    const response = await fetch(promptUrl);
+    console.log(`[Prompt] ⬅ status=${response.status}`);
+    if (response.ok) {
+      const content = await response.text();
+      console.log(`[Prompt] ⬅ content length=${content.length}`);
+      if (content.trim()) return content;
+    }
+  } catch (error) {
+    console.warn("[SystemPrompt] Erreur fetch:", error.message);
+  }
+  return null;
+}
+
+async function fetchCouncilContext(siteUrl) {
+  if (!siteUrl) return null;
+  try {
+    const councilUrl = `${siteUrl}/docs/conseils/conseil-consolidated.semantic.md`;
+    console.log(`[Council] ➜ fetching consolidated council context from ${councilUrl}`);
+    const response = await fetch(councilUrl);
+    console.log(`[Council] ⬅ status=${response.status}`);
+    if (response.ok) {
+      const text = await response.text();
+      console.log(`[Council] ⬅ content length=${text.length}`);
+      if (text.trim()) return text;
+    }
+  } catch (error) {
+    console.warn("[Council] ❌ Unable to fetch consolidated council context:", error.message);
+  }
   return null;
 }
 
 async function getSystemPrompt() {
   const currentDate = new Date().toLocaleDateString('fr-FR', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
   });
+  let basePrompt = `📅 **Date actuelle :** ${currentDate}\n\n`;
 
-  let basePrompt = `Date actuelle : ${currentDate}\n\n`;
-
+  // 1. Charge le prompt depuis l'URL publique
   const siteUrl = Deno.env.get("URL") || Deno.env.get("DEPLOY_PRIME_URL");
-
   const localPrompt = await fetchPublicSystemPrompt(siteUrl);
   if (localPrompt) {
     basePrompt += localPrompt;
   } else {
+    // 2. Fallback avec les variables d'environnement
     const envPrompt = Deno.env.get("BOB_SYSTEM_PROMPT");
     if (envPrompt) {
       basePrompt += envPrompt;
     } else {
-      // 2. Fallback avec paramètres
+      // 3. Fallback par défaut
       const city = Deno.env.get("CITY_NAME") || "Corte";
       const movement = Deno.env.get("MOVEMENT_NAME") || "Pertitellu";
-      const party = Deno.env.get("PARTY_NAME") || "Petit Parti";
       const bot = Deno.env.get("BOT_NAME") || "Ophélia";
-      const hashtag = Deno.env.get("HASHTAG") || "#PERTITELLU";
+      basePrompt += `
+      **Rôle :** Tu es **${bot}**, l'assistant citoyen du mouvement **${movement}** pour la commune de **${city}**.
 
-      basePrompt += `Tu es l'assistant citoyen ${bot} du mouvement/parti ${movement} (${party}) ${hashtag} pour la commune de ${city}. Réponds uniquement en français, de façon factuelle, concise et structurée en Markdown (titres, listes, tableaux, liens) en citant les ressources officielles pertinentes quand c'est possible.`;
+      **Instructions :**
+      - Réponds **uniquement en français**, de manière **factuelle, concise et structurée** (Markdown : titres, listes, liens).
+      - Cite toujours tes **sources officielles** quand c'est possible.
+      - Pour les questions locales (projets, horaires), utilise les outils disponibles (**web_search**, base de données locale).
+      - Si tu ne connais pas la réponse, dis-le clairement et propose une alternative.
+
+      **Exemple de réponse :**
+      > **Horaires de la mairie :**
+      > - Lundi-vendredi : 8h30-17h
+      > - Samedi : 9h-12h
+      > *(Source : [site de la mairie](#))*`;
     }
   }
 
-  // 3. Charger le wiki consolidé depuis Supabase
+  // 4. Charge le wiki consolidé depuis Supabase
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
   if (supabaseUrl && supabaseKey) {
     try {
       const response = await fetch(
@@ -76,12 +837,11 @@ async function getSystemPrompt() {
           }
         }
       );
-
       if (response.ok) {
         const data = await response.json();
-        if (data && data.length > 0 && data[0].content) {
-          basePrompt += `\n\nVoici un résumé consolidé des pages wiki disponibles. Utilise ces informations pour répondre aux questions si elles sont pertinentes:\n\n${data[0].content}`;
-          console.log(`[SystemPrompt] ✅ Wiki consolidé chargé: ${data[0].content.length} chars`);
+        console.log(`[SystemPrompt] Supabase data preview: ${previewForLog(data?.[0]?.content, 100)}`);
+        if (data?.length > 0 && data[0].content) {
+          basePrompt += `\n\n📚 **Contexte local (wiki) :**\n${data[0].content}...`;
         }
       }
     } catch (error) {
@@ -89,665 +849,513 @@ async function getSystemPrompt() {
     }
   }
 
-  // 4. Charger conseil-consolidated.semantic.md via HTTP si déployé
-  if (siteUrl) {
-    try {
-      const councilUrl = `${siteUrl}/docs/conseils/conseil-consolidated.semantic.md`;
-      const response = await fetch(councilUrl);
-      if (response.ok) {
-        const councilContext = await response.text();
-        if (councilContext.trim()) {
-          basePrompt += `\n\n===== CONTEXTE MUNICIPAL (sources locales) =====\n\n${councilContext}`;
-          console.log(`[SystemPrompt] ✅ Conseil consolidé chargé: ${councilContext.length} chars`);
-        }
-      }
-    } catch (error) {
-      console.warn("[SystemPrompt] conseil-consolidated.semantic.md non disponible:", error.message);
-    }
+  // 5. Charge le contexte municipal (si disponible)
+  const councilContext = await fetchCouncilContext(siteUrl);
+  if (councilContext) {
+    basePrompt += `\n\n🏛 **Contexte municipal (conseils consolidés) :**\n${councilContext}...`;
+  } else {
+    basePrompt += `\n\n🏛 **Contexte municipal (conseils consolidés) :** indisponible pour le moment.`;
   }
-
-  console.log(`[SystemPrompt] ✅ Prompt final: ${basePrompt.length} caractères`);
+  console.log(`[SystemPrompt] ✅ Prompt chargé (${basePrompt.length} caractères)`);
   return basePrompt;
 }
 
 // ============================================================================
-// BRAVE SEARCH
+// HANDLER - Fonction principale de gestion des requêtes
 // ============================================================================
 
-async function performWebSearch(query) {
-  const apiKey = Deno.env.get("BRAVE_SEARCH_API_KEY");
-
-  if (!apiKey) {
-    console.warn("[WebSearch] ⚠️ BRAVE_SEARCH_API_KEY manquant");
-    return `Recherche web non configurée pour: "${query}"`;
+const handler = async (request) => {
+  // 1. Vérifie la méthode HTTP
+  if (request.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Méthode non autorisée." }), { status: 405 });
   }
 
+  // 2. Parse le corps de la requête
+  let body;
   try {
-    const url = new URL("https://api.search.brave.com/res/v1/web/search");
-    url.searchParams.append("q", query);
-    url.searchParams.append("count", "3");
-    url.searchParams.append("search_lang", "fr");
-    url.searchParams.append("country", "FR");
-
-    console.log(`[WebSearch] 🌐 Appel API Brave pour: "${query}"`);
-
-    const response = await fetch(url.toString(), {
-      method: "GET",
-      headers: {
-        "Accept": "application/json",
-        "X-Subscription-Token": apiKey
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Brave API: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    let resultText = `Résultats pour "${query}":\n\n`;
-
-    if (data.web && data.web.results) {
-      data.web.results.slice(0, 3).forEach((result, i) => {
-        const shortDesc = result.description?.substring(0, 150) || "";
-        resultText += `${i + 1}. ${result.title}\n`;
-        resultText += `   ${shortDesc}...\n`;
-        resultText += `   Source: ${result.url}\n\n`;
-      });
-    }
-
-    if (data.locations && data.locations.results && data.locations.results.length > 0) {
-      resultText += `\nINFOS LOCALES:\n`;
-      data.locations.results.slice(0, 2).forEach(loc => {
-        resultText += `- ${loc.title}\n`;
-        if (loc.address) resultText += `  Adresse: ${loc.address}\n`;
-        if (loc.phone) resultText += `  Tél: ${loc.phone}\n`;
-        if (loc.hours) resultText += `  Horaires: ${loc.hours}\n`;
-      });
-    }
-
-    console.log(`[WebSearch] ✅ ${data.web?.results?.length || 0} résultats formatés`);
-    return resultText;
-
-  } catch (error) {
-    console.error("[WebSearch] ❌", error.message);
-    return `Erreur recherche: ${error.message}`;
-  }
-}
-
-const WEB_SEARCH_FUNCTION = {
-  name: "web_search",
-  description: "Rechercher des informations locales et municipales actualisées pour Corte.",
-  parameters: {
-    type: "object",
-    properties: {
-      query: {
-        type: "string",
-        description: "Une question courte (2-6 mots) ciblée sur Corte/mairie/événements.",
-        minLength: 3
-      }
-    },
-    required: ["query"]
-  }
-};
-
-const TOOL_HANDLERS = {
-  web_search: async (input) => {
-    const query = input?.query?.trim();
-    if (!query) {
-      throw new Error("Le paramètre 'query' est requis pour le web_search.");
-    }
-    return await performWebSearch(query);
-  }
-};
-
-// ============================================================================
-// ANTHROPIC AGENT (avec tools et streaming)
-// ============================================================================
-
-async function* runAnthropicAgentStream(question, systemPrompt, conversationHistory = []) {
-  const model = Deno.env.get("ANTHROPIC_MODEL") || "claude-sonnet-4-5-20250929";
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-
-  if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY manquant");
+    body = await request.json();
+  } catch {
+    return new Response("Charge utile invalide", { status: 400 });
   }
 
-  const anthropicClient = new Anthropic({ apiKey });
-
-  const tools = [
-    {
-      name: "web_search",
-      description: "Search the web for current information about Corte, municipal services, local events, or verify facts that may have changed since January 2025.",
-      input_schema: {
-        type: "object",
-        properties: {
-          query: {
-            type: "string",
-            description: "Search query in French (2-6 words). Examples: 'mairie corte horaires', 'conseil municipal corte 2025'"
-          }
-        },
-        required: ["query"]
-      }
-    }
-  ];
-
-  console.log(`[Anthropic] 🚀 Model: ${model}`);
-  console.log(`[Anthropic] 📝 Question: "${question}"`);
-  console.log(`[Anthropic] 📚 Historique: ${conversationHistory.length} messages`);
-  console.log(`[Anthropic] ⏱️ Start: ${new Date().toISOString()}`);
-
-  // ✅ Construire l'historique intelligent (max 5 derniers échanges)
-  const MAX_HISTORY = 5;
-  const recentHistory = conversationHistory.slice(-MAX_HISTORY);
-  
-  let messages = [];
-  
-  // Ajouter l'historique formaté
-  for (const item of recentHistory) {
-    if (item.role === "user" && item.content) {
-      messages.push({ role: "user", content: item.content });
-    } else if (item.role === "assistant" && item.content) {
-      messages.push({ role: "assistant", content: item.content });
-    }
+  // 3. Valide la question
+  const rawQuestion = String(body?.question || "").trim();
+  if (!rawQuestion) {
+    return new Response("Question manquante", { status: 400 });
   }
-  
-  // Ajouter la question actuelle
-  messages.push({ role: "user", content: question });
-  
-  console.log(`[Anthropic] 💬 Messages context: ${messages.length} (${recentHistory.length} historique + 1 nouvelle)`);
 
-  let iterationCount = 0;
-  const MAX_ITERATIONS = 1;
+  // 4. Récupère l'historique de conversation
+  const conversation_history = Array.isArray(body?.conversation_history)
+    ? body.conversation_history
+    : [];
 
-  while (iterationCount <= MAX_ITERATIONS) {
-    console.log(`[Anthropic] 📡 Appel API Claude (iteration ${iterationCount})...`);
+  // 5. Parse les directives (modèle, fournisseur, debug)
+  const {
+    rawDirective,
+    userQuestion,
+    hasDirectiveBlock,
+    directiveModelMode,
+    directiveProvider,
+    directiveModel
+  } = parseDirectives(rawQuestion);
 
-    const stream = await anthropicClient.messages.stream({
-      model,
-      max_tokens: 8192,
-      temperature: 0.3,
-      system: systemPrompt,
-      messages,
-      tools
-    });
+  const bodyModelMode = typeof body?.modelMode === 'string'
+    ? body.modelMode.trim().toLowerCase()
+    : null;
+  const effectiveModelMode = directiveModelMode || bodyModelMode;
+  const debugMode = Boolean(rawDirective && MODE_DIRECTIVE_REGEX.test(rawDirective));
 
-    let currentToolUse = null;
-    let hasToolUse = false;
-    let textContent = "";
-    let allContent = [];
+  // 6. Détermine le fournisseur et le modèle
+  let forcedProvider = directiveProvider;  // Ex: "provider=anthropic"
+  let modelProvider = directiveModel ? detectModelProvider(directiveModel) : null;
 
-    // Stream les chunks
-    for await (const chunk of stream) {
-      if (chunk.type === "content_block_start") {
-        if (chunk.content_block.type === "tool_use") {
-          currentToolUse = {
-            id: chunk.content_block.id,
-            name: chunk.content_block.name,
-            input: {}
-          };
-          hasToolUse = true;
-          console.log(`[Anthropic] 🔧 Tool détecté: ${chunk.content_block.name}`);
-        } else if (chunk.content_block.type === "text") {
-          allContent.push({ type: "text", text: "" });
-        }
-      } else if (chunk.type === "content_block_delta") {
-        if (chunk.delta.type === "text_delta") {
-          const text = chunk.delta.text;
-          textContent += text;
-          if (allContent.length > 0 && allContent[allContent.length - 1].type === "text") {
-            allContent[allContent.length - 1].text += text;
-          }
-          yield text; // Stream progressif à l'utilisateur
-        } else if (chunk.delta.type === "input_json_delta" && currentToolUse) {
-          // Accumuler l'input du tool
+  // 7. Vérifie la disponibilité des clés API
+  if (forcedProvider && !isProviderAvailable(forcedProvider)) {
+    return new Response(
+      JSON.stringify({
+        error: `Le fournisseur "${forcedProvider}" est demandé mais non configuré.`
+      }),
+      { status: 400 }
+    );
+  }
+
+  if (modelProvider && !isProviderAvailable(modelProvider)) {
+    return new Response(
+      JSON.stringify({
+        error: `Le modèle "${directiveModel}" requiert "${modelProvider}", mais sa clé API est absente.`
+      }),
+      { status: 400 }
+    );
+  }
+
+  // 8. Détermine l'ordre des fournisseurs
+  const enforcedProvider = forcedProvider || modelProvider;
+  const failedProviders = new Set(); // Suivi des échecs pendant la conversation
+  let providerOrder = buildProviderOrder(enforcedProvider, failedProviders);
+  if (!enforcedProvider && SHOULD_RANDOMIZE_PROVIDERS) {
+    providerOrder = shuffleProviders(providerOrder);
+  }
+  console.log(`[EdgeFunction] 🔧 Fournisseur: ${enforcedProvider || "auto"} (ordre=${providerOrder.join(",")})`);
+
+  // 9. Active les logs de debug
+  const debugLogger = debugMode ? createDebugLogger() : null;
+  debugLogger?.enable();
+
+  // 10. Logs initiaux
+  console.log(`[EdgeFunction] ========================================`);
+  console.log(`[EdgeFunction] 🎯 Question: "${rawQuestion}"`);
+  console.log(`[EdgeFunction] 📚 Historique: ${conversation_history.length} messages`);
+  console.log(`[EdgeFunction] 🔧 Fournisseur: ${enforcedProvider || "auto"}`);
+  console.log(`[EdgeFunction] ⏱️ Début: ${new Date().toISOString()}`);
+
+  // 11. Charge le prompt système
+  const systemPrompt = await getSystemPrompt();
+  console.log(`[EdgeFunction] 📏 System prompt: ${systemPrompt.length} caractères`);
+
+  // 12. Crée un ReadableStream pour la réponse
+  const encoder = new TextEncoder();
+  const readable = new ReadableStream({
+    async start(controller) {
+      debugLogger?.attachStream(controller, encoder);
+      const emitProviderMeta = (meta) =>
+        controller.enqueue(encoder.encode(`${PROVIDER_META_PREFIX}${JSON.stringify(meta)}\n`));
+      
+      // Préfixes pour les logs
+      const logPrefix = "📜 [LOG] ";
+      const errorPrefix = "❌ [ERREUR] ";
+      const chunkPrefix = "";
+
+      let handled = false;
+      let lastError = null;
+
+      // 13. Essaie chaque fournisseur dans l'ordre
+      for (let providerIndex = 0; providerIndex < providerOrder.length; providerIndex++) {
+        const provider = providerOrder[providerIndex];
+        let providerRetries = 0;
+        const maxProviderRetries = 2;
+
+        while (providerRetries <= maxProviderRetries) {
           try {
-            const partialInput = JSON.parse(chunk.delta.partial_json);
-            currentToolUse.input = { ...currentToolUse.input, ...partialInput };
-          } catch {
-            // JSON partiel, on attend la suite
+            if (provider === "mistral" && Deno.env.get("MISTRAL_API_KEY")) {
+              const resolvedModel = resolveModelForProvider(provider, effectiveModelMode);
+              emitProviderMeta({ provider, model: resolvedModel });
+              console.log(`[EdgeFunction] 🌀 Tentative avec ${provider} (model=${resolvedModel})...`);
+              
+              for await (const chunk of runConversationalAgent({
+                provider: "mistral",
+                question: userQuestion,
+                systemPrompt,
+                conversationHistory: conversation_history,
+                maxToolCalls: 2,
+                modelMode: effectiveModelMode
+              })) {
+                controller.enqueue(encoder.encode(chunkPrefix + chunk));
+              }
+              handled = true;
+              break;
+            }
+
+            if (provider === "anthropic" && Deno.env.get("ANTHROPIC_API_KEY")) {
+              const resolvedModel = resolveModelForProvider(provider, effectiveModelMode);
+              emitProviderMeta({ provider, model: resolvedModel });
+              console.log(`[EdgeFunction] 🔄 Tentative avec ${provider} (model=${resolvedModel})...`);
+              
+              for await (const chunk of runConversationalAgent({
+                provider: "anthropic",
+                question: userQuestion,
+                systemPrompt,
+                conversationHistory: conversation_history,
+                maxToolCalls: 2,
+                modelMode: effectiveModelMode
+              })) {
+                controller.enqueue(encoder.encode(chunkPrefix + chunk));
+              }
+              handled = true;
+              break;
+            }
+
+            if (provider === "openai" && Deno.env.get("OPENAI_API_KEY")) {
+              const resolvedModel = resolveModelForProvider(provider, effectiveModelMode);
+              emitProviderMeta({ provider, model: resolvedModel });
+              console.log(`[EdgeFunction] 🤖 Tentative avec ${provider} (model=${resolvedModel})...`);
+              
+              for await (const chunk of runConversationalAgent({
+                provider: "openai",
+                question: userQuestion,
+                systemPrompt,
+                conversationHistory: conversation_history,
+                maxToolCalls: 2,
+                modelMode: effectiveModelMode
+              })) {
+                controller.enqueue(encoder.encode(chunkPrefix + chunk));
+              }
+              handled = true;
+              break;
+            }
+
+            if (provider === "huggingface" && Deno.env.get("HUGGINGFACE_API_KEY")) {
+              const resolvedModel = resolveModelForProvider(provider, effectiveModelMode);
+              emitProviderMeta({ provider, model: resolvedModel });
+              console.log(`[EdgeFunction] 🤗 Tentative avec ${provider} (model=${resolvedModel})...`);
+              
+              const result = await runHuggingFaceAgent(
+                userQuestion,
+                systemPrompt,
+                effectiveModelMode
+              );
+              controller.enqueue(encoder.encode(chunkPrefix + result));
+              handled = true;
+              break;
+            }
+
+          } catch (error) {
+            const isForcedProvider = forcedProvider === provider;
+            const capacityError = provider === "mistral" && isMistralCapacityError(error);
+            const rateLimitError = provider === "openai" && isRateLimitError(error);
+
+            if (capacityError && !isForcedProvider) {
+              const fallbackMessage = `${errorPrefix}${provider} indisponible (crédit/limite atteinte). Tentative avec un autre fournisseur...\n\n`;
+              console.warn(`[EdgeFunction] ⚠️ ${provider} capacité atteinte, suppression de ${provider} de la rotation.`);
+              controller.enqueue(encoder.encode(fallbackMessage));
+              providerOrder.splice(providerIndex, 1);
+              providerIndex--;
+              continue;
+            } else if (rateLimitError && providerRetries < maxProviderRetries) {
+              const delayMs = parseRetryAfter(error.message);
+              console.warn(`[EdgeFunction] ⏳ ${provider} rate limit, retrying in ${delayMs}ms (attempt ${providerRetries + 1}/${maxProviderRetries + 1})`);
+              await new Promise(resolve => setTimeout(resolve, delayMs));
+              providerRetries++;
+              continue; // retry same provider
+            } else {
+              lastError = error;
+              const errorMessage = `${errorPrefix}${provider} a échoué: ${error.message}\n\n`;
+              if (error.stack && !errorMessage.includes("API")) {
+                console.error(errorMessage, error.stack);
+              }
+              controller.enqueue(encoder.encode(errorMessage));
+              failedProviders.add(provider); // Marquer comme échoué
+              break; // move to next provider
+            }
           }
         }
-      } else if (chunk.type === "content_block_stop" && currentToolUse) {
-        allContent.push({
-          type: "tool_use",
-          id: currentToolUse.id,
-          name: currentToolUse.name,
-          input: currentToolUse.input
-        });
-        currentToolUse = null;
+        if (handled) break;
       }
-    }
 
-    const finalMessage = await stream.finalMessage();
-
-    // Si pas de tool_use, on a fini
-    if (!hasToolUse || iterationCount >= MAX_ITERATIONS) {
-      console.log(`[Anthropic] ✅ Terminé (${textContent.length} chars)`);
-      break;
-    }
-
-    // Exécuter les tools
-    iterationCount++;
-    console.log(`[Anthropic] 🔄 Iteration ${iterationCount}: execution tools...`);
-
-    const toolUseBlocks = finalMessage.content.filter(block => block.type === "tool_use");
-
-    const toolResults = [];
-
-    for (const toolUse of toolUseBlocks) {
-      const handler = TOOL_HANDLERS[toolUse.name];
-      if (!handler) continue;
-      yield "\n\n🔍 Recherche sur Internet en cours…\n\n";
-      const query = toolUse.input?.query;
-      console.log(`[Anthropic] 🔍 Recherche: "${query}"`);
-      try {
-        const searchResults = await handler(toolUse.input);
-        toolResults.push({
-          type: "tool_result",
-          tool_use_id: toolUse.id,
-          content: searchResults
-        });
-      } catch (error) {
-        console.error(`[Anthropic] ❌ Erreur recherche:`, error.message);
-        toolResults.push({
-          type: "tool_result",
-          tool_use_id: toolUse.id,
-          content: `Erreur: ${error.message}`,
-          is_error: true
-        });
+      // 14. Gestion des erreurs
+      if (!handled) {
+        const message = lastError?.message || "Aucun fournisseur disponible.";
+        controller.enqueue(encoder.encode(`${errorPrefix}${message}\n\n`));
       }
+      controller.close();
+    },
+
+    cancel() {
+      debugLogger?.disable();
     }
+  });
 
-    // Ajouter les résultats dans la conversation
-    messages.push({
-      role: "assistant",
-      content: finalMessage.content
-    });
+  // 15. Retourne la réponse streamée
+  return new Response(readable, {
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-cache",
+      "X-Content-Type-Options": "nosniff"
+    }
+  });
+};
 
-    messages.push({
-      role: "user",
-      content: toolResults
-    });
+// Add runConversationalAgent (hoisted so handler can call it)
+async function* runConversationalAgent({
+  provider = "mistral",
+  question,
+  systemPrompt,
+  conversationHistory = [],
+  maxToolCalls = 2,
+  modelMode
+}) {
+  let toolCallCount = 0;
+  const idleTimeoutMs = Number(Deno.env.get("LLM_STREAM_TIMEOUT_MS")) || 30000;
 
-    yield "\n\n---\n\n"; // Séparateur visuel entre recherche et réponse finale
-  }
-
-  console.log(`[Anthropic] ⏱️ End: ${new Date().toISOString()}`);
-}
-
-// ============================================================================
-// OPENAI FALLBACK (streaming)
-// ============================================================================
-
-async function* runOpenAIAgentStream(question, systemPrompt, conversationHistory = []) {
-  const apiKey = Deno.env.get("OPENAI_API_KEY");
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY manquant");
-  }
-
-  const model = Deno.env.get("OPENAI_MODEL") || "gpt-4o-mini";
-
-  console.log(`[OpenAI] 🚀 Model: ${model}`);
-  console.log(`[OpenAI] 📚 Historique: ${conversationHistory.length} messages`);
-
-  const MAX_HISTORY = 5;
-  const recentHistory = conversationHistory.slice(-MAX_HISTORY);
-
-  const messages = [
+  let messages = [
     { role: "system", content: systemPrompt },
-    ...recentHistory.filter(item => item.role && item.content),
+    ...conversationHistory,
     { role: "user", content: question }
   ];
 
-  const functions = [WEB_SEARCH_FUNCTION];
-  const MAX_ITERATIONS = 3;
+  console.log(`[${provider}] ✅ runConversationalAgent initialized (maxToolCalls=${maxToolCalls})`);
 
-  for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
-    console.log(`[OpenAI] 🔄 Iteration ${iteration + 1} (fonctionnalités web)`);
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 8192,
-        temperature: 0.3,
-        stream: true,
-        messages,
-        functions,
-        function_call: "auto"
-      })
+  while (toolCallCount < maxToolCalls) {
+    console.log(`[${provider}] 🔁 Appel LLM (model=${resolveModelForProvider(provider, modelMode)}) - messages:${messages.length}`);
+    const streamOrDirect = await callLLMAPI({
+      provider,
+      model: resolveModelForProvider(provider, modelMode),
+      messages,
+      tools: Object.values(TOOLS),
+      toolChoice: "auto",
+      stream: true
     });
 
-    if (!response.ok) {
-      const body = await response.text();
-      const err = new Error(`OpenAI API ${response.status}: ${body}`);
-      err.isProviderError = true;
-      throw err;
+    // Direct (non-stream) response
+    if (!isAsyncIterable(streamOrDirect)) {
+      console.log(`[${provider}] ℹ️ Direct LLM response received`);
+      const data = streamOrDirect || {};
+      if (data.toolCalls && data.toolCalls.length > 0) {
+        const normalized = normalizeToolCalls(data.toolCalls);
+        const valid = normalized.filter(c => c.function?.name && TOOL_HANDLERS[c.function.name]);
+        if (valid.length > 0) {
+          toolCallCount++;
+          console.log(`[${provider}] 🛠 Executing ${valid.length} tool(s) (direct):`, valid.map(c => c.function.name));
+          const toolMessages = await executeToolCalls(valid, provider, { web_search: { query: question }, defaultQuery: question });
+          messages = [
+            ...messages,
+            { role: "assistant", content: data.content || null, ...(provider === "anthropic" ? { tool_uses: valid } : { tool_calls: valid }) },
+            ...toolMessages
+          ];
+          continue; // re-run LLM with augmented messages
+        }
+      }
+      if (data.content) {
+        yield data.content;
+      }
+      return;
     }
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
+    // Streamed response: iterate events with timeout
+    console.log(`[${provider}] 🚀 Streaming LLM response - processing events`);
+    const iterator = streamOrDirect[Symbol.asyncIterator]?.();
+    let accumulatedContent = "";
+    let eventToolExecuted = false;
+    let streamTimedOut = false;
+    let finalStreamResult = undefined;
 
-    let finishReason = null;
-    let functionCall = null;
-    let functionArgsBuffer = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const chunk = decoder.decode(value);
-      const lines = chunk.split("\n").filter(line => line.trim().startsWith("data: "));
-
-      for (const line of lines) {
-        const data = line.replace("data: ", "").trim();
-        if (data === "[DONE]") continue;
-
+    try {
+      while (true) {
+        const nextPromise = iterator.next();
+        let res;
         try {
-          const parsed = JSON.parse(data);
-          const choice = parsed.choices?.[0];
-          finishReason = choice?.finish_reason || finishReason;
-          const delta = choice?.delta || {};
+          res = await Promise.race([
+            nextPromise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error("stream-timeout")), idleTimeoutMs))
+          ]);
+        } catch (err) {
+          if (err?.message === "stream-timeout") {
+            console.warn(`[${provider}] ⚠️ Stream idle timeout (${idleTimeoutMs}ms). Falling back to direct call.`);
+            streamTimedOut = true;
+            break;
+          }
+          throw err;
+        }
 
-          if (delta.content) {
-            yield delta.content;
+        if (res.done) {
+          console.log(`[${provider}] ℹ️ Stream finished cleanly`);
+          finalStreamResult = res.value;
+          break;
+        }
+        const evt = res.value;
+        if (!evt) continue;
+
+        if (typeof evt === "string") {
+          accumulatedContent += evt;
+          yield evt;
+          continue;
+        }
+        if (evt.type === "content") {
+          accumulatedContent += evt.chunk;
+          yield evt.chunk;
+          continue;
+        }
+        if (evt.type === "tool_call") {
+          const call = evt.call;
+          const fnName = call?.function?.name;
+          console.log(`[${provider}] 🛠 Received tool_call event: id=${call?.id}, name=${fnName || "(no-name)"}`);
+
+          if (!fnName || !TOOL_HANDLERS[fnName]) {
+            console.warn(`[${provider}] ⚠️ Unknown/unsupported tool: ${fnName || "(no-name)"} - ignoring`);
+            continue;
           }
 
-          if (delta.function_call) {
-            functionCall = functionCall || { name: null, arguments: "" };
-            if (delta.function_call.name) {
-              functionCall.name = delta.function_call.name;
-            }
-            if (delta.function_call.arguments) {
-              functionArgsBuffer += delta.function_call.arguments;
-            }
+          toolCallCount++;
+          if (toolCallCount > maxToolCalls) {
+            throw new Error(`[${provider}] Limite de ${maxToolCalls} appels d'outils atteinte.`);
           }
-        } catch {
-          // Ignorer les lignes mal formées
+
+          console.log(`[${provider}] 🛠 Executing tool now: ${fnName} (id=${call.id})`);
+          const toolMessages = await executeToolCalls([call], provider, { web_search: { query: question }, defaultQuery: question });
+
+          messages = [
+            ...messages,
+            {
+              role: "assistant",
+              content: accumulatedContent || null,
+              ...(provider === "anthropic" ? { tool_uses: [call] } : { tool_calls: [call] })
+            },
+            ...toolMessages
+          ];
+
+          eventToolExecuted = true;
+          break; // restart LLM with updated messages
         }
       }
+    } finally {
+      try { if (iterator?.return) await iterator.return(); } catch { /* ignore */ }
     }
 
-    console.log(`[OpenAI] 🧾 Finish reason: ${finishReason || 'unknown'}`);
-    if (finishReason === "function_call" && functionCall?.name) {
-      let parsedArgs = {};
-      try {
-        parsedArgs = JSON.parse(functionArgsBuffer || "{}");
-      } catch {
-        console.warn("[OpenAI] ⚠️ Arguments de fonction non JSON, on continue avec un objet vide.");
-      }
-
-      const handler = TOOL_HANDLERS[functionCall.name];
-      if (!handler) {
-        console.warn(`[OpenAI] ⚠️ Aucun handler pour la fonction ${functionCall.name}`);
-        break;
-      }
-
-      console.log(`[OpenAI] 🔍 Fonction '${functionCall.name}' invoquée avec ${JSON.stringify(parsedArgs)}`);
-      yield "\n\n🔍 Recherche sur Internet en cours…\n\n";
-
-      const toolResult = await handler(parsedArgs);
-
-      messages.push({
-        role: "assistant",
-        content: null,
-        function_call: {
-          name: functionCall.name,
-          arguments: functionArgsBuffer
-        }
-      });
-      messages.push({
-        role: "function",
-        name: functionCall.name,
-        content: toolResult
-      });
-
+    if (eventToolExecuted) {
+      console.log(`[${provider}] 🔄 Completed a tool call cycle during streaming, restarting LLM loop`);
       continue;
     }
 
-    console.log(`[OpenAI] ✅ Stream terminé`);
-    break;
+    const streamToolCalls = Array.isArray(finalStreamResult?.toolCalls)
+      ? normalizeToolCalls(finalStreamResult.toolCalls)
+      : [];
+    const validStreamCalls = streamToolCalls.filter(c => c.function?.name && TOOL_HANDLERS[c.function.name]);
+    if (validStreamCalls.length > 0) {
+      toolCallCount++;
+      console.log(`[${provider}] 🛠 Executing ${validStreamCalls.length} tool(s) (stream completion):`, validStreamCalls.map(c => c.function.name));
+      const toolMessages = await executeToolCalls(validStreamCalls, provider, { web_search: { query: question }, defaultQuery: question });
+      messages = [
+        ...messages,
+        { role: "assistant", content: finalStreamResult?.content || null, ...(provider === "anthropic" ? { tool_uses: validStreamCalls } : { tool_calls: validStreamCalls }) },
+        ...toolMessages
+      ];
+      continue;
+    }
+
+    if (accumulatedContent && accumulatedContent.trim().length > 0) {
+      console.log(`[${provider}] ✅ Streaming provided content (${accumulatedContent.length} chars). Returning.`);
+      return;
+    }
+
+    // Fallback: direct call to fetch content/tool_calls if stream timed out or provided nothing
+    console.log(`[${provider}] ⚠️ ${streamTimedOut ? "Stream timed out." : "No tool calls/content from stream."} Attempting direct fallback.`);
+    const direct = await callLLMAPI({
+      provider,
+      model: resolveModelForProvider(provider, modelMode),
+      messages,
+      tools: Object.values(TOOLS),
+      toolChoice: "auto",
+      stream: false
+    });
+
+    const directHasContent = Boolean(direct?.content && String(direct.content).trim());
+    const directHasToolCalls = Array.isArray(direct?.toolCalls) && direct.toolCalls.length > 0;
+
+    if (directHasToolCalls) {
+      const normalized = normalizeToolCalls(direct.toolCalls);
+      const valid = normalized.filter(c => c.function?.name && TOOL_HANDLERS[c.function.name]);
+      if (valid.length > 0) {
+        toolCallCount++;
+        console.log(`[${provider}] 🛠 Executing ${valid.length} tool(s) (direct fallback):`, valid.map(c => c.function.name));
+        const toolMessages = await executeToolCalls(valid, provider, { web_search: { query: question }, defaultQuery: question });
+        messages = [
+          ...messages,
+          { role: "assistant", content: direct.content || null, ...(provider === "anthropic" ? { tool_uses: valid } : { tool_calls: valid }) },
+          ...toolMessages
+        ];
+        continue; // re-run LLM
+      } else {
+        console.warn(`[${provider}] ⚠️ Direct fallback tool_calls present but none were valid/handled.`);
+      }
+    }
+
+    if (directHasContent) {
+      console.log(`[${provider}] ✅ Direct fallback returned content (${String(direct.content).length} chars).`);
+      yield direct.content;
+      return;
+    }
+
+    console.warn(`[${provider}] ⚠️ Direct fallback returned no content and no tool_calls.`);
+    return;
   }
+
+  throw new Error(`[${provider}] Limite de ${maxToolCalls} appels d'outils atteinte.`);
 }
 
-async function runOpenAIAgent({ question, systemPrompt }) {
-  const apiKey = Deno.env.get("OPENAI_API_KEY");
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY manquant");
-  }
+async function runHuggingFaceAgent(userQuestion, systemPrompt, modelMode) {
+  const provider = "huggingface";
+  const apiKey = Deno.env.get("HUGGINGFACE_API_KEY");
+  if (!apiKey) throw new Error("Clé API manquante pour huggingface");
 
-  const model = Deno.env.get("OPENAI_MODEL") || "gpt-4o-mini";
+  const model = resolveModelForProvider(provider, modelMode) || PROVIDER_CONFIGS.huggingface.defaultModel;
+  const url = typeof PROVIDER_CONFIGS.huggingface.apiUrl === "function"
+    ? PROVIDER_CONFIGS.huggingface.apiUrl(model)
+    : PROVIDER_CONFIGS.huggingface.apiUrl;
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+  const messages = [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: userQuestion }
+  ];
+
+  const payload = {
+    model,
+    messages,
+    temperature: 0.3,
+    top_p: 0.95,
+    stream: false
+  };
+
+  console.log(`[huggingface] ➜ request model=${model}`);
+  const resp = await fetch(url, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({
-      model,
-      max_tokens: 8192,
-      temperature: 0.3,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: question }
-      ]
-    })
+    body: JSON.stringify(payload)
   });
 
-  if (!response.ok) {
-    const body = await response.text();
-    const err = new Error(`OpenAI API ${response.status}: ${body}`);
-    err.isProviderError = true;
-    throw err;
+  console.log(`[huggingface] ⬅ status=${resp.status}`);
+  if (!resp.ok) {
+    const body = await resp.text();
+    console.error(`[huggingface] ❌ error body preview: ${previewForLog(body)}`);
+    throw new Error(`huggingface API ${resp.status}: ${body}`);
   }
 
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content?.trim() || "";
-}
+  const data = await resp.json();
+  const text = data?.choices?.[0]?.message?.content || "";
 
-// ============================================================================
-// DEBUG LOGGER
-// ============================================================================
-
-function createDebugLogger() {
-	const pendingLogs = [];
-	let controllerRef = null;
-	let encoderRef = null;
-	let enabled = false;
-	const originals = {};
-
-	const formatArgs = (args) =>
-		args.map((arg) => (typeof arg === "string" ? arg : JSON.stringify(arg))).join(" ");
-
-	const emit = (level, args) => {
-		const line = `[DEBUG] ${level.toUpperCase()}: ${formatArgs(args)}`;
-		if (controllerRef && encoderRef) {
-			controllerRef.enqueue(encoderRef.encode(`\n\n${line}\n\n`));
-		} else {
-			pendingLogs.push(line);
-		}
-	};
-
-	const wrap = (level) => (...args) => {
-		originals[level](...args);
-		emit(level, args);
-	};
-
-	return {
-		enable() {
-			if (enabled) return;
-			enabled = true;
-			originals.log = console.log;
-			originals.warn = console.warn;
-			originals.error = console.error;
-			console.log = wrap("log");
-			console.warn = wrap("warn");
-			console.error = wrap("error");
-		},
-		attachStream(controller, encoder) {
-			if (!enabled) return;
-			controllerRef = controller;
-			encoderRef = encoder;
-			if (pendingLogs.length > 0) {
-				for (const line of pendingLogs) {
-					controller.enqueue(encoder.encode(`\n\n${line}\n\n`));
-				}
-				pendingLogs.length = 0;
-			}
-		},
-		disable() {
-			if (!enabled) return;
-			console.log = originals.log;
-			console.warn = originals.warn;
-			console.error = originals.error;
-			enabled = false;
-			controllerRef = null;
-			encoderRef = null;
-			pendingLogs.length = 0;
-		}
-	};
-}
-
-// ============================================================================
-// MAIN HANDLER
-// ============================================================================
-
-export default async (request) => {
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-  };
-
-  if (request.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  if (request.method !== "POST") {
-    return new Response(
-      JSON.stringify({ error: "Méthode non autorisée. Utilisez POST." }),
-      { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-
-  try {
-    const body = await request.json();
-    const { question, conversation_history } = body;
-
-    const debugMode = question && /mode debug/i.test(question);
-    const sanitizedQuestion = debugMode ? question.replace(/mode debug/gi, "").trim() : question;
-    const userQuestion = sanitizedQuestion || question;
-
-    if (!question) {
-      return new Response(
-        JSON.stringify({ error: "La question est requise." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const debugLogger = debugMode ? createDebugLogger() : null;
-    debugLogger?.enable();
-
-    console.log(`[EdgeFunction] ========================================`);
-    console.log(`[EdgeFunction] 🎯 Question: "${question}"`);
-    console.log(`[EdgeFunction] 📚 Historique: ${conversation_history?.length || 0} messages`);
-    console.log(`[EdgeFunction] ⏱️ Start: ${new Date().toISOString()}`);
-
-    const systemPrompt = await getSystemPrompt();
-    console.log(`[EdgeFunction] 📏 System prompt: ${systemPrompt.length} chars`);
-
-    // Créer le stream de réponse
-    const encoder = new TextEncoder();
-    let streamCreated = false;
-
-    const readable = new ReadableStream({
-      async start(controller) {
-        debugLogger?.attachStream(controller, encoder);
-        try {
-          // Essayer Anthropic d'abord
-          if (Deno.env.get("ANTHROPIC_API_KEY")) {
-            console.log(`[EdgeFunction] 🔄 Tentative Anthropic...`);
-            try {
-              for await (const chunk of runAnthropicAgentStream(
-                userQuestion,
-                systemPrompt,
-                conversation_history
-              )) {
-                controller.enqueue(encoder.encode(chunk));
-              }
-              console.log(`[EdgeFunction] ✅ Succès Anthropic`);
-              controller.close();
-              return;
-            } catch (error) {
-              console.error(`[EdgeFunction] ❌ Anthropic failed:`, error.message);
-              // console.error(`[EdgeFunction] Stack:`, error.stack);
-              if (/credit balance/i.test(error.message)) {
-                controller.enqueue(
-                  encoder.encode(`\n\n[⚠️ Anthropic bloqué : crédits insuffisants.]\n\n`)
-                );
-              }
-              controller.enqueue(encoder.encode(`\n\n[⚠️ Basculement sur OpenAI...]\n\n`));
-            }
-          }
-
-          // Fallback OpenAI
-          if (Deno.env.get("OPENAI_API_KEY")) {
-            console.log(`[EdgeFunction] 🔄 Tentative OpenAI...`);
-            for await (const chunk of runOpenAIAgentStream(
-              userQuestion,
-              systemPrompt,
-              conversation_history
-            )) {
-              controller.enqueue(encoder.encode(chunk));
-            }
-            console.log(`[EdgeFunction] ✅ Succès OpenAI`);
-          } else {
-            throw new Error("Aucun provider disponible (ANTHROPIC_API_KEY et OPENAI_API_KEY manquants)");
-          }
-
-          controller.close();
-        } catch (error) {
-          console.error("[EdgeFunction] ❌ Erreur globale:", error.message);
-          if (!error.isProviderError) {
-            console.error("[EdgeFunction] Stack:", error.stack);
-          }
-          controller.enqueue(
-            encoder.encode(`\n\n❌ Erreur: ${error.message}`)
-          );
-          controller.close();
-        } finally {
-          debugLogger?.disable();
-        }
-      }
-    });
-    streamCreated = true;
-
-    return new Response(readable, {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "text/plain; charset=utf-8",
-        "Cache-Control": "no-cache",
-        "X-Content-Type-Options": "nosniff",
-      }
-    });
-
-  } catch (error) {
-    console.error("[EdgeFunction] ❌ Erreur handler:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      }
-    );
-  }
+  return String(text || "").trim();
 };
 
-export const config = {
-  path: "/api/chat-stream"
-};
+export default handler;
+export const config = { path: "/api/chat-stream" };

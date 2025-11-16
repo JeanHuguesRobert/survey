@@ -33,7 +33,8 @@
     "packageJson": {
       "dependencies": [
         "npm:@anthropic-ai/sdk@0.68",
-        "npm:@huggingface/inference@^4.13.0",
+        "npm:@huggingface/inference@^4.13.3",
+        "npm:@mistralai/mistralai@^1.10.0",
         "npm:@supabase/supabase-js@^2.76.1",
         "npm:@tailwindcss/typography@~0.5.19",
         "npm:@vitejs/plugin-react@4",
