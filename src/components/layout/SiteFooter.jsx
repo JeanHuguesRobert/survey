@@ -4,11 +4,11 @@ import { APP_VERSION, DEPLOY_DATE, VOLUNTEER_URL } from "../../constants";
 
 export default function SiteFooter({ showWiki = true, showVersionInfo = true }) {
   return (
-    <footer className="bg-gray-800 text-white py-6 mt-12">
-      <div className="max-w-4xl mx-auto px-4 text-center space-y-4">
-        <p>Le Petit Parti — déclinaison locale #Pertitellu</p>
+    <footer className="bg-gray-800 text-white py-2 mt-4">
+      <div className="max-w-4xl mx-auto px-4 text-center space-y-1">
+        <p className="text-sm">Le Petit Parti — déclinaison locale #Pertitellu</p>
 
-        <div className="flex flex-col md:flex-row md:flex-wrap justify-center gap-3 md:gap-4">
+        <div className="flex flex-col md:flex-row md:flex-wrap justify-center gap-1.5 text-sm">
           <Link to="/" className="text-orange-400 hover:text-orange-300">
             Accueil
           </Link>
@@ -23,8 +23,8 @@ export default function SiteFooter({ showWiki = true, showVersionInfo = true }) 
           </Link>
         </div>
 
-        <p className="text-gray-400">Autres services (proto)</p>
-        <div className="flex flex-col md:flex-row md:flex-wrap justify-center gap-3 md:gap-4">
+        <p className="text-gray-400 text-xs">Autres services (proto)</p>
+        <div className="flex flex-col md:flex-row md:flex-wrap justify-center gap-1.5 text-sm">
           <a
             href="https://app.tooljet.ai/applications/133a5d8d-9268-4813-8a46-0126a309b52a"
             target="_blank"
@@ -46,11 +46,11 @@ export default function SiteFooter({ showWiki = true, showVersionInfo = true }) 
           </Link>
           {showWiki && (
             <Link to="/wiki" className="text-orange-400 hover:text-orange-300">
-              Wiki collaboratif
+              Wiki
             </Link>
           )}
           <Link to="/bob" className="text-orange-400 hover:text-orange-300">
-            Assistant IA
+            IA
           </Link>
           <a
             href={VOLUNTEER_URL}
@@ -71,14 +71,12 @@ export default function SiteFooter({ showWiki = true, showVersionInfo = true }) 
         </div>
 
         {showVersionInfo && (
-          <>
-            <div className="text-xs text-gray-500 mt-2 cursor-help">
-              Version {APP_VERSION}, déployée le {DEPLOY_DATE}
-            </div>
-          </>
+          <div className="text-xs text-gray-500 mt-0.5 cursor-help">
+            Version {APP_VERSION}, déployée le {DEPLOY_DATE}
+          </div>
         )}
 
-        <div className="mt-3 text-xs text-gray-400">
+        <div className="mt-1 text-xs text-gray-400">
           <Link to="/legal/terms" className="hover:text-orange-300 underline mr-2">
             Conditions d'utilisation
           </Link>

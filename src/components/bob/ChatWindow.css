@@ -1,3 +1,73 @@
+/* Layout principal */
+.chat-interface {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+.chat-header {
+  flex-shrink: 0;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: white;
+  z-index: 10;
+}
+
+/* Zone scrollable principale (messages + footer) */
+.chat-scrollable-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.messages-container {
+  flex: 1;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Zone de contrôle fixe en bas */
+.chat-controls-area {
+  flex-shrink: 0;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+  padding: 1rem;
+  z-index: 10;
+}
+
+.history-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
+}
+
+.input-area {
+  margin-bottom: 0.5rem;
+}
+
+.chat-disclaimer {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.5rem;
+  pointer-events: none;
+}
+
 /* Indicateur de streaming */
 .streaming-indicator {
   display: inline-flex;
@@ -143,4 +213,24 @@
 .model-mode-actions button:last-child {
   background-color: #e5e7eb;
   color: #111827;
+}
+
+/* Responsive mobile */
+@media (max-width: 768px) {
+  .chat-container {
+    height: 100dvh; /* Dynamic viewport height pour mobile */
+    max-height: 100dvh;
+  }
+  
+  .chat-header {
+    padding: 0.75rem;
+  }
+  
+  .messages-container {
+    padding: 0.75rem;
+  }
+  
+  .chat-controls-area {
+    padding: 0.75rem;
+  }
 }
