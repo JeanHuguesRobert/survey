@@ -100,6 +100,14 @@ export const DEFAULT_OPTIONS = {
   ocrTextThreshold: 32,
   ocrScale: 2,
   aiRefiner: null,
+  ocrParameters: {
+    tessedit_pageseg_mode: '1',         // Auto avec OSD
+    preserve_interword_spaces: '1',     // Crucial pour français
+    tessedit_char_whitelist: '',        // Retirer si trop restrictif
+    textord_heavy_nr: '1',              // Meilleure détection colonnes
+    language_model_penalty_non_dict_word: '0.5',
+    language_model_penalty_non_freq_dict_word: '0.3'
+  }
 };
 
 /**

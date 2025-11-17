@@ -6,6 +6,145 @@
 
 ## Conseil — 2025-10-28 — mairie-corte_convocation-odj_2025-10-28_downloads-1910.md
 
+Document source : "mairie-corte_deliberations_2025-10-28_downloads-1909.pdf"
+
+---
+
+## Résumé exécutif
+La Collectivité de Corse (CdC) et la Commune de Corte approuvent et conventionnent plusieurs opérations majeures :
+- Opération de Revitalisation du Territoire (ORT) de Corte — aménagement de l'ex-RT 202 (Route du Calvaire) : montant total 1 500 000 € HT (section 1 + section 2). Subvention État (DSID) sollicitée : 484 741,11 € HT. Participation de la commune : 236 425,08 € HT. Part CdC : 778 833,81 € HT.
+- Affectation budgétaire sur BP 2025 : création de l'opération 1132S077 pour 1 650 000 € (montant à affecter).
+- Déclassement prévu de l'ex-RT 202 (PR 0+000 → PR 2+139) au domaine public routier communal après travaux.
+- Autorisation au Président du Conseil exécutif de demander la DSID et de signer la convention ORT.
+- Convention de délégation de maîtrise d'ouvrage (DMO) pour la valorisation de la Citadelle (programme Citadella XXIu) — CdC maître d'ouvrage délégué sur parcelle communale AH247 ; CdC prend en charge les dépenses (financement PEI IV).
+- Avenant n°2 au marché de maîtrise d’œuvre pour la requalification du Centre ancien (marché n°23S0003) : augmentation du périmètre, reconfiguration réseaux EP, paroi clouée, augmentation du coût travaux et des honoraires — nouvelles valeurs et prolongation délai.
+- Divers : approbation d'un plan d'aménagement forestier, créances irrécouvrables de la régie de l'eau (9 726,01 €), avenant à la charte d'occupation du domaine public (annulation automatique en cas de fermeture >6 mois).
+
+---
+
+## Table des matières
+1. ORT — Opération de Revitalisation du Territoire (ORT Corti)
+2. Plan de financement et affectations budgétaires
+3. Déclassement de la RT 202 / transfert de voirie
+4. Convention ORT — principales clauses
+5. Convention de délégation MOA — Citadella XXIu (Citadelle)
+6. Marché / Avenant n°2 — Maîtrise d’œuvre Centre ancien (23S0003)
+7. Autres décisions (forêt, eau, charte domaine public)
+8. Points à clarifier / Documents à demander (check-list pour enquête citoyenne)
+9. Contacts et signatures
+10. Références légales citées
+
+---
+
+## 1) ORT — Opération de Revitalisation du Territoire (ORT Corti)
+- Objet : requalification de l'ex-RT 202 (Route du Calvaire) pour améliorer sécurité, mobilité piétonne, gestion eaux pluviales, valorisation du patrimoine urbain.
+- Décision de la Commission Permanente du 23 juillet 2025 : approbation du principe et caractéristiques principales.
+- Découpage travaux :
+  - Section 1 : PR 2+139 → PR 1+065 — aménagement (trottoirs, voie verte, plateaux surélevés, réseaux) — coût total estimé (section 1) : 1 129 910,60 € HT (arrondi avec aléas : 1 300 000 €).
+  - Section 2 : PR 0+000 → PR 1+065 — réfection revêtement de chaussée — coût HT : 182 689,40 € (arrondi : 200 000 €).
+- Mesures de sécurité prévues : 3 plateaux surélevés, bordures T2, harmonisation revêtements, amélioration signalisation, réseaux et hydraulique routière.
+
+---
+
+## 2) Plan de financement et affectations budgétaires
+- Coût global opération : 1 500 000 € HT.
+- Plan de financement global :
+  - État (DSID) : 484 741,11 € HT (uniquement pour la Section 1)
+  - Commune de Corte (cofinancement) : 236 425,08 € HT
+  - Collectivité de Corse (CdC) : 778 833,81 € HT
+- Taux indicatif : participation communale environ 25–29% selon documents (le texte mentionne ~29% ; répartition détaillée indique ~25% pour certaines prestations).
+- Affectations budgétaires (BP 2025) :
+  - Origine : BP 2025 — Programme 1132
+  - Montant disponible avant affectation : 337 780 000 €
+  - Montant à affecter : 1 650 000 €
+  - Opération 1132S077 – ORT Corti : 1 650 000 €
+  - Montant restant disponible après : 336 130 000 €
+- Modalités paiement (délibération n°19/233 AC) :
+  - 50 % avant lancement des travaux pour chaque tranche
+  - Solde réajusté selon réalisation à la fin du chantier de chaque tranche
+
+---
+
+## 3) Déclassement de la RT 202 / transfert de voirie
+- Décision : au terme des travaux, déclassement de l'ex-RT 202 (PR 0+000 → PR 2+139) du réseau routier de la Collectivité de Corse et classement dans le domaine public routier de la Commune de Corte.
+- Conséquence : propriété et gestion des voiries et aménagements réalisées récupérées par la commune après réception.
+
+---
+
+## 4) Convention ORT — Principales clauses (CdC <> Commune de Corte)
+- Objet : préciser modalités de participation financière CdC / Commune et modalités de réalisation.
+- Maîtrise d'ouvrage : assurée par CdC pour toutes prestations hors aménagements paysagers et plantations ; la commune délègue la maîtrise d’ouvrage de ces prestations à la CdC.
+- Participation communale ciblée sur prestations : maçonnerie, terrassements tranchées réseaux, mise à niveau ouvrages, réseau eaux pluviales, réseaux secs, plateaux surélevés, trottoirs, plus-values finitions (granits), signalisation horizontale, mobilier urbain.
+  - Exclusions : prestations relatives à la structure de chaussée (100% CdC).
+- Modalité d'inscription budgétaire : la commune s'engage à inscrire les sommes nécessaires et un avenant réglera réévaluation éventuelle.
+- Paiement : participations financières à la CdC (selon marchés de travaux).
+- Autorisations : Président du Conseil exécutif autorisé à obtenir DSID et signer la convention ORT.
+
+---
+
+## 5) Convention de Délégation de Maîtrise d’Ouvrage (DMO) — Citadella XXIu (Citadelle)
+- Parties : Commune de Corte (propriétaire de certain foncier, parcelle AH247) et Collectivité de Corse (maître d'ouvrage délégué).
+- Objet : travaux de mise en valeur / aménagement des parcours extérieurs et parvis de la Citadelle (programmation Citadella XXIu).
+- Étendue : CdC prend en charge études, marchés, suivi, réception ; la Commune reste propriétaire.
+- Financement : dépenses prises en charge intégralement par la CdC via co-financement PEI IV (arrêté SGAC/BFDE/2022/135).
+- Réception & gestion : réception par CdC, procès-verbal contradictoire ; à réception définitive la parcelle redevient propriété de la commune ; convention annexe à prévoir pour gestion/entretien.
+- Durée : jusqu'à achèvement complet (prorogation tacite si besoin).
+- Assurances : CdC prend les assurances nécessaires (dommages-ouvrage, TRC, RC, décennale à contrôler).
+
+---
+
+## 6) Marché / Avenant n°2 — Maîtrise d’œuvre requalification Centre Ancien (Marché 23S0003)
+- Titulaire : groupement STOA architecture - Egis Villes et Transports (mandataire Cabinet STOA).
+- Objet initial : maîtrise d'œuvre requalification du Centre ancien de Corte.
+- Montant initial des honoraires : 315 550 € HT (TVA incl. total initial 378 660 € TTC).
+- Modifications par avenant n°2 :
+  - Extension du périmètre de travaux (ajout de tronçons autour Cours Paoli, Place Padoue, etc.).
+  - Prestations imprévues : reconfiguration complète du réseau eaux pluviales (dimensionnement lié à bassin versant réel), création paroi clouée rue Fontanarosa.
+  - Ajout planches 3D pour information publique / ABF.
+  - Révision du coût prévisionnel travaux APD : fixé à 7 169 697,43 € HT (avec 2% aléa → coût arrêté à 7 313 091,80 € HT APD mentionné).
+  - Augmentation honoraires : nouveau montant du marché HT = 403 436,21 € (augmentation ≈ +27.85%).
+  - Incidence et ventilation des surcoûts : ex. 556 182,43 € HT pour programme modifié ; 679 000 € HT pour circonstances imprévues (réseaux) ; 190 000 € HT paroi clouée.
+  - Délai d’exécution porté à 48 mois (extension par avenants).
+- Modalités spécifiques : encadrement par articles du Code de la commande publique (R 2194-3, R 2194-5, etc.) ; possibilités d'ajustement en cas de dépassement imputable au maître d'œuvre.
+
+---
+
+## 7) Autres décisions significatives
+- Forêt communale — projet d'aménagement forestier (2025-2044) présenté par l'ONF : consistance 4 925,59 ha, divisions en séries (conservation, production liège, sylvopastoralisme, protection incendie, etc.). Avis favorable du Conseil municipal.
+- Régie municipale de l'eau — créances irrécouvrables : 9 726,01 € demandées à être prises en compte (liste 1 : 8 885,15 € ; liste 2 : 840,86 €). Chapitre 6542 prévu.
+- Avenant n°1 à la Charte d’occupation du domaine public (2025) :
+  - Annulation automatique autorisation d'occupation en cas de fermeture > 6 mois.
+  - Délai de libération : 15 jours après notification.
+  - Enlèvement d'office possible aux frais de l'occupant.
+  - Moyens de constat (Police municipale, huissier, éléments administratifs).
+
+---
+
+
+
+
+---
+
+## 9) Contacts et signataires cités (extraits)
+- Commune de Corte :
+  - Maire : Xavier POLI
+  - Siège municipal : Casa Cummuna, 20250 Corti
+- Collectivité de Corse :
+  - Président du Conseil exécutif : Gilles SIMEONI
+  - Présidente de l'Assemblée de Corse : Marie-Antoinette MAUPERTUIS (présidence commission permanente)
+- Maître d’œuvre (marché 23S0003) :
+  - Groupement STOA architecture - Egis Villes et Transports (Cabinet STOA, Marseille)
+- Références internes/délibérations :
+  - Délibération CdC n°19/233 AC (25/07/2019) — modalités de financement travaux en traversée d’agglomération
+  - Délibération CdC n°25/043 AC (28/03/2025) — Budget Primitif 2025
+  - Avenant marché 23S0003 — maître d’œuvre (signataire mandataire : Cabinet STOA)
+
+---
+
+
+
+
+
 Corte, le 20 octobre 2025
 
 Mesdames et Messieurs
