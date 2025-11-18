@@ -8,6 +8,62 @@ import { linkifyWardWiki } from '../lib/wikiLinks';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import ShareModal from '../components/wiki/ShareModal';
+import { formatDate, formatRelativeDate } from '../lib/formatDate';
+
+// Component to display page metadata
+function PageMetadata({ page, syncHistory }) {
+  return (
+    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+        {/* Creation Date */}
+        <div className="flex items-start gap-2">
+          <span className="text-gray-500 font-medium">📅 Créé le :</span>
+          <span className="text-gray-700">
+            {formatDate(page.created_at, false)}
+            <span className="text-gray-400 ml-1">({formatRelativeDate(page.created_at)})</span>
+          </span>
+        </div>
+
+        {/* Last Modified Date */}
+        <div className="flex items-start gap-2">
+          <span className="text-gray-500 font-medium">🔄 Modifié le :</span>
+          <span className="text-gray-700">
+            {formatDate(page.updated_at, false)}
+            <span className="text-gray-400 ml-1">({formatRelativeDate(page.updated_at)})</span>
+          </span>
+        </div>
+
+        {/* Author */}
+        {page.author && (
+          <div className="flex items-start gap-2">
+            <span className="text-gray-500 font-medium">✍️ Auteur :</span>
+            <span className="text-gray-700">{page.author.email || 'Anonyme'}</span>
+          </div>
+        )}
+
+        {/* GitHub Sync */}
+        {syncHistory && syncHistory.length > 0 && (
+          <div className="flex items-start gap-2">
+            <span className="text-gray-500 font-medium">📦 Dernière archive GitHub :</span>
+            <span className="text-gray-700">
+              {formatDate(syncHistory[0].last_sync_date, false)}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Summary */}
+      {page.summary && (
+        <div className="mt-3 pt-3 border-t border-gray-200">
+          <div className="flex items-start gap-2">
+            <span className="text-gray-500 font-medium">📝 Résumé :</span>
+            <p className="text-gray-700 italic">{page.summary}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function ArchiveButton({ pageId, slug }) {
   const [loading, setLoading] = useState(false);
@@ -19,7 +75,7 @@ export function ArchiveButton({ pageId, slug }) {
 
     try {
       const body = pageId ? { pageId } : { slug };
-      
+
       const response = await fetch('/.netlify/functions/sync-wiki', {
         method: 'POST',
         headers: {
@@ -33,7 +89,7 @@ export function ArchiveButton({ pageId, slug }) {
       if (response.ok) {
         setStatus({
           type: 'success',
-          message: data.message === 'Already synced today' 
+          message: data.message === 'Already synced today'
             ? '✅ Déjà archivé aujourd\'hui'
             : '✅ Page archivée sur GitHub !'
         });
@@ -64,11 +120,10 @@ export function ArchiveButton({ pageId, slug }) {
       </button>
 
       {status && (
-        <div className={`p-3 rounded ${
-          status.type === 'success' 
-            ? 'bg-green-100 text-green-800' 
+        <div className={`p-3 rounded ${status.type === 'success'
+            ? 'bg-green-100 text-green-800'
             : 'bg-red-100 text-red-800'
-        }`}>
+          }`}>
           {status.message}
         </div>
       )}
@@ -84,22 +139,51 @@ const WikiPage = () => {
   const [error, setError] = useState(null);
   const [pages, setPages] = useState([]); // Déclaration de l'état 'pages'
   const [showShareModal, setShowShareModal] = useState(false); // Nouvel état pour le modal de partage
+  const [syncHistory, setSyncHistory] = useState([]); // État pour l'historique de synchronisation
 
   useEffect(() => {
     supabase.from('wiki_pages').select('*').order('updated_at', { ascending: false }).then(({ data }) => setPages(data || []));
   }, []);
 
   useEffect(() => {
-    setLoading(true);
-    supabase
-      .from('wiki_pages')
-      .select('*')
-      .eq('slug', slug)
-      .single()
-      .then(({ data }) => {
-        setPage(data || null);
+    const fetchPageData = async () => {
+      setLoading(true);
+
+      try {
+        // Fetch page with author information
+        const { data: pageData, error: pageError } = await supabase
+          .from('wiki_pages')
+          .select(`
+            *,
+            author:author_id(email)
+          `)
+          .eq('slug', slug)
+          .single();
+
+        if (pageError) throw pageError;
+
+        setPage(pageData || null);
+
+        // Fetch sync history if page exists
+        if (pageData) {
+          const { data: syncData } = await supabase
+            .from('git_sync_log')
+            .select('last_sync_date, commit_sha')
+            .eq('page_id', pageData.id)
+            .order('last_sync_date', { ascending: false })
+            .limit(1);
+
+          setSyncHistory(syncData || []);
+        }
+      } catch (err) {
+        console.error('Error fetching page data:', err);
+        setPage(null);
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    fetchPageData();
   }, [slug]);
 
   const { prev, next } = useMemo(() => {
@@ -156,14 +240,14 @@ const WikiPage = () => {
             <p className="text-sm text-gray-500 mt-2">Adresse de la page : /wiki/{page.slug}</p>
           </div>
           <div className="flex gap-3">
-            
+
             <button
               onClick={handleShare}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
               Partager
             </button>
-            
+
             <button
               onClick={() => navigate(`/wiki/${page.slug}/edit`)}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
@@ -174,6 +258,9 @@ const WikiPage = () => {
             <ArchiveButton slug={page.slug} />
           </div>
         </header>
+
+        {/* Page Metadata */}
+        <PageMetadata page={page} syncHistory={syncHistory} />
 
         {page.content && typeof page.content === 'string' ? (
           <div className="markdown-content">
@@ -192,9 +279,8 @@ const WikiPage = () => {
         <button
           onClick={() => prev && navigate(`/wiki/${prev.slug}`)}
           disabled={!prev}
-          className={`px-4 py-2 rounded-md font-semibold ${
-            prev ? 'bg-gray-200 text-gray-800 hover:bg-gray-300' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-          }`}
+          className={`px-4 py-2 rounded-md font-semibold ${prev ? 'bg-gray-200 text-gray-800 hover:bg-gray-300' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
         >
           ← {prev ? prev.title : 'Aucune'}
         </button>
@@ -207,9 +293,8 @@ const WikiPage = () => {
         <button
           onClick={() => next && navigate(`/wiki/${next.slug}`)}
           disabled={!next}
-          className={`px-4 py-2 rounded-md font-semibold ${
-            next ? 'bg-gray-200 text-gray-800 hover:bg-gray-300' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-          }`}
+          className={`px-4 py-2 rounded-md font-semibold ${next ? 'bg-gray-200 text-gray-800 hover:bg-gray-300' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
         >
           {next ? next.title : 'Aucune'} →
         </button>
