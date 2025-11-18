@@ -56,7 +56,7 @@ function PageMetadata({ page, syncHistory }) {
       {page.summary && (
         <div className="mt-3 pt-3 border-t border-gray-200">
           <div className="flex items-start gap-2">
-            <span className="text-gray-500 font-medium">📝 Résumé :</span>
+            <span className="text-gray-500 font-medium">📝 Résumé</span>
             <p className="text-gray-700 italic">{page.summary}</p>
           </div>
         </div>
