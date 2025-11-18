@@ -393,7 +393,7 @@ export default function ChatWindow({ user }) {
         let detail = "";
         try {
           detail = await response.text();
-        } catch {}
+        } catch { }
         let friendly = `Erreur serveur (${response.status})`;
         if (detail) {
           try {
@@ -443,10 +443,10 @@ export default function ChatWindow({ user }) {
           prev.map((msg) =>
             msg.id === botMessageId
               ? {
-                  ...msg,
-                  text: fullResponse,
-                  isStreaming: true,
-                }
+                ...msg,
+                text: fullResponse,
+                isStreaming: true,
+              }
               : msg,
           ),
         );
@@ -456,10 +456,10 @@ export default function ChatWindow({ user }) {
         prev.map((msg) =>
           msg.id === botMessageId
             ? {
-                ...msg,
-                text: fullResponse,
-                isStreaming: false,
-              }
+              ...msg,
+              text: fullResponse,
+              isStreaming: false,
+            }
             : msg,
         ),
       );
@@ -550,13 +550,13 @@ export default function ChatWindow({ user }) {
         prev.map((m) =>
           m.isStreaming
             ? {
-                ...m,
-                isStreaming: false,
-                error: true,
-                text:
-                  (m.text && m.text.trim() ? m.text + "\n\n" : "") +
-                  "⚠️ Requête annulée par l'utilisateur.",
-              }
+              ...m,
+              isStreaming: false,
+              error: true,
+              text:
+                (m.text && m.text.trim() ? m.text + "\n\n" : "") +
+                "⚠️ Requête annulée par l'utilisateur.",
+            }
             : m,
         ),
       );
@@ -714,7 +714,7 @@ export default function ChatWindow({ user }) {
         // Copier dans le presse-papiers
         try {
           await navigator.clipboard.writeText(shareText);
-        } catch (_) {}
+        } catch (_) { }
       }
 
       setMessages((prev) => [
@@ -952,6 +952,7 @@ export default function ChatWindow({ user }) {
   };
 
   const [isMobile, setIsMobile] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Detect mobile viewport
   useEffect(() => {
@@ -962,6 +963,22 @@ export default function ChatWindow({ user }) {
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  // Dark mode management
+  useEffect(() => {
+    const stored = window.localStorage.getItem("chat_dark_mode");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const shouldBeDark = stored === "true" || (stored === null && prefersDark);
+    setIsDarkMode(shouldBeDark);
+    document.documentElement.setAttribute("data-theme", shouldBeDark ? "dark" : "light");
+  }, []);
+
+  const toggleDarkMode = () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    window.localStorage.setItem("chat_dark_mode", String(newMode));
+    document.documentElement.setAttribute("data-theme", newMode ? "dark" : "light");
+  };
 
   return (
     <div className="chat-interface">
@@ -1024,6 +1041,13 @@ export default function ChatWindow({ user }) {
                     </span>
                   )}
                   <button
+                    onClick={toggleDarkMode}
+                    className="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm"
+                    title={isDarkMode ? "Mode clair" : "Mode sombre"}
+                  >
+                    {isDarkMode ? "☀️" : "🌙"}
+                  </button>
+                  <button
                     onClick={async () => await supabase.auth.signOut()}
                     className="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm"
                   >
@@ -1031,12 +1055,21 @@ export default function ChatWindow({ user }) {
                   </button>
                 </div>
               ) : (
-                <button
-                  onClick={() => setShowAuthModal(true)}
-                  className="px-3 py-1 bg-orange-500 text-white rounded-md hover:bg-orange-600 text-sm"
-                >
-                  {isMobile ? "🔐" : "Se connecter"}
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={toggleDarkMode}
+                    className="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm"
+                    title={isDarkMode ? "Mode clair" : "Mode sombre"}
+                  >
+                    {isDarkMode ? "☀️" : "🌙"}
+                  </button>
+                  <button
+                    onClick={() => setShowAuthModal(true)}
+                    className="px-3 py-1 bg-orange-500 text-white rounded-md hover:bg-orange-600 text-sm"
+                  >
+                    {isMobile ? "🔐" : "Se connecter"}
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -1100,9 +1133,8 @@ export default function ChatWindow({ user }) {
               messages.map((msg, i) => (
                 <div
                   key={msg.id}
-                  className={`message ${msg.sender} ${msg.error ? "error" : ""} ${
-                    msg.isNotification ? "notification" : ""
-                  }`}
+                  className={`message ${msg.sender} ${msg.error ? "error" : ""} ${msg.isNotification ? "notification" : ""
+                    }`}
                 >
                   {msg.sender !== "system" && (
                     <div className="message-avatar">
@@ -1185,9 +1217,8 @@ export default function ChatWindow({ user }) {
                             <div className="feedback-buttons">
                               <button
                                 onClick={() => handleFeedback(msg.id, "useful")}
-                                className={`feedback-btn useful ${
-                                  msg.feedback === "useful" ? "active" : ""
-                                }`}
+                                className={`feedback-btn useful ${msg.feedback === "useful" ? "active" : ""
+                                  }`}
                                 disabled={msg.feedback === "useful"}
                               >
                                 ✅{" "}
@@ -1197,9 +1228,8 @@ export default function ChatWindow({ user }) {
                               </button>
                               <button
                                 onClick={() => handleNotUsefulClick(msg)}
-                                className={`feedback-btn not-useful ${
-                                  msg.feedback === "not_useful" ? "active" : ""
-                                }`}
+                                className={`feedback-btn not-useful ${msg.feedback === "not_useful" ? "active" : ""
+                                  }`}
                                 disabled={msg.feedback === "not_useful"}
                               >
                                 ❌{" "}
@@ -1218,8 +1248,8 @@ export default function ChatWindow({ user }) {
                                   );
                                   setNewPropositionDescription(
                                     `**Question originale:** ${input}\n\n` +
-                                      `**Réponse initiale du chatbot:**\n${msg.text}\n\n` +
-                                      `---\nCette proposition a été créée automatiquement à partir d'une discussion avec l'assistant citoyen.`,
+                                    `**Réponse initiale du chatbot:**\n${msg.text}\n\n` +
+                                    `---\nCette proposition a été créée automatiquement à partir d'une discussion avec l'assistant citoyen.`,
                                   );
                                 }}
                                 className="create-proposition-btn"
