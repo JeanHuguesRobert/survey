@@ -951,6 +951,18 @@ export default function ChatWindow({ user }) {
     }
   };
 
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile viewport
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
   return (
     <div className="chat-interface">
       {hasConsent === false && (
@@ -990,28 +1002,32 @@ export default function ChatWindow({ user }) {
 
       <div className="chat-container" aria-disabled={!hasConsent}>
         {/* En-tête du chat */}
-        <div className="chat-header">
+        <div className={`chat-header ${isMobile ? "mobile" : ""}`}>
           <div className="flex justify-between items-center w-full">
             <div className="flex items-center">
               <div className="chat-avatar">🤖</div>
               <div className="chat-info">
                 <h2>
-                  {BOT_NAME} — Assistant citoyen {CITY_NAME}
+                  {isMobile
+                    ? BOT_NAME
+                    : `${BOT_NAME} — Assistant citoyen ${CITY_NAME}`}
                 </h2>
-                <p>{chatbotSettings.welcome_message}</p>
+                {!isMobile && <p>{chatbotSettings.welcome_message}</p>}
               </div>
             </div>
             <div>
               {user ? (
                 <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-600">
-                    Connecté en tant que {user.email}
-                  </span>
+                  {!isMobile && (
+                    <span className="text-sm text-gray-600">
+                      Connecté en tant que {user.email}
+                    </span>
+                  )}
                   <button
                     onClick={async () => await supabase.auth.signOut()}
                     className="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm"
                   >
-                    Déconnexion
+                    {isMobile ? "↪" : "Déconnexion"}
                   </button>
                 </div>
               ) : (
@@ -1019,7 +1035,7 @@ export default function ChatWindow({ user }) {
                   onClick={() => setShowAuthModal(true)}
                   className="px-3 py-1 bg-orange-500 text-white rounded-md hover:bg-orange-600 text-sm"
                 >
-                  Se connecter
+                  {isMobile ? "🔐" : "Se connecter"}
                 </button>
               )}
             </div>
@@ -1084,7 +1100,9 @@ export default function ChatWindow({ user }) {
               messages.map((msg, i) => (
                 <div
                   key={msg.id}
-                  className={`message ${msg.sender} ${msg.error ? "error" : ""} ${msg.isNotification ? "notification" : ""}`}
+                  className={`message ${msg.sender} ${msg.error ? "error" : ""} ${
+                    msg.isNotification ? "notification" : ""
+                  }`}
                 >
                   {msg.sender !== "system" && (
                     <div className="message-avatar">
@@ -1167,7 +1185,9 @@ export default function ChatWindow({ user }) {
                             <div className="feedback-buttons">
                               <button
                                 onClick={() => handleFeedback(msg.id, "useful")}
-                                className={`feedback-btn useful ${msg.feedback === "useful" ? "active" : ""}`}
+                                className={`feedback-btn useful ${
+                                  msg.feedback === "useful" ? "active" : ""
+                                }`}
                                 disabled={msg.feedback === "useful"}
                               >
                                 ✅{" "}
@@ -1177,7 +1197,9 @@ export default function ChatWindow({ user }) {
                               </button>
                               <button
                                 onClick={() => handleNotUsefulClick(msg)}
-                                className={`feedback-btn not-useful ${msg.feedback === "not_useful" ? "active" : ""}`}
+                                className={`feedback-btn not-useful ${
+                                  msg.feedback === "not_useful" ? "active" : ""
+                                }`}
                                 disabled={msg.feedback === "not_useful"}
                               >
                                 ❌{" "}
@@ -1407,8 +1429,8 @@ export default function ChatWindow({ user }) {
         </div>
 
         {/* Zone de contrôle fixe en bas */}
-        <div className="chat-controls-area">
-          {messages.length > 0 && (
+        <div className={`chat-controls-area ${isMobile ? "mobile" : ""}`}>
+          {messages.length > 0 && !isMobile && (
             <div className="history-actions">
               <button
                 onClick={handleClearHistory}
@@ -1428,18 +1450,31 @@ export default function ChatWindow({ user }) {
               onKeyPress={(e) =>
                 hasConsent && e.key === "Enter" && !e.shiftKey && handleSend()
               }
-              placeholder={`Posez votre question sur la vie locale à ${CITY_NAME}...`}
+              placeholder={
+                isMobile
+                  ? `Question...`
+                  : `Posez votre question sur la vie locale à ${CITY_NAME}...`
+              }
               disabled={isLoading || !hasConsent}
               className="chat-input resize-none flex-grow w-full px-4 py-2 border border-gray-300 rounded-md"
-              rows="3"
+              rows={isMobile ? "2" : "3"}
             />
-            {hasConversation && (
+            {hasConversation && !isMobile && (
               <button
                 onClick={handlePublishWiki}
                 title="Publier la conversation dans le Wiki"
                 className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
               >
                 Publier dans le Wiki
+              </button>
+            )}
+            {hasConversation && isMobile && (
+              <button
+                onClick={handlePublishWiki}
+                title="Publier dans le Wiki"
+                className="px-2 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                📄
               </button>
             )}
             <button
@@ -1477,12 +1512,14 @@ export default function ChatWindow({ user }) {
             </button>
           </div>
 
-          {/* Disclaimer */}
-          <div className="chat-disclaimer" role="note" aria-live="polite">
-            ⚠️ Cette IA peut commettre des erreurs. Il est recommandé de
-            vérifier les informations importantes.
-          </div>
-          <SiteFooter showWiki={true} showVersionInfo={false} />
+          {/* Disclaimer - hide on mobile */}
+          {!isMobile && (
+            <div className="chat-disclaimer" role="note" aria-live="polite">
+              ⚠️ Cette IA peut commettre des erreurs. Il est recommandé de
+              vérifier les informations importantes.
+            </div>
+          )}
+          <SiteFooter showWiki={true} showVersionInfo={!isMobile} />
         </div>
 
         {/* Modal de sélection de modèle */}

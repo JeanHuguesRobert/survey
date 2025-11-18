@@ -234,3 +234,96 @@
     padding: 0.75rem;
   }
 }
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .chat-header {
+    padding: 0.5rem 0.75rem;
+    min-height: auto;
+  }
+
+  .chat-header.mobile h2 {
+    font-size: 1rem;
+    margin: 0;
+  }
+
+  .chat-header.mobile .chat-avatar {
+    width: 2rem;
+    height: 2rem;
+    font-size: 1.2rem;
+  }
+
+  .chat-header.mobile .chat-info {
+    gap: 0.25rem;
+  }
+
+  .chat-controls-area.mobile {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .chat-controls-area.mobile .input-area {
+    gap: 0.5rem;
+  }
+
+  .chat-input {
+    font-size: 0.9rem;
+    padding: 0.5rem 0.75rem !important;
+    min-height: auto;
+  }
+
+  .send-btn {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.9rem;
+  }
+
+  .message {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .message-avatar {
+    width: 2rem;
+    height: 2rem;
+    font-size: 1.2rem;
+  }
+
+  .welcome-message {
+    padding: 1rem;
+  }
+
+  .example-questions li {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .history-actions {
+    display: none;
+  }
+
+  /* Reduce footer spacing on mobile */
+  .site-footer {
+    padding: 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  /* Make scrollable area take more space */
+  .chat-scrollable-area {
+    max-height: calc(100vh - 140px);
+  }
+
+  /* Compact message actions */
+  .message-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .feedback-buttons {
+    gap: 0.5rem;
+  }
+
+  .feedback-btn {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.75rem;
+  }
+}

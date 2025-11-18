@@ -42,6 +42,7 @@
         "npm:dotenv@^17.2.3",
         "npm:marked@^16.4.1",
         "npm:openai@^4.104.0",
+        "npm:prettier@^3.6.2",
         "npm:react-dom@^18.2.0",
         "npm:react-markdown@^10.1.0",
         "npm:react-router-dom@^7.9.4",
