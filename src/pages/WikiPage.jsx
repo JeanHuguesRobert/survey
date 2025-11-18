@@ -121,8 +121,8 @@ export function ArchiveButton({ pageId, slug }) {
 
       {status && (
         <div className={`p-3 rounded ${status.type === 'success'
-            ? 'bg-green-100 text-green-800'
-            : 'bg-red-100 text-red-800'
+          ? 'bg-green-100 text-green-800'
+          : 'bg-red-100 text-red-800'
           }`}>
           {status.message}
         </div>
@@ -150,17 +150,40 @@ const WikiPage = () => {
       setLoading(true);
 
       try {
-        // Fetch page with author information
+        // Fetch page data first
         const { data: pageData, error: pageError } = await supabase
           .from('wiki_pages')
-          .select(`
-            *,
-            author:author_id(email)
-          `)
+          .select('*')
           .eq('slug', slug)
           .single();
 
         if (pageError) throw pageError;
+
+        // Try to fetch author information separately if author_id exists
+        if (pageData && pageData.author_id) {
+          try {
+            const { data: userData } = await supabase
+              .from('users')
+              .select('email')
+              .eq('id', pageData.author_id)
+              .single();
+
+            if (userData) {
+              pageData.author = userData;
+            }
+          } catch (authorError) {
+            // If users table doesn't exist or error, try auth.users
+            try {
+              const { data: authData } = await supabase.auth.admin.getUserById(pageData.author_id);
+              if (authData?.user) {
+                pageData.author = { email: authData.user.email };
+              }
+            } catch {
+              // Silently fail if we can't get author info
+              console.log('Could not fetch author information');
+            }
+          }
+        }
 
         setPage(pageData || null);
 
