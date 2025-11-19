@@ -4,6 +4,7 @@ import { isDeleted } from '../../lib/metadata';
 import { getParentCommentId, isReply, isEdited } from '../../lib/socialMetadata';
 import CommentForm from '../social/CommentForm';
 import ReactionPicker from '../social/ReactionPicker';
+import { getDisplayName, getUserInitial } from '../../lib/userDisplay';
 
 /**
  * Section de commentaires réutilisable avec toggle show/hide
@@ -127,7 +128,7 @@ export default function CommentSection({
     try {
       const { data, error: fetchError } = await supabase
         .from('comments')
-        .select('*, users(id, email, metadata)')
+        .select('*, users(id, email, display_name, metadata)')
         .eq('post_id', discussionPost.id)
         .order('created_at', { ascending: true });
 
@@ -262,11 +263,11 @@ export default function CommentSection({
           <div className="flex items-start justify-between mb-2">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-sm">
-                {comment.users?.email?.[0]?.toUpperCase() || '?'}
+                {getUserInitial(comment.users)}
               </div>
               <div>
                 <span className="text-sm font-medium text-gray-900">
-                  {comment.users?.email || 'Anonyme'}
+                  {getDisplayName(comment.users)}
                 </span>
                 <div className="text-xs text-gray-500">
                   {new Date(comment.created_at).toLocaleDateString('fr-FR', {
@@ -358,7 +359,7 @@ export default function CommentSection({
             <CommentForm
               onSubmit={(content) => handleCommentSubmit(content, comment.id)}
               onCancel={() => setReplyToId(null)}
-              placeholder={`Répondre à ${comment.users?.email || 'Anonyme'}...`}
+              placeholder={`Répondre à ${getDisplayName(comment.users)}...`}
             />
           </div>
         )}

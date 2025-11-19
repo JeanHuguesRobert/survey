@@ -11,6 +11,7 @@ import ShareModal from '../components/wiki/ShareModal';
 import { formatDate, formatRelativeDate } from '../lib/formatDate';
 import CommentSection from '../components/common/CommentSection';
 import { useCurrentUser } from '../lib/useCurrentUser';
+import { getDisplayName } from '../lib/userDisplay';
 
 // Component to display page metadata
 function PageMetadata({ page, syncHistory }) {
@@ -39,7 +40,7 @@ function PageMetadata({ page, syncHistory }) {
         {page.author && (
           <div className="flex items-start gap-2">
             <span className="text-gray-500 font-medium">✍️ Auteur :</span>
-            <span className="text-gray-700">{page.author.email || 'Anonyme'}</span>
+            <span className="text-gray-700">{getDisplayName(page.author)}</span>
           </div>
         )}
 

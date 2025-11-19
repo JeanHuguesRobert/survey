@@ -17,6 +17,7 @@ import {
 } from "../../constants";
 import "./ChatWindow.css";
 import ProviderStatus from './ProviderStatus';
+import { getDisplayName } from '../../lib/userDisplay';
 // import RealTimeNotifications from './RealTimeNotifications';
 
 const MODEL_MODES = {
@@ -1437,7 +1438,7 @@ export default function ChatWindow({ user }) {
                 <div className="flex items-center gap-3">
                   {!isMobile && (
                     <span className="text-sm text-gray-600">
-                      Connecté en tant que {user.email}
+                      Connecté en tant que {getDisplayName(user)}
                     </span>
                   )}
                   <button

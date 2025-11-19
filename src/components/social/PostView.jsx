@@ -14,6 +14,7 @@ import {
   POST_TYPES 
 } from '../../lib/socialMetadata';
 import CommentThread from './CommentThread';
+import { getDisplayName, getUserInitial } from '../../lib/userDisplay';
 
 /**
  * Vue détaillée d'un post avec commentaires
@@ -43,7 +44,7 @@ export default function PostView({ currentUser }) {
       // Charger le post
       const { data: postData, error: postError } = await supabase
         .from('posts')
-        .select('*, users(id, email, metadata)')
+        .select('*, users(id, email, display_name, metadata)')
         .eq('id', id)
         .single();
 
@@ -206,13 +207,13 @@ export default function PostView({ currentUser }) {
         <div className="flex items-start justify-between mb-6">
           <div className="flex items-start gap-4 flex-1">
             <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
-              {post.users?.email?.[0]?.toUpperCase() || '?'}
+              {getUserInitial(post.users)}
             </div>
 
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
                 <span className="font-medium text-gray-900">
-                  {post.users?.email || 'Anonyme'}
+                  {getDisplayName(post.users)}
                 </span>
                 <span className="text-gray-400">•</span>
                 <span className="text-sm text-gray-500">

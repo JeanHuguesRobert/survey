@@ -13,6 +13,7 @@ export default function Kudocracy() {
   const [activeTab, setActiveTab] = useState('browse');
   const [user, setUser] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isHowItWorksExpanded, setIsHowItWorksExpanded] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -68,15 +69,33 @@ export default function Kudocracy() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-bold text-blue-900 mb-3">Comment fonctionne Kudocracy ?</h2>
-          <ul className="space-y-2 text-gray-700">
-            <li><strong>Votez directement</strong> : Approuvez ou désapprouvez les propositions qui vous intéressent</li>
-            <li><strong>Déléguez votre vote</strong> : Sur certains sujets, confiez votre voix à quelqu'un en qui vous avez confiance</li>
-            <li><strong>Changez d'avis</strong> : Tous les votes sont réversibles, modifiez-les à tout moment</li>
-            <li><strong>Transparence totale</strong> : Tous les votes sont publics pour éviter la fraude</li>
-            <li><strong>Résultats en temps réel</strong> : Suivez l'évolution des opinions au fil du temps</li>
-          </ul>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg overflow-hidden mb-8">
+          <button
+            onClick={() => setIsHowItWorksExpanded(!isHowItWorksExpanded)}
+            className="w-full px-6 py-4 flex items-center justify-between bg-blue-100 hover:bg-blue-200 transition-colors"
+          >
+            <h2 className="text-xl font-bold text-blue-900">Comment fonctionne Kudocracy ?</h2>
+            <svg
+              className={`w-6 h-6 text-blue-900 transition-transform ${isHowItWorksExpanded ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          
+          {isHowItWorksExpanded && (
+            <div className="px-6 py-4">
+              <ul className="space-y-2 text-gray-700">
+                <li><strong>Votez directement</strong> : Approuvez ou désapprouvez les propositions qui vous intéressent</li>
+                <li><strong>Déléguez votre vote</strong> : Sur certains sujets, confiez votre voix à quelqu'un en qui vous avez confiance</li>
+                <li><strong>Changez d'avis</strong> : Tous les votes sont réversibles, modifiez-les à tout moment</li>
+                <li><strong>Transparence totale</strong> : Tous les votes sont publics pour éviter la fraude</li>
+                <li><strong>Résultats en temps réel</strong> : Suivez l'évolution des opinions au fil du temps</li>
+              </ul>
+            </div>
+          )}
         </div>
 
         <nav className="flex gap-2 mb-6 border-b border-gray-200">

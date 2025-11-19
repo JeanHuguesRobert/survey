@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { isDeleted, getMetadata } from '../../lib/metadata';
 import { getGroupType, isPrivateGroup, requiresApproval } from '../../lib/socialMetadata';
 import CommentSection from '../common/CommentSection';
+import { getDisplayName, getUserInitial } from '../../lib/userDisplay';
 
 /**
  * Page détail d'un groupe avec membres et posts
@@ -48,7 +49,7 @@ export default function GroupDetail({ currentUser }) {
       // Charger les membres
       const { data: membersData, error: membersError } = await supabase
         .from('group_members')
-        .select('*, users(id, email, metadata)')
+        .select('*, users(id, email, display_name, metadata)')
         .eq('group_id', id);
 
       if (membersError) throw membersError;
@@ -72,7 +73,7 @@ export default function GroupDetail({ currentUser }) {
       // Charger les posts du groupe
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
-        .select('*, users(id, email, metadata)')
+        .select('*, users(id, email, display_name, metadata)')
         .eq('metadata->>groupId', id)
         .order('created_at', { ascending: false })
         .limit(10);
@@ -294,7 +295,7 @@ export default function GroupDetail({ currentUser }) {
                       {post.content}
                     </p>
                     <div className="text-xs text-gray-500">
-                      Par {post.users?.email || 'Anonyme'} • {new Date(post.created_at).toLocaleDateString('fr-FR')}
+                      Par {getDisplayName(post.users)} • {new Date(post.created_at).toLocaleDateString('fr-FR')}
                     </div>
                   </div>
                 ))}
@@ -311,11 +312,11 @@ export default function GroupDetail({ currentUser }) {
               {members.map(member => (
                 <div key={member.id} className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
-                    {member.users?.email?.[0]?.toUpperCase() || '?'}
+                    {getUserInitial(member.users)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      {member.users?.email || 'Anonyme'}
+                      {getDisplayName(member.users)}
                     </p>
                     <p className="text-xs text-gray-500">
                       Depuis {new Date(member.created_at).toLocaleDateString('fr-FR')}

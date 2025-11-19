@@ -22,7 +22,7 @@ export default function PostList({ groupId = null, linkedType = null, linkedId =
 
       let query = supabase
         .from('posts')
-        .select('*, users(id, email, metadata)');
+        .select('*, users(id, email, display_name, metadata)');
 
       // Filtres
       if (groupId) {

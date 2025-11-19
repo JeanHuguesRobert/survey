@@ -9,18 +9,21 @@ export default function VoteButton({ propositionId, userId, currentVote, onVoteC
 
     try {
       if (currentVote) {
+        // Si on clique sur le même vote, on le retire
         if (currentVote.vote_value === voteValue) {
           await supabase
             .from('votes')
             .delete()
             .eq('id', currentVote.id);
         } else {
+          // Sinon on met à jour avec la nouvelle valeur
           await supabase
             .from('votes')
             .update({ vote_value: voteValue, updated_at: new Date().toISOString() })
             .eq('id', currentVote.id);
         }
       } else {
+        // Nouveau vote
         await supabase
           .from('votes')
           .insert({
@@ -50,6 +53,17 @@ export default function VoteButton({ propositionId, userId, currentVote, onVoteC
         }`}
       >
         Pour
+      </button>
+      <button
+        onClick={() => handleVote(null)}
+        disabled={loading}
+        className={`flex-1 py-2 px-4 rounded-md font-semibold transition-colors disabled:opacity-50 ${
+          currentVote?.vote_value === null
+            ? 'bg-gray-600 text-white'
+            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+        }`}
+      >
+        Blanc
       </button>
       <button
         onClick={() => handleVote(false)}

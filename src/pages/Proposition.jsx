@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { linkifyWardWiki } from '../lib/wikiLinks';
 import CommentSection from '../components/common/CommentSection';
 import { useCurrentUser } from '../lib/useCurrentUser';
+import VoteButton from '../components/kudocracy/VoteButton';
 
 export default function Proposition() {
   const { id } = useParams();
@@ -13,6 +14,8 @@ export default function Proposition() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { currentUser } = useCurrentUser(); // Hook pour l'utilisateur connecté
+  const [votes, setVotes] = useState({ approve: 0, disapprove: 0, blank: 0 });
+  const [userVote, setUserVote] = useState(null);
 
   useEffect(() => {
     const loadProposition = async () => {
@@ -36,8 +39,48 @@ export default function Proposition() {
       setLoading(false);
     };
 
-    if (id) loadProposition();
-  }, [id]);
+    if (id) {
+      loadProposition();
+      loadVotes();
+      if (currentUser) {
+        loadUserVote();
+      }
+    }
+  }, [id, currentUser]);
+
+  const loadVotes = async () => {
+    const { data, error } = await supabase
+      .from('votes')
+      .select('vote_value')
+      .eq('proposition_id', id);
+
+    if (!error && data) {
+      const approve = data.filter(v => v.vote_value === true).length;
+      const disapprove = data.filter(v => v.vote_value === false).length;
+      const blank = data.filter(v => v.vote_value === null).length;
+      setVotes({ approve, disapprove, blank });
+    }
+  };
+
+  const loadUserVote = async () => {
+    if (!currentUser) return;
+    
+    const { data, error } = await supabase
+      .from('votes')
+      .select('*')
+      .eq('proposition_id', id)
+      .eq('user_id', currentUser.id)
+      .maybeSingle();
+
+    if (!error) {
+      setUserVote(data);
+    }
+  };
+
+  const handleVoteChange = () => {
+    loadVotes();
+    loadUserVote();
+  };
 
   if (loading) {
     return (
@@ -66,16 +109,9 @@ export default function Proposition() {
               Par {proposition.author?.display_name || 'Anonyme'} • {new Date(proposition.created_at).toLocaleDateString('fr-FR')}
             </p>
           </div>
-          <button
-            onClick={() => window.location.href = `/posts/new?linkedType=proposition&linkedId=${proposition.id}`}
-            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2"
-            title="Créer une discussion sur cette proposition"
-          >
-            💬 Discuter
-          </button>
         </div>
 
-        <div className="markdown-content">
+        <div className="markdown-content mb-6">
           {proposition.description && typeof proposition.description === 'string' ? (
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
@@ -107,7 +143,7 @@ export default function Proposition() {
         </div>
 
         {proposition.proposition_tags?.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-4">
+          <div className="flex flex-wrap gap-2 mt-4 mb-6">
             {proposition.proposition_tags.map(pt => (
               <span key={pt.tag.id} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
                 {pt.tag.name}
@@ -115,6 +151,67 @@ export default function Proposition() {
             ))}
           </div>
         )}
+
+        {/* Résultats des votes */}
+        <div className="bg-gray-50 rounded-lg p-4 mb-6">
+          <h3 className="text-lg font-semibold mb-3">Résultats des votes</h3>
+          <div className="flex justify-between text-sm font-semibold mb-2">
+            <span className="text-green-700">{votes.approve} Pour</span>
+            <span className="text-gray-700">{votes.blank} Blanc</span>
+            <span className="text-red-700">{votes.disapprove} Contre</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden flex mb-4">
+            {votes.approve + votes.disapprove + votes.blank > 0 ? (
+              <>
+                <div
+                  className="bg-green-600 h-full transition-all duration-300"
+                  style={{ width: `${(votes.approve / (votes.approve + votes.disapprove + votes.blank)) * 100}%` }}
+                ></div>
+                <div
+                  className="bg-gray-400 h-full transition-all duration-300"
+                  style={{ width: `${(votes.blank / (votes.approve + votes.disapprove + votes.blank)) * 100}%` }}
+                ></div>
+                <div
+                  className="bg-red-600 h-full transition-all duration-300"
+                  style={{ width: `${(votes.disapprove / (votes.approve + votes.disapprove + votes.blank)) * 100}%` }}
+                ></div>
+              </>
+            ) : (
+              <div className="w-full text-center text-sm text-gray-500 py-1">Aucun vote</div>
+            )}
+          </div>
+
+          {/* Afficher le vote de l'utilisateur */}
+          {userVote && (
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-3">
+              <p className="text-sm text-blue-800">
+                Vous avez voté : <strong>
+                  {userVote.vote_value === true && 'Pour'}
+                  {userVote.vote_value === false && 'Contre'}
+                  {userVote.vote_value === null && 'Blanc'}
+                </strong>
+              </p>
+            </div>
+          )}
+
+          {/* Boutons de vote */}
+          {currentUser ? (
+            <VoteButton
+              propositionId={id}
+              userId={currentUser.id}
+              currentVote={userVote}
+              onVoteChange={handleVoteChange}
+            />
+          ) : (
+            <div className="bg-gray-50 border border-gray-200 rounded-md p-3 text-center">
+              <p className="text-sm text-gray-600">
+                <Link to="/kudocracy" className="text-blue-900 hover:underline">
+                  Connectez-vous pour voter
+                </Link>
+              </p>
+            </div>
+          )}
+        </div>
 
         <div className="mt-6">
           <Link to="/kudocracy" className="text-blue-900 hover:underline">← Retour à la liste</Link>

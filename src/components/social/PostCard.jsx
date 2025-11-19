@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { getMetadata } from '../../lib/metadata';
 import { getPostTitle, getPostType, isPinned, isLocked, POST_TYPES } from '../../lib/socialMetadata';
+import { getDisplayName, getUserInitial } from '../../lib/userDisplay';
 
 /**
  * Carte d'affichage d'un post
@@ -34,13 +35,13 @@ export default function PostCard({ post, currentUserId }) {
       {/* Header */}
       <div className="flex items-start gap-4 mb-3">
         <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
-          {post.users?.email?.[0]?.toUpperCase() || '?'}
+          {getUserInitial(post.users)}
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-sm font-medium text-gray-900">
-              {post.users?.email || 'Anonyme'}
+              {getDisplayName(post.users)}
             </span>
             <span className="text-xs text-gray-500">•</span>
             <span className="text-xs text-gray-500">

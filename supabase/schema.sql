@@ -160,7 +160,7 @@ CREATE TABLE public.votes (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
   proposition_id uuid NOT NULL,
-  vote_value boolean NOT NULL,
+  vote_value boolean,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   metadata jsonb DEFAULT '{}'::jsonb,
