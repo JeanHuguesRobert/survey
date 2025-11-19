@@ -23,6 +23,49 @@ export class BaseProvider {
     }
 
     /**
+     * Formatte une erreur API en extrayant le message principal du JSON
+     */
+    formatApiError(status, body) {
+        let message = body;
+        let retryAfter = null;
+
+        try {
+            const errorObj = JSON.parse(body);
+            
+            // Extraire le message d'erreur selon la structure
+            message = errorObj?.error?.message 
+                   || errorObj?.message 
+                   || errorObj?.error?.error?.message
+                   || body;
+
+            // Extraire retry-after si présent (supporte "retry in Xs", "wait Xs", "try again in Xs")
+            const retryMatch = message.match(/(?:retry|wait|try\s+again).*?(\d+(?:\.\d+)?)\s*s/i);
+            if (retryMatch) {
+                retryAfter = Math.ceil(parseFloat(retryMatch[1]));
+            }
+
+            // Limiter la longueur du message
+            if (message.length > 250) {
+                message = message.substring(0, 247) + '...';
+            }
+        } catch (e) {
+            // Si le parsing JSON échoue, garder le message original mais le limiter
+            if (body.length > 250) {
+                message = body.substring(0, 247) + '...';
+            }
+        }
+
+        // Construire le message final avec retry info si disponible
+        // Ne pas ajouter "Please retry in Xs" si déjà présent dans le message
+        let finalMessage = message;
+        if (retryAfter && !/(?:retry|wait|try\s+again).*?\d+(?:\.\d+)?\s*s/i.test(message)) {
+            finalMessage += ` Please retry in ${retryAfter}s.`;
+        }
+
+        return `${this.name} API ${status}: ${finalMessage}`;
+    }
+
+    /**
      * Wrapper pour tracker les métriques autour d'un appel API
      */
     async _trackCall(model, callFn) {

@@ -112,6 +112,7 @@ export default function ChatWindow({ user }) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isFooterExpanded, setIsFooterExpanded] = useState(true);
   const [chatbotSettings, setChatbotSettings] = useState({
     welcome_message: `Bonjour ! Comment puis-je vous aider concernant la vie locale à ${CITY_NAME} ?`,
     fallback_message:
@@ -142,6 +143,89 @@ export default function ChatWindow({ user }) {
     const m = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
     const s = String(totalSeconds % 60).padStart(2, "0");
     return `${m}:${s}`;
+  };
+
+  // Fonction pour parser et formater les erreurs API
+  const parseApiError = (error) => {
+    const msg = error?.message || "";
+    
+    // Détection des erreurs de quota (429)
+    const quotaMatch = msg.match(/(?:quota|limit).*?exceeded/i);
+    const retryMatch = msg.match(/(?:retry|wait|try\s+again).*?(\d+(?:\.\d+)?)\s*s/i);
+    const providerMatch = msg.match(/^(\w+)\s+API\s+(\d+):/i);
+    
+    if (quotaMatch || msg.includes('429')) {
+      const provider = providerMatch ? providerMatch[1] : 'Provider';
+      const retrySeconds = retryMatch ? Math.ceil(parseFloat(retryMatch[1])) : null;
+      
+      let userMsg = `⚠️ ${provider} : Quota/limite dépassé(e)`;
+      if (retrySeconds) {
+        const mins = Math.floor(retrySeconds / 60);
+        const secs = retrySeconds % 60;
+        userMsg += mins > 0 
+          ? ` — Réessayez dans ${mins}min ${secs}s`
+          : ` — Réessayez dans ${secs}s`;
+      }
+      
+      return {
+        userMessage: userMsg,
+        consoleMessage: `[${provider}] Quota exceeded${retrySeconds ? ` (retry in ${retrySeconds}s)` : ''}`,
+        detailedLog: msg,
+        shouldRetry: false
+      };
+    }
+    
+    // Détection des erreurs de rate limit (sans quota)
+    if (msg.includes('rate') && msg.includes('limit')) {
+      const provider = providerMatch ? providerMatch[1] : 'Provider';
+      const retrySeconds = retryMatch ? Math.ceil(parseFloat(retryMatch[1])) : 5;
+      
+      return {
+        userMessage: `⏱️ ${provider} : Trop de requêtes — Réessayez dans ${retrySeconds}s`,
+        consoleMessage: `[${provider}] Rate limited (retry in ${retrySeconds}s)`,
+        detailedLog: msg,
+        shouldRetry: true,
+        retryAfter: retrySeconds * 1000
+      };
+    }
+    
+    // Erreur générique
+    const provider = providerMatch ? providerMatch[1] : null;
+    const statusCode = providerMatch ? providerMatch[2] : null;
+    
+    // Extraire juste le premier message d'erreur sans tout le JSON
+    let cleanMsg = msg;
+    let hasJson = false;
+    try {
+      const jsonMatch = msg.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const errorObj = JSON.parse(jsonMatch[0]);
+        cleanMsg = errorObj?.error?.message || errorObj?.message || msg;
+        hasJson = true;
+        // Limiter à 200 caractères
+        if (cleanMsg.length > 200) {
+          cleanMsg = cleanMsg.substring(0, 197) + '...';
+        }
+      }
+    } catch (e) {
+      // Garder le message original
+    }
+    
+    const userMsg = provider 
+      ? `❌ ${provider}${statusCode ? ` (${statusCode})` : ''} : ${cleanMsg}`
+      : `❌ ${cleanMsg}`;
+    
+    // Pour la console, afficher le message complet si c'était du JSON
+    const consoleMsg = hasJson 
+      ? `[${provider || 'Error'}] Full error: ${msg}`
+      : msg;
+    
+    return {
+      userMessage: userMsg,
+      consoleMessage: consoleMsg,
+      detailedLog: msg,
+      shouldRetry: false
+    };
   };
 
   const [modelModalOpen, setModelModalOpen] = useState(false);
@@ -232,7 +316,7 @@ export default function ChatWindow({ user }) {
     setModalProvider((prev) =>
       sortedAvailableProviders.includes(prev) ? prev : sortedAvailableProviders[0],
     );
-  }, [availableProviders]);
+  }, [sortedAvailableProviders]);
   useEffect(() => {
     const providerModes = MODEL_MODES[modalProvider] || {};
     const fallbackMode =
@@ -272,18 +356,18 @@ export default function ChatWindow({ user }) {
 
   const handleNotUsefulClick = (msg) => {
     handleFeedback(msg.id, "not_useful");
-    if (!availableProviders.length) return;
+    if (!sortedAvailableProviders.length) return;
 
     const lastUserQuestion = [...messages]
       .reverse()
       .find((m) => m.sender === "user" && typeof m.text === "string");
     setInput(lastUserQuestion?.text || msg.text || "");
 
-    // Utiliser le dernier provider utilisé (providerMeta) ou OpenAI par défaut
+    // Utiliser le dernier provider utilisé (providerMeta) ou le meilleur disponible
     const lastProvider = providerMeta?.provider || "openai";
-    const provider = availableProviders.includes(lastProvider)
+    const provider = sortedAvailableProviders.includes(lastProvider)
       ? lastProvider
-      : availableProviders[0];
+      : sortedAvailableProviders[0];
 
     setModalProvider(provider);
 
@@ -710,16 +794,27 @@ export default function ChatWindow({ user }) {
         },
       ]);
     } catch (error) {
-      console.error("Erreur lors de l'envoi du message:", error);
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
 
       const isAborted = error.name === "AbortError";
-      const errText = isAborted
-        ? `⚠️ Requête annulée par l'utilisateur.`
-        : `❌ ${error.message}`;
+      
+      let errText;
+      if (isAborted) {
+        errText = `⚠️ Requête annulée par l'utilisateur.`;
+        console.log('[ChatWindow] Request aborted by user');
+      } else {
+        const parsedError = parseApiError(error);
+        errText = parsedError.userMessage;
+        
+        // Afficher les détails complets dans la console
+        console.error('[ChatWindow] API Error:', parsedError.consoleMessage);
+        if (parsedError.detailedLog && parsedError.detailedLog !== parsedError.consoleMessage) {
+          console.error('[ChatWindow] Full error details:', parsedError.detailedLog);
+        }
+      }
 
       // ⇩⇩ Nouveau: mettre à jour le message en streaming si présent
       setMessages((prev) => {
@@ -1153,12 +1248,20 @@ export default function ChatWindow({ user }) {
   }, []);
 
   const handleClearHistory = async () => {
-    if (!user || isClearingHistory) return;
+    if (isClearingHistory) return;
     if (!window.confirm("Effacer tout l'historique de vos échanges ?")) return;
 
     try {
       setIsClearingHistory(true);
-      await supabase.from("chat_interactions").delete().eq("user_id", user.id);
+      
+      if (user) {
+        // Effacer l'historique Supabase pour les utilisateurs connectés
+        await supabase.from("chat_interactions").delete().eq("user_id", user.id);
+      } else {
+        // Effacer l'historique local pour les utilisateurs non connectés
+        localStorage.removeItem("anonymous_chat_history");
+      }
+      
       setMessages([]); // Réinitialiser tous les messages
       setInput(""); // Réinitialiser le champ de saisie
       setRelatedPropositions([]);
@@ -1757,18 +1860,6 @@ export default function ChatWindow({ user }) {
 
         {/* Zone de contrôle fixe en bas */}
         <div className={`chat-controls-area ${isMobile ? "mobile" : ""}`}>
-          {messages.length > 0 && !isMobile && (
-            <div className="history-actions">
-              <button
-                onClick={handleClearHistory}
-                disabled={isClearingHistory || !user}
-                className="clear-history-btn text-sm px-3 py-1 rounded-md border border-red-500 text-red-500 hover:bg-red-50 disabled:opacity-50"
-              >
-                {isClearingHistory ? "Nettoyage..." : "Effacer l'historique"}
-              </button>
-            </div>
-          )}
-
           {/* Zone de saisie */}
           <div className="input-area flex items-center gap-2">
             <textarea
@@ -1786,6 +1877,16 @@ export default function ChatWindow({ user }) {
               className="chat-input resize-none flex-grow w-full px-4 py-2 border border-gray-300 rounded-md"
               rows={isMobile ? "2" : "3"}
             />
+            {messages.length > 0 && !isMobile && (
+              <button
+                onClick={handleClearHistory}
+                disabled={isClearingHistory}
+                title="Effacer tout l'historique"
+                className="px-3 py-2 border border-red-500 text-red-500 rounded-md hover:bg-red-50 disabled:opacity-50"
+              >
+                {isClearingHistory ? "Nettoyage..." : "Effacer l'historique"}
+              </button>
+            )}
             {hasConversation && !isMobile && (
               <button
                 onClick={handlePublishWiki}
@@ -1839,14 +1940,18 @@ export default function ChatWindow({ user }) {
             </button>
           </div>
 
-          {/* Disclaimer - hide on mobile */}
-          {!isMobile && (
+          {/* Disclaimer - hide on mobile and when footer is closed */}
+          {!isMobile && isFooterExpanded && (
             <div className="chat-disclaimer" role="note" aria-live="polite">
               ⚠️ Cette IA peut commettre des erreurs. Il est recommandé de
               vérifier les informations importantes.
             </div>
           )}
-          <SiteFooter showWiki={true} showVersionInfo={!isMobile} />
+          <SiteFooter 
+            showWiki={true} 
+            showVersionInfo={!isMobile} 
+            onExpandedChange={setIsFooterExpanded}
+          />
         </div>
 
         {/* Modal de sélection de modèle */}
@@ -1879,7 +1984,7 @@ export default function ChatWindow({ user }) {
                 </button>
                 {quickPresets
                   .filter((preset) =>
-                    false // && sortedAvailableProviders.includes(preset.provider),
+                    sortedAvailableProviders.includes(preset.provider)
                   )
                   .map((preset) => (
                     <button
@@ -1897,7 +2002,7 @@ export default function ChatWindow({ user }) {
                   value={modalProvider}
                   onChange={(e) => setModalProvider(e.target.value)}
                 >
-                  {availableProviders.length > 0 ? (
+                  {sortedAvailableProviders.length > 0 ? (
                     sortedAvailableProviders.map((provider) => (
                       <option key={provider} value={provider}>
                         {getProviderLabel(provider)}

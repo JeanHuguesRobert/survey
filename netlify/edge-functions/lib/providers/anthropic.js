@@ -68,7 +68,7 @@ export class AnthropicProvider extends BaseProvider {
         if (!response.ok) {
             const body = await response.text();
             console.error(`[${this.name}] ❌ error: ${body.slice(0, 400)}`);
-            throw new Error(`${this.name} API ${response.status}: ${body}`);
+            throw new Error(this.formatApiError(response.status, body));
         }
 
         if (!stream) {
