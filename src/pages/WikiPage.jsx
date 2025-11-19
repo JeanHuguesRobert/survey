@@ -9,6 +9,8 @@ import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import ShareModal from '../components/wiki/ShareModal';
 import { formatDate, formatRelativeDate } from '../lib/formatDate';
+import CommentSection from '../components/common/CommentSection';
+import { useCurrentUser } from '../lib/useCurrentUser';
 
 // Component to display page metadata
 function PageMetadata({ page, syncHistory }) {
@@ -140,6 +142,7 @@ const WikiPage = () => {
   const [pages, setPages] = useState([]); // Déclaration de l'état 'pages'
   const [showShareModal, setShowShareModal] = useState(false); // Nouvel état pour le modal de partage
   const [syncHistory, setSyncHistory] = useState([]); // État pour l'historique de synchronisation
+  const { currentUser } = useCurrentUser(); // Hook pour l'utilisateur connecté
 
   useEffect(() => {
     supabase.from('wiki_pages').select('*').order('updated_at', { ascending: false }).then(({ data }) => setPages(data || []));
@@ -337,6 +340,14 @@ const WikiPage = () => {
         pageTitle={page?.title || 'Page Wiki'}
         pageUrl={window.location.href}
         pageContent={page?.content || ''}
+      />
+
+      {/* Section de commentaires */}
+      <CommentSection
+        linkedType="wiki_page"
+        linkedId={page.id}
+        currentUser={currentUser}
+        defaultExpanded={false}
       />
     </div>
   );

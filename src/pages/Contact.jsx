@@ -1,9 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { HASHTAG, CITY_NAME } from '../constants';
+import CommentSection from '../components/common/CommentSection';
+import { useCurrentUser } from '../lib/useCurrentUser';
 
 export default function Contact() {
   const email = import.meta.env.VITE_CONTACT_EMAIL || 'jeanhuguesrobert@gmail.com';
+  const { currentUser } = useCurrentUser();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -44,6 +47,16 @@ export default function Contact() {
               Retour à la consultation
             </Link>
           </div>
+        </div>
+
+        {/* Section de questions et discussions */}
+        <div className="mt-6">
+          <CommentSection
+            linkedType="contact_page"
+            linkedId="main"
+            currentUser={currentUser}
+            defaultExpanded={false}
+          />
         </div>
       </div>
 

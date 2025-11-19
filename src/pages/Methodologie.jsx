@@ -1,8 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { HASHTAG, CITY_NAME, MOVEMENT_NAME } from '../constants';
+import CommentSection from '../components/common/CommentSection';
+import { useCurrentUser } from '../lib/useCurrentUser';
 
 export default function Methodologie() {
+  const { currentUser } = useCurrentUser();
+  
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header identique au reste du site */}
@@ -109,6 +113,16 @@ export default function Methodologie() {
               Retour à la consultation
             </Link>
           </div>
+        </div>
+
+        {/* Section de commentaires et suggestions sur la méthodologie */}
+        <div className="mt-6">
+          <CommentSection
+            linkedType="methodology"
+            linkedId="main"
+            currentUser={currentUser}
+            defaultExpanded={false}
+          />
         </div>
       </div>
 

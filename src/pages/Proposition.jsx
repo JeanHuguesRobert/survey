@@ -4,12 +4,15 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { supabase } from '../lib/supabase';
 import { linkifyWardWiki } from '../lib/wikiLinks';
+import CommentSection from '../components/common/CommentSection';
+import { useCurrentUser } from '../lib/useCurrentUser';
 
 export default function Proposition() {
   const { id } = useParams();
   const [proposition, setProposition] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { currentUser } = useCurrentUser(); // Hook pour l'utilisateur connecté
 
   useEffect(() => {
     const loadProposition = async () => {
@@ -117,6 +120,14 @@ export default function Proposition() {
           <Link to="/kudocracy" className="text-blue-900 hover:underline">← Retour à la liste</Link>
         </div>
       </div>
+
+      {/* Section de commentaires */}
+      <CommentSection
+        linkedType="proposition"
+        linkedId={proposition.id}
+        currentUser={currentUser}
+        defaultExpanded={false}
+      />
     </div>
   );
 }

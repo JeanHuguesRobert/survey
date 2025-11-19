@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { isDeleted, getMetadata } from '../../lib/metadata';
 import { getGroupType, isPrivateGroup, requiresApproval } from '../../lib/socialMetadata';
+import CommentSection from '../common/CommentSection';
 
 /**
  * Page détail d'un groupe avec membres et posts
@@ -325,6 +326,16 @@ export default function GroupDetail({ currentUser }) {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Section de discussion sur le groupe */}
+      <div className="mt-6">
+        <CommentSection
+          linkedType="group"
+          linkedId={id}
+          currentUser={currentUser}
+          defaultExpanded={false}
+        />
       </div>
     </div>
   );
