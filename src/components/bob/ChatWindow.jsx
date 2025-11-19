@@ -16,6 +16,7 @@ import {
   VOLUNTEER_URL,
 } from "../../constants";
 import "./ChatWindow.css";
+import ProviderStatus from './ProviderStatus';
 // import RealTimeNotifications from './RealTimeNotifications';
 
 const MODEL_MODES = {
@@ -43,6 +44,17 @@ const MODEL_MODES = {
     // Gros modèle reasoning quand tu veux l’artillerie lourde
     reasoning: "deepseek-ai/DeepSeek-R1",
   },
+  grok: {
+    main: "grok-4-fast-reasoning",
+    fast: "grok-4-fast-non-reasoning",
+    reasoning: "grok-4-fast-reasoning",
+  },
+  gemini: {
+    main: "gemini-2.5-pro",
+    fast: "gemini-2.5-flash",
+    reasoning: "gemini-3-pro",
+    cheap: "gemini-2.5-flash-lite",
+  },
 };
 
 const DEFAULT_MODEL_MODE = {
@@ -50,6 +62,8 @@ const DEFAULT_MODEL_MODE = {
   anthropic: "main",
   openai: "main",
   huggingface: "main",
+  grok: "main",
+  gemini: "main",
 };
 
 const MODEL_MODE_LABELS = {
@@ -85,9 +99,12 @@ const getProviderLabel = (provider) =>
     anthropic: "Anthropic",
     openai: "OpenAI",
     huggingface: "HuggingFace",
+    grok: "Grok (xAI)",
+    gemini: "Gemini (Google)",
   })[provider] || provider;
 
 const PROVIDER_META_PREFIX = "__PROVIDER_INFO__";
+const PROVIDERS_STATUS_PREFIX = "__PROVIDERS_STATUS__";
 
 export default function ChatWindow({ user }) {
   // États principaux
@@ -116,6 +133,7 @@ export default function ChatWindow({ user }) {
   const [isClearingHistory, setIsClearingHistory] = useState(false);
   const [modelMode, setModelMode] = useState(DEFAULT_MODEL_MODE.mistral);
   const [providerMeta, setProviderMeta] = useState(null);
+  const [providersStatus, setProvidersStatus] = useState(null);
   const timerRef = useRef(null);
   const abortControllerRef = useRef(null);
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -137,10 +155,82 @@ export default function ChatWindow({ user }) {
     provider: null,
     model: null,
   });
-  const availableProviders = useMemo(() => AVAILABLE_PROVIDERS, []);
+  const availableProviders = useMemo(() => {
+    if (providersStatus?.providers) {
+      return providersStatus.providers
+        .filter(p => p.status !== 'not_configured')
+        .map(p => p.name);
+    }
+    return AVAILABLE_PROVIDERS;
+  }, [providersStatus]);
+
+  // Fonction pour calculer un score de priorité pour chaque provider
+  const getProviderPriorityScore = useCallback((providerName) => {
+    if (!providersStatus?.providers) return 0;
+    
+    const provider = providersStatus.providers.find(p => p.name === providerName);
+    if (!provider || provider.status === 'not_configured') return -1000;
+    
+    let score = 0;
+    
+    // Pénalités/bonus selon le statut
+    if (provider.status === 'rate_limited') score -= 500;
+    else if (provider.status === 'degraded') score -= 200;
+    else if (provider.status === 'available') score += 300;
+    else if (provider.status === 'unknown') score += 100;
+    
+    const mainModel = provider.models?.[0];
+    
+    // Bonus pour providers récemment utilisés avec succès
+    if (mainModel?.recentlyUsed && mainModel.successRate > 90) {
+      score += 200;
+    }
+    
+    // Score basé sur le temps de réponse (plus rapide = meilleur)
+    if (mainModel?.avgResponseTime) {
+      const avgSeconds = mainModel.avgResponseTime / 1000;
+      if (avgSeconds < 2) score += 150;
+      else if (avgSeconds < 5) score += 100;
+      else if (avgSeconds < 10) score += 50;
+      else score -= 50;
+    }
+    
+    // Bonus pour taux de succès élevé (0-200 points)
+    if (mainModel?.successRate != null) {
+      score += Math.floor(mainModel.successRate * 2);
+    }
+    
+    // Pénalité pour erreurs consécutives
+    if (mainModel?.consecutiveErrors > 0) {
+      score -= mainModel.consecutiveErrors * 50;
+    }
+    
+    // Pénalité si retry_after défini
+    if (mainModel?.retryAfter) {
+      score -= 300;
+    }
+    
+    return score;
+  }, [providersStatus]);
+
+  // Providers triés par priorité (disponibilité + vitesse)
+  const sortedAvailableProviders = useMemo(() => {
+    if (!availableProviders.length) return [];
+    
+    return [...availableProviders].sort((a, b) => {
+      const scoreB = getProviderPriorityScore(b);
+      const scoreA = getProviderPriorityScore(a);
+      // En cas d'égalité, trier par ordre alphabétique
+      if (scoreA === scoreB) {
+        return a.toLowerCase().localeCompare(b.toLowerCase());
+      }
+      return scoreB - scoreA; // Ordre décroissant
+    });
+  }, [availableProviders, getProviderPriorityScore]);
+
   useEffect(() => {
     setModalProvider((prev) =>
-      availableProviders.includes(prev) ? prev : availableProviders[0],
+      sortedAvailableProviders.includes(prev) ? prev : sortedAvailableProviders[0],
     );
   }, [availableProviders]);
   useEffect(() => {
@@ -171,7 +261,7 @@ export default function ChatWindow({ user }) {
   };
 
   const handleQuickPreset = (preset) => {
-    if (!availableProviders.includes(preset.provider)) return;
+    if (!sortedAvailableProviders.includes(preset.provider)) return;
     setModalProvider(preset.provider);
     setModalMode(preset.mode);
     handleModelSelection({
@@ -183,13 +273,36 @@ export default function ChatWindow({ user }) {
   const handleNotUsefulClick = (msg) => {
     handleFeedback(msg.id, "not_useful");
     if (!availableProviders.length) return;
+
     const lastUserQuestion = [...messages]
       .reverse()
       .find((m) => m.sender === "user" && typeof m.text === "string");
     setInput(lastUserQuestion?.text || msg.text || "");
-    setModalProvider((prev) =>
-      availableProviders.includes(prev) ? prev : availableProviders[0],
-    );
+
+    // Utiliser le dernier provider utilisé (providerMeta) ou OpenAI par défaut
+    const lastProvider = providerMeta?.provider || "openai";
+    const provider = availableProviders.includes(lastProvider)
+      ? lastProvider
+      : availableProviders[0];
+
+    setModalProvider(provider);
+
+    // Essayer de déterminer le mode depuis le modèle utilisé
+    if (providerMeta?.model && MODEL_MODES[provider]) {
+      const modes = MODEL_MODES[provider];
+      console.log('[handleNotUsefulClick] Matching model:', providerMeta.model, 'against modes:', modes);
+      const matchingMode = Object.entries(modes).find(([mode, modelName]) =>
+        modelName === providerMeta.model
+      );
+      if (matchingMode) {
+        setModalMode(matchingMode[0]);
+      } else {
+        setModalMode(DEFAULT_MODEL_MODE[provider] || "");
+      }
+    } else {
+      setModalMode(DEFAULT_MODEL_MODE[provider] || "");
+    }
+
     setCustomModel("");
     setModelModalOpen(true);
   };
@@ -217,69 +330,157 @@ export default function ChatWindow({ user }) {
       }
     };
     fetchChatbotSettings();
+
+    // Charger le statut initial des providers
+    fetch('/api/chat-stream-v2?healthcheck=true')
+      .then(r => r.json())
+      .then(data => {
+        setProvidersStatus(data);
+        console.log('[ChatWindow] Initial providers status loaded:', data);
+      })
+      .catch(err => console.warn('[ChatWindow] Failed to load initial provider status:', err));
   }, []);
 
   // Indique si une conversation est en cours (au moins un message non notification)
   const hasConversation = messages.some((m) => !m.isNotification);
 
-  // Charger l'historique des conversations
+  // Charger l'historique des conversations (Local + Supabase)
   useEffect(() => {
-    if (user) {
-      const fetchChatHistory = async () => {
-        const { data, error } = await supabase
-          .from("chat_interactions")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", {
-            ascending: false,
-          })
-          .limit(50);
+    const syncLocalHistory = async () => {
+      const localHistory = localStorage.getItem("anonymous_chat_history");
 
-        if (error) {
-          console.error("Erreur lors du chargement de l'historique:", error);
-          return;
+      if (user && localHistory) {
+        try {
+          const parsedHistory = JSON.parse(localHistory);
+          if (parsedHistory.length > 0) {
+            console.log("Syncing local history to Supabase...", parsedHistory.length);
+
+            // Préparer les messages pour l'insertion
+            // Note: On doit reconstruire les paires question/réponse
+            const interactionsToInsert = [];
+            let currentInteraction = {};
+
+            // On parcourt les messages du plus vieux au plus récent pour reconstruire les interactions
+            const sortedMessages = [...parsedHistory].sort((a, b) => a.id - b.id);
+
+            for (const msg of sortedMessages) {
+              if (msg.sender === 'user') {
+                currentInteraction = {
+                  user_id: user.id,
+                  question: msg.text,
+                  created_at: new Date(msg.id).toISOString(), // Utiliser le timestamp de l'ID
+                };
+              } else if (msg.sender === 'bot' && currentInteraction.question) {
+                currentInteraction.answer = msg.text;
+                currentInteraction.sources = msg.sources || [];
+                currentInteraction.feedback = msg.feedback || null;
+                interactionsToInsert.push({ ...currentInteraction });
+                currentInteraction = {};
+              }
+            }
+
+            if (interactionsToInsert.length > 0) {
+              const { error } = await supabase
+                .from("chat_interactions")
+                .insert(interactionsToInsert);
+
+              if (error) {
+                console.error("Error syncing history:", error);
+              } else {
+                console.log("Local history synced successfully!");
+                localStorage.removeItem("anonymous_chat_history");
+              }
+            } else {
+              localStorage.removeItem("anonymous_chat_history");
+            }
+          }
+        } catch (e) {
+          console.error("Error parsing local history:", e);
+          localStorage.removeItem("anonymous_chat_history");
         }
+      }
+    };
 
-        if (data && data.length > 0) {
-          const formattedHistory = data.flatMap((item) => {
-            const entries = [
-              {
-                id: `history-user-${item.id}`,
-                text: item.question,
-                sender: "user",
-                timestamp: item.created_at,
-                related: {
-                  answer: item.answer,
+    if (user) {
+      // 1. D'abord essayer de synchroniser l'historique local si existant
+      syncLocalHistory().then(() => {
+        // 2. Ensuite charger l'historique complet depuis Supabase
+        const fetchChatHistory = async () => {
+          const { data, error } = await supabase
+            .from("chat_interactions")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("created_at", {
+              ascending: false,
+            })
+            .limit(50);
+
+          if (error) {
+            console.error("Erreur lors du chargement de l'historique:", error);
+            return;
+          }
+
+          if (data && data.length > 0) {
+            const formattedHistory = data.flatMap((item) => {
+              const entries = [
+                {
+                  id: `history-user-${item.id}`,
+                  text: item.question,
+                  sender: "user",
+                  timestamp: item.created_at,
+                  related: {
+                    answer: item.answer,
+                    sources: item.sources,
+                    feedback: item.feedback,
+                  },
+                },
+              ];
+              if (item.answer) {
+                entries.push({
+                  id: `history-bot-${item.id}`,
+                  text: item.answer,
+                  sender: "bot",
                   sources: item.sources,
                   feedback: item.feedback,
-                },
-              },
-            ];
-            if (item.answer) {
-              entries.push({
-                id: `history-bot-${item.id}`,
-                text: item.answer,
-                sender: "bot",
-                sources: item.sources,
-                feedback: item.feedback,
-                timestamp: item.created_at,
-              });
-            }
-            return entries;
-          });
+                  timestamp: item.created_at,
+                });
+              }
+              return entries;
+            });
 
-          setMessages((prev) => {
-            const withoutHistory = prev.filter(
-              (msg) =>
-                !(typeof msg.id === "string" && msg.id.startsWith("history-")),
-            );
-            return [...formattedHistory.reverse(), ...withoutHistory];
-          });
+            setMessages((prev) => {
+              const withoutHistory = prev.filter(
+                (msg) =>
+                  !(typeof msg.id === "string" && msg.id.startsWith("history-")),
+              );
+              return [...formattedHistory.reverse(), ...withoutHistory];
+            });
+          }
+        };
+        fetchChatHistory();
+      });
+    } else {
+      // Si pas connecté, charger depuis le localStorage
+      const localHistory = localStorage.getItem("anonymous_chat_history");
+      if (localHistory) {
+        try {
+          const parsed = JSON.parse(localHistory);
+          setMessages(parsed);
+        } catch (e) {
+          console.error("Error loading local history:", e);
         }
-      };
-      fetchChatHistory();
+      }
     }
   }, [user]);
+
+  // Sauvegarder dans le localStorage si non connecté
+  useEffect(() => {
+    if (!user && messages.length > 0) {
+      // Ne sauvegarder que les messages qui ne sont pas des notifications système
+      const messagesToSave = messages.filter(m => !m.isNotification);
+      localStorage.setItem("anonymous_chat_history", JSON.stringify(messagesToSave));
+    }
+  }, [messages, user]);
 
   // Détecter les nouvelles propositions créées
   useEffect(() => {
@@ -377,7 +578,7 @@ export default function ChatWindow({ user }) {
       );
 
       // 4. Appeler l'Edge Function avec streaming + historique
-      const response = await fetch("/api/chat-stream", {
+      const response = await fetch("/api/chat-stream-v2", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -419,6 +620,25 @@ export default function ChatWindow({ user }) {
           stream: true,
         });
         let appendChunk = "";
+
+        // Parse __PROVIDERS_STATUS__
+        while (chunk.includes(PROVIDERS_STATUS_PREFIX)) {
+          const [before, rest] = chunk.split(PROVIDERS_STATUS_PREFIX, 2);
+          appendChunk += before;
+          const newlineIndex = rest.indexOf("\n");
+          const payload =
+            newlineIndex >= 0 ? rest.slice(0, newlineIndex) : rest;
+          try {
+            const statusData = JSON.parse(payload);
+            setProvidersStatus(statusData);
+            console.log("[ChatWindow] Providers status updated:", statusData);
+          } catch (err) {
+            console.warn("[ChatWindow] providers status parse failed", err);
+          }
+          chunk = newlineIndex >= 0 ? rest.slice(newlineIndex + 1) : "";
+        }
+
+        // Parse __PROVIDER_INFO__
         while (chunk.includes(PROVIDER_META_PREFIX)) {
           const [before, rest] = chunk.split(PROVIDER_META_PREFIX, 2);
           appendChunk += before;
@@ -951,6 +1171,83 @@ export default function ChatWindow({ user }) {
     }
   };
 
+  // Helper pour obtenir les métriques d'un provider  
+  const getProviderMetrics = (providerName) => {
+    if (!providersStatus?.providers) return null;
+    const provider = providersStatus.providers.find(p => p.name === providerName);
+    if (!provider || provider.status === 'not_configured') return null;
+
+    const mainModel = provider.models?.[0];
+
+    return {
+      status: provider.status,
+      avgTime: mainModel?.avgResponseTime,
+      successRate: mainModel?.successRate,
+      recentlyUsed: mainModel?.recentlyUsed,
+      retryAfter: mainModel?.retryAfter,
+    };
+  };
+
+  const ProviderMetricsBadge = ({ provider }) => {
+    const m = getProviderMetrics(provider);
+    if (!m) return null;
+
+    return (
+      <div className="provider-metrics-inline">
+        {/* Statut */}
+        {m.status === 'unknown' && <span className="metric-badge" style={{ opacity: 0.5 }}>⚪ Jamais utilisé</span>}
+        {m.status === 'available' && <span className="metric-badge metric-success">🟢 Disponible</span>}
+        {m.status === 'degraded' && <span className="metric-badge metric-warning">🟡 Dégradé</span>}
+        {m.status === 'rate_limited' && <span className="metric-badge metric-retry">⏳ Rate limited</span>}
+
+        {/* Métriques de performance */}
+        {m.avgTime && <span className="metric-badge metric-time">⚡ {(m.avgTime / 1000).toFixed(2)}s</span>}
+        {m.successRate != null && <span className={`metric-badge metric-${m.successRate < 90 ? 'warning' : 'success'}`}>✓ {m.successRate}%</span>}
+        {m.recentlyUsed && <span className="metric-badge metric-hot">🔥</span>}
+        {m.retryAfter && <span className="metric-badge metric-retry">dans {m.retryAfter}s</span>}
+      </div>
+    );
+  };
+
+  const ModelMetricsBadge = ({ provider, mode }) => {
+    if (!providersStatus?.providers || !provider || !mode) return null;
+
+    const providerData = providersStatus.providers.find(p => p.name === provider);
+    if (!providerData) {
+      return null;
+    }
+
+    const modelData = providerData.models?.find(m => m.mode === mode);
+    if (!modelData) {
+      return null;
+    }
+
+    return (
+      <div className="provider-metrics-inline" style={{ marginTop: '8px' }}>
+        {/* Statut du modèle */}
+        {modelData.status === 'unknown' && <span className="metric-badge" style={{ opacity: 0.5 }}>⚪ Jamais utilisé</span>}
+        {modelData.status === 'available' && <span className="metric-badge metric-success">🟢 Disponible</span>}
+        {modelData.status === 'degraded' && <span className="metric-badge metric-warning">🟡 Dégradé</span>}
+        {modelData.status === 'rate_limited' && <span className="metric-badge metric-retry">⏳ Rate limited</span>}
+
+        {/* Métriques de performance */}
+        {modelData.avgResponseTime && <span className="metric-badge metric-time">⚡ {(modelData.avgResponseTime / 1000).toFixed(2)}s</span>}
+        {modelData.successRate != null && (
+          <span className={`metric-badge metric-${modelData.successRate < 90 ? 'warning' : 'success'}`}>
+            ✓ {modelData.successRate}%
+          </span>
+        )}
+        {modelData.recentlyUsed && <span className="metric-badge metric-hot">🔥 Récent</span>}
+        {modelData.retryAfter && <span className="metric-badge metric-retry">dans {modelData.retryAfter}s</span>}
+        {modelData.consecutiveErrors > 0 && (
+          <span className="metric-badge" style={{ background: 'rgba(239, 83, 80, 0.2)', color: '#ef5350' }}>
+            ⚠️ {modelData.consecutiveErrors} erreur(s)
+          </span>
+        )}
+      </div>
+    );
+  };
+
   const [isMobile, setIsMobile] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -1228,14 +1525,14 @@ export default function ChatWindow({ user }) {
                               </button>
                               <button
                                 onClick={() => handleNotUsefulClick(msg)}
-                                className={`feedback-btn not-useful ${msg.feedback === "not_useful" ? "active" : ""
+                                className={`feedback-btn ${msg.feedback === "not_useful" ? "active" : ""
                                   }`}
-                                disabled={msg.feedback === "not_useful"}
+                                title={msg.feedback === "not_useful" ? "Cliquez pour essayer un autre modèle" : ""}
                               >
-                                ❌{" "}
+                                👎{" "}
                                 {msg.feedback === "not_useful"
-                                  ? "Merci pour votre avis !"
-                                  : "Non utile"}
+                                  ? "Merci ! (Réessayer ?)"
+                                  : "Pas assez"}
                               </button>
                             </div>
 
@@ -1582,7 +1879,7 @@ export default function ChatWindow({ user }) {
                 </button>
                 {quickPresets
                   .filter((preset) =>
-                    availableProviders.includes(preset.provider),
+                    false // && sortedAvailableProviders.includes(preset.provider),
                   )
                   .map((preset) => (
                     <button
@@ -1601,15 +1898,21 @@ export default function ChatWindow({ user }) {
                   onChange={(e) => setModalProvider(e.target.value)}
                 >
                   {availableProviders.length > 0 ? (
-                    availableProviders.map((provider) => (
+                    sortedAvailableProviders.map((provider) => (
                       <option key={provider} value={provider}>
                         {getProviderLabel(provider)}
                       </option>
                     ))
                   ) : (
-                    <option value="mistral">Aucun provider configuré</option>
+                    <option value="aucun">Aucun provider configuré</option>
                   )}
                 </select>
+                {/* Afficher les métriques du provider sélectionné */}
+                {modalProvider && (
+                  <div style={{ marginBottom: '8px' }}>
+                    <ProviderMetricsBadge provider={modalProvider} />
+                  </div>
+                )}
               </section>
               <section className="model-mode-control">
                 <label>Mode prédéfini</label>
@@ -1625,6 +1928,10 @@ export default function ChatWindow({ user }) {
                     ),
                   )}
                 </select>
+                {/* Métriques du modèle sélectionné */}
+                {modalProvider && modalMode && (
+                  <ModelMetricsBadge provider={modalProvider} mode={modalMode} />
+                )}
               </section>
               <section className="model-mode-control">
                 <label>Modèle personnalisé (facultatif)</label>

@@ -1719,3 +1719,34 @@
 .hover\:bg-red-50:hover {
   background: var(--color-error-50);
 }
+
+.provider-metrics-inline {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+.metric-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  font-size: 11px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+}
+.metric-time {
+  color: #64b5f6;
+}
+.metric-success {
+  color: #81c784;
+}
+.metric-warning {
+  color: #ffb74d;
+}
+.metric-hot {
+  background: rgba(255, 152, 0, 0.2);
+}
+.metric-retry {
+  color: #ff9800;
+}
