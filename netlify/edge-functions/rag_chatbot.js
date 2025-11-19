@@ -976,77 +976,37 @@ const handler = async (request) => {
 
         while (providerRetries <= maxProviderRetries) {
           try {
-            if (provider === "mistral" && Deno.env.get("MISTRAL_API_KEY")) {
-              const resolvedModel = resolveModelForProvider(provider, effectiveModelMode);
-              emitProviderMeta({ provider, model: resolvedModel });
-              console.log(`[EdgeFunction] 🌀 Tentative avec ${provider} (model=${resolvedModel})...`);
-              
-              for await (const chunk of runConversationalAgent({
-                provider: "mistral",
-                question: userQuestion,
-                systemPrompt,
-                conversationHistory: conversation_history,
-                maxToolCalls: 2,
-                modelMode: effectiveModelMode
-              })) {
-                controller.enqueue(encoder.encode(chunkPrefix + chunk));
-              }
-              handled = true;
-              break;
+            const apiKey = Deno.env.get(`${provider.toUpperCase()}_API_KEY`);
+            if (!apiKey) {
+              console.log(`[EdgeFunction] ⏭️ Skipping ${provider} (no API key)`);
+              continue;
             }
-
-            if (provider === "anthropic" && Deno.env.get("ANTHROPIC_API_KEY")) {
-              const resolvedModel = resolveModelForProvider(provider, effectiveModelMode);
-              emitProviderMeta({ provider, model: resolvedModel });
-              console.log(`[EdgeFunction] 🔄 Tentative avec ${provider} (model=${resolvedModel})...`);
-              
-              for await (const chunk of runConversationalAgent({
-                provider: "anthropic",
-                question: userQuestion,
-                systemPrompt,
-                conversationHistory: conversation_history,
-                maxToolCalls: 2,
-                modelMode: effectiveModelMode
-              })) {
-                controller.enqueue(encoder.encode(chunkPrefix + chunk));
-              }
-              handled = true;
-              break;
-            }
-
-            if (provider === "openai" && Deno.env.get("OPENAI_API_KEY")) {
-              const resolvedModel = resolveModelForProvider(provider, effectiveModelMode);
-              emitProviderMeta({ provider, model: resolvedModel });
-              console.log(`[EdgeFunction] 🤖 Tentative avec ${provider} (model=${resolvedModel})...`);
-              
-              for await (const chunk of runConversationalAgent({
-                provider: "openai",
-                question: userQuestion,
-                systemPrompt,
-                conversationHistory: conversation_history,
-                maxToolCalls: 2,
-                modelMode: effectiveModelMode
-              })) {
-                controller.enqueue(encoder.encode(chunkPrefix + chunk));
-              }
-              handled = true;
-              break;
-            }
-
-            if (provider === "huggingface" && Deno.env.get("HUGGINGFACE_API_KEY")) {
-              const resolvedModel = resolveModelForProvider(provider, effectiveModelMode);
-              emitProviderMeta({ provider, model: resolvedModel });
-              console.log(`[EdgeFunction] 🤗 Tentative avec ${provider} (model=${resolvedModel})...`);
-              
+            const resolvedModel = resolveModelForProvider(provider, effectiveModelMode);
+            emitProviderMeta({ provider, model: resolvedModel });
+            console.log(`[EdgeFunction] 🚀 Tentative avec ${provider} (model=${resolvedModel})...`);
+            if (provider === "huggingface") {
+              // HuggingFace a une API différente (non-streaming)
               const result = await runHuggingFaceAgent(
                 userQuestion,
                 systemPrompt,
                 effectiveModelMode
               );
               controller.enqueue(encoder.encode(chunkPrefix + result));
-              handled = true;
-              break;
+            } else {
+              // Mistral, OpenAI, Anthropic utilisent tous runConversationalAgent
+              for await (const chunk of runConversationalAgent({
+                provider,
+                question: userQuestion,
+                systemPrompt,
+                conversationHistory: conversation_history,
+                maxToolCalls: 2,
+                modelMode: effectiveModelMode
+              })) {
+                controller.enqueue(encoder.encode(chunkPrefix + chunk));
+              }
             }
+            handled = true;
+            break;
 
           } catch (error) {
             const isForcedProvider = forcedProvider === provider;
@@ -1055,11 +1015,10 @@ const handler = async (request) => {
 
             if (capacityError && !isForcedProvider) {
               const fallbackMessage = `${errorPrefix}${provider} indisponible (crédit/limite atteinte). Tentative avec un autre fournisseur...\n\n`;
-              console.warn(`[EdgeFunction] ⚠️ ${provider} capacité atteinte, suppression de ${provider} de la rotation.`);
+              console.warn(`[EdgeFunction] ⚠️ ${provider} capacité atteinte, passage au fournisseur suivant.`);
               controller.enqueue(encoder.encode(fallbackMessage));
-              providerOrder.splice(providerIndex, 1);
-              providerIndex--;
-              continue;
+              failedProviders.add(provider);
+              break; // Passe immédiatement au provider suivant
             } else if (rateLimitError && providerRetries < maxProviderRetries) {
               const delayMs = parseRetryAfter(error.message);
               console.warn(`[EdgeFunction] ⏳ ${provider} rate limit, retrying in ${delayMs}ms (attempt ${providerRetries + 1}/${maxProviderRetries + 1})`);
