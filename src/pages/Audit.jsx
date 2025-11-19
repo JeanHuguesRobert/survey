@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Link } from "react-router-dom";
 import { MOVEMENT_NAME, CITY_NAME, BOT_NAME, PARTY_NAME, HASHTAG } from "../constants";
+import SiteFooter from '../components/layout/SiteFooter';
 
 export default function Audit() {
   const [auditContent, setAuditContent] = useState("");
@@ -58,6 +59,10 @@ export default function Audit() {
           <Link to="/" className="px-4 py-2 bg-gray-100 text-blue-900 font-semibold rounded-md hover:bg-gray-200">
             Retour à la consultation
           </Link>
+        </div>
+
+        <div className="mt-8">
+          <SiteFooter />
         </div>
       </div>
     </div>

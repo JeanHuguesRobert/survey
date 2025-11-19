@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { CITY_NAME, HASHTAG, COMMUNITY_NAME, COMMUNITY_TYPE, getCommunityLabels } from '../constants';
 import { getCommunityTransparencyCriteria, calculateTransparencyScore } from '../config/transparencyCriteria';
+import SiteFooter from '../components/layout/SiteFooter';
 
 // Obtenir les critères dynamiques basés sur le type de communauté
 const communityConfig = getCommunityTransparencyCriteria(COMMUNITY_TYPE);
@@ -547,6 +548,10 @@ export default function Transparence() {
             </table>
           </div>
         </section>
+      </div>
+
+      <div className="mt-8">
+        <SiteFooter />
       </div>
     </div>
   );

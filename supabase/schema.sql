@@ -16,12 +16,14 @@ CREATE TABLE public.chat_interactions (
 );
 CREATE TABLE public.chatbot_settings (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
-  welcome_message text DEFAULT 'Bonjour ! Comment puis-je vous aider concernant la vie locale à {{CITY_NAME}} ?'::text,
+  welcome_message text DEFAULT 'Bonjour ! Comment puis-je vous aider concernant la vie locale à Corte ?'::text,
   fallback_message text DEFAULT 'Désolé, je ne trouve pas de réponse. Souhaitez-vous créer une proposition ?'::text,
   similarity_threshold double precision DEFAULT 0.65,
   max_sources integer DEFAULT 3,
   enable_proposition_creation boolean DEFAULT true,
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  metadata jsonb DEFAULT '{"schemaVersion": 1}'::jsonb,
   CONSTRAINT chatbot_settings_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.comments (
@@ -30,9 +32,18 @@ CREATE TABLE public.comments (
   user_id uuid NOT NULL,
   content text NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
   CONSTRAINT comments_pkey PRIMARY KEY (id),
   CONSTRAINT comments_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.posts(id),
   CONSTRAINT comments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.consolidated_wiki_documents (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  content text NOT NULL,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT consolidated_wiki_documents_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.delegations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -40,6 +51,8 @@ CREATE TABLE public.delegations (
   delegate_id uuid NOT NULL,
   tag_id uuid NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
   CONSTRAINT delegations_pkey PRIMARY KEY (id),
   CONSTRAINT delegations_delegator_id_fkey FOREIGN KEY (delegator_id) REFERENCES public.users(id),
   CONSTRAINT delegations_delegate_id_fkey FOREIGN KEY (delegate_id) REFERENCES public.users(id),
@@ -56,20 +69,12 @@ CREATE TABLE public.git_sync_log (
 CREATE TABLE public.group_members (
   group_id uuid NOT NULL,
   user_id uuid NOT NULL,
-  joined_at timestamp with time zone DEFAULT now(),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  metadata jsonb DEFAULT '{}'::jsonb,
   CONSTRAINT group_members_pkey PRIMARY KEY (group_id, user_id),
   CONSTRAINT group_members_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups(id),
   CONSTRAINT group_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
-);
-CREATE TABLE public.group_posts (
-  id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  group_id uuid NOT NULL,
-  user_id uuid NOT NULL,
-  content text NOT NULL,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT group_posts_pkey PRIMARY KEY (id),
-  CONSTRAINT group_posts_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups(id),
-  CONSTRAINT group_posts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.groups (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -77,6 +82,8 @@ CREATE TABLE public.groups (
   description text,
   created_by uuid NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
   CONSTRAINT groups_pkey PRIMARY KEY (id),
   CONSTRAINT groups_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
 );
@@ -103,6 +110,8 @@ CREATE TABLE public.posts (
   user_id uuid NOT NULL,
   content text NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
   CONSTRAINT posts_pkey PRIMARY KEY (id),
   CONSTRAINT posts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
@@ -121,6 +130,7 @@ CREATE TABLE public.propositions (
   status text DEFAULT 'active'::text CHECK (status = ANY (ARRAY['active'::text, 'closed'::text, 'draft'::text])),
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
   CONSTRAINT propositions_pkey PRIMARY KEY (id),
   CONSTRAINT propositions_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.users(id)
 );
@@ -129,6 +139,8 @@ CREATE TABLE public.tags (
   name text NOT NULL UNIQUE,
   description text DEFAULT ''::text,
   created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
   CONSTRAINT tags_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.users (
@@ -141,6 +153,7 @@ CREATE TABLE public.users (
   rgpd_consent_accepted boolean DEFAULT false,
   rgpd_consent_date timestamp with time zone,
   updated_at timestamp with time zone DEFAULT now(),
+  metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
   CONSTRAINT users_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.votes (
@@ -150,6 +163,7 @@ CREATE TABLE public.votes (
   vote_value boolean NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  metadata jsonb DEFAULT '{}'::jsonb,
   CONSTRAINT votes_pkey PRIMARY KEY (id),
   CONSTRAINT votes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT votes_proposition_id_fkey FOREIGN KEY (proposition_id) REFERENCES public.propositions(id)
@@ -162,15 +176,8 @@ CREATE TABLE public.wiki_pages (
   author_id uuid,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
-  summary text NULL,
+  summary text,
+  metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
   CONSTRAINT wiki_pages_pkey PRIMARY KEY (id),
   CONSTRAINT wiki_pages_author_id_fkey FOREIGN KEY (author_id) REFERENCES auth.users(id)
 );
-create table
-  public.consolidated_wiki_documents (
-    id uuid not null default gen_random_uuid (),\
-    created_at timestamp with time zone not null default now(),\
-    content text not null,\
-    updated_at timestamp with time zone not null default now(),\
-    constraint consolidated_wiki_documents_pkey primary key (id)\
-  );

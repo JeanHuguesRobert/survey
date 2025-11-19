@@ -272,6 +272,14 @@ const WikiPage = () => {
             </button>
 
             <button
+              onClick={() => navigate(`/posts/new?linkedType=wiki_page&linkedId=${page.id}`)}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+              title="Créer une discussion sur cette page"
+            >
+              💬 Discuter
+            </button>
+
+            <button
               onClick={() => navigate(`/wiki/${page.slug}/edit`)}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >

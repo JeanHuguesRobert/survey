@@ -19,6 +19,15 @@ import Survey from './pages/Survey';
 import SiteFooter from "./components/layout/SiteFooter";
 import { LegalPage } from "./components/LegalLinks";
 import PublicBrowser from "./components/PublicBrowser";
+import Social from './pages/Social';
+import GroupPage from './pages/GroupPage';
+import GroupCreate from './pages/GroupCreate';
+import PostPage from './pages/PostPage';
+import PostCreate from './pages/PostCreate';
+import UserProfile from './pages/UserProfile';
+import { useAuth, supabase } from './lib/supabase';
+import { useUserProfile } from './lib/useUserProfile';
+import AuthModal from './components/common/AuthModal';
 
 export default function ConsultationPertitellu() {
   const [page, setPage] = useState('form');
@@ -47,6 +56,9 @@ export default function ConsultationPertitellu() {
   const [isClearingHistory, setIsClearingHistory] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(true);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const { user } = useAuth();
+  const { profile } = useUserProfile(user?.id);
   const isCorte = String(CITY_NAME || '').toLowerCase() === 'corte';
   const modules = getCommunityQuestionnaireModules(COMMUNITY_TYPE);
 
@@ -315,7 +327,12 @@ export default function ConsultationPertitellu() {
                 </li>
                 <li>
                   <Link to="/bob" onClick={closeMenu} className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-100">
-                    IA Pertitellu
+                    IA Ophélia
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/social" onClick={closeMenu} className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-100">
+                    Café
                   </Link>
                 </li>
                 <li>
@@ -339,6 +356,45 @@ export default function ConsultationPertitellu() {
                   </Link>
                 </li>
               </ul>
+              
+              {/* Auth section */}
+              <div className="mt-4 pt-4 border-t border-slate-200">
+                {user ? (
+                  <div className="px-3 py-2">
+                    <div className="text-xs text-slate-500 mb-2">👤 Connecté en tant que:</div>
+                    <div className="text-sm font-medium text-slate-700 mb-3">
+                      {profile?.display_name || user.email}
+                    </div>
+                    <Link
+                      to="/profile"
+                      onClick={closeMenu}
+                      className="block w-full px-3 py-2 mb-2 text-sm text-center bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200"
+                    >
+                      Mon profil
+                    </Link>
+                    <button
+                      onClick={async () => {
+                        await supabase.auth.signOut();
+                        closeMenu();
+                      }}
+                      className="w-full px-3 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200"
+                    >
+                      Déconnexion
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setShowAuthModal(true);
+                      closeMenu();
+                    }}
+                    className="w-full px-3 py-2 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-semibold"
+                  >
+                    🔐 Connexion / Inscription
+                  </button>
+                )}
+              </div>
+              
               <div className="mt-6 text-xs text-slate-500">
                 {PARTY_NAME} — {MOVEMENT_NAME} {CITY_NAME} © {new Date().getFullYear()}
               </div>
@@ -1073,6 +1129,14 @@ export default function ConsultationPertitellu() {
       <div className="mt-8">
         <SiteFooter />
       </div>
+
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={() => setShowAuthModal(false)}
+        />
+      )}
     </div>
   );
 }
@@ -1114,6 +1178,13 @@ export function App() {
       <Route path="/survey" element={<Survey />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/browser/*" element={<PublicBrowser />} />
+      <Route path="/profile" element={<UserProfile />} />
+      {/* Social routes */}
+      <Route path="/social" element={<Social />} />
+      <Route path="/groups/new" element={<GroupCreate />} />
+      <Route path="/groups/:id" element={<GroupPage />} />
+      <Route path="/posts/new" element={<PostCreate />} />
+      <Route path="/posts/:id" element={<PostPage />} />
     </Routes>
   );
 }

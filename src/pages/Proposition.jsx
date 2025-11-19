@@ -56,10 +56,21 @@ export default function Proposition() {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">{proposition.title}</h1>
-        <p className="text-sm text-gray-500 mb-4">
-          Par {proposition.author?.display_name || 'Anonyme'} • {new Date(proposition.created_at).toLocaleDateString('fr-FR')}
-        </p>
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">{proposition.title}</h1>
+            <p className="text-sm text-gray-500">
+              Par {proposition.author?.display_name || 'Anonyme'} • {new Date(proposition.created_at).toLocaleDateString('fr-FR')}
+            </p>
+          </div>
+          <button
+            onClick={() => window.location.href = `/posts/new?linkedType=proposition&linkedId=${proposition.id}`}
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2"
+            title="Créer une discussion sur cette proposition"
+          >
+            💬 Discuter
+          </button>
+        </div>
 
         <div className="markdown-content">
           {proposition.description && typeof proposition.description === 'string' ? (

@@ -1,13 +1,35 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { APP_VERSION, DEPLOY_DATE, VOLUNTEER_URL } from "../../constants";
+import { useAuth, supabase } from "../../lib/supabase";
+import { useUserProfile } from "../../lib/useUserProfile";
+import AuthModal from "../common/AuthModal";
 
 export default function SiteFooter({ showWiki = true, showVersionInfo = true, onExpandedChange }) {
-  const [isExpanded, setIsExpanded] = useState(true); // Ouvert par défaut pour raisons légales
-  const [hasBeenSeenExpanded, setHasBeenSeenExpanded] = useState(false);
-  const [isManualControl, setIsManualControl] = useState(false);
+  // Récupérer l'état depuis localStorage
+  const [isExpanded, setIsExpanded] = useState(() => {
+    const saved = localStorage.getItem('siteFooterExpanded');
+    const hasBeenSeen = localStorage.getItem('siteFooterHasBeenSeen');
+    // Si jamais vu, ouvrir par défaut pour raisons légales
+    if (!hasBeenSeen) return true;
+    // Sinon utiliser l'état sauvegardé (par défaut fermé)
+    return saved === 'true';
+  });
+  const [hasBeenSeenExpanded, setHasBeenSeenExpanded] = useState(() => {
+    return localStorage.getItem('siteFooterHasBeenSeen') === 'true';
+  });
+  const [isManualControl, setIsManualControl] = useState(() => {
+    return localStorage.getItem('siteFooterManualControl') === 'true';
+  });
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const { user } = useAuth();
+  const { profile } = useUserProfile(user?.id);
   const footerRef = useRef(null);
   const scrollTimeoutRef = useRef(null);
+  const lastScrollY = useRef(0);
+  const scrollAttempts = useRef(0);
+  const wheelAttempts = useRef(0);
+  const wheelTimeoutRef = useRef(null);
 
   // Notifier le parent quand l'état change
   useEffect(() => {
@@ -16,10 +38,20 @@ export default function SiteFooter({ showWiki = true, showVersionInfo = true, on
     }
   }, [isExpanded, onExpandedChange]);
 
+  // Sauvegarder l'état dans localStorage
+  useEffect(() => {
+    localStorage.setItem('siteFooterExpanded', isExpanded.toString());
+  }, [isExpanded]);
+
+  useEffect(() => {
+    localStorage.setItem('siteFooterManualControl', isManualControl.toString());
+  }, [isManualControl]);
+
   useEffect(() => {
     // Marquer comme vu après un court délai (pour s'assurer que le rendu est complet)
     const timer = setTimeout(() => {
       setHasBeenSeenExpanded(true);
+      localStorage.setItem('siteFooterHasBeenSeen', 'true');
     }, 500);
 
     return () => clearTimeout(timer);
@@ -29,10 +61,9 @@ export default function SiteFooter({ showWiki = true, showVersionInfo = true, on
     // Ne gérer l'auto-collapse que si le footer a déjà été vu en entier et pas en contrôle manuel
     if (!hasBeenSeenExpanded || isManualControl) return;
 
-    // Fermer le footer au scroll
     const handleScroll = () => {
       if (isExpanded) {
-        // Débounce pour éviter trop d'appels
+        // Fermer le footer au scroll
         if (scrollTimeoutRef.current) {
           clearTimeout(scrollTimeoutRef.current);
         }
@@ -42,12 +73,45 @@ export default function SiteFooter({ showWiki = true, showVersionInfo = true, on
       }
     };
 
+    const handleWheel = (e) => {
+      if (!isExpanded) {
+        const scrollHeight = document.documentElement.scrollHeight;
+        const windowHeight = window.innerHeight;
+        const currentScrollY = window.scrollY;
+        const scrolledToBottom = currentScrollY + windowHeight >= scrollHeight - 5;
+        
+        // Si on est en bas et qu'on scroll vers le bas (deltaY > 0)
+        if (scrolledToBottom && e.deltaY > 0) {
+          wheelAttempts.current += 1;
+          
+          // Après 3 tentatives, ouvrir le footer
+          if (wheelAttempts.current >= 3) {
+            setIsExpanded(true);
+            wheelAttempts.current = 0;
+          }
+          
+          // Reset après 800ms d'inactivité
+          if (wheelTimeoutRef.current) {
+            clearTimeout(wheelTimeoutRef.current);
+          }
+          wheelTimeoutRef.current = setTimeout(() => {
+            wheelAttempts.current = 0;
+          }, 800);
+        }
+      }
+    };
+
     window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('wheel', handleWheel, { passive: true });
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('wheel', handleWheel);
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
+      }
+      if (wheelTimeoutRef.current) {
+        clearTimeout(wheelTimeoutRef.current);
       }
     };
   }, [isExpanded, hasBeenSeenExpanded, isManualControl]);
@@ -100,6 +164,42 @@ export default function SiteFooter({ showWiki = true, showVersionInfo = true, on
         }`}
       >
         <div className="max-w-4xl mx-auto px-4 pb-3 text-center space-y-2">
+          {/* Auth section */}
+          <div className="py-2 border-b border-gray-700">
+            {user ? (
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-300">
+                    👤 {profile?.display_name || user.email}
+                  </span>
+                  <Link
+                    to="/profile"
+                    className="text-xs px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-white"
+                  >
+                    Mon profil
+                  </Link>
+                  <button
+                    onClick={async () => await supabase.auth.signOut()}
+                    className="text-xs px-3 py-1 bg-orange-600 hover:bg-orange-700 rounded text-white"
+                  >
+                    Déconnexion
+                  </button>
+                </div>
+                {profile?.neighborhood && (
+                  <span className="text-xs text-gray-400">
+                    📍 {profile.neighborhood}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="text-sm px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded text-white font-semibold"
+              >
+                🔐 Connexion / Inscription
+              </button>
+            )}
+          </div>
           <div className="flex flex-col md:flex-row md:flex-wrap justify-center gap-1.5 text-sm">
             <Link to="/" className="text-orange-400 hover:text-orange-300">
               Accueil
@@ -141,6 +241,9 @@ export default function SiteFooter({ showWiki = true, showVersionInfo = true, on
                 Wiki
               </Link>
             )}
+            <Link to="/social" className="text-orange-400 hover:text-orange-300">
+              Café
+            </Link>
             <Link to="/bob" className="text-orange-400 hover:text-orange-300">
               IA
             </Link>
@@ -179,6 +282,14 @@ export default function SiteFooter({ showWiki = true, showVersionInfo = true, on
           </div>
         </div>
       </div>
+
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={() => setShowAuthModal(false)}
+        />
+      )}
     </footer>
   );
 }
