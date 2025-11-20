@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 
-const PRIMARY_COLOR = '#f97316'; // Orange
-
 export default function AuthModal({ onClose, onSuccess }) {
   const [mode, setMode] = useState('signin');
   const [email, setEmail] = useState('');
@@ -12,6 +10,8 @@ export default function AuthModal({ onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
 
   const handleSignIn = async () => {
+    setLoading(true);
+    setError('');
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
@@ -25,9 +25,12 @@ export default function AuthModal({ onClose, onSuccess }) {
   };
 
   const handleSignUp = async () => {
+    setLoading(true);
+    setError('');
     try {
       if (!displayName) {
         setError('Veuillez entrer un nom d\'affichage');
+        setLoading(false);
         return;
       }
 
@@ -56,18 +59,6 @@ export default function AuthModal({ onClose, onSuccess }) {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    if (mode === 'signin') {
-      await handleSignIn();
-    } else {
-      await handleSignUp();
-    }
-  };
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
@@ -83,7 +74,7 @@ export default function AuthModal({ onClose, onSuccess }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form className="space-y-4">
           <div>
             <label className="block text-gray-700 font-semibold mb-2">
               Email
@@ -131,14 +122,23 @@ export default function AuthModal({ onClose, onSuccess }) {
             </div>
           )}
 
-          <button
-            type="submit"
-            className="w-full py-3 px-6 text-white font-bold rounded-md hover:opacity-90"
-            style={{ backgroundColor: PRIMARY_COLOR }}
-            disabled={loading}
-          >
-            {loading ? 'Chargement...' : (mode === 'signin' ? 'Se connecter' : 'S\'inscrire')}
-          </button>
+          {mode === 'signin' ? (
+            <button
+              onClick={handleSignIn}
+              className="w-full py-3 px-6 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-md border-2 border-orange-600 shadow-lg"
+              disabled={loading}
+            >
+              {loading ? 'Connexion en cours...' : '🔐 Se connecter'}
+            </button>
+          ) : (
+            <button
+              onClick={handleSignUp}
+              className="w-full py-3 px-6 bg-green-600 text-white font-bold rounded-md hover:bg-green-700 border-2 border-green-700 shadow-lg"
+              disabled={loading}
+            >
+              {loading ? 'Inscription en cours...' : '✨ S\'inscrire'}
+            </button>
+          )}
         </form>
 
         <div className="mt-4 text-center">

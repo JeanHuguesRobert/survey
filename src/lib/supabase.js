@@ -1,39 +1,63 @@
 import { createClient } from '@supabase/supabase-js';
-import { useEffect, useState } from 'react';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = supabaseUrl ? createClient(supabaseUrl, supabaseAnonKey) : null;
+const rawSupabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+  }
+}) : null;
+
+// Create a logging proxy around the supabase client
+export const supabase = rawSupabase ? new Proxy(rawSupabase, {
+  get(target, prop) {
+    const value = target[prop];
+    if (typeof value === 'function') {
+      return (...args) => {
+        const startTime = Date.now();
+        console.log(`Supabase: Calling ${prop}`, args.length > 0 ? args[0] : '');
+        
+        try {
+          const result = value.apply(target, args);
+          
+          // If it's a promise, log the result
+          if (result && typeof result.then === 'function') {
+            return result.then(
+              (data) => {
+                const duration = Date.now() - startTime;
+                console.log(`Supabase: ${prop} resolved in ${duration}ms`, data?.error ? `Error: ${data.error.message}` : 'Success');
+                return data;
+              },
+              (error) => {
+                const duration = Date.now() - startTime;
+                console.error(`Supabase: ${prop} rejected in ${duration}ms`, error);
+                throw error;
+              }
+            );
+          }
+          
+          // For non-promise returns (like channel creation)
+          console.log(`Supabase: ${prop} returned synchronously`);
+          return result;
+        } catch (error) {
+          const duration = Date.now() - startTime;
+          console.error(`Supabase: ${prop} threw synchronously in ${duration}ms`, error);
+          throw error;
+        }
+      };
+    }
+    return value;
+  }
+}) : null;
 
 /**
- * Hook to get current authenticated user
+ * Hook to get current authenticated user (deprecated - use useSupabase context instead)
  */
 export function useAuth() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!supabase) {
-      setLoading(false);
-      return;
-    }
-
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  return { user, loading };
+  console.warn('useAuth is deprecated. Use useSupabase context instead.');
+  return { user: null, loading: false };
 }

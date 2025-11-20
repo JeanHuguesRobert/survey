@@ -1,13 +1,13 @@
-import { useAuth } from '../lib/supabase';
+import { useCurrentUser } from '../lib/useCurrentUser';
 import GroupForm from '../components/social/GroupForm';
 
 /**
  * Page création de groupe
  */
 export default function GroupCreate() {
-  const { user } = useAuth();
+  const { currentUser } = useCurrentUser();
 
-  if (!user) {
+  if (!currentUser) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 text-center">
         <p className="text-gray-600 mb-4">Vous devez être connecté pour créer un groupe</p>
@@ -18,5 +18,5 @@ export default function GroupCreate() {
     );
   }
 
-  return <GroupForm currentUser={user} />;
+  return <GroupForm currentUser={currentUser} />;
 }

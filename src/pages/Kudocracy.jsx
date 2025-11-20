@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { useSupabase } from '../contexts/SupabaseContext';
 import PropositionList from '../components/kudocracy/PropositionList';
 import CreateProposition from '../components/kudocracy/CreateProposition';
 import DelegationManager from '../components/kudocracy/DelegationManager';
@@ -8,31 +8,21 @@ import AuthModal from '../components/common/AuthModal';
 import { Link } from 'react-router-dom';
 import { PRIMARY_COLOR, SECONDARY_COLOR } from '../constants';
 import SiteFooter from '../components/layout/SiteFooter';
+import { useCurrentUser } from '../lib/useCurrentUser';
 
 export default function Kudocracy() {
+  const { supabase } = useSupabase();
   const [activeTab, setActiveTab] = useState('browse');
-  const [user, setUser] = useState(null);
+  const { currentUser } = useCurrentUser();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isHowItWorksExpanded, setIsHowItWorksExpanded] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      (async () => {
-        setUser(session?.user ?? null);
-      })();
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   // Utilisation du composant AuthModal pour gérer l'authentification
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
   };
 
   return (
@@ -45,12 +35,17 @@ export default function Kudocracy() {
               <p className="text-gray-600 mt-1">Démocratie délégative</p>
             </div>
             <div>
-              {user ? (
+              {currentUser ? (
                 <div className="flex items-center gap-4">
-                  <span className="text-gray-700">Connecté</span>
+                  <Link
+                    to="/kudocracy?tab=dashboard"
+                    className="text-blue-600 hover:text-blue-800 font-medium hover:underline"
+                  >
+                    {currentUser.display_name || currentUser.email}
+                  </Link>
                   <button
                     onClick={handleSignOut}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm"
                   >
                     Déconnexion
                   </button>
@@ -102,8 +97,8 @@ export default function Kudocracy() {
           {[
             { id: 'browse', label: 'Propositions' },
             { id: 'create', label: 'Créer une proposition' },
-            { id: 'delegations', label: 'Mes délégations' },
-            { id: 'dashboard', label: 'Tableau de bord' }
+            { id: 'delegations', label: 'Vos délégations' },
+            { id: 'dashboard', label: 'Votre activité' }
           ].map(tab => (
             <button
               key={tab.id}
@@ -120,12 +115,12 @@ export default function Kudocracy() {
         </nav>
 
         <div>
-          {activeTab === 'browse' && <PropositionList user={user} />}
+          {activeTab === 'browse' && <PropositionList user={currentUser} />}
           {activeTab === 'create' && (
-            user ? <CreateProposition user={user} /> : <AuthRequired onAuth={() => setShowAuthModal(true)} />
+            currentUser ? <CreateProposition user={currentUser} /> : <AuthRequired onAuth={() => setShowAuthModal(true)} />
           )}
           {activeTab === 'delegations' && (
-            user ? <DelegationManager user={user} /> : <AuthRequired onAuth={() => setShowAuthModal(true)} />
+            currentUser ? <DelegationManager user={currentUser} /> : <AuthRequired onAuth={() => setShowAuthModal(true)} />
           )}
           {activeTab === 'dashboard' && <VotingDashboard />}
         </div>

@@ -17,17 +17,27 @@ import Proposition from './pages/Proposition';
 import Transparence from './pages/Transparence';
 import Survey from './pages/Survey';
 import SiteFooter from "./components/layout/SiteFooter";
-import { LegalPage } from "./components/LegalLinks";
-import PublicBrowser from "./components/PublicBrowser";
+import { LegalPage } from "./components/common/LegalLinks";
+import PublicBrowser from "./components/features/PublicBrowser";
 import Social from './pages/Social';
 import GroupPage from './pages/GroupPage';
 import GroupCreate from './pages/GroupCreate';
 import PostPage from './pages/PostPage';
 import PostCreate from './pages/PostCreate';
 import UserProfile from './pages/UserProfile';
-import { useAuth, supabase } from './lib/supabase';
-import { useUserProfile } from './lib/useUserProfile';
+import VotingDashboard from './pages/VotingDashboard';
+import UserDashboard from './pages/UserDashboard';
+import GlobalDashboard from './pages/GlobalDashboard';
+import WikiDashboard from './pages/WikiDashboard';
+import SocialDashboard from './pages/SocialDashboard';
+import SubscriptionFeed from './pages/SubscriptionFeed';
+import { supabase } from './lib/supabase';
+import { useCurrentUser } from './lib/useCurrentUser';
+import { useSupabase } from './contexts/SupabaseContext';
 import AuthModal from './components/common/AuthModal';
+import ConnectionBanner from './components/common/ConnectionBanner';
+import GlobalStatusIndicator from './components/common/GlobalStatusIndicator';
+import JobMonitorDemo from './components/examples/JobMonitorDemo';
 
 export default function ConsultationPertitellu() {
   const [page, setPage] = useState('form');
@@ -57,8 +67,8 @@ export default function ConsultationPertitellu() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const { user } = useAuth();
-  const { profile } = useUserProfile(user?.id);
+  const { currentUser } = useCurrentUser();
+  const { connectionError, connectionState, realtimeStatus, authEvent, testConnection } = useSupabase();
   const isCorte = String(CITY_NAME || '').toLowerCase() === 'corte';
   const modules = getCommunityQuestionnaireModules(COMMUNITY_TYPE);
 
@@ -241,6 +251,7 @@ export default function ConsultationPertitellu() {
     return (
       <div className="min-h-screen bg-gray-50">
         <a href="#mainContent" className="sr-only focus:not-sr-only fixed top-2 left-2 z-50 px-3 py-2 rounded-md bg-white text-slate-900 shadow">Aller au contenu principal</a>
+        <ConnectionBanner connectionError={connectionError} connectionState={connectionState} realtimeStatus={realtimeStatus} authEvent={authEvent} onRetry={testConnection} />
         <div className="bg-white shadow-sm">
           <div className="max-w-4xl mx-auto px-4 py-6">
             <div className="flex items-start justify-between">
@@ -254,16 +265,13 @@ export default function ConsultationPertitellu() {
               >
                 <div className="relative h-6 w-6">
                   <span
-                    className={`absolute left-1 top-1 block h-0.5 w-4 rounded-sm transition-transform duration-300 ${isMenuOpen ? 'translate-y-2 rotate-45' : ''}`}
-                    style={{ backgroundColor: SECONDARY_COLOR }}
+                    className={`absolute left-1 top-1 block h-0.5 w-4 rounded-sm bg-secondary transition-transform duration-300 ${isMenuOpen ? 'translate-y-2 rotate-45' : ''}`}
                   />
                   <span
-                    className={`absolute left-1 top-2.5 block h-0.5 w-4 rounded-sm transition-opacity duration-300 ${isMenuOpen ? 'opacity-0' : 'opacity-100'}`}
-                    style={{ backgroundColor: SECONDARY_COLOR }}
+                    className={`absolute left-1 top-2.5 block h-0.5 w-4 rounded-sm bg-secondary transition-opacity duration-300 ${isMenuOpen ? 'opacity-0' : 'opacity-100'}`}
                   />
                   <span
-                    className={`absolute left-1 top-4 block h-0.5 w-4 rounded-sm transition-transform duration-300 ${isMenuOpen ? '-translate-y-2 -rotate-45' : ''}`}
-                    style={{ backgroundColor: SECONDARY_COLOR }}
+                    className={`absolute left-1 top-4 block h-0.5 w-4 rounded-sm bg-secondary transition-transform duration-300 ${isMenuOpen ? '-translate-y-2 -rotate-45' : ''}`}
                   />
                 </div>
                 <span className="sr-only">{isMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}</span>
@@ -271,11 +279,11 @@ export default function ConsultationPertitellu() {
 
               <div className="text-center flex-1">
                 <div className="mb-4">
-                  <div className="text-5xl font-bold" style={{ color: PRIMARY_COLOR }}>
+                  <div className="text-5xl font-bold text-primary">
                     {HASHTAG}
                   </div>
-                  <div className="h-1 my-3 max-w-2xl mx-auto" style={{ backgroundColor: SECONDARY_COLOR }}></div>
-                  <div className="text-4xl font-bold" style={{ color: SECONDARY_COLOR }}>
+                  <div className="h-1 my-3 max-w-2xl mx-auto bg-secondary"></div>
+                  <div className="text-4xl font-bold text-secondary">
                     {String(CITY_NAME).toUpperCase()}<br/>{CITY_TAGLINE}
                   </div>
                 </div>
@@ -351,26 +359,43 @@ export default function ConsultationPertitellu() {
                   </Link>
                 </li>
                 <li>
-                  <Link to="/survey" onClick={closeMenu} className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-100">
-                    À propos / Survey
+                  <Link to="/global-dashboard" onClick={closeMenu} className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-100">
+                    📊 Tableau de bord global
                   </Link>
                 </li>
+                <li>
+                  <Link to="/wiki-dashboard" onClick={closeMenu} className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-100">
+                    📖 Vos contributions Wiki
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/social-dashboard" onClick={closeMenu} className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-100">
+                    💬 Vos contributions sociales
+                  </Link>
+                </li>
+                {currentUser && (
+                  <li>
+                    <Link to="/subscriptions" onClick={closeMenu} className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-100">
+                      🔔 Mes abonnements
+                    </Link>
+                  </li>
+                )}
               </ul>
               
               {/* Auth section */}
               <div className="mt-4 pt-4 border-t border-slate-200">
-                {user ? (
+                {currentUser ? (
                   <div className="px-3 py-2">
                     <div className="text-xs text-slate-500 mb-2">👤 Connecté en tant que:</div>
                     <div className="text-sm font-medium text-slate-700 mb-3">
-                      {profile?.display_name || user.email}
+                      {currentUser.display_name || currentUser.email}
                     </div>
                     <Link
-                      to="/profile"
+                      to="/user-dashboard"
                       onClick={closeMenu}
                       className="block w-full px-3 py-2 mb-2 text-sm text-center bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200"
                     >
-                      Mon profil
+                      Votre tableau de bord
                     </Link>
                     <button
                       onClick={async () => {
@@ -512,7 +537,7 @@ export default function ConsultationPertitellu() {
                         </div>
                       ))}
                     </div>
-                    <div className="pl-4" style={{ borderLeft: `4px solid ${PRIMARY_COLOR}` }}>
+                    <div className="pl-4 border-l-4 border-primary">
                       <h2 className="text-xl font-bold text-gray-800 mb-4">L'affaire de Quasquara</h2>
                       
                       <div className="mb-6">
@@ -584,7 +609,7 @@ export default function ConsultationPertitellu() {
                       </div>
                     </div>
 
-                    <div className="pl-4" style={{ borderLeft: `4px solid ${SECONDARY_COLOR}` }}>
+                    <div className="pl-4 border-l-4 border-secondary">
                       <h2 className="text-xl font-bold text-gray-800 mb-4">Démocratie {getCommunityLabels().name}</h2>
                       
                       <div className="mb-6">
@@ -733,7 +758,7 @@ export default function ConsultationPertitellu() {
                       </div>
                     </div>
 
-                    <div className="pl-4" style={{ borderLeft: `4px solid ${PRIMARY_COLOR}` }}>
+                    <div className="pl-4 border-l-4 border-primary">
                       <h2 className="text-xl font-bold text-gray-800 mb-4">
                         Profil <span className="font-normal text-base text-gray-600">(toutes les questions sont optionnelles)</span>
                       </h2>
@@ -811,7 +836,7 @@ export default function ConsultationPertitellu() {
                       </div>
                     </div>
 
-                    <div className="pl-4" style={{ borderLeft: `4px solid ${SECONDARY_COLOR}` }}>
+                    <div className="pl-4 border-l-4 border-secondary">
                       <div className="mb-6">
                         <label className="block text-gray-700 font-semibold mb-2">
                           Commentaire libre
@@ -878,8 +903,7 @@ export default function ConsultationPertitellu() {
                     <button
                       onClick={handleSubmit}
                       disabled={loading}
-                      className="w-full py-3 px-6 text-white font-bold rounded-md text-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-                      style={{ backgroundColor: PRIMARY_COLOR }}
+                      className="w-full py-3 px-6 bg-primary text-white font-bold rounded-md text-lg hover:opacity-90 transition-opacity disabled:opacity-50"
                     >
                       {loading ? 'Envoi en cours...' : 'Envoyer ma réponse'}
                     </button>
@@ -889,8 +913,7 @@ export default function ConsultationPertitellu() {
                     <div className="flex justify-center gap-4">
                       <button
                         onClick={handleShare}
-                        className="px-4 py-2 text-white rounded-md hover:opacity-90 flex items-center gap-2"
-                        style={{ backgroundColor: SECONDARY_COLOR }}
+                        className="px-4 py-2 bg-secondary text-white rounded-md hover:opacity-90 flex items-center gap-2"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                           <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
@@ -899,8 +922,7 @@ export default function ConsultationPertitellu() {
                       </button>
                       <button
                         onClick={() => setPage('results')}
-                        className="px-4 py-2 font-semibold rounded-md hover:bg-gray-200 flex items-center gap-2"
-                        style={{ backgroundColor: '#f3f4f6', color: SECONDARY_COLOR }}
+                        className="px-4 py-2 bg-gray-100 text-secondary font-semibold rounded-md hover:bg-gray-200 flex items-center gap-2"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                           <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
@@ -924,15 +946,16 @@ export default function ConsultationPertitellu() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <ConnectionBanner connectionError={connectionError} connectionState={connectionState} realtimeStatus={realtimeStatus} authEvent={authEvent} onRetry={testConnection} />
       <div className="bg-white shadow-sm">
         <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="text-center">
             <div className="mb-4">
-              <div className="text-5xl font-bold" style={{ color: PRIMARY_COLOR }}>
+              <div className="text-5xl font-bold text-primary">
                 {HASHTAG}
               </div>
-              <div className="h-1 my-3 max-w-2xl mx-auto" style={{ backgroundColor: SECONDARY_COLOR }}></div>
-              <div className="text-4xl font-bold" style={{ color: SECONDARY_COLOR }}>
+              <div className="h-1 my-3 max-w-2xl mx-auto bg-secondary"></div>
+              <div className="text-4xl font-bold text-secondary">
                 {String(CITY_NAME).toUpperCase()}<br/>{CITY_TAGLINE}
               </div>
             </div>
@@ -957,8 +980,7 @@ export default function ConsultationPertitellu() {
                 </div>
                 <button
                   onClick={loadResponses}
-                  className="px-4 py-2 text-white rounded-md hover:opacity-90"
-                  style={{ backgroundColor: SECONDARY_COLOR }}
+                  className="px-4 py-2 bg-secondary text-white rounded-md hover:opacity-90"
                 >
                   Actualiser
                 </button>
@@ -1001,7 +1023,7 @@ export default function ConsultationPertitellu() {
                       <XAxis dataKey="name" />
                       <YAxis />
                       <Tooltip />
-                      <Bar dataKey="value" fill="#FF5722" />
+                      <Bar dataKey="value" fill="#F54928" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -1014,7 +1036,7 @@ export default function ConsultationPertitellu() {
                       <XAxis dataKey="name" />
                       <YAxis />
                       <Tooltip />
-                      <Bar dataKey="value" fill="#1A4D7C" />
+                      <Bar dataKey="value" fill="#0A3F73" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -1022,7 +1044,7 @@ export default function ConsultationPertitellu() {
                 <div>
                   <h2 className="text-xl font-bold text-gray-800 mb-4">Satisfaction de la démocratie locale</h2>
                   <div className="text-center">
-                    <div className="text-6xl font-bold" style={{ color: PRIMARY_COLOR }}>
+                    <div className="text-6xl font-bold text-primary">
                       {stats.satisfactionMoyenne.toFixed(1)}/5
                     </div>
                     <p className="text-gray-600 mt-2">Note moyenne</p>
@@ -1032,7 +1054,7 @@ export default function ConsultationPertitellu() {
                 <div>
                   <h2 className="text-xl font-bold text-gray-800 mb-4">État de {CITY_NAME}</h2>
                   <div className="text-center">
-                    <div className="text-6xl font-bold" style={{ color: PRIMARY_COLOR }}>
+                    <div className="text-6xl font-bold text-primary">
                       {stats.declinMoyen.toFixed(1)}/5
                     </div>
                     <p className="text-gray-600 mt-2">1 = En développement, 5 = En déclin</p>
@@ -1071,7 +1093,7 @@ export default function ConsultationPertitellu() {
                         <XAxis dataKey="name" />
                         <YAxis />
                         <Tooltip />
-                        <Bar dataKey="value" fill="#FF5722" />
+                        <Bar dataKey="value" fill="#F54928" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -1107,15 +1129,13 @@ export default function ConsultationPertitellu() {
             <div className="flex justify-center gap-4">
               <button
                 onClick={() => setPage('form')}
-                className="py-3 px-6 text-white font-bold rounded-md hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: SECONDARY_COLOR }}
+                className="py-3 px-6 bg-secondary text-white font-bold rounded-md hover:opacity-90 transition-opacity"
               >
                 Participer à la consultation
               </button>
               <button
                 onClick={handleShare}
-                className="underline hover:opacity-80 flex items-center gap-1"
-                style={{ color: SECONDARY_COLOR }}
+                className="text-secondary underline hover:opacity-80 flex items-center gap-1"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
@@ -1158,34 +1178,44 @@ export function App() {
   };
 
   return (
-    <Routes>
-      <Route path="/" element={<ConsultationPertitellu />} />
-      <Route path="/consultation" element={<ConsultationPertitellu />} />
-      <Route path="/transparence" element={<Transparence />} />
-      <Route path="/methodologie" element={<Methodologie />} />
-      <Route path="/audit" element={<Audit />} />
-      <Route path="/kudocracy" element={<Kudocracy />} />
-      <Route path="/propositions/:id" element={<Proposition />} />
-      <Route path="/proposition/:id" element={<Proposition />} />
-      <Route path="/bob" element={<Bob />} />
-      <Route path="/wiki" element={<Wiki />} />
-      <Route path="/wiki/new" element={<WikiCreate />} />
-      <Route path="/wiki/new/:slug" element={<WikiCreate />} />
-      <Route path="/wiki/:slug" element={<WikiPage />} />
-      <Route path="/wiki/:slug/edit" element={<WikiEdit />} />
-      <Route path="/legal/terms" element={<LegalPage type="terms" />} />
-      <Route path="/legal/privacy" element={<LegalPage type="privacy" />} />
-      <Route path="/survey" element={<Survey />} />
-      <Route path="/contact" element={<Contact />} />
-      <Route path="/browser/*" element={<PublicBrowser />} />
-      <Route path="/profile" element={<UserProfile />} />
-      {/* Social routes */}
-      <Route path="/social" element={<Social />} />
-      <Route path="/groups/new" element={<GroupCreate />} />
-      <Route path="/groups/:id" element={<GroupPage />} />
-      <Route path="/posts/new" element={<PostCreate />} />
-      <Route path="/posts/:id" element={<PostPage />} />
-    </Routes>
+    <>
+      <GlobalStatusIndicator />
+      <Routes>
+        <Route path="/" element={<ConsultationPertitellu />} />
+        <Route path="/consultation" element={<ConsultationPertitellu />} />
+        <Route path="/transparence" element={<Transparence />} />
+        <Route path="/methodologie" element={<Methodologie />} />
+        <Route path="/audit" element={<Audit />} />
+        <Route path="/kudocracy" element={<Kudocracy />} />
+        <Route path="/propositions/:id" element={<Proposition />} />
+        <Route path="/proposition/:id" element={<Proposition />} />
+        <Route path="/bob" element={<Bob />} />
+        <Route path="/wiki" element={<Wiki />} />
+        <Route path="/wiki/new" element={<WikiCreate />} />
+        <Route path="/wiki/new/:slug" element={<WikiCreate />} />
+        <Route path="/wiki/:slug" element={<WikiPage />} />
+        <Route path="/wiki/:slug/edit" element={<WikiEdit />} />
+        <Route path="/legal/terms" element={<LegalPage type="terms" />} />
+        <Route path="/legal/privacy" element={<LegalPage type="privacy" />} />
+        <Route path="/survey" element={<Survey />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/browser/*" element={<PublicBrowser />} />
+        <Route path="/profile" element={<UserProfile />} />
+        <Route path="/voting-dashboard" element={<VotingDashboard />} />
+        <Route path="/user-dashboard" element={<UserDashboard />} />
+        <Route path="/global-dashboard" element={<GlobalDashboard />} />
+        <Route path="/wiki-dashboard" element={<WikiDashboard />} />
+        <Route path="/social-dashboard" element={<SocialDashboard />} />
+        {/* Social routes */}
+        <Route path="/social" element={<Social />} />
+        <Route path="/subscriptions" element={<SubscriptionFeed />} />
+        <Route path="/groups/new" element={<GroupCreate />} />
+        <Route path="/groups/:id" element={<GroupPage />} />
+        <Route path="/posts/new" element={<PostCreate />} />
+        <Route path="/posts/:id" element={<PostPage />} />
+        <Route path="/job-monitor-demo" element={<JobMonitorDemo />} />
+      </Routes>
+    </>
   );
 }
 

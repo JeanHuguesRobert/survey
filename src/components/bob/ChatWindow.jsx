@@ -15,9 +15,9 @@ import {
   PARTY_NAME,
   VOLUNTEER_URL,
 } from "../../constants";
-import "./ChatWindow.css";
 import ProviderStatus from './ProviderStatus';
 import { getDisplayName } from '../../lib/userDisplay';
+import { useDataLoader, useApiCaller, useDataSaver } from '../../lib/useStatusOperations';
 // import RealTimeNotifications from './RealTimeNotifications';
 
 const MODEL_MODES = {
@@ -132,7 +132,17 @@ export default function ChatWindow({ user }) {
   const [relatedPropositions, setRelatedPropositions] = useState([]);
   const [chatHistory, setChatHistory] = useState([]);
   const [hasConsent, setHasConsent] = useState(null);
-  const [isClearingHistory, setIsClearingHistory] = useState(false);
+
+  // Status monitoring hooks
+  const loadSettingsOp = useDataLoader();
+  const syncHistoryOp = useDataSaver();
+  const loadChatHistoryOp = useDataLoader();
+  const sendMessageOp = useApiCaller('Sending message');
+  const publishWikiOp = useDataSaver();
+  const findPropositionsOp = useApiCaller('Finding related propositions');
+  const createPropositionOp = useDataSaver();
+  const suggestTagsOp = useApiCaller('Suggesting tags');
+  const clearHistoryOp = useDataSaver();
   const [modelMode, setModelMode] = useState(DEFAULT_MODEL_MODE.mistral);
   const [providerMeta, setProviderMeta] = useState(null);
   const [providersStatus, setProvidersStatus] = useState(null);
@@ -409,10 +419,12 @@ export default function ChatWindow({ user }) {
   // Charger les paramètres du chatbot
   useEffect(() => {
     const fetchChatbotSettings = async () => {
-      const { data, error } = await supabase.rpc("get_chatbot_settings");
-      if (data && data.length > 0) {
-        setChatbotSettings(data[0]);
-      }
+      await loadSettingsOp(async () => {
+        const { data, error } = await supabase.rpc("get_chatbot_settings");
+        if (data && data.length > 0) {
+          setChatbotSettings(data[0]);
+        }
+      });
     };
     fetchChatbotSettings();
 
@@ -432,58 +444,60 @@ export default function ChatWindow({ user }) {
   // Charger l'historique des conversations (Local + Supabase)
   useEffect(() => {
     const syncLocalHistory = async () => {
-      const localHistory = localStorage.getItem("anonymous_chat_history");
+      await syncHistoryOp(async () => {
+        const localHistory = localStorage.getItem("anonymous_chat_history");
 
-      if (user && localHistory) {
-        try {
-          const parsedHistory = JSON.parse(localHistory);
-          if (parsedHistory.length > 0) {
-            console.log("Syncing local history to Supabase...", parsedHistory.length);
+        if (user && localHistory) {
+          try {
+            const parsedHistory = JSON.parse(localHistory);
+            if (parsedHistory.length > 0) {
+              console.log("Syncing local history to Supabase...", parsedHistory.length);
 
-            // Préparer les messages pour l'insertion
-            // Note: On doit reconstruire les paires question/réponse
-            const interactionsToInsert = [];
-            let currentInteraction = {};
+              // Préparer les messages pour l'insertion
+              // Note: On doit reconstruire les paires question/réponse
+              const interactionsToInsert = [];
+              let currentInteraction = {};
 
-            // On parcourt les messages du plus vieux au plus récent pour reconstruire les interactions
-            const sortedMessages = [...parsedHistory].sort((a, b) => a.id - b.id);
+              // On parcourt les messages du plus vieux au plus récent pour reconstruire les interactions
+              const sortedMessages = [...parsedHistory].sort((a, b) => a.id - b.id);
 
-            for (const msg of sortedMessages) {
-              if (msg.sender === 'user') {
-                currentInteraction = {
-                  user_id: user.id,
-                  question: msg.text,
-                  created_at: new Date(msg.id).toISOString(), // Utiliser le timestamp de l'ID
-                };
-              } else if (msg.sender === 'bot' && currentInteraction.question) {
-                currentInteraction.answer = msg.text;
-                currentInteraction.sources = msg.sources || [];
-                currentInteraction.feedback = msg.feedback || null;
-                interactionsToInsert.push({ ...currentInteraction });
-                currentInteraction = {};
+              for (const msg of sortedMessages) {
+                if (msg.sender === 'user') {
+                  currentInteraction = {
+                    user_id: user.id,
+                    question: msg.text,
+                    created_at: new Date(msg.id).toISOString(), // Utiliser le timestamp de l'ID
+                  };
+                } else if (msg.sender === 'bot' && currentInteraction.question) {
+                  currentInteraction.answer = msg.text;
+                  currentInteraction.sources = msg.sources || [];
+                  currentInteraction.feedback = msg.feedback || null;
+                  interactionsToInsert.push({ ...currentInteraction });
+                  currentInteraction = {};
+                }
               }
-            }
 
-            if (interactionsToInsert.length > 0) {
-              const { error } = await supabase
-                .from("chat_interactions")
-                .insert(interactionsToInsert);
+              if (interactionsToInsert.length > 0) {
+                const { error } = await supabase
+                  .from("chat_interactions")
+                  .insert(interactionsToInsert);
 
-              if (error) {
-                console.error("Error syncing history:", error);
+                if (error) {
+                  console.error("Error syncing history:", error);
+                } else {
+                  console.log("Local history synced successfully!");
+                  localStorage.removeItem("anonymous_chat_history");
+                }
               } else {
-                console.log("Local history synced successfully!");
                 localStorage.removeItem("anonymous_chat_history");
               }
-            } else {
-              localStorage.removeItem("anonymous_chat_history");
             }
+          } catch (e) {
+            console.error("Error parsing local history:", e);
+            localStorage.removeItem("anonymous_chat_history");
           }
-        } catch (e) {
-          console.error("Error parsing local history:", e);
-          localStorage.removeItem("anonymous_chat_history");
         }
-      }
+      });
     };
 
     if (user) {
@@ -491,56 +505,58 @@ export default function ChatWindow({ user }) {
       syncLocalHistory().then(() => {
         // 2. Ensuite charger l'historique complet depuis Supabase
         const fetchChatHistory = async () => {
-          const { data, error } = await supabase
-            .from("chat_interactions")
-            .select("*")
-            .eq("user_id", user.id)
-            .order("created_at", {
-              ascending: false,
-            })
-            .limit(50);
+          await loadChatHistoryOp(async () => {
+            const { data, error } = await supabase
+              .from("chat_interactions")
+              .select("*")
+              .eq("user_id", user.id)
+              .order("created_at", {
+                ascending: false,
+              })
+              .limit(50);
 
-          if (error) {
-            console.error("Erreur lors du chargement de l'historique:", error);
-            return;
-          }
+            if (error) {
+              console.error("Erreur lors du chargement de l'historique:", error);
+              return;
+            }
 
-          if (data && data.length > 0) {
-            const formattedHistory = data.flatMap((item) => {
-              const entries = [
-                {
-                  id: `history-user-${item.id}`,
-                  text: item.question,
-                  sender: "user",
-                  timestamp: item.created_at,
-                  related: {
-                    answer: item.answer,
+            if (data && data.length > 0) {
+              const formattedHistory = data.flatMap((item) => {
+                const entries = [
+                  {
+                    id: `history-user-${item.id}`,
+                    text: item.question,
+                    sender: "user",
+                    timestamp: item.created_at,
+                    related: {
+                      answer: item.answer,
+                      sources: item.sources,
+                      feedback: item.feedback,
+                    },
+                  },
+                ];
+                if (item.answer) {
+                  entries.push({
+                    id: `history-bot-${item.id}`,
+                    text: item.answer,
+                    sender: "bot",
                     sources: item.sources,
                     feedback: item.feedback,
-                  },
-                },
-              ];
-              if (item.answer) {
-                entries.push({
-                  id: `history-bot-${item.id}`,
-                  text: item.answer,
-                  sender: "bot",
-                  sources: item.sources,
-                  feedback: item.feedback,
-                  timestamp: item.created_at,
-                });
-              }
-              return entries;
-            });
+                    timestamp: item.created_at,
+                  });
+                }
+                return entries;
+              });
 
-            setMessages((prev) => {
-              const withoutHistory = prev.filter(
-                (msg) =>
-                  !(typeof msg.id === "string" && msg.id.startsWith("history-")),
-              );
-              return [...formattedHistory.reverse(), ...withoutHistory];
-            });
-          }
+              setMessages((prev) => {
+                const withoutHistory = prev.filter(
+                  (msg) =>
+                    !(typeof msg.id === "string" && msg.id.startsWith("history-")),
+                );
+                return [...formattedHistory.reverse(), ...withoutHistory];
+              });
+            }
+          });
         };
         fetchChatHistory();
       });
@@ -631,7 +647,7 @@ export default function ChatWindow({ user }) {
     const currentQuestion = input;
     setInput("");
 
-    try {
+    await sendMessageOp(async () => {
       // 1. Chercher des propositions liées
       const related = await findRelatedPropositions(currentQuestion);
       setRelatedPropositions(related);
@@ -794,7 +810,7 @@ export default function ChatWindow({ user }) {
           answer: fullResponse,
         },
       ]);
-    } catch (error) {
+    }).catch((error) => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
@@ -844,14 +860,14 @@ export default function ChatWindow({ user }) {
           },
         ];
       });
-    } finally {
+    }).finally(() => {
       setIsLoading(false);
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
       abortControllerRef.current = null;
-    }
+    });
   };
 
   const handleAbortRequest = () => {
@@ -948,8 +964,7 @@ export default function ChatWindow({ user }) {
       return;
     }
 
-    try {
-      setIsLoading(true);
+    await publishWikiOp(async () => {
       // Construire le contenu à partir des messages actuels
       const conversationContent = messages
         .filter((m) => m.sender !== "system" || m.isNotification) // Inclure notifications si pertinent
@@ -1044,60 +1059,55 @@ export default function ChatWindow({ user }) {
       ]);
 
       navigate(`/wiki/${data[0].slug}`);
-    } catch (err) {
-      console.error("Erreur inattendue lors de la publication Wiki :", err);
-      alert(
-        "Une erreur inattendue est survenue lors de la publication dans le Wiki.",
-      );
-    } finally {
-      setIsLoading(false);
-    }
+    });
   }
 
   // Fonction pour trouver des propositions similaires
   const findRelatedPropositions = async (question) => {
-    try {
-      const apiKey = import.meta.env.VITE_HUGGINGFACE_API_KEY;
-      if (!apiKey) {
-        console.warn(
-          "VITE_HUGGINGFACE_API_KEY non défini, la recherche de propositions similaires est ignorée.",
+    return await findPropositionsOp(async () => {
+      try {
+        const apiKey = import.meta.env.VITE_HUGGINGFACE_API_KEY;
+        if (!apiKey) {
+          console.warn(
+            "VITE_HUGGINGFACE_API_KEY non défini, la recherche de propositions similaires est ignorée.",
+          );
+          return [];
+        }
+
+        const embeddingResponse = await fetch(
+          "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              inputs: question,
+            }),
+          },
+        );
+
+        const [embedding] = await embeddingResponse.json();
+
+        const { data: similarProps, error } = await supabase.rpc(
+          "match_propositions_by_embedding",
+          {
+            query_embedding: embedding,
+            match_threshold: 0.65,
+            match_count: 3,
+          },
+        );
+
+        return similarProps || [];
+      } catch (error) {
+        console.error(
+          "Erreur lors de la recherche de propositions similaires:",
+          error,
         );
         return [];
       }
-
-      const embeddingResponse = await fetch(
-        "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            inputs: question,
-          }),
-        },
-      );
-
-      const [embedding] = await embeddingResponse.json();
-
-      const { data: similarProps, error } = await supabase.rpc(
-        "match_propositions_by_embedding",
-        {
-          query_embedding: embedding,
-          match_threshold: 0.65,
-          match_count: 3,
-        },
-      );
-
-      return similarProps || [];
-    } catch (error) {
-      console.error(
-        "Erreur lors de la recherche de propositions similaires:",
-        error,
-      );
-      return [];
-    }
+    });
   };
 
   // Fonction pour gérer le feedback
@@ -1137,8 +1147,7 @@ export default function ChatWindow({ user }) {
       return;
     }
 
-    setIsLoading(true);
-    try {
+    await createPropositionOp(async () => {
       const lastBotMessage = messages.filter((m) => m.sender === "bot").pop();
       if (!lastBotMessage) return;
 
@@ -1174,64 +1183,52 @@ export default function ChatWindow({ user }) {
 
       // Rediriger vers la nouvelle proposition (React Router)
       navigate(`/propositions/${newProposition.id}`);
-    } catch (error) {
-      console.error("Erreur lors de la création de la proposition:", error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now() + 2,
-          text: `❌ Une erreur est survenue lors de la création de la proposition: ${error.message}`,
-          sender: "system",
-          timestamp: new Date(),
-          error: true,
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
+    });
   };
 
   // Fonction pour suggérer des tags
   const suggestTags = async (question) => {
-    try {
-      const apiKey = import.meta.env.VITE_HUGGINGFACE_API_KEY;
-      if (!apiKey) {
-        console.warn(
-          "VITE_HUGGINGFACE_API_KEY non défini, la suggestion de tags est ignorée.",
-        );
-        return;
-      }
+    await suggestTagsOp(async () => {
+      try {
+        const apiKey = import.meta.env.VITE_HUGGINGFACE_API_KEY;
+        if (!apiKey) {
+          console.warn(
+            "VITE_HUGGINGFACE_API_KEY non défini, la suggestion de tags est ignorée.",
+          );
+          return;
+        }
 
-      const embeddingResponse = await fetch(
-        "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
+        const embeddingResponse = await fetch(
+          "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              inputs: question,
+            }),
           },
-          body: JSON.stringify({
-            inputs: question,
-          }),
-        },
-      );
+        );
 
-      const [embedding] = await embeddingResponse.json();
+        const [embedding] = await embeddingResponse.json();
 
-      const { data: similarTags, error } = await supabase.rpc(
-        "find_similar_tags",
-        {
-          query_embedding: embedding,
-          limit: 5,
-        },
-      );
+        const { data: similarTags, error } = await supabase.rpc(
+          "find_similar_tags",
+          {
+            query_embedding: embedding,
+            limit: 5,
+          },
+        );
 
-      if (!error && similarTags) {
-        setSuggestedTags(similarTags);
+        if (!error && similarTags) {
+          setSuggestedTags(similarTags);
+        }
+      } catch (error) {
+        console.error("Erreur lors de la suggestion de tags:", error);
       }
-    } catch (error) {
-      console.error("Erreur lors de la suggestion de tags:", error);
-    }
+    });
   };
 
   // Charger les tags suggérés quand le formulaire s'ouvre
@@ -1249,12 +1246,12 @@ export default function ChatWindow({ user }) {
   }, []);
 
   const handleClearHistory = async () => {
-    if (isClearingHistory) return;
+    if (clearHistoryOp.isActive) return;
     if (!window.confirm("Effacer tout l'historique de vos échanges ?")) return;
 
+    clearHistoryOp.start("Effacement de l'historique en cours...");
+
     try {
-      setIsClearingHistory(true);
-      
       if (user) {
         // Effacer l'historique Supabase pour les utilisateurs connectés
         await supabase.from("chat_interactions").delete().eq("user_id", user.id);
@@ -1267,11 +1264,11 @@ export default function ChatWindow({ user }) {
       setInput(""); // Réinitialiser le champ de saisie
       setRelatedPropositions([]);
       setChatHistory([]);
+      
+      clearHistoryOp.complete("Historique effacé avec succès");
     } catch (error) {
       console.error("Erreur lors de l'effacement de l'historique:", error);
-      alert("Impossible d’effacer l’historique pour le moment.");
-    } finally {
-      setIsClearingHistory(false);
+      clearHistoryOp.error("Impossible d'effacer l'historique pour le moment");
     }
   };
 
@@ -1399,7 +1396,7 @@ export default function ChatWindow({ user }) {
                   window.localStorage.setItem("bob_chat_consent", "true");
                   setHasConsent(true);
                 }}
-                className="accept-btn"
+                className="btn btn-primary"
               >
                 J’accepte
               </button>
@@ -1409,7 +1406,7 @@ export default function ChatWindow({ user }) {
                   setHasConsent(false);
                   navigate("/");
                 }}
-                className="decline-btn"
+                className="btn btn-outline-danger"
               >
                 Je refuse
               </button>
@@ -1826,7 +1823,7 @@ export default function ChatWindow({ user }) {
                       type="button"
                       onClick={handleCreateProposition}
                       disabled={!newPropositionTitle.trim() || isLoading}
-                      className="submit-btn"
+                      className="btn btn-primary"
                     >
                       {isLoading ? (
                         <>
@@ -1846,7 +1843,7 @@ export default function ChatWindow({ user }) {
                         setSelectedTags([]);
                         setTagInput("");
                       }}
-                      className="cancel-btn"
+                      className="btn btn-secondary"
                     >
                       Annuler
                     </button>
@@ -1881,11 +1878,11 @@ export default function ChatWindow({ user }) {
             {messages.length > 0 && !isMobile && (
               <button
                 onClick={handleClearHistory}
-                disabled={isClearingHistory}
+                disabled={clearHistoryOp.isActive}
                 title="Effacer tout l'historique"
                 className="px-3 py-2 border border-red-500 text-red-500 rounded-md hover:bg-red-50 disabled:opacity-50"
               >
-                {isClearingHistory ? "Nettoyage..." : "Effacer l'historique"}
+                {clearHistoryOp.isActive ? "Nettoyage..." : "Effacer l'historique"}
               </button>
             )}
             {hasConversation && !isMobile && (

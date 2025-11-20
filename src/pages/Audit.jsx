@@ -35,7 +35,7 @@ export default function Audit() {
       <div className="max-w-4xl mx-auto px-4 space-y-8">
         <div className="text-center">
           <div className="mb-4">
-            <div className="text-5xl font-bold" style={{ color: '#FF5722' }}>
+            <div className="text-5xl font-bold text-accent-orange">
               {HASHTAG}
             </div>
             <div className="h-1 bg-blue-900 my-3 max-w-2xl mx-auto"></div>

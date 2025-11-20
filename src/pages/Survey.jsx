@@ -1,5 +1,5 @@
 import React from "react";
-import { LegalMarkdown } from "../components/LegalLinks";
+import { LegalMarkdown } from "../components/common/LegalLinks";
 import SiteFooter from '../components/layout/SiteFooter';
 
 const SURVEY_DOC_PATH = "/docs/survey.md";

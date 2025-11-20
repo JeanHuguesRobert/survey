@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
-const COLORS = ['#1A4D7C', '#FF5722', '#4CAF50', '#FFC107', '#9C27B0', '#00BCD4'];
+const COLORS = ['#0A3F73', '#F54928', '#66BB6A', '#FFA726', '#42A5F5', '#FF5722'];
 
 export default function VotingDashboard() {
   const [stats, setStats] = useState(null);
@@ -186,7 +186,7 @@ export default function VotingDashboard() {
               <XAxis dataKey="name" />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="total" name="Votes" fill="#1A4D7C" />
+              <Bar dataKey="total" name="Votes" fill="#0A3F73" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -201,7 +201,7 @@ export default function VotingDashboard() {
               <XAxis dataKey="name" />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="value" name="Délégations" fill="#FF5722" />
+              <Bar dataKey="value" name="Délégations" fill="#F54928" />
             </BarChart>
           </ResponsiveContainer>
         </div>

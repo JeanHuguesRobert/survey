@@ -98,6 +98,15 @@ export default function PostEditor({ post = null, currentUser }) {
 
         if (insertError) throw insertError;
 
+        // Auto-subscribe to created post
+        await supabase
+          .from('content_subscriptions')
+          .insert({
+            user_id: currentUser.id,
+            content_type: 'post',
+            content_id: newPost.id
+          });
+
         alert('Post créé !');
         
         // Rediriger vers le groupe si c'est un post de groupe

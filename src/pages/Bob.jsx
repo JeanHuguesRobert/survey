@@ -1,31 +1,17 @@
-import { supabase } from '../lib/supabase';
-import { useState, useEffect } from 'react'
-
+import { useCurrentUser } from '../lib/useCurrentUser';
 import ChatWindow from '../components/bob/ChatWindow'
 
 function App() {
-  const [user, setUser] = useState(null)
-
-  useEffect(() => {
-    // Vérifier la session utilisateur
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-    })
-
-    // Écouter les changements d'authentification
-    supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-    })
-  }, [])
+  const { currentUser } = useCurrentUser();
 
   return (
     <div className="App">
       {
       // jhr
-      false && user?.is_admin ? (
+      false && currentUser?.is_admin ? (
         "Pour l'instant la modération est manuelle, via l'UI de Supabase"
       ) : (
-        <ChatWindow user={user} />
+        <ChatWindow user={currentUser} />
       )}
     </div>
   )

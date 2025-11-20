@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../lib/supabase';
+import { useCurrentUser } from '../lib/useCurrentUser';
 import GroupList from '../components/social/GroupList';
 import PostList from '../components/social/PostList';
 import { GROUP_TYPES, POST_TYPES } from '../lib/socialMetadata';
@@ -11,7 +11,7 @@ import { MOVEMENT_NAME } from '../constants';
  * Page principale Social - Vue d'ensemble groupes + posts
  */
 export default function Social() {
-  const { user } = useAuth();
+  const { currentUser } = useCurrentUser();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all'); // all | groups | posts
   const [filterType, setFilterType] = useState(null);
@@ -29,7 +29,7 @@ export default function Social() {
       </div>
 
       {/* Actions */}
-      {user && (
+      {currentUser && (
         <div className="mb-6 flex gap-3">
           <button
             onClick={() => navigate('/groups/new')}
@@ -188,7 +188,7 @@ export default function Social() {
                   Voir tout →
                 </Link>
               </h2>
-              <GroupList currentUserId={user?.id} />
+              <GroupList currentUserId={currentUser?.id} />
             </div>
             <div>
               <h2 className="text-2xl font-bold mb-4 flex items-center justify-between">
@@ -197,17 +197,17 @@ export default function Social() {
                   Voir tout →
                 </Link>
               </h2>
-              <PostList currentUserId={user?.id} />
+              <PostList currentUserId={currentUser?.id} />
             </div>
           </div>
         )}
 
         {activeTab === 'groups' && (
-          <GroupList filterType={filterType} currentUserId={user?.id} />
+          <GroupList filterType={filterType} currentUserId={currentUser?.id} />
         )}
 
         {activeTab === 'posts' && (
-          <PostList postType={filterType} currentUserId={user?.id} />
+          <PostList postType={filterType} currentUserId={currentUser?.id} />
         )}
       </div>
 

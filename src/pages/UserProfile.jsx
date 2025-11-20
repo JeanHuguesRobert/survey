@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../lib/supabase';
-import { useUserProfile } from '../lib/useUserProfile';
+import { useNavigate, Link } from 'react-router-dom';
+import { useCurrentUser } from '../lib/useCurrentUser';
 import SiteFooter from '../components/layout/SiteFooter';
 
 export default function UserProfile() {
-  const { user, loading: authLoading } = useAuth();
+  const { currentUser, loading: authLoading, updateProfile } = useCurrentUser();
   const navigate = useNavigate();
-  const { profile, loading: profileLoading, updateProfile } = useUserProfile(user?.id);
   
   const [formData, setFormData] = useState({
     display_name: '',
@@ -19,21 +17,21 @@ export default function UserProfile() {
 
   // Rediriger si non connecté
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (!authLoading && !currentUser) {
       navigate('/');
     }
-  }, [user, authLoading, navigate]);
+  }, [currentUser, authLoading, navigate]);
 
   // Charger les données du profil dans le formulaire
   useEffect(() => {
-    if (profile) {
+    if (currentUser) {
       setFormData({
-        display_name: profile.display_name || '',
-        neighborhood: profile.neighborhood || '',
-        interests: profile.interests || '',
+        display_name: currentUser.display_name || '',
+        neighborhood: currentUser.neighborhood || '',
+        interests: currentUser.interests || '',
       });
     }
-  }, [profile]);
+  }, [currentUser]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -56,7 +54,7 @@ export default function UserProfile() {
     setSaving(false);
   };
 
-  if (authLoading || profileLoading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-gray-600">Chargement du profil...</div>
@@ -64,7 +62,7 @@ export default function UserProfile() {
     );
   }
 
-  if (!user) {
+  if (!currentUser) {
     return null;
   }
 
@@ -72,7 +70,18 @@ export default function UserProfile() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-2xl mx-auto px-4">
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">Mon profil</h1>
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold text-gray-900">Votre profil</h1>
+            <Link
+              to="/user-dashboard"
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-semibold flex items-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+              </svg>
+              Votre tableau de bord
+            </Link>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email (non modifiable) */}
@@ -82,7 +91,7 @@ export default function UserProfile() {
               </label>
               <input
                 type="email"
-                value={user.email}
+                value={currentUser.email}
                 disabled
                 className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
               />
@@ -149,9 +158,9 @@ export default function UserProfile() {
                 Vos informations personnelles sont protégées et ne seront jamais vendues.
                 Seul votre nom d'affichage est visible publiquement dans vos contributions.
               </p>
-              {profile?.rgpd_consent_date && (
+              {currentUser?.rgpd_consent_date && (
                 <p className="text-xs text-blue-700 mt-2">
-                  Consentement RGPD accepté le {new Date(profile.rgpd_consent_date).toLocaleDateString('fr-FR')}
+                  Consentement RGPD accepté le {new Date(currentUser.rgpd_consent_date).toLocaleDateString('fr-FR')}
                 </p>
               )}
             </div>
@@ -195,13 +204,13 @@ export default function UserProfile() {
               <div>
                 <span className="text-gray-600">Membre depuis:</span>
                 <div className="font-medium text-gray-900">
-                  {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('fr-FR') : 'N/A'}
+                  {currentUser?.created_at ? new Date(currentUser.created_at).toLocaleDateString('fr-FR') : 'N/A'}
                 </div>
               </div>
               <div>
                 <span className="text-gray-600">Dernière modification:</span>
                 <div className="font-medium text-gray-900">
-                  {profile?.updated_at ? new Date(profile.updated_at).toLocaleDateString('fr-FR') : 'N/A'}
+                  {currentUser?.updated_at ? new Date(currentUser.updated_at).toLocaleDateString('fr-FR') : 'N/A'}
                 </div>
               </div>
             </div>

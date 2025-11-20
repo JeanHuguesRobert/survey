@@ -156,12 +156,12 @@ export default function PublicBrowser() {
         </div>
       );
     }
-    return <pre style={{ whiteSpace: 'pre-wrap' }}>{txt}</pre>;
+    return <pre className="whitespace-pre-wrap">{txt}</pre>;
   }
 
   return (
     <div className="public-browser">
-      <div className="browser-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+      <div className="browser-header flex justify-between items-center gap-3">
         <h2>Explorateur public (public/docs)</h2>
         <div>
           <button
@@ -181,17 +181,9 @@ export default function PublicBrowser() {
         </div>
       </div>
 
-      <div className="browser-body" style={{ display: 'flex', gap: 20 }}>
+      <div className="browser-body flex gap-5">
         <div
-          className="browser-list"
-          style={{
-            width: 480,
-            minWidth: 360,
-            maxWidth: 560,
-            borderRight: '1px solid #eee',
-            paddingRight: 12,
-            boxSizing: 'border-box'
-          }}
+          className="browser-list w-[480px] min-w-[360px] max-w-[560px] border-r border-gray-200 pr-3 box-border"
         >
           <p><strong>Chemin :</strong> {path}</p>
           {backendMessage && (
@@ -202,26 +194,18 @@ export default function PublicBrowser() {
           {loading && <p>Chargement...</p>}
           {!loading && items && items.length === 0 && !backendMessage && <p>Pas de listing disponible pour {fullPath}.</p>}
           {!loading && items && items.length > 0 && (
-            <ul style={{ listStyle: 'none', padding: 0 }}>
+            <ul className="list-none p-0">
               {items.map((it, i) => {
                 const displayName = it.name || it.href;
                 return (
-                  <li key={i} style={{ marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <li key={i} className="mb-2 flex items-center justify-between">
                     <button
                       onClick={() => openEntry(it)}
-                      className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-100 w-full text-left"
-                      style={{ gap: 8 }}
+                      className="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-slate-100 w-full text-left"
                     >
                       <span className="mr-2">{it.isDir ? '📁' : '📄'}</span>
                       <span
-                        style={{
-                          display: 'inline-block',
-                          wordBreak: 'break-word',
-                          overflowWrap: 'anywhere',
-                          whiteSpace: 'normal',
-                          lineHeight: 1.2,
-                          maxWidth: '100%'
-                        }}
+                        className="inline-block break-words overflow-anywhere whitespace-normal leading-tight max-w-full"
                       >
                         {displayName}
                       </span>
@@ -244,17 +228,16 @@ export default function PublicBrowser() {
           )}
         </div>
 
-        <div className="browser-view" style={{ flex: 1 }}>
+        <div className="browser-view flex-1">
           {viewFile ? (
             <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ wordBreak: 'break-word' }}>{viewFile.name}</h3>
+              <div className="flex justify-between items-center">
+                <h3 className="break-words">{viewFile.name}</h3>
                 <div>
                   <a
                     href={fileDownloadUrl(viewFile)}
                     download
-                    className="px-3 py-1 rounded-md text-white"
-                    style={{ backgroundColor: '#1F6FEB', color: '#fff', textDecoration: 'none' }}
+                    className="px-3 py-1 rounded-md bg-accent-blue text-white no-underline"
                   >
                     Télécharger
                   </a>

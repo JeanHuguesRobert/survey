@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { APP_VERSION, DEPLOY_DATE, VOLUNTEER_URL } from "../../constants";
-import { useAuth, supabase } from "../../lib/supabase";
-import { useUserProfile } from "../../lib/useUserProfile";
+import { supabase } from "../../lib/supabase";
+import { useCurrentUser } from "../../lib/useCurrentUser";
 import AuthModal from "../common/AuthModal";
 
 export default function SiteFooter({ showWiki = true, showVersionInfo = true, onExpandedChange }) {
@@ -22,8 +22,7 @@ export default function SiteFooter({ showWiki = true, showVersionInfo = true, on
     return localStorage.getItem('siteFooterManualControl') === 'true';
   });
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const { user } = useAuth();
-  const { profile } = useUserProfile(user?.id);
+  const { currentUser } = useCurrentUser();
   const footerRef = useRef(null);
   const scrollTimeoutRef = useRef(null);
   const lastScrollY = useRef(0);
@@ -166,17 +165,17 @@ export default function SiteFooter({ showWiki = true, showVersionInfo = true, on
         <div className="max-w-4xl mx-auto px-4 pb-3 text-center space-y-2">
           {/* Auth section */}
           <div className="py-2 border-b border-gray-700">
-            {user ? (
+            {currentUser ? (
               <div className="flex flex-col items-center gap-2">
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-gray-300">
-                    👤 {profile?.display_name || user.email}
+                    👤 {currentUser.display_name || currentUser.email}
                   </span>
                   <Link
                     to="/profile"
                     className="text-xs px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-white"
                   >
-                    Mon profil
+                    Votre profil
                   </Link>
                   <button
                     onClick={async () => await supabase.auth.signOut()}
@@ -185,9 +184,9 @@ export default function SiteFooter({ showWiki = true, showVersionInfo = true, on
                     Déconnexion
                   </button>
                 </div>
-                {profile?.neighborhood && (
+                {currentUser.neighborhood && (
                   <span className="text-xs text-gray-400">
-                    📍 {profile.neighborhood}
+                    📍 {currentUser.neighborhood}
                   </span>
                 )}
               </div>

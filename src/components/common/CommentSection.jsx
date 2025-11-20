@@ -5,6 +5,7 @@ import { getParentCommentId, isReply, isEdited } from '../../lib/socialMetadata'
 import CommentForm from '../social/CommentForm';
 import ReactionPicker from '../social/ReactionPicker';
 import { getDisplayName, getUserInitial } from '../../lib/userDisplay';
+import { useDataLoader, useDataSaver, useFormSubmitter } from '../../lib/useStatusOperations';
 
 /**
  * Section de commentaires réutilisable avec toggle show/hide
@@ -25,9 +26,15 @@ export default function CommentSection({
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [discussionPost, setDiscussionPost] = useState(null);
   const [comments, setComments] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [replyToId, setReplyToId] = useState(null);
+
+  // Status monitoring hooks
+  const loadDiscussionPostOp = useDataLoader();
+  const createDiscussionPostOp = useDataSaver();
+  const loadCommentsOp = useDataLoader();
+  const submitCommentOp = useFormSubmitter('Posting comment');
+  const deleteCommentOp = useDataSaver();
+  const editCommentOp = useDataSaver();
 
   // Charge ou crée le post de discussion associé à ce contenu
   useEffect(() => {
@@ -61,10 +68,7 @@ export default function CommentSection({
   }, [discussionPost?.id]);
 
   async function loadDiscussionPost() {
-    try {
-      setLoading(true);
-      setError(null);
-
+    await loadDiscussionPostOp(async () => {
       // Cherche un post de discussion existant pour ce contenu
       const { data: existingPosts, error: searchError } = await supabase
         .from('posts')
@@ -83,18 +87,13 @@ export default function CommentSection({
         // (uniquement si l'utilisateur est connecté et tente d'interagir)
         setDiscussionPost(null);
       }
-    } catch (err) {
-      console.error('Error loading discussion post:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    });
   }
 
   async function createDiscussionPost() {
     if (!currentUser) return null;
 
-    try {
+    return await createDiscussionPostOp(async () => {
       const { data, error } = await supabase
         .from('posts')
         .insert({
@@ -116,16 +115,13 @@ export default function CommentSection({
       
       setDiscussionPost(data);
       return data;
-    } catch (err) {
-      console.error('Error creating discussion post:', err);
-      throw err;
-    }
+    });
   }
 
   async function loadComments() {
     if (!discussionPost?.id) return;
 
-    try {
+    await loadCommentsOp(async () => {
       const { data, error: fetchError } = await supabase
         .from('comments')
         .select('*, users(id, email, display_name, metadata)')
@@ -136,10 +132,7 @@ export default function CommentSection({
 
       const activeComments = (data || []).filter(c => !isDeleted(c));
       setComments(activeComments);
-    } catch (err) {
-      console.error('Error loading comments:', err);
-      setError(err.message);
-    }
+    });
   }
 
   async function handleCommentSubmit(content, parentId = null) {
@@ -148,7 +141,7 @@ export default function CommentSection({
       return;
     }
 
-    try {
+    await submitCommentOp(async () => {
       let post = discussionPost;
       
       // Crée le post de discussion si nécessaire
@@ -173,16 +166,13 @@ export default function CommentSection({
 
       setReplyToId(null);
       await loadComments();
-    } catch (err) {
-      console.error('Error creating comment:', err);
-      alert('Erreur : ' + err.message);
-    }
+    });
   }
 
   async function handleDelete(commentId) {
     if (!confirm('Supprimer ce commentaire ?')) return;
 
-    try {
+    await deleteCommentOp(async () => {
       const comment = comments.find(c => c.id === commentId);
       if (!comment) return;
 
@@ -200,10 +190,7 @@ export default function CommentSection({
 
       if (error) throw error;
       await loadComments();
-    } catch (err) {
-      console.error('Error deleting comment:', err);
-      alert('Erreur : ' + err.message);
-    }
+    });
   }
 
   function buildCommentTree(comments) {
@@ -231,7 +218,7 @@ export default function CommentSection({
     const edited = isEdited(comment);
 
     async function handleEdit() {
-      try {
+      await editCommentOp(async () => {
         const { error } = await supabase
           .from('comments')
           .update({
@@ -248,10 +235,7 @@ export default function CommentSection({
 
         setIsEditing(false);
         await loadComments();
-      } catch (err) {
-        console.error('Error editing comment:', err);
-        alert('Erreur : ' + err.message);
-      }
+      });
     }
 
     return (
@@ -412,44 +396,34 @@ export default function CommentSection({
       {/* Comments Content */}
       {expanded && (
         <div className="p-6">
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            </div>
-          ) : error ? (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              Erreur : {error}
-            </div>
-          ) : (
-            <>
-              {/* New comment form */}
-              {currentUser ? (
-                <div className="mb-6">
-                  <CommentForm
-                    onSubmit={(content) => handleCommentSubmit(content)}
-                    placeholder="Ajouter un commentaire..."
-                  />
-                </div>
-              ) : (
-                <div className="mb-6 p-4 bg-gray-50 rounded text-center text-gray-600">
-                  Connectez-vous pour commenter
-                </div>
-              )}
+          <>
+            {/* New comment form */}
+            {currentUser ? (
+              <div className="mb-6">
+                <CommentForm
+                  onSubmit={(content) => handleCommentSubmit(content)}
+                  placeholder="Ajouter un commentaire..."
+                />
+              </div>
+            ) : (
+              <div className="mb-6 p-4 bg-gray-50 rounded text-center text-gray-600">
+                Connectez-vous pour commenter
+              </div>
+            )}
 
-              {/* Comments tree */}
-              {commentTree.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">
-                  Aucun commentaire pour l'instant. Soyez le premier !
-                </p>
-              ) : (
-                <div className="space-y-0">
-                  {commentTree.map(comment => (
-                    <CommentItem key={comment.id} comment={comment} depth={0} />
-                  ))}
-                </div>
-              )}
-            </>
-          )}
+            {/* Comments tree */}
+            {commentTree.length === 0 ? (
+              <p className="text-center text-gray-500 py-8">
+                Aucun commentaire pour l'instant. Soyez le premier !
+              </p>
+            ) : (
+              <div className="space-y-0">
+                {commentTree.map(comment => (
+                  <CommentItem key={comment.id} comment={comment} depth={0} />
+                ))}
+              </div>
+            )}
+          </>
         </div>
       )}
     </div>

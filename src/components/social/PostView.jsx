@@ -15,6 +15,7 @@ import {
 } from '../../lib/socialMetadata';
 import CommentThread from './CommentThread';
 import { getDisplayName, getUserInitial } from '../../lib/userDisplay';
+import SubscribeButton from '../common/SubscribeButton';
 
 /**
  * Vue détaillée d'un post avec commentaires
@@ -246,23 +247,32 @@ export default function PostView({ currentUser }) {
             </div>
           </div>
 
-          {/* Actions */}
-          {isAuthor && (
-            <div className="flex gap-2">
-              <button
-                onClick={() => navigate(`/posts/${id}/edit`)}
-                className="text-sm px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded"
-              >
-                Modifier
-              </button>
-              <button
-                onClick={handleDelete}
-                className="text-sm px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded"
-              >
-                Supprimer
-              </button>
-            </div>
-          )}
+          <div className="flex items-start gap-3">
+            {/* Subscribe Button */}
+            <SubscribeButton 
+              contentType="post"
+              contentId={post.id}
+              currentUser={currentUser}
+            />
+
+            {/* Actions */}
+            {isAuthor && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => navigate(`/posts/${id}/edit`)}
+                  className="text-sm px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded"
+                >
+                  Modifier
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="text-sm px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded"
+                >
+                  Supprimer
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Titre */}

@@ -985,43 +985,6 @@
   gap: var(--space-3);
 }
 
-.accept-btn {
-  flex: 1;
-  padding: var(--space-4) var(--space-6);
-  background: var(--gradient-primary);
-  color: white;
-  border: none;
-  border-radius: var(--radius-lg);
-  font-weight: 600;
-  font-size: var(--text-base);
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-  transition: all var(--duration-normal) var(--ease-smooth);
-}
-
-.accept-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
-}
-
-.decline-btn {
-  flex: 1;
-  padding: var(--space-4) var(--space-6);
-  background: transparent;
-  color: var(--color-text-secondary);
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  font-weight: 600;
-  font-size: var(--text-base);
-  cursor: pointer;
-  transition: all var(--duration-normal) var(--ease-smooth);
-}
-
-.decline-btn:hover {
-  background: var(--color-surface-elevated);
-  border-color: var(--color-text-secondary);
-}
-
 /* ===================================
    MODEL SELECTION MODAL
    =================================== */
@@ -1263,33 +1226,6 @@
   background: var(--color-surface-elevated);
 }
 
-.form-group {
-  margin-bottom: var(--space-5);
-}
-
-.form-group label {
-  display: block;
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin-bottom: var(--space-2);
-}
-
-.form-input,
-.form-textarea {
-  width: 100%;
-  padding: var(--space-3) var(--space-4);
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--text-base);
-  font-family: var(--font-sans);
-  background: var(--color-surface);
-  color: var(--color-text-primary);
-  transition: all var(--duration-normal) var(--ease-smooth);
-}
-
-.form-input:focus,
-.form-textarea:focus {
   outline: none;
   border-color: var(--color-primary-500);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);

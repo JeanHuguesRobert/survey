@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import ErrorBoundary from '../components/ErrorBoundary';
+import ErrorBoundary from "../components/common/ErrorBoundary";
 import { linkifyWardWiki } from '../lib/wikiLinks';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
@@ -54,15 +54,15 @@ export default function Wiki() {
     localStorage.setItem('wiki-sidebar-width', sidebarWidth.toString());
   }, [sidebarWidth]);
 
-  async function loadPages() {
+  const loadPages = async () => {
     const { data } = await supabase.from('wiki_pages').select('*').order('updated_at', { ascending: false });
     setPages(data || []);
-  }
+  };
 
-  async function loadPageBySlug(slug) {
+  const loadPageBySlug = async (slug) => {
     const { data } = await supabase.from('wiki_pages').select('*').eq('slug', slug).single();
     setActivePage(data || null);
-  }
+  };
 
   const handleNewPage = () => navigate('/wiki/new');
 
@@ -192,110 +192,12 @@ export default function Wiki() {
 
   return (
     <div className="wiki-container flex flex-col min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        
-        * {
-          box-sizing: border-box;
-        }
-        
-        .wiki-container {
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-          max-width: 100vw;
-          overflow-x: hidden;
-        }
-        
-        .page-card {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          border: 1px solid #e2e8f0;
-        }
-        
-        .page-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
-          border-color: #3b82f6;
-        }
-        
-        .page-list-item {
-          transition: all 0.2s ease;
-          border-left: 3px solid transparent;
-        }
-        
-        .page-list-item:hover {
-          background-color: #f8fafc;
-          border-left-color: #3b82f6;
-          transform: translateX(4px);
-        }
-        
-        .search-input {
-          transition: all 0.3s ease;
-        }
-        
-        .search-input:focus {
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-        
-        .toolbar-button {
-          transition: all 0.2s ease;
-        }
-        
-        .toolbar-button:hover {
-          background-color: #f1f5f9;
-        }
-        
-        .toolbar-button.active {
-          background-color: #3b82f6;
-          color: white;
-        }
 
-        .fade-in {
-          animation: fadeIn 0.4s ease-in;
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        .resize-handle {
-          position: absolute;
-          top: 0;
-          right: -4px;
-          bottom: 0;
-          width: 8px;
-          cursor: col-resize;
-          background: transparent;
-          transition: background 0.2s;
-          z-index: 10;
-        }
-
-        .resize-handle:hover {
-          background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), transparent);
-        }
-
-        .resize-handle.resizing {
-          background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.8), transparent);
-        }
-
-        .content-preview {
-          word-wrap: break-word;
-          overflow-wrap: break-word;
-          word-break: break-word;
-          hyphens: auto;
-        }
-      `}</style>
-
-      <div className="flex flex-col md:flex-row gap-0 flex-grow" style={{ maxWidth: '100vw', overflow: 'hidden' }}>
+      <div className="flex flex-col md:flex-row gap-0 flex-grow max-w-full overflow-hidden">
         {/* Sidebar */}
         <aside
-          className="bg-white p-6 rounded-xl shadow-lg h-fit sticky top-6 flex-shrink-0 hidden md:block"
-          style={{
-            width: `${sidebarWidth}px`,
-            minWidth: '240px',
-            maxWidth: '600px',
-            margin: '24px 0 24px 24px',
-            position: 'relative'
-          }}
+          className="bg-white p-6 rounded-xl shadow-lg h-fit sticky top-6 flex-shrink-0 hidden md:block min-w-[240px] max-w-[600px] my-6 ml-6 relative"
+          style={{ width: `${sidebarWidth}px` }}
         >
           <div className="mb-6">
             <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
@@ -358,7 +260,7 @@ export default function Wiki() {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 space-y-6" style={{ padding: '24px', minWidth: 0, overflow: 'hidden' }}>
+        <main className="flex-1 space-y-6 p-6 min-w-0 overflow-hidden">
           {editMode ? (
             <div className="bg-white p-6 rounded-xl shadow-lg space-y-4">
               <h1 className="text-2xl font-bold text-gray-900">

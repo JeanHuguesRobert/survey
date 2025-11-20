@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { supabase } from '../lib/supabase';
-import ErrorBoundary from '../components/ErrorBoundary';
+import ErrorBoundary from "../components/common/ErrorBoundary";
 import { linkifyWardWiki } from '../lib/wikiLinks';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
@@ -12,6 +12,7 @@ import { formatDate, formatRelativeDate } from '../lib/formatDate';
 import CommentSection from '../components/common/CommentSection';
 import { useCurrentUser } from '../lib/useCurrentUser';
 import { getDisplayName } from '../lib/userDisplay';
+import { useSyncOperation, useDataLoader } from '../lib/useStatusOperations';
 
 // Component to display page metadata
 function PageMetadata({ page, syncHistory }) {
@@ -69,15 +70,15 @@ function PageMetadata({ page, syncHistory }) {
 }
 
 export function ArchiveButton({ pageId, slug }) {
-  const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState(null);
+  const syncOperation = useSyncOperation(`Archiving wiki page: ${slug || pageId}`);
 
   const handleArchive = async () => {
-    setLoading(true);
-    setStatus(null);
+    await syncOperation(async (updateProgress) => {
+      updateProgress(10, 'Preparing archive...');
 
-    try {
       const body = pageId ? { pageId } : { slug };
+
+      updateProgress(30, 'Sending to GitHub...');
 
       const response = await fetch('/.netlify/functions/sync-wiki', {
         method: 'POST',
@@ -87,49 +88,29 @@ export function ArchiveButton({ pageId, slug }) {
         body: JSON.stringify(body)
       });
 
+      updateProgress(70, 'Processing response...');
+
       const data = await response.json();
 
-      if (response.ok) {
-        setStatus({
-          type: 'success',
-          message: data.message === 'Already synced today'
-            ? '✅ Déjà archivé aujourd\'hui'
-            : '✅ Page archivée sur GitHub !'
-        });
-      } else {
-        setStatus({
-          type: 'error',
-          message: `❌ Erreur: ${data.error}`
-        });
+      if (!response.ok) {
+        throw new Error(data.error || 'Archive failed');
       }
-    } catch (error) {
-      setStatus({
-        type: 'error',
-        message: `❌ Erreur: ${error.message}`
-      });
-    } finally {
-      setLoading(false);
-    }
+
+      updateProgress(100, 'Archive completed successfully');
+
+      return data;
+    });
   };
 
   return (
     <div className="flex flex-col gap-2">
       <button
         onClick={handleArchive}
-        disabled={loading}
+        disabled={false} // The status monitoring handles this
         className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
       >
-        {loading ? 'Archivage en cours...' : '📦 Archiver'}
+        📦 Archiver
       </button>
-
-      {status && (
-        <div className={`p-3 rounded ${status.type === 'success'
-          ? 'bg-green-100 text-green-800'
-          : 'bg-red-100 text-red-800'
-          }`}>
-          {status.message}
-        </div>
-      )}
     </div>
   );
 }
@@ -144,74 +125,80 @@ const WikiPage = () => {
   const [showShareModal, setShowShareModal] = useState(false); // Nouvel état pour le modal de partage
   const [syncHistory, setSyncHistory] = useState([]); // État pour l'historique de synchronisation
   const { currentUser } = useCurrentUser(); // Hook pour l'utilisateur connecté
+  const loadPages = useDataLoader();
+  const loadPageData = useDataLoader();
 
   useEffect(() => {
-    supabase.from('wiki_pages').select('*').order('updated_at', { ascending: false }).then(({ data }) => setPages(data || []));
-  }, []);
+    loadPages(async () => {
+      const { data } = await supabase.from('wiki_pages').select('*').order('updated_at', { ascending: false });
+      setPages(data || []);
+      return data;
+    }).catch(() => {
+      // Error is handled by the status monitoring system
+      setPages([]);
+    });
+  }, [loadPages]);
 
   useEffect(() => {
-    const fetchPageData = async () => {
-      setLoading(true);
+    loadPageData(async () => {
+      // Fetch page data first
+      const { data: pageData, error: pageError } = await supabase
+        .from('wiki_pages')
+        .select('*')
+        .eq('slug', slug)
+        .single();
 
-      try {
-        // Fetch page data first
-        const { data: pageData, error: pageError } = await supabase
-          .from('wiki_pages')
-          .select('*')
-          .eq('slug', slug)
-          .single();
+      if (pageError) throw pageError;
 
-        if (pageError) throw pageError;
+      // Try to fetch author information separately if author_id exists
+      if (pageData && pageData.author_id) {
+        try {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('email')
+            .eq('id', pageData.author_id)
+            .single();
 
-        // Try to fetch author information separately if author_id exists
-        if (pageData && pageData.author_id) {
+          if (userData) {
+            pageData.author = userData;
+          }
+        } catch (authorError) {
+          // If users table doesn't exist or error, try auth.users
           try {
-            const { data: userData } = await supabase
-              .from('users')
-              .select('email')
-              .eq('id', pageData.author_id)
-              .single();
-
-            if (userData) {
-              pageData.author = userData;
+            const { data: authData } = await supabase.auth.admin.getUserById(pageData.author_id);
+            if (authData?.user) {
+              pageData.author = { email: authData.user.email };
             }
-          } catch (authorError) {
-            // If users table doesn't exist or error, try auth.users
-            try {
-              const { data: authData } = await supabase.auth.admin.getUserById(pageData.author_id);
-              if (authData?.user) {
-                pageData.author = { email: authData.user.email };
-              }
-            } catch {
-              // Silently fail if we can't get author info
-              console.log('Could not fetch author information');
-            }
+          } catch {
+            // Silently fail if we can't get author info
+            console.log('Could not fetch author information');
           }
         }
-
-        setPage(pageData || null);
-
-        // Fetch sync history if page exists
-        if (pageData) {
-          const { data: syncData } = await supabase
-            .from('git_sync_log')
-            .select('last_sync_date, commit_sha')
-            .eq('page_id', pageData.id)
-            .order('last_sync_date', { ascending: false })
-            .limit(1);
-
-          setSyncHistory(syncData || []);
-        }
-      } catch (err) {
-        console.error('Error fetching page data:', err);
-        setPage(null);
-      } finally {
-        setLoading(false);
       }
-    };
 
-    fetchPageData();
-  }, [slug]);
+      setPage(pageData || null);
+
+      // Fetch sync history if page exists
+      if (pageData) {
+        const { data: syncData } = await supabase
+          .from('git_sync_log')
+          .select('last_sync_date, commit_sha')
+          .eq('page_id', pageData.id)
+          .order('last_sync_date', { ascending: false })
+          .limit(1);
+
+        setSyncHistory(syncData || []);
+      }
+
+      return pageData;
+    }).catch((err) => {
+      console.error('Error fetching page data:', err);
+      setPage(null);
+      setLoading(false);
+    }).finally(() => {
+      setLoading(false);
+    });
+  }, [slug, loadPageData]);
 
   const { prev, next } = useMemo(() => {
     if (!page || pages.length === 0) return { prev: null, next: null };
@@ -236,6 +223,7 @@ const WikiPage = () => {
   };
 
   if (loading) {
+    // Loading is now handled globally by the status monitoring system
     return <div className="text-center py-12">Chargement...</div>;
   }
 

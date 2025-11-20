@@ -1,10 +1,10 @@
-import { useUserProfile } from '../../lib/useUserProfile';
+import { useUserProfileById } from '../../lib/useCurrentUser';
 
 /**
  * Affichage compact d'un nom d'utilisateur avec infos optionnelles
  */
 export default function UserDisplay({ userId, showNeighborhood = false, className = '' }) {
-  const { profile, loading } = useUserProfile(userId);
+  const { profile, loading } = useUserProfileById(userId);
 
   if (loading) {
     return <span className={`text-gray-500 ${className}`}>Chargement...</span>;

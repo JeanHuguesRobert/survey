@@ -1,11 +1,11 @@
-import { useAuth } from '../lib/supabase';
+import { useCurrentUser } from '../lib/useCurrentUser';
 import GroupDetail from '../components/social/GroupDetail';
 
 /**
  * Page détail d'un groupe
  */
 export default function GroupPage() {
-  const { user } = useAuth();
+  const { currentUser } = useCurrentUser();
 
-  return <GroupDetail currentUser={user} />;
+  return <GroupDetail currentUser={currentUser} />;
 }

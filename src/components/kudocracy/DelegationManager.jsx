@@ -114,7 +114,7 @@ export default function DelegationManager({ user }) {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Mes délégations</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Vos délégations</h2>
 
         <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
           <p className="text-sm text-blue-800">

@@ -14,7 +14,7 @@ export default function Methodologie() {
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="text-center">
             <div className="mb-4">
-              <div className="text-5xl font-bold" style={{ color: '#FF5722' }}>{HASHTAG}</div>
+              <div className="text-5xl font-bold text-accent-orange">{HASHTAG}</div>
               <div className="h-1 bg-blue-900 my-3 max-w-2xl mx-auto"></div>
               <div className="text-4xl font-bold text-blue-900">{CITY_NAME.toUpperCase()}<br/>CAPITALE</div>
             </div>

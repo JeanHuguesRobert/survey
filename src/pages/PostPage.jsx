@@ -1,11 +1,11 @@
-import { useAuth } from '../lib/supabase';
+import { useCurrentUser } from '../lib/useCurrentUser';
 import PostView from '../components/social/PostView';
 
 /**
  * Page détail d'un post
  */
 export default function PostPage() {
-  const { user } = useAuth();
+  const { currentUser } = useCurrentUser();
 
-  return <PostView currentUser={user} />;
+  return <PostView currentUser={currentUser} />;
 }

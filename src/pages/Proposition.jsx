@@ -2,13 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { supabase } from '../lib/supabase';
+import { useSupabase } from '../contexts/SupabaseContext';
 import { linkifyWardWiki } from '../lib/wikiLinks';
 import CommentSection from '../components/common/CommentSection';
 import { useCurrentUser } from '../lib/useCurrentUser';
 import VoteButton from '../components/kudocracy/VoteButton';
+import SubscribeButton from '../components/common/SubscribeButton';
 
 export default function Proposition() {
+  const { supabase } = useSupabase();
   const { id } = useParams();
   const [proposition, setProposition] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -18,37 +20,52 @@ export default function Proposition() {
   const [userVote, setUserVote] = useState(null);
 
   useEffect(() => {
+    if (!supabase || !id) return;
+    
     const loadProposition = async () => {
+      console.log('Loading proposition with id:', id);
       setLoading(true);
       setError(null);
-      const { data, error } = await supabase
-        .from('propositions')
-        .select(`
-          *,
-          author:users!propositions_author_id_fkey(display_name),
-          proposition_tags(tag:tags(*))
-        `)
-        .eq('id', id)
-        .maybeSingle();
+      
+      try {
+        const { data, error } = await supabase
+          .from('propositions')
+          .select(`
+            *,
+            author:users!propositions_author_id_fkey(display_name),
+            proposition_tags(tag:tags(*))
+          `)
+          .eq('id', id)
+          .maybeSingle();
 
-      if (error) {
-        setError('Impossible de charger la proposition');
-      } else {
-        setProposition(data);
+        console.log('Proposition query result:', { data, error });
+
+        if (error) {
+          console.error('Error loading proposition:', error);
+          setError('Impossible de charger la proposition: ' + error.message);
+        } else if (!data) {
+          setError('Proposition non trouvée');
+        } else {
+          setProposition(data);
+        }
+      } catch (err) {
+        console.error('Exception loading proposition:', err);
+        setError('Erreur lors du chargement: ' + err.message);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
-    if (id) {
-      loadProposition();
-      loadVotes();
-      if (currentUser) {
-        loadUserVote();
-      }
+    loadProposition();
+    loadVotes();
+    if (currentUser) {
+      loadUserVote();
     }
-  }, [id, currentUser]);
+  }, [id, currentUser, supabase]); // Add supabase to dependencies
 
   const loadVotes = async () => {
+    if (!supabase) return;
+    
     const { data, error } = await supabase
       .from('votes')
       .select('vote_value')
@@ -63,7 +80,7 @@ export default function Proposition() {
   };
 
   const loadUserVote = async () => {
-    if (!currentUser) return;
+    if (!currentUser || !supabase) return;
     
     const { data, error } = await supabase
       .from('votes')
@@ -193,6 +210,15 @@ export default function Proposition() {
               </p>
             </div>
           )}
+
+          {/* Bouton d'abonnement */}
+          <div className="mb-4">
+            <SubscribeButton 
+              contentType="proposition"
+              contentId={id}
+              currentUser={currentUser}
+            />
+          </div>
 
           {/* Boutons de vote */}
           {currentUser ? (
