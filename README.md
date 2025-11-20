@@ -10,7 +10,7 @@
 
 Cette application offre **six outils principaux** pour la participation citoyenne :
 
-### 1. ☕ **Café Pertitellu** - L'espace social citoyen (NOUVEAU)
+### 1. ☕ **Café Pertitellu** - L'espace social citoyen
 
 Un espace de discussion et d'échange convivial où vous pouvez :
 - **Créer et rejoindre des groupes** thématiques (urbanisme, culture, environnement, etc.)
@@ -19,11 +19,14 @@ Un espace de discussion et d'échange convivial où vous pouvez :
 - **Réagir et commenter** les publications pour enrichir les débats
 - **Créer votre profil** avec votre quartier et vos centres d'intérêt
 - **Rejoindre des associations** et mobiliser autour de projets
+- **S'abonner aux contenus** qui vous intéressent pour suivre les discussions
 
 **Fonctionnalités :**
 - Types de groupes : Forums, Blogs, Quartiers, Associations
 - Types de publications : Discussions, Annonces, Événements, Questions/Réponses
 - Système de réactions (👍 ❤️ 😂 🤔 😮 😢)
+- **Abonnements universels** : suivez n'importe quel contenu commentable (posts, propositions, pages wiki)
+- **Fil d'abonnements** : recevez les nouveaux commentaires sur vos contenus suivis
 - Modération citoyenne respectueuse
 - Authentification sécurisée avec gestion de profil complète
 
@@ -150,7 +153,16 @@ L'application sera accessible sur `http://localhost:8888`
 
 ## 📅 Dernières améliorations (Novembre 2025)
 
-### Café Pertitellu (NOUVEAU)
+### Système d'abonnements universel (NOUVEAU)
+- ✨ **Abonnez-vous à n'importe quel contenu** : posts, propositions, pages wiki
+- ✨ **Fil d'abonnements personnalisé** avec filtres par type de contenu
+- ✨ **Notifications en temps réel** des nouveaux commentaires sur vos contenus suivis
+- ✨ **Compteur d'abonnés** visible sur chaque contenu
+- ✨ **Auto-abonnement** lors de la création de contenu
+- ✨ **Statistiques d'abonnements** dans le tableau de bord utilisateur
+- 🔧 Intégration dans PostView, Proposition et bientôt les pages Wiki
+
+### Café Pertitellu
 - ✨ **Espace social complet** : forums, blogs, quartiers, associations
 - ✨ **Système de groupes** avec types personnalisables
 - ✨ **Publications diverses** : discussions, annonces, événements, Q&A
@@ -204,7 +216,7 @@ survey/
 ├── src/
 │   ├── components/
 │   │   ├── bob/           # Interface de l'assistant Ophélia
-│   │   ├── common/        # Composants réutilisables (AuthModal, UserDisplay, etc.)
+│   │   ├── common/        # Composants réutilisables (AuthModal, UserDisplay, SubscribeButton, etc.)
 │   │   ├── kudocracy/     # Système de propositions et votes
 │   │   ├── layout/        # Layouts (SiteFooter, etc.)
 │   │   ├── social/        # Composants du Café Pertitellu
@@ -214,10 +226,12 @@ survey/
 │   │   ├── GroupPage.jsx  # Page d'un groupe
 │   │   ├── PostPage.jsx   # Page d'une publication
 │   │   ├── UserProfile.jsx # Profil utilisateur
+│   │   ├── SubscriptionFeed.jsx # Fil des abonnements
 │   │   └── ...
 │   ├── lib/               # Utilitaires et helpers
 │   │   ├── supabase.js    # Client Supabase et hooks d'authentification
 │   │   ├── useUserProfile.js # Hook pour gérer les profils
+│   │   ├── useSubscription.js # Hook pour gérer les abonnements
 │   │   └── socialMetadata.js # Métadonnées pour le système social
 │   └── config/            # Configuration (questionnaires, critères transparence)
 ├── supabase/
@@ -260,6 +274,7 @@ Cette plateforme participe à l'initiative citoyenne **"Transparence"** qui vise
 
 ## 🔮 À venir
 
+- 🔄 **Abonnements wiki** : suivre les modifications des pages wiki
 - 🔄 **Notifications** pour les nouveaux contenus du Café
 - 🔄 **Messagerie privée** entre utilisateurs
 - 🔄 **Système de badges** pour récompenser l'engagement citoyen
@@ -319,6 +334,7 @@ Si `OPENAI_API_KEY` est défini, OpenAI est utilisé en priorité.
 
 ### Tables principales
 - `users` : profils utilisateurs (display_name, neighborhood, interests, etc.)
+- `content_subscriptions` : abonnements aux contenus (posts, propositions, wiki)
 - `groups` : groupes du Café Pertitellu (forums, blogs, quartiers, associations)
 - `posts` : publications dans les groupes
 - `comments` : commentaires sur les publications
