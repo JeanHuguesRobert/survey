@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -550,7 +549,13 @@ export default function Transparence() {
         </section>
       </div>
 
-      <div className="mt-8">
+      <div className="mt-8 flex flex-col items-center">
+        <Link
+          to="/contact"
+          className="inline-block px-4 py-2 mb-4 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold shadow"
+        >
+          Contactez-nous
+        </Link>
         <SiteFooter />
       </div>
     </div>

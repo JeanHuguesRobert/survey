@@ -5,7 +5,8 @@ import PostView from '../components/social/PostView';
  * Page détail d'un post
  */
 export default function PostPage() {
-  const { currentUser } = useCurrentUser();
+  const { currentUser, userStatus } = useCurrentUser();
 
+  // If you want to add auth-required UI, you can use userStatus here
   return <PostView currentUser={currentUser} />;
 }

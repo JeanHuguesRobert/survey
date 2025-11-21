@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { useCurrentUser } from '../lib/useCurrentUser';
 
 const SupabaseContext = createContext(undefined);
 
@@ -8,7 +9,9 @@ export function SupabaseProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Intègre le hook useCurrentUser pour exposer currentUser, loading, error
   const [connectionError, setConnectionError] = useState(null);
+  const { currentUser, loading: userLoading, error: userError, userStatus, updateProfile } = useCurrentUser();
   const [connectionState, setConnectionState] = useState('disconnected');
   const [realtimeStatus, setRealtimeStatus] = useState('disconnected');
   const [authEvent, setAuthEvent] = useState(null);
@@ -91,7 +94,7 @@ export function SupabaseProvider({ children }) {
     console.log('SupabaseContext: Testing database connection...');
     try {
       const startTime = Date.now();
-      
+      // ...existing code...
       // Test 1: Basic connection to propositions table
       const { data: propositionsData, error: propositionsError } = await supabase
         .from('propositions')
@@ -179,7 +182,12 @@ export function SupabaseProvider({ children }) {
         console.log('SupabaseContext: Realtime connecting...');
       } else if (status === 'CHANNEL_ERROR' || status === 'ERROR') {
         setConnectionState('error');
-        console.warn('SupabaseContext: Realtime connection error:', err);
+        console.warn('SupabaseContext: Realtime connection error:', {
+          status,
+          err,
+          connectionError,
+          connectionState
+        });
         if (!connectionError) {
           setConnectionError(`Realtime connection failed: ${err?.message || 'Unknown error'}`);
         }
@@ -246,8 +254,13 @@ export function SupabaseProvider({ children }) {
     supabase,
     session,
     user,
+    currentUser,
     loading,
     error,
+    userLoading,
+    userError,
+    userStatus, // NEW: expose userStatus
+    updateProfile,
     connectionError,
     connectionState,
     realtimeStatus,

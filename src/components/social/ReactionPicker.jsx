@@ -14,7 +14,7 @@ export default function ReactionPicker({ targetType, targetId, currentUser }) {
   useEffect(() => {
     if (targetId) {
       loadReactions();
-      
+
       // Subscribe to realtime changes
       const channel = supabase
         .channel(`reactions:${targetType}:${targetId}`)
@@ -67,40 +67,60 @@ export default function ReactionPicker({ targetType, targetId, currentUser }) {
       return;
     }
 
+    console.log('toggleReaction called', { emoji, currentUser: currentUser.id, targetType, targetId });
+
     try {
       // Check if user already reacted with this emoji
       const existing = reactions.find(
         r => r.user_id === currentUser.id && r.emoji === emoji
       );
 
+      console.log('Existing reaction:', existing);
+
       if (existing) {
         // Remove reaction
+        console.log('Removing reaction', existing.id);
         const { error } = await supabase
           .from('reactions')
           .delete()
           .eq('id', existing.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Delete error:', error);
+          throw error;
+        }
+        console.log('Reaction removed successfully');
       } else {
         // Add reaction
-        const { error } = await supabase
-          .from('reactions')
-          .insert({
-            user_id: currentUser.id,
-            target_type: targetType,
-            target_id: targetId,
-            emoji,
-            metadata: { schemaVersion: 1 }
-          });
+        console.log('Adding new reaction');
+        const newReaction = {
+          user_id: currentUser.id,
+          target_type: targetType,
+          target_id: targetId,
+          emoji,
+          metadata: { schemaVersion: 1 }
+        };
+        console.log('Insert data:', newReaction);
 
-        if (error) throw error;
+        const { error, data } = await supabase
+          .from('reactions')
+          .insert(newReaction)
+          .select();
+
+        console.log('Insert completed, error:', error, 'data:', data);
+
+        if (error) {
+          console.error('Insert error:', error);
+          throw error;
+        }
+        console.log('Reaction added successfully:', data);
       }
 
-      loadReactions();
+      await loadReactions();
       setShowPicker(false);
     } catch (err) {
       console.error('Error toggling reaction:', err);
-      alert('Erreur : ' + err.message);
+      alert('Erreur : ' + err.message + '\n\nVoir la console pour plus de détails.');
     }
   }
 
@@ -123,11 +143,10 @@ export default function ReactionPicker({ targetType, targetId, currentUser }) {
           <button
             key={emoji}
             onClick={() => toggleReaction(emoji)}
-            className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors ${
-              hasReacted
-                ? 'bg-primary-100 text-primary-700 border border-primary-300'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
+            className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors ${hasReacted
+              ? 'bg-primary-100 text-primary-700 border border-primary-300'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
           >
             <span>{emoji}</span>
             <span className="font-medium">{count}</span>
@@ -153,9 +172,8 @@ export default function ReactionPicker({ targetType, targetId, currentUser }) {
                 <button
                   key={emoji}
                   onClick={() => toggleReaction(emoji)}
-                  className={`w-8 h-8 rounded hover:bg-gray-100 flex items-center justify-center text-lg transition-colors ${
-                    userReactions.includes(emoji) ? 'bg-primary-50' : ''
-                  }`}
+                  className={`w-8 h-8 rounded hover:bg-gray-100 flex items-center justify-center text-lg transition-colors ${userReactions.includes(emoji) ? 'bg-primary-50' : ''
+                    }`}
                   title={emoji}
                 >
                   {emoji}

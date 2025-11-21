@@ -11,7 +11,7 @@ import { MOVEMENT_NAME } from '../constants';
  * Page principale Social - Vue d'ensemble groupes + posts
  */
 export default function Social() {
-  const { currentUser } = useCurrentUser();
+  const { currentUser, userStatus } = useCurrentUser();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all'); // all | groups | posts
   const [filterType, setFilterType] = useState(null);
@@ -29,7 +29,7 @@ export default function Social() {
       </div>
 
       {/* Actions */}
-      {currentUser && (
+      {userStatus === 'signed_in' && currentUser && (
         <div className="mb-6 flex gap-3">
           <button
             onClick={() => navigate('/groups/new')}

@@ -20,7 +20,7 @@ async function generatePageSummary(pageContent, pageTitle) {
 
   const client = new OpenAI({ apiKey });
 
-  const systemPrompt = `Tu es un assistant expert en résumé. Ton rôle est de créer un résumé concis et informatif d'une page wiki. Le résumé doit capturer les points clés et l'essence du contenu, être autonome et ne pas dépasser 200 mots.`;
+  const systemPrompt = `Tu es un assistant expert en résumé. Ton rôle est de créer un résumé informatif d'une page wiki. Le résumé doit capturer les points clés et l'essence du contenu, être autonome et adapté à un agent conversationnel.`;
   const userQuestion = `Résume la page wiki suivante intitulée "${pageTitle}":\n\n${pageContent}`; 
 
   try {

@@ -161,3 +161,6 @@ vite.config.ts.timestamp-*
 .netlify
 
 public/docs/conseil/cache/
+
+# Backup files
+*.backup

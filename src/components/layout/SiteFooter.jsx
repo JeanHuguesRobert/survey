@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { APP_VERSION, DEPLOY_DATE, VOLUNTEER_URL } from "../../constants";
 import { supabase } from "../../lib/supabase";
-import { useCurrentUser } from "../../lib/useCurrentUser";
+import { useSupabase } from "../../contexts/SupabaseContext";
 import AuthModal from "../common/AuthModal";
 
 export default function SiteFooter({ showWiki = true, showVersionInfo = true, onExpandedChange }) {
@@ -22,7 +22,7 @@ export default function SiteFooter({ showWiki = true, showVersionInfo = true, on
     return localStorage.getItem('siteFooterManualControl') === 'true';
   });
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const { currentUser } = useCurrentUser();
+  const { currentUser, userStatus } = useSupabase();
   const footerRef = useRef(null);
   const scrollTimeoutRef = useRef(null);
   const lastScrollY = useRef(0);
@@ -78,17 +78,17 @@ export default function SiteFooter({ showWiki = true, showVersionInfo = true, on
         const windowHeight = window.innerHeight;
         const currentScrollY = window.scrollY;
         const scrolledToBottom = currentScrollY + windowHeight >= scrollHeight - 5;
-        
+
         // Si on est en bas et qu'on scroll vers le bas (deltaY > 0)
         if (scrolledToBottom && e.deltaY > 0) {
           wheelAttempts.current += 1;
-          
+
           // Après 3 tentatives, ouvrir le footer
           if (wheelAttempts.current >= 3) {
             setIsExpanded(true);
             wheelAttempts.current = 0;
           }
-          
+
           // Reset après 800ms d'inactivité
           if (wheelTimeoutRef.current) {
             clearTimeout(wheelTimeoutRef.current);
@@ -119,18 +119,15 @@ export default function SiteFooter({ showWiki = true, showVersionInfo = true, on
     const newExpandedState = !isExpanded;
     setIsExpanded(newExpandedState);
     setIsManualControl(true); // Dès qu'on touche manuellement, plus d'auto-close
-    
+
     // Si on ouvre, scroller vers le bas pour voir le footer complètement
     if (newExpandedState && footerRef.current) {
       setTimeout(() => {
         // Scroller pour que le footer soit complètement visible
-        const footerBottom = footerRef.current.getBoundingClientRect().bottom;
-        const windowHeight = window.innerHeight;
-        
-        // Scroller jusqu'à la fin du document pour voir le footer en entier
-        window.scrollTo({
-          top: document.documentElement.scrollHeight,
-          behavior: 'smooth'
+        footerRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'end',
+          inline: 'nearest'
         });
       }, 350); // Attendre la fin de l'animation d'ouverture (300ms + marge)
     }
@@ -158,18 +155,17 @@ export default function SiteFooter({ showWiki = true, showVersionInfo = true, on
 
       {/* Contenu pliable */}
       <div
-        className={`overflow-hidden transition-all duration-300 ${
-          isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-        }`}
+        className={`overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+          }`}
       >
         <div className="max-w-4xl mx-auto px-4 pb-3 text-center space-y-2">
           {/* Auth section */}
           <div className="py-2 border-b border-gray-700">
-            {currentUser ? (
+            {currentUser && currentUser.profile ? (
               <div className="flex flex-col items-center gap-2">
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-gray-300">
-                    👤 {currentUser.display_name || currentUser.email}
+                    👤 {currentUser.profile.display_name || currentUser.email}
                   </span>
                   <Link
                     to="/profile"
@@ -184,11 +180,16 @@ export default function SiteFooter({ showWiki = true, showVersionInfo = true, on
                     Déconnexion
                   </button>
                 </div>
-                {currentUser.neighborhood && (
+                {currentUser.profile.neighborhood && (
                   <span className="text-xs text-gray-400">
-                    📍 {currentUser.neighborhood}
+                    📍 {currentUser.profile.neighborhood}
                   </span>
                 )}
+              </div>
+            ) : userStatus === 'signing_in' ? (
+              <div className="flex items-center justify-center gap-2 text-sm text-gray-300">
+                <div className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                <span>Connexion en cours...</span>
               </div>
             ) : (
               <button

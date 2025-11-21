@@ -5,25 +5,26 @@ import { useCurrentUser } from '../lib/useCurrentUser';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import SiteFooter from '../components/layout/SiteFooter';
 
+
 export default function SocialDashboard() {
-  const { currentUser } = useCurrentUser();
+  const { currentUser, userStatus } = useCurrentUser();
   const [stats, setStats] = useState(null);
   const [recentPosts, setRecentPosts] = useState([]);
   const [recentComments, setRecentComments] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (currentUser) {
+    if (userStatus === 'signed_in' && currentUser) {
       loadSocialStats();
     }
-  }, [currentUser]);
+  }, [currentUser, userStatus]);
 
   const loadSocialStats = async () => {
     if (!currentUser) return;
 
     try {
       setLoading(true);
-
+      // ...existing code...
       // Get posts created by user
       const { data: userPosts, error: postsError } = await supabase
         .from('posts')
@@ -121,7 +122,7 @@ export default function SocialDashboard() {
     }
   };
 
-  if (loading) {
+  if (userStatus === 'signing_in' || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -132,7 +133,7 @@ export default function SocialDashboard() {
     );
   }
 
-  if (!currentUser) {
+  if (userStatus === 'signed_out' || !currentUser) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-gray-600">Veuillez vous connecter pour voir vos contributions sociales.</div>

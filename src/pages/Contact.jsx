@@ -5,8 +5,37 @@ import CommentSection from '../components/common/CommentSection';
 import { useCurrentUser } from '../lib/useCurrentUser';
 
 export default function Contact() {
+
   const email = import.meta.env.VITE_CONTACT_EMAIL || 'jeanhuguesrobert@gmail.com';
-  const { currentUser } = useCurrentUser();
+  console.log('Contact page: using contact email', email);
+  const { currentUser, loading, error, userStatus } = useCurrentUser();
+
+  const isAdmin = currentUser && currentUser.email === email;
+
+  // UI for loading, error, and signed_out states
+  if (userStatus === 'signing_in' || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-lg text-gray-700">Chargement du profil utilisateur...</div>
+      </div>
+    );
+  }
+  if (userStatus === 'signed_out') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-lg text-orange-700">Vous devez être connecté pour accéder à la page de contact.<br/>
+          <a href="/login" className="text-primary-600 hover:underline">Se connecter</a>
+        </div>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-lg text-red-700">Erreur lors du chargement du profil utilisateur : {String(error)}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -39,6 +68,23 @@ export default function Contact() {
             </section>
           </div>
 
+          {/* Admin section visible only to the configured contact email */}
+          {isAdmin && (
+            <div className="mt-8 border-t pt-6">
+              <h2 className="text-xl font-semibold text-blue-800 mb-4">Admin</h2>
+              <ul className="space-y-2">
+                <li>
+                  <Link
+                    to="/admin/document-management"
+                    className="text-blue-600 hover:underline font-medium"
+                  >
+                    Gérer les documents (Document Management)
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          )}
+
           <div className="mt-8 text-center">
             <Link
               to="/"
@@ -50,14 +96,16 @@ export default function Contact() {
         </div>
 
         {/* Section de questions et discussions */}
-        <div className="mt-6">
-          <CommentSection
-            linkedType="contact_page"
-            linkedId="main"
-            currentUser={currentUser}
-            defaultExpanded={false}
-          />
-        </div>
+        {true && (
+          <div className="mt-6">
+            <CommentSection
+              linkedType="contact_page"
+              linkedId="main"
+              currentUser={currentUser}
+              defaultExpanded={false}
+            />
+          </div>
+        )}
       </div>
 
       <footer className="bg-gray-800 text-white py-6 mt-12">

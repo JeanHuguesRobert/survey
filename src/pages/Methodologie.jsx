@@ -5,8 +5,9 @@ import CommentSection from '../components/common/CommentSection';
 import { useCurrentUser } from '../lib/useCurrentUser';
 
 export default function Methodologie() {
-  const { currentUser } = useCurrentUser();
+  const { currentUser, userStatus } = useCurrentUser();
   
+  // If you want to add auth-required UI, you can use userStatus here
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header identique au reste du site */}

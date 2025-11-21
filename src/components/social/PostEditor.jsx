@@ -108,7 +108,7 @@ export default function PostEditor({ post = null, currentUser }) {
           });
 
         alert('Post créé !');
-        
+
         // Rediriger vers le groupe si c'est un post de groupe
         if (formData.groupId) {
           navigate(`/groups/${formData.groupId}`);
@@ -245,7 +245,7 @@ export default function PostEditor({ post = null, currentUser }) {
         {currentUser && (
           <div className="border-t pt-4 space-y-3">
             <h3 className="text-sm font-medium text-gray-700">Options</h3>
-            
+
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -275,7 +275,7 @@ export default function PostEditor({ post = null, currentUser }) {
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:bg-gray-400"
+            className="flex-1 px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 disabled:bg-gray-400 font-semibold"
           >
             {loading ? 'Enregistrement...' : (isEditing ? 'Mettre à jour' : 'Publier')}
           </button>

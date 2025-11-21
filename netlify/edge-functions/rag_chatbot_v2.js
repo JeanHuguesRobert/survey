@@ -13,6 +13,7 @@ import { getSystemPrompt } from './lib/utils/system-prompt.js';
 import { formatProvidersStatusSSE, generateProvidersStatus }
     from './lib/utils/provider-status.js';
 import { resolveModelForProvider } from './lib/utils/model-resolver.js';
+import { getDocContext, formatDocContextForPrompt } from './lib/document_search/index.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -90,12 +91,12 @@ function detectModelProvider(model) {
  */
 function buildProviderOrder(modelProvider, failedProviders = new Set(), providersStatus = null) {
     const order = [...PROVIDERS];
-    
+
     // Si un provider spécifique est demandé, le mettre en premier
     if (modelProvider && order.includes(modelProvider)) {
         return [modelProvider, ...order.filter(p => p !== modelProvider)];
     }
-    
+
     // Si on a des métriques, trier par performance
     if (providersStatus?.providers) {
         const scored = order.map(name => {
@@ -103,22 +104,22 @@ function buildProviderOrder(modelProvider, failedProviders = new Set(), provider
             if (!providerData || providerData.status === 'not_configured') {
                 return { name, score: -1000 };
             }
-            
+
             let score = 0;
-            
+
             // Pénalités selon le statut
             if (providerData.status === 'rate_limited') score -= 500;
             else if (providerData.status === 'degraded') score -= 200;
             else if (providerData.status === 'available') score += 300;
             else if (providerData.status === 'unknown') score += 100;
-            
+
             const mainModel = providerData.models?.[0];
-            
+
             // Bonus pour providers récemment utilisés avec succès
             if (mainModel?.recentlyUsed && mainModel.successRate > 90) {
                 score += 200;
             }
-            
+
             // Score basé sur le temps de réponse
             if (mainModel?.avgResponseTime) {
                 const avgSeconds = mainModel.avgResponseTime / 1000;
@@ -127,40 +128,40 @@ function buildProviderOrder(modelProvider, failedProviders = new Set(), provider
                 else if (avgSeconds < 10) score += 50;
                 else score -= 50;
             }
-            
+
             // Bonus pour taux de succès élevé
             if (mainModel?.successRate != null) {
                 score += Math.floor(mainModel.successRate * 2);
             }
-            
+
             // Pénalité pour erreurs consécutives
             if (mainModel?.consecutiveErrors > 0) {
                 score -= mainModel.consecutiveErrors * 50;
             }
-            
+
             // Pénalité si retry_after défini
             if (mainModel?.retryAfter) {
                 score -= 300;
             }
-            
+
             // Pénalité si déjà échoué dans cette session
             if (failedProviders.has(name)) {
                 score -= 400;
             }
-            
+
             return { name, score };
         });
-        
+
         // Trier par score décroissant
         scored.sort((a, b) => b.score - a.score);
         return scored.map(item => item.name);
     }
-    
+
     // Prioriser OpenAI si non échoué et pas de métriques
     if (!failedProviders.has("openai") && order.includes("openai")) {
         return ["openai", ...order.filter(p => p !== "openai")];
     }
-    
+
     return order;
 }
 
@@ -196,7 +197,7 @@ function isCapacityError(error) {
  */
 function isRateLimitError(error) {
     const msg = error?.message || "";
-    return (/rate.?limit|429/i.test(msg) && /tokens?|requests?/i.test(msg)) 
+    return (/rate.?limit|429/i.test(msg) && /tokens?|requests?/i.test(msg))
         || /too.?many.?requests/i.test(msg);
 }
 
@@ -297,11 +298,11 @@ const handler = async (request) => {
     // 8. Détermine l'ordre des providers
     const failedProviders = new Set();
     const SHOULD_RANDOMIZE_PROVIDERS = Deno.env.get("DISABLE_PROVIDER_RANDOMIZATION") !== "1";
-    
+
     // Récupérer les métriques pour prioriser les providers
     const providersStatusData = generateProvidersStatus(providers);
     const providersStatus = { providers: providersStatusData };
-    
+
     let providerOrder = buildProviderOrder(enforcedProvider, failedProviders, providersStatus);
     if (!enforcedProvider && SHOULD_RANDOMIZE_PROVIDERS) {
         providerOrder = shuffleProviders(providerOrder);
@@ -313,8 +314,33 @@ const handler = async (request) => {
     console.log(`[EdgeFunction] 🔧 Provider order: ${providerOrder.join(",")}`);
 
     // 9. Charge le prompt système
-    const systemPrompt = await getSystemPrompt();
-    console.log(`[EdgeFunction] 📏 System prompt: ${systemPrompt.length} caractères`);
+    let systemPrompt = await getSystemPrompt();
+    console.log(`[EdgeFunction] 📏 Base System prompt: ${systemPrompt.length} caractères`);
+
+    // --- INTEGRATION RECHERCHE DOCUMENTAIRE ---
+    try {
+        // On ne lance la recherche que si la question semble demander une info factuelle
+        // Pour l'instant, on le fait systématiquement pour tester, ou on pourrait filtrer.
+        // On passe l'historique pour la reformulation contextuelle.
+        const docContext = await getDocContext(userQuestion, conversation_history);
+
+        const formattedContext = formatDocContextForPrompt(docContext);
+
+        if (formattedContext) {
+            console.log(`[EdgeFunction] 📄 Document Context found (${docContext.snippets.length} snippets)`);
+            // On injecte le contexte au début ou à la fin du prompt système
+            systemPrompt += `\n\n${formattedContext}`;
+
+            // Optionnel: Ajouter une instruction spécifique pour utiliser le contexte
+            systemPrompt += `\n\nINSTRUCTION IMPORTANTE : Utilisez le CONTEXTE DOCUMENTAIRE ci-dessus pour répondre à la question de l'utilisateur. Citez les documents si pertinent. Si la réponse se trouve dans le contexte, privilégiez cette source.`;
+        } else {
+            console.log(`[EdgeFunction] ∅ No relevant document context found.`);
+        }
+    } catch (err) {
+        console.error(`[EdgeFunction] ⚠️ Error in Document Search:`, err);
+        // On continue sans contexte en cas d'erreur (fail-safe)
+    }
+    // ------------------------------------------
 
     // 10. Construit les messages
     const messages = [
@@ -365,7 +391,7 @@ const handler = async (request) => {
                         } else {
                             console.log(`[EdgeFunction] 🚀 Starting with ${providerName} (model: ${resolvedModel})`);
                         }
-                        
+
                         isFirstProvider = false;
 
                         emitProviderMeta({ provider: providerName, model: resolvedModel });
@@ -402,33 +428,33 @@ const handler = async (request) => {
 
                         // 1. Erreur de capacité/quota -> fallback immédiat
                         if (capacityError) {
-                            const fallbackMessage = nextProvider 
+                            const fallbackMessage = nextProvider
                                 ? `⚠️ ${providerName} a atteint sa limite de capacité. Bascule vers ${nextProvider}...\n\n`
                                 : `${errorPrefix}${providerName} a atteint sa limite de capacité. Aucun autre fournisseur disponible.\n\n`;
-                            
+
                             console.warn(`[EdgeFunction] ⚠️ ${providerName} capacity exceeded:`, {
                                 error: error.message,
                                 isForcedProvider,
                                 nextProvider,
                                 remainingProviders: remainingProviders.length
                             });
-                            
+
                             controller.enqueue(encoder.encode(fallbackMessage));
                             failedProviders.add(providerName);
                             break;
-                        } 
-                        
+                        }
+
                         // 2. Rate limit -> retry avec délai
                         else if (rateLimitError && retries < maxRetries) {
                             const delayMs = parseRetryAfter(error.message);
-                            const retryMessage = `⏳ ${providerName} rate limit atteint. Nouvelle tentative dans ${Math.ceil(delayMs/1000)}s (${retries + 1}/${maxRetries + 1})...\n\n`;
+                            const retryMessage = `⏳ ${providerName} rate limit atteint. Nouvelle tentative dans ${Math.ceil(delayMs / 1000)}s (${retries + 1}/${maxRetries + 1})...\n\n`;
                             console.warn(`[EdgeFunction] ⏳ ${providerName} rate limit, retrying in ${delayMs}ms (attempt ${retries + 1}/${maxRetries + 1})`);
                             controller.enqueue(encoder.encode(retryMessage));
                             await new Promise(resolve => setTimeout(resolve, delayMs));
                             retries++;
                             continue;
-                        } 
-                        
+                        }
+
                         // 3. Erreur transitoire (5xx, timeout) -> retry rapide
                         else if (transientError && retries < maxRetries) {
                             const delayMs = 2000; // 2s pour erreurs transitoires
@@ -438,24 +464,24 @@ const handler = async (request) => {
                             await new Promise(resolve => setTimeout(resolve, delayMs));
                             retries++;
                             continue;
-                        } 
-                        
+                        }
+
                         // 4. Autre erreur -> fallback ou échec
                         else {
                             lastError = error;
-                            
+
                             // Message utilisateur concis
                             let userMessage = `${errorPrefix}${providerName}: ${error.message}`;
-                            
+
                             // Ajouter info sur le fallback si disponible
                             if (nextProvider) {
                                 userMessage += `\n🔄 Bascule vers ${nextProvider}...`;
                             } else if (remainingProviders.length === 0) {
                                 userMessage += `\n⚠️ Aucun autre fournisseur disponible.`;
                             }
-                            
+
                             userMessage += `\n\n`;
-                            
+
                             // Log détaillé pour la console développeur
                             console.error(`[EdgeFunction] ❌ ${providerName} failed:`, {
                                 message: error.message,
@@ -466,7 +492,7 @@ const handler = async (request) => {
                                 retries,
                                 errorType: capacityError ? 'capacity' : rateLimitError ? 'rate_limit' : transientError ? 'transient' : 'other'
                             });
-                            
+
                             controller.enqueue(encoder.encode(userMessage));
                             failedProviders.add(providerName);
                             break;
@@ -481,25 +507,25 @@ const handler = async (request) => {
             if (!handled) {
                 const failedList = Array.from(failedProviders).join(', ');
                 let finalMessage = `${errorPrefix}`;
-                
+
                 if (lastError) {
                     finalMessage += `Aucun provider disponible. Dernière erreur: ${lastError.message}`;
                 } else {
                     finalMessage += "Aucun fournisseur disponible.";
                 }
-                
+
                 if (failedList) {
                     finalMessage += `\n📋 Providers échoués: ${failedList}`;
                 }
-                
+
                 finalMessage += `\n\n`;
-                
+
                 console.error('[EdgeFunction] ❌ All providers failed:', {
                     failedProviders: Array.from(failedProviders),
                     lastError: lastError?.message,
                     providerOrder
                 });
-                
+
                 controller.enqueue(encoder.encode(finalMessage));
             }
 

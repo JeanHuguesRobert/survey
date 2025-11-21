@@ -32,12 +32,12 @@ import WikiDashboard from './pages/WikiDashboard';
 import SocialDashboard from './pages/SocialDashboard';
 import SubscriptionFeed from './pages/SubscriptionFeed';
 import { supabase } from './lib/supabase';
-import { useCurrentUser } from './lib/useCurrentUser';
-import { useSupabase } from './contexts/SupabaseContext';
+import { SupabaseProvider, useSupabase } from './contexts/SupabaseContext';
 import AuthModal from './components/common/AuthModal';
 import ConnectionBanner from './components/common/ConnectionBanner';
 import GlobalStatusIndicator from './components/common/GlobalStatusIndicator';
 import JobMonitorDemo from './components/examples/JobMonitorDemo';
+import Contact from './pages/Contact';
 
 export default function ConsultationPertitellu() {
   const [page, setPage] = useState('form');
@@ -48,7 +48,7 @@ export default function ConsultationPertitellu() {
     declinVille: 3,
     favorableReferendum: '',
     sujetsReferendum: [],
-    inscritListe: '', 
+    inscritListe: '',
     quartier: '',
     age: '',
     dureeHabitation: '',
@@ -57,7 +57,7 @@ export default function ConsultationPertitellu() {
     horaireConseil: '',
     commentaire: ''
   });
-  
+
   const [responses, setResponses] = useState([]);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -67,7 +67,7 @@ export default function ConsultationPertitellu() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const { currentUser } = useCurrentUser();
+  const { currentUser } = useSupabase();
   const { connectionError, connectionState, realtimeStatus, authEvent, testConnection } = useSupabase();
   const isCorte = String(CITY_NAME || '').toLowerCase() === 'corte';
   const modules = getCommunityQuestionnaireModules(COMMUNITY_TYPE);
@@ -81,7 +81,7 @@ export default function ConsultationPertitellu() {
     try {
       const response = await fetch(GOOGLE_SCRIPT_URL);
       const data = await response.json();
-      
+
       if (data.success && data.data) {
         const formattedResponses = data.data.map(row => ({
           connaissanceQuasquara: row['Connaissance Quasquara'] || '',
@@ -120,7 +120,7 @@ export default function ConsultationPertitellu() {
     if (type === 'checkbox' && name === 'sujetsReferendum') {
       setFormData(prev => ({
         ...prev,
-        sujetsReferendum: checked 
+        sujetsReferendum: checked
           ? [...prev.sujetsReferendum, value]
           : prev.sujetsReferendum.filter(s => s !== value)
       }));
@@ -149,7 +149,7 @@ export default function ConsultationPertitellu() {
 
       // Avec no-cors, on ne peut pas lire la réponse, on assume que ça a fonctionné
       setSubmitted(true);
-      
+
       // Recharger les données après 2 secondes
       setTimeout(async () => {
         await loadResponses();
@@ -284,7 +284,7 @@ export default function ConsultationPertitellu() {
                   </div>
                   <div className="h-1 my-3 max-w-2xl mx-auto bg-secondary"></div>
                   <div className="text-4xl font-bold text-secondary">
-                    {String(CITY_NAME).toUpperCase()}<br/>{CITY_TAGLINE}
+                    {String(CITY_NAME).toUpperCase()}<br />{CITY_TAGLINE}
                   </div>
                 </div>
               </div>
@@ -381,7 +381,7 @@ export default function ConsultationPertitellu() {
                   </li>
                 )}
               </ul>
-              
+
               {/* Auth section */}
               <div className="mt-4 pt-4 border-t border-slate-200">
                 {currentUser ? (
@@ -419,7 +419,7 @@ export default function ConsultationPertitellu() {
                   </button>
                 )}
               </div>
-              
+
               <div className="mt-6 text-xs text-slate-500">
                 {PARTY_NAME} — {MOVEMENT_NAME} {CITY_NAME} © {new Date().getFullYear()}
               </div>
@@ -435,512 +435,512 @@ export default function ConsultationPertitellu() {
             </div>
           ) : (
             <>
-            <div className="rounded-lg shadow-md overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setIsFormOpen((open) => !open)}
-                className="flex w-full items-center justify-between bg-slate-100 px-6 py-4 text-left text-lg font-semibold text-slate-800 transition hover:bg-slate-200"
-              >
-                <span>Questionnaire citoyen {MOVEMENT_NAME}</span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className={`h-5 w-5 transition-transform ${isFormOpen ? 'rotate-180' : ''}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+              <div className="rounded-lg shadow-md overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setIsFormOpen((open) => !open)}
+                  className="flex w-full items-center justify-between bg-slate-100 px-6 py-4 text-left text-lg font-semibold text-slate-800 transition hover:bg-slate-200"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
+                  <span>Questionnaire citoyen {MOVEMENT_NAME}</span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className={`h-5 w-5 transition-transform ${isFormOpen ? 'rotate-180' : ''}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
 
-              {isFormOpen && isCorte && (
-                <div id="mainContent" className="bg-white p-8">
-                  <h1 className="text-3xl font-bold text-gray-800 mb-2">Consultation {getCommunityLabels().citizens} sur la démocratie locale</h1>
-              <p className="text-gray-600 mb-6">Une initiative {MOVEMENT_NAME} pour la {getCommunityLabels().name} de {COMMUNITY_NAME}</p>
+                {isFormOpen && isCorte && (
+                  <div id="mainContent" className="bg-white p-8">
+                    <h1 className="text-3xl font-bold text-gray-800 mb-2">Consultation {getCommunityLabels().citizens} sur la démocratie locale</h1>
+                    <p className="text-gray-600 mb-6">Une initiative {MOVEMENT_NAME} pour la {getCommunityLabels().name} de {COMMUNITY_NAME}</p>
 
-                  {error && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-red-700">
-                      {error}
-                    </div>
-                  )}
+                    {error && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-red-700">
+                        {error}
+                      </div>
+                    )}
 
-                  <div className="space-y-8">
-                    {/* Modules de questionnaire dynamiques basés sur le type de communauté */}
-                    <div className="mb-8">
-                      <h2 className="text-xl font-bold text-gray-800 mb-4">{modules.title}</h2>
-                      {modules.modules.map((module) => (
-                        <div key={module.id} className="mb-6">
-                          <h3 className="text-lg font-semibold text-gray-800 mb-2">{module.title}</h3>
-                          {module.questions.map((q) => (
-                            <div key={q.id} className="mb-4">
-                              <label className="block text-gray-700 font-medium mb-2">
-                                {q.label}
-                              </label>
-                              {/* Radios */}
-                              {q.type === 'radio' && (
-                                <div className="space-y-2">
-                                  {q.options.map((opt) => (
-                                    <label key={opt} className="flex items-center cursor-pointer">
-                                      <input
-                                        type="radio"
-                                        name={q.id}
-                                        value={opt}
-                                        checked={formData[q.id] === opt}
-                                        onChange={handleInputChange}
-                                        className="mr-2"
-                                      />
-                                      {opt}
-                                    </label>
-                                  ))}
-                                </div>
-                              )}
-                              {/* Échelle 1-5 */}
-                              {q.type === 'scale' && (
-                                <div>
-                                  {/* Version mobile */}
-                                  <div className="md:hidden">
-                                    <select
-                                      name={q.id}
-                                      value={formData[q.id] ?? 3}
-                                      onChange={handleInputChange}
-                                      className="w-full px-4 py-2 border border-gray-300 rounded-md"
-                                    >
-                                      <option value="1">{q.labels?.[0] || '1'}</option>
-                                      <option value="2">{q.labels?.[1] || '2'}</option>
-                                      <option value="3">{q.labels?.[2] || '3'}</option>
-                                      <option value="4">{q.labels?.[3] || '4'}</option>
-                                      <option value="5">{q.labels?.[4] || '5'}</option>
-                                    </select>
-                                  </div>
-                                  {/* Version desktop */}
-                                  <div className="hidden md:flex items-center space-x-4">
-                                    <span className="text-sm text-gray-600">{q.labels?.[0] || '1'}</span>
-                                    {[1,2,3,4,5].map(num => (
-                                      <label key={num} className="flex items-center cursor-pointer">
+                    <div className="space-y-8">
+                      {/* Modules de questionnaire dynamiques basés sur le type de communauté */}
+                      <div className="mb-8">
+                        <h2 className="text-xl font-bold text-gray-800 mb-4">{modules.title}</h2>
+                        {modules.modules.map((module) => (
+                          <div key={module.id} className="mb-6">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-2">{module.title}</h3>
+                            {module.questions.map((q) => (
+                              <div key={q.id} className="mb-4">
+                                <label className="block text-gray-700 font-medium mb-2">
+                                  {q.label}
+                                </label>
+                                {/* Radios */}
+                                {q.type === 'radio' && (
+                                  <div className="space-y-2">
+                                    {q.options.map((opt) => (
+                                      <label key={opt} className="flex items-center cursor-pointer">
                                         <input
                                           type="radio"
                                           name={q.id}
-                                          value={num}
-                                          checked={Number(formData[q.id] ?? 3) === num}
+                                          value={opt}
+                                          checked={formData[q.id] === opt}
                                           onChange={handleInputChange}
-                                          className="mr-1"
+                                          className="mr-2"
                                         />
-                                        {num}
+                                        {opt}
                                       </label>
                                     ))}
-                                    <span className="text-sm text-gray-600">{q.labels?.[4] || '5'}</span>
                                   </div>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      ))}
-                    </div>
-                    <div className="pl-4 border-l-4 border-primary">
-                      <h2 className="text-xl font-bold text-gray-800 mb-4">L'affaire de Quasquara</h2>
-                      
-                      <div className="mb-6">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Connaissez-vous la polémique sur la croix de Quasquara ?
-                        </label>
-                        <div className="space-y-2">
-                          {['Oui', 'Non'].map(option => (
-                            <label key={option} className="flex items-center cursor-pointer">
-                              <input
-                                type="radio"
-                                name="connaissanceQuasquara"
-                                value={option}
-                                checked={formData.connaissanceQuasquara === option}
-                                onChange={handleInputChange}
-                                className="mr-2"
-                              />
-                              {option}
-                            </label>
-                          ))}
-                        </div>
+                                )}
+                                {/* Échelle 1-5 */}
+                                {q.type === 'scale' && (
+                                  <div>
+                                    {/* Version mobile */}
+                                    <div className="md:hidden">
+                                      <select
+                                        name={q.id}
+                                        value={formData[q.id] ?? 3}
+                                        onChange={handleInputChange}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                                      >
+                                        <option value="1">{q.labels?.[0] || '1'}</option>
+                                        <option value="2">{q.labels?.[1] || '2'}</option>
+                                        <option value="3">{q.labels?.[2] || '3'}</option>
+                                        <option value="4">{q.labels?.[3] || '4'}</option>
+                                        <option value="5">{q.labels?.[4] || '5'}</option>
+                                      </select>
+                                    </div>
+                                    {/* Version desktop */}
+                                    <div className="hidden md:flex items-center space-x-4">
+                                      <span className="text-sm text-gray-600">{q.labels?.[0] || '1'}</span>
+                                      {[1, 2, 3, 4, 5].map(num => (
+                                        <label key={num} className="flex items-center cursor-pointer">
+                                          <input
+                                            type="radio"
+                                            name={q.id}
+                                            value={num}
+                                            checked={Number(formData[q.id] ?? 3) === num}
+                                            onChange={handleInputChange}
+                                            className="mr-1"
+                                          />
+                                          {num}
+                                        </label>
+                                      ))}
+                                      <span className="text-sm text-gray-600">{q.labels?.[4] || '5'}</span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ))}
                       </div>
+                      <div className="pl-4 border-l-4 border-primary">
+                        <h2 className="text-xl font-bold text-gray-800 mb-4">L'affaire de Quasquara</h2>
 
-                      <div className="mb-6">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Quelle est votre position sur cette affaire ?
-                        </label>
-                        <div className="space-y-2">
-                          {[
-                            {label: 'Maintien de la croix', value: 'Maintien'},
-                            {label: 'Retrait de la croix', value: 'Retrait'},
-                            {label: 'Sans avis', value: 'Sans'},
-                            {label: 'Je préfère ne pas répondre', value: 'NoAnswer'}
-                          ].map(option => (
-                            <label key={option.value} className="flex items-center cursor-pointer">
-                              <input
-                                type="radio"
-                                name="positionQuasquara"
-                                value={option.value}
-                                checked={formData.positionQuasquara === option.value}
-                                onChange={handleInputChange}
-                                className="mr-2"
-                              />
-                              {option.label}
-                            </label>
-                          ))}
+                        <div className="mb-6">
+                          <label className="block text-gray-700 font-semibold mb-2">
+                            Connaissez-vous la polémique sur la croix de Quasquara ?
+                          </label>
+                          <div className="space-y-2">
+                            {['Oui', 'Non'].map(option => (
+                              <label key={option} className="flex items-center cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="connaissanceQuasquara"
+                                  value={option}
+                                  checked={formData.connaissanceQuasquara === option}
+                                  onChange={handleInputChange}
+                                  className="mr-2"
+                                />
+                                {option}
+                              </label>
+                            ))}
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="mb-6">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Qui devrait décider dans ce type de situation ?
-                        </label>
-                        <div className="space-y-2">
-                          {['Justice', 'Élus locaux', 'Référendum des habitants', 'Autre'].map(option => (
-                            <label key={option} className="flex items-center cursor-pointer">
-                              <input
-                                type="radio"
-                                name="quiDecide"
-                                value={option}
-                                checked={formData.quiDecide === option}
-                                onChange={handleInputChange}
-                                className="mr-2"
-                              />
-                              {option}
-                            </label>
-                          ))}
+                        <div className="mb-6">
+                          <label className="block text-gray-700 font-semibold mb-2">
+                            Quelle est votre position sur cette affaire ?
+                          </label>
+                          <div className="space-y-2">
+                            {[
+                              { label: 'Maintien de la croix', value: 'Maintien' },
+                              { label: 'Retrait de la croix', value: 'Retrait' },
+                              { label: 'Sans avis', value: 'Sans' },
+                              { label: 'Je préfère ne pas répondre', value: 'NoAnswer' }
+                            ].map(option => (
+                              <label key={option.value} className="flex items-center cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="positionQuasquara"
+                                  value={option.value}
+                                  checked={formData.positionQuasquara === option.value}
+                                  onChange={handleInputChange}
+                                  className="mr-2"
+                                />
+                                {option.label}
+                              </label>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    </div>
 
-                    <div className="pl-4 border-l-4 border-secondary">
-                      <h2 className="text-xl font-bold text-gray-800 mb-4">Démocratie {getCommunityLabels().name}</h2>
-                      
-                      <div className="mb-6">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Êtes-vous satisfait de la démocratie locale actuelle ?
-                        </label>
-                        {/* Version mobile des notes */}
-                        <div className="md:hidden">
-                          <select
-                            name="satisfactionDemocratie"
-                            value={formData.satisfactionDemocratie}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-md"
-                          >
-                            <option value="">Je préfère ne pas répondre</option>
-                            <option value="1">1 - Pas du tout satisfait</option>
-                            <option value="2">2 - Peu satisfait</option>
-                            <option value="3">3 - Moyennement satisfait</option>
-                            <option value="4">4 - Satisfait</option>
-                            <option value="5">5 - Très satisfait</option>
-                          </select>
-                        </div>
-                        {/* Version desktop des notes */}
-                        <div className="hidden md:flex items-center space-x-4">
-                          <span className="text-sm text-gray-600">Pas du tout (1)</span>
-                          {[1, 2, 3, 4, 5].map(num => (
-                            <label key={num} className="flex items-center cursor-pointer">
-                            <input
-                                type="radio"
-                                name="satisfactionDemocratie"
-                                value={num}
-                                checked={Number(formData.satisfactionDemocratie) === num}
-                                onChange={handleInputChange}
-                                className="mr-1"
-                            />
-                            {num}
-                            </label>
-                          ))}
-                          <span className="text-sm text-gray-600">Très satisfait (5)</span>
+                        <div className="mb-6">
+                          <label className="block text-gray-700 font-semibold mb-2">
+                            Qui devrait décider dans ce type de situation ?
+                          </label>
+                          <div className="space-y-2">
+                            {['Justice', 'Élus locaux', 'Référendum des habitants', 'Autre'].map(option => (
+                              <label key={option} className="flex items-center cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="quiDecide"
+                                  value={option}
+                                  checked={formData.quiDecide === option}
+                                  onChange={handleInputChange}
+                                  className="mr-2"
+                                />
+                                {option}
+                              </label>
+                            ))}
+                          </div>
                         </div>
                       </div>
 
-                      <div className="mb-6">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Pensez-vous que {CITY_NAME} est en déclin ?
-                        </label>
-                        <div className="md:hidden">
-                          <select
-                            name="declinVille"
-                            value={formData.declinVille}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-md"
-                          >
-                            <option value="">Je préfère ne pas répondre</option>
-                            <option value="1">1 - En développement</option>
-                            <option value="2">2 - Plutôt en développement</option>
-                            <option value="3">3 - Stable</option>
-                            <option value="4">4 - Plutôt en déclin</option>
-                            <option value="5">5 - En fort déclin</option>
-                          </select>
-                        </div>
-                        <div className="hidden md:flex items-center space-x-4">
-                          <span className="text-sm text-gray-600">En développement (1)</span>
-                          {[1, 2, 3, 4, 5].map(num => (
-                            <label key={num} className="flex items-center cursor-pointer">
-                              <input
-                                type="radio"
-                                name="declinVille"
-                                value={num}
-                                checked={Number(formData.declinVille) === num}
-                                onChange={handleInputChange}
-                                className="mr-1"
-                              />
-                              {num}
-                            </label>
-                          ))}
-                          <span className="text-sm text-gray-600">En déclin (5)</span>
-                        </div>
-                      </div>
+                      <div className="pl-4 border-l-4 border-secondary">
+                        <h2 className="text-xl font-bold text-gray-800 mb-4">Démocratie {getCommunityLabels().name}</h2>
 
-                      <div className="mb-6">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Seriez-vous favorable à des référendums locaux sur des questions importantes ?
-                        </label>
-                        <div className="space-y-2">
-                          {[
-                            {label: 'Oui', value: 'Oui'},
-                            {label: 'Non', value: 'Non'},
-                            {label: 'Selon les sujets', value: 'Selon'}
-                          ].map(option => (
-                            <label key={option.value} className="flex items-center cursor-pointer">
-                              <input
-                                type="radio"
-                                name="favorableReferendum"
-                                value={option.value}
-                                checked={formData.favorableReferendum === option.value}
-                                onChange={handleInputChange}
-                                className="mr-2"
-                              />
-                              {option.label}
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="mb-6">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Sur quels sujets ces référendums devraient-ils porter ? (choix multiples)
-                        </label>
-                        <div className="space-y-2">
-                          {['urbanisme', 'culture', 'budget', 'environnement', 'patrimoine', 'autre'].map(option => (
-                            <label key={option} className="flex items-center cursor-pointer">
-                              <input
-                                type="checkbox"
-                                name="sujetsReferendum"
-                                value={option}
-                                checked={formData.sujetsReferendum.includes(option)}
-                                onChange={handleInputChange}
-                                className="mr-2"
-                              />
-                              {option.charAt(0).toUpperCase() + option.slice(1)}
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="mb-6">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Les horaires actuels des conseils municipaux vous paraissent-ils pratiques ?
-                        </label>
-                        <div className="space-y-2">
-                          {['Oui', 'Non', 'Je ne sais pas', 'Je préfère ne pas répondre'].map(option => (
-                            <label key={option} className="flex items-center cursor-pointer">
-                              <input
-                                type="radio"
-                                name="horaireConseil"
-                                value={option}
-                                checked={formData.horaireConseil === option}
-                                onChange={handleInputChange}
-                                className="mr-2"
-                              />
-                              {option}
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="pl-4 border-l-4 border-primary">
-                      <h2 className="text-xl font-bold text-gray-800 mb-4">
-                        Profil <span className="font-normal text-base text-gray-600">(toutes les questions sont optionnelles)</span>
-                      </h2>
-                      
-                      <div className="mb-6">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Êtes-vous inscrit(e) sur les listes électorales à {CITY_NAME} ?
-                        </label>
-                        <div className="space-y-2">
-                          {['Oui', 'Non', 'Pas encore mais je compte le faire', 'Je ne souhaite pas répondre'].map(option => (
-                            <label key={option} className="flex items-center cursor-pointer">
-                              <input
-                                type="radio"
-                                name="inscritListe"
-                                value={option}
-                                checked={formData.inscritListe === option}
-                                onChange={handleInputChange}
-                                className="mr-2"
-                              />
-                              {option}
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="mb-6">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Quartier de {CITY_NAME}
-                        </label>
-                        <input
-                          type="text"
-                          name="quartier"
-                          value={formData.quartier}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-md"
-                          placeholder="Ex: Centre-ville, Citadelle..."
-                        />
-                      </div>
-
-                      <div className="mb-6">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Tranche d'âge
-                        </label>
-                        <select
-                          name="age"
-                          value={formData.age}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-md"
-                        >
-                          <option value="">-- Sélectionnez --</option>
-                          <option value="18-25">18-25 ans</option>
-                          <option value="26-40">26-40 ans</option>
-                          <option value="41-60">41-60 ans</option>
-                          <option value="60+">60 ans et plus</option>
-                        </select>
-                      </div>
-
-                      <div className="mb-6">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Depuis combien de temps habitez-vous {CITY_NAME} ?
-                        </label>
-                        <select
-                          name="dureeHabitation"
-                          value={formData.dureeHabitation}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-md"
-                        >
-                          <option value="">-- Sélectionnez --</option>
-                          <option value="<1 an">Moins d'1 an</option>
-                          <option value="1-5 ans">1 à 5 ans</option>
-                          <option value="5-10 ans">5 à 10 ans</option>
-                          <option value=">10 ans">Plus de 10 ans</option>
-                          <option value="toute ma vie">Toute ma vie</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="pl-4 border-l-4 border-secondary">
-                      <div className="mb-6">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Commentaire libre
-                        </label>
-                        <textarea
-                          name="commentaire"
-                          value={formData.commentaire}
-                          onChange={handleInputChange}
-                          rows="4"
-                          className="w-full px-4 py-2 border border-gray-300 rounded-md"
-                          placeholder="Vos suggestions, remarques..."
-                        />
-                      </div>
-
-                      <div className="mb-6 bg-gray-50 p-4 rounded-md">
-                        <label className="block text-gray-700 font-semibold mb-2">
-                          Souhaitez-vous être tenu informé de nos propositions ?
-                        </label>
-                        <div className="flex items-center mb-3">
-                          <input
-                            type="checkbox"
-                            name="accepteContact"
-                            checked={formData.accepteContact}
-                            onChange={handleInputChange}
-                            className="mr-2 cursor-pointer"
-                          />
-                          <span className="text-gray-700">Oui, je souhaite être contacté</span>
-                        </div>
-                        {formData.accepteContact && (
-                          <input
-                            type="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-md"
-                            placeholder="Votre email"
-                          />
-                        )}
-                        
-                        <div className="flex items-center mt-4">
-                          <input
-                            type="checkbox"
-                            name="participationEtudeIA"
-                            checked={formData.participationEtudeIA}
-                            onChange={handleInputChange}
-                            className="mr-2 cursor-pointer"
-                          />
-                          <span className="text-gray-700">
-                            Je veux aussi participer à l'étude &quot;IA pour tous&quot;
-                            <span 
-                              className="ml-2 inline-block cursor-pointer text-blue-500 hover:text-blue-700"
-                              title="Informations sur l'étude &quot;IA pour tous&quot;"
-                              onClick={() => window.open('https://www.ia-pour-tous.fr', '_blank')}
+                        <div className="mb-6">
+                          <label className="block text-gray-700 font-semibold mb-2">
+                            Êtes-vous satisfait de la démocratie locale actuelle ?
+                          </label>
+                          {/* Version mobile des notes */}
+                          <div className="md:hidden">
+                            <select
+                              name="satisfactionDemocratie"
+                              value={formData.satisfactionDemocratie}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-md"
                             >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9z" clipRule="evenodd" />
-                              </svg>
-                            </span>
-                          </span>
+                              <option value="">Je préfère ne pas répondre</option>
+                              <option value="1">1 - Pas du tout satisfait</option>
+                              <option value="2">2 - Peu satisfait</option>
+                              <option value="3">3 - Moyennement satisfait</option>
+                              <option value="4">4 - Satisfait</option>
+                              <option value="5">5 - Très satisfait</option>
+                            </select>
+                          </div>
+                          {/* Version desktop des notes */}
+                          <div className="hidden md:flex items-center space-x-4">
+                            <span className="text-sm text-gray-600">Pas du tout (1)</span>
+                            {[1, 2, 3, 4, 5].map(num => (
+                              <label key={num} className="flex items-center cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="satisfactionDemocratie"
+                                  value={num}
+                                  checked={Number(formData.satisfactionDemocratie) === num}
+                                  onChange={handleInputChange}
+                                  className="mr-1"
+                                />
+                                {num}
+                              </label>
+                            ))}
+                            <span className="text-sm text-gray-600">Très satisfait (5)</span>
+                          </div>
+                        </div>
+
+                        <div className="mb-6">
+                          <label className="block text-gray-700 font-semibold mb-2">
+                            Pensez-vous que {CITY_NAME} est en déclin ?
+                          </label>
+                          <div className="md:hidden">
+                            <select
+                              name="declinVille"
+                              value={formData.declinVille}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                            >
+                              <option value="">Je préfère ne pas répondre</option>
+                              <option value="1">1 - En développement</option>
+                              <option value="2">2 - Plutôt en développement</option>
+                              <option value="3">3 - Stable</option>
+                              <option value="4">4 - Plutôt en déclin</option>
+                              <option value="5">5 - En fort déclin</option>
+                            </select>
+                          </div>
+                          <div className="hidden md:flex items-center space-x-4">
+                            <span className="text-sm text-gray-600">En développement (1)</span>
+                            {[1, 2, 3, 4, 5].map(num => (
+                              <label key={num} className="flex items-center cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="declinVille"
+                                  value={num}
+                                  checked={Number(formData.declinVille) === num}
+                                  onChange={handleInputChange}
+                                  className="mr-1"
+                                />
+                                {num}
+                              </label>
+                            ))}
+                            <span className="text-sm text-gray-600">En déclin (5)</span>
+                          </div>
+                        </div>
+
+                        <div className="mb-6">
+                          <label className="block text-gray-700 font-semibold mb-2">
+                            Seriez-vous favorable à des référendums locaux sur des questions importantes ?
+                          </label>
+                          <div className="space-y-2">
+                            {[
+                              { label: 'Oui', value: 'Oui' },
+                              { label: 'Non', value: 'Non' },
+                              { label: 'Selon les sujets', value: 'Selon' }
+                            ].map(option => (
+                              <label key={option.value} className="flex items-center cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="favorableReferendum"
+                                  value={option.value}
+                                  checked={formData.favorableReferendum === option.value}
+                                  onChange={handleInputChange}
+                                  className="mr-2"
+                                />
+                                {option.label}
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="mb-6">
+                          <label className="block text-gray-700 font-semibold mb-2">
+                            Sur quels sujets ces référendums devraient-ils porter ? (choix multiples)
+                          </label>
+                          <div className="space-y-2">
+                            {['urbanisme', 'culture', 'budget', 'environnement', 'patrimoine', 'autre'].map(option => (
+                              <label key={option} className="flex items-center cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  name="sujetsReferendum"
+                                  value={option}
+                                  checked={formData.sujetsReferendum.includes(option)}
+                                  onChange={handleInputChange}
+                                  className="mr-2"
+                                />
+                                {option.charAt(0).toUpperCase() + option.slice(1)}
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="mb-6">
+                          <label className="block text-gray-700 font-semibold mb-2">
+                            Les horaires actuels des conseils municipaux vous paraissent-ils pratiques ?
+                          </label>
+                          <div className="space-y-2">
+                            {['Oui', 'Non', 'Je ne sais pas', 'Je préfère ne pas répondre'].map(option => (
+                              <label key={option} className="flex items-center cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="horaireConseil"
+                                  value={option}
+                                  checked={formData.horaireConseil === option}
+                                  onChange={handleInputChange}
+                                  className="mr-2"
+                                />
+                                {option}
+                              </label>
+                            ))}
+                          </div>
                         </div>
                       </div>
+
+                      <div className="pl-4 border-l-4 border-primary">
+                        <h2 className="text-xl font-bold text-gray-800 mb-4">
+                          Profil <span className="font-normal text-base text-gray-600">(toutes les questions sont optionnelles)</span>
+                        </h2>
+
+                        <div className="mb-6">
+                          <label className="block text-gray-700 font-semibold mb-2">
+                            Êtes-vous inscrit(e) sur les listes électorales à {CITY_NAME} ?
+                          </label>
+                          <div className="space-y-2">
+                            {['Oui', 'Non', 'Pas encore mais je compte le faire', 'Je ne souhaite pas répondre'].map(option => (
+                              <label key={option} className="flex items-center cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="inscritListe"
+                                  value={option}
+                                  checked={formData.inscritListe === option}
+                                  onChange={handleInputChange}
+                                  className="mr-2"
+                                />
+                                {option}
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="mb-6">
+                          <label className="block text-gray-700 font-semibold mb-2">
+                            Quartier de {CITY_NAME}
+                          </label>
+                          <input
+                            type="text"
+                            name="quartier"
+                            value={formData.quartier}
+                            onChange={handleInputChange}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                            placeholder="Ex: Centre-ville, Citadelle..."
+                          />
+                        </div>
+
+                        <div className="mb-6">
+                          <label className="block text-gray-700 font-semibold mb-2">
+                            Tranche d'âge
+                          </label>
+                          <select
+                            name="age"
+                            value={formData.age}
+                            onChange={handleInputChange}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                          >
+                            <option value="">-- Sélectionnez --</option>
+                            <option value="18-25">18-25 ans</option>
+                            <option value="26-40">26-40 ans</option>
+                            <option value="41-60">41-60 ans</option>
+                            <option value="60+">60 ans et plus</option>
+                          </select>
+                        </div>
+
+                        <div className="mb-6">
+                          <label className="block text-gray-700 font-semibold mb-2">
+                            Depuis combien de temps habitez-vous {CITY_NAME} ?
+                          </label>
+                          <select
+                            name="dureeHabitation"
+                            value={formData.dureeHabitation}
+                            onChange={handleInputChange}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                          >
+                            <option value="">-- Sélectionnez --</option>
+                            <option value="<1 an">Moins d'1 an</option>
+                            <option value="1-5 ans">1 à 5 ans</option>
+                            <option value="5-10 ans">5 à 10 ans</option>
+                            <option value=">10 ans">Plus de 10 ans</option>
+                            <option value="toute ma vie">Toute ma vie</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="pl-4 border-l-4 border-secondary">
+                        <div className="mb-6">
+                          <label className="block text-gray-700 font-semibold mb-2">
+                            Commentaire libre
+                          </label>
+                          <textarea
+                            name="commentaire"
+                            value={formData.commentaire}
+                            onChange={handleInputChange}
+                            rows="4"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                            placeholder="Vos suggestions, remarques..."
+                          />
+                        </div>
+
+                        <div className="mb-6 bg-gray-50 p-4 rounded-md">
+                          <label className="block text-gray-700 font-semibold mb-2">
+                            Souhaitez-vous être tenu informé de nos propositions ?
+                          </label>
+                          <div className="flex items-center mb-3">
+                            <input
+                              type="checkbox"
+                              name="accepteContact"
+                              checked={formData.accepteContact}
+                              onChange={handleInputChange}
+                              className="mr-2 cursor-pointer"
+                            />
+                            <span className="text-gray-700">Oui, je souhaite être contacté</span>
+                          </div>
+                          {formData.accepteContact && (
+                            <input
+                              type="email"
+                              name="email"
+                              value={formData.email}
+                              onChange={handleInputChange}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-md"
+                              placeholder="Votre email"
+                            />
+                          )}
+
+                          <div className="flex items-center mt-4">
+                            <input
+                              type="checkbox"
+                              name="participationEtudeIA"
+                              checked={formData.participationEtudeIA}
+                              onChange={handleInputChange}
+                              className="mr-2 cursor-pointer"
+                            />
+                            <span className="text-gray-700">
+                              Je veux aussi participer à l'étude &quot;IA pour tous&quot;
+                              <span
+                                className="ml-2 inline-block cursor-pointer text-blue-500 hover:text-blue-700"
+                                title="Informations sur l'étude &quot;IA pour tous&quot;"
+                                onClick={() => window.open('https://www.ia-pour-tous.fr', '_blank')}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9z" clipRule="evenodd" />
+                                </svg>
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={handleSubmit}
+                        disabled={loading}
+                        className="w-full py-3 px-6 bg-primary text-white font-bold rounded-md text-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                      >
+                        {loading ? 'Envoi en cours...' : 'Envoyer ma réponse'}
+                      </button>
                     </div>
 
-                    <button
-                      onClick={handleSubmit}
-                      disabled={loading}
-                      className="w-full py-3 px-6 bg-primary text-white font-bold rounded-md text-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-                    >
-                      {loading ? 'Envoi en cours...' : 'Envoyer ma réponse'}
-                    </button>
-                  </div>
-
-                  <div className="mt-8 text-center">
-                    <div className="flex justify-center gap-4">
-                      <button
-                        onClick={handleShare}
-                        className="px-4 py-2 bg-secondary text-white rounded-md hover:opacity-90 flex items-center gap-2"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
-                        </svg>
-                        Partager
-                      </button>
-                      <button
-                        onClick={() => setPage('results')}
-                        className="px-4 py-2 bg-gray-100 text-secondary font-semibold rounded-md hover:bg-gray-200 flex items-center gap-2"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
-                        </svg>
-                        Voir les résultats
-                      </button>
+                    <div className="mt-8 text-center">
+                      <div className="flex justify-center gap-4">
+                        <button
+                          onClick={handleShare}
+                          className="px-4 py-2 bg-secondary text-white rounded-md hover:opacity-90 flex items-center gap-2"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+                          </svg>
+                          Partager
+                        </button>
+                        <button
+                          onClick={() => setPage('results')}
+                          className="px-4 py-2 bg-gray-100 text-secondary font-semibold rounded-md hover:bg-gray-200 flex items-center gap-2"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                          </svg>
+                          Voir les résultats
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
             </>
           )}
         </div>
         <div className="mt-8">
           <SiteFooter />
         </div>
-      </div> 
+      </div>
     );
   }
 
@@ -956,7 +956,7 @@ export default function ConsultationPertitellu() {
               </div>
               <div className="h-1 my-3 max-w-2xl mx-auto bg-secondary"></div>
               <div className="text-4xl font-bold text-secondary">
-                {String(CITY_NAME).toUpperCase()}<br/>{CITY_TAGLINE}
+                {String(CITY_NAME).toUpperCase()}<br />{CITY_TAGLINE}
               </div>
             </div>
           </div>
@@ -996,7 +996,7 @@ export default function ConsultationPertitellu() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({name, value}) => `${name}: ${value}`}
+                        label={({ name, value }) => `${name}: ${value}`}
                         outerRadius={window.innerWidth < 768 ? 60 : 80}
                         fill="#8884d8"
                         dataKey="value"
@@ -1014,7 +1014,7 @@ export default function ConsultationPertitellu() {
                   <ResponsiveContainer width="100%" height={window.innerWidth < 768 ? 200 : 300}>
                     <BarChart
                       data={stats.positionData}
-                      margin={window.innerWidth < 768 ? 
+                      margin={window.innerWidth < 768 ?
                         { top: 5, right: 10, left: -20, bottom: 5 } :
                         { top: 5, right: 30, left: 20, bottom: 5 }
                       }
@@ -1070,7 +1070,7 @@ export default function ConsultationPertitellu() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({name, value}) => `${name}: ${value}`}
+                        label={({ name, value }) => `${name}: ${value}`}
                         outerRadius={80}
                         fill="#8884d8"
                         dataKey="value"
@@ -1162,20 +1162,6 @@ export default function ConsultationPertitellu() {
 }
 
 export function App() {
-  const Contact = ({ children, href, ...props }) => {
-    if (href) {
-      return (
-        <a href={href} {...props}>
-          {children}
-        </a>
-      );
-    }
-    return (
-      <span {...props}>
-        {children}
-      </span>
-    );
-  };
 
   return (
     <>

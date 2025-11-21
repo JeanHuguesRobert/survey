@@ -11,17 +11,18 @@ const CONTENT_TYPE_LABELS = {
   wiki_page: { icon: '📄', label: 'Wiki', color: 'bg-green-100 text-green-700' }
 };
 
+
 export default function SubscriptionFeed() {
-  const { currentUser } = useCurrentUser();
+  const { currentUser, userStatus } = useCurrentUser();
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, post, proposition, wiki_page
 
   useEffect(() => {
-    if (currentUser) {
+    if (userStatus === 'signed_in' && currentUser) {
       loadFeed();
     }
-  }, [currentUser, filter]);
+  }, [currentUser, userStatus, filter]);
 
   async function loadFeed() {
     if (!currentUser?.id) {
@@ -31,7 +32,7 @@ export default function SubscriptionFeed() {
 
     try {
       setLoading(true);
-
+      // ...existing code...
       // Récupérer les abonnements de l'utilisateur
       let subscriptionsQuery = supabase
         .from('content_subscriptions')
@@ -94,7 +95,19 @@ export default function SubscriptionFeed() {
     }
   }
 
-  if (!currentUser) {
+  if (userStatus === 'signing_in' || loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white rounded-lg shadow-md p-12 text-center max-w-md">
+          <p className="text-gray-600 mb-4">
+            Chargement de vos abonnements...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (userStatus === 'signed_out' || !currentUser) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white rounded-lg shadow-md p-12 text-center max-w-md">

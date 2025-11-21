@@ -29,7 +29,12 @@ export const supabase = rawSupabase ? new Proxy(rawSupabase, {
             return result.then(
               (data) => {
                 const duration = Date.now() - startTime;
-                console.log(`Supabase: ${prop} resolved in ${duration}ms`, data?.error ? `Error: ${data.error.message}` : 'Success');
+                if (data?.error) {
+                  console.error(`Supabase: ${prop} resolved in ${duration}ms Error: ${data.error.message}`);
+                  throw new Error(`Supabase error in ${prop}: ${data.error.message}`);
+                } else {
+                  console.log(`Supabase: ${prop} resolved in ${duration}ms Success`);
+                }
                 return data;
               },
               (error) => {

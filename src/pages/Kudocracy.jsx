@@ -13,7 +13,7 @@ import { useCurrentUser } from '../lib/useCurrentUser';
 export default function Kudocracy() {
   const { supabase } = useSupabase();
   const [activeTab, setActiveTab] = useState('browse');
-  const { currentUser } = useCurrentUser();
+  const { currentUser, userStatus } = useCurrentUser();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isHowItWorksExpanded, setIsHowItWorksExpanded] = useState(false);
 
@@ -25,6 +25,7 @@ export default function Kudocracy() {
     }
   };
 
+  // If you want to add auth-required UI, you can use userStatus here
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b-4 border-blue-900">

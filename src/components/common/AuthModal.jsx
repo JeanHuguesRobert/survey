@@ -15,7 +15,9 @@ export default function AuthModal({ onClose, onSuccess }) {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
+      console.log('[DIAG] AuthModal: onSuccess called after signIn');
       onSuccess?.();
+      console.log('[DIAG] AuthModal: onClose called after signIn');
       onClose();
     } catch (err) {
       setError(err.message || 'Erreur de connexion');
@@ -45,12 +47,13 @@ export default function AuthModal({ onClose, onSuccess }) {
         });
         
         if (insertError) {
-          console.error('Erreur création user dans table users:', insertError);
+          console.error('Erreur cr\u00e9ation user dans table users:', insertError);
           throw insertError;
         }
       }
-      
+      console.log('[DIAG] AuthModal: onSuccess called after signUp');
       onSuccess?.();
+      console.log('[DIAG] AuthModal: onClose called after signUp');
       onClose();
     } catch (err) {
       setError(err.message || 'Erreur d\'inscription');

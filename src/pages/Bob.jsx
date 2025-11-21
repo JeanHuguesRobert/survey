@@ -2,8 +2,9 @@ import { useCurrentUser } from '../lib/useCurrentUser';
 import ChatWindow from '../components/bob/ChatWindow'
 
 function App() {
-  const { currentUser } = useCurrentUser();
+  const { currentUser, userStatus } = useCurrentUser();
 
+  // If you want to add auth-required UI, you can use userStatus here
   return (
     <div className="App">
       {

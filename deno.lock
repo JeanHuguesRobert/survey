@@ -1,6 +1,15 @@
 {
   "version": "5",
+  "redirects": {
+    "https://esm.sh/@supabase/supabase-js@2": "https://esm.sh/@supabase/supabase-js@2.84.0"
+  },
   "remote": {
+    "https://edge.netlify.com/": "fd941d61d88673d5f28aab283fb86fcc50f08a3bc80ee5470498fcfa88c65cfb",
+    "https://edge.netlify.com/bootstrap/config.ts": "6a2ce0e544e15e8f8883a5c18da5948e37fd0f2619f68cb31f3af53c51817025",
+    "https://edge.netlify.com/bootstrap/context.ts": "72496497b40d9e808f419efc764ecb438952a32f61ed94cd54952fc59f17f69d",
+    "https://edge.netlify.com/bootstrap/cookie.ts": "8b0baae708989ca183c6f3b4ab3d029e6abcbc2e43f93edeb0ff447b3bbc3a05",
+    "https://edge.netlify.com/bootstrap/edge_function.ts": "b8253e86aa83c67341f5cfedeba5049d77fbf84dcab7eceff7566b7728ae9b39",
+    "https://edge.netlify.com/bootstrap/globals/types.ts": "eaa6148ded3121d8dee62dd91c86e7fe76601df0f3ca8d7962243a30f4c8935f",
     "https://esm.sh/@anthropic-ai/sdk@0.32.1": "43f5e6c693537da901fb26f7b36084f8081d66c3ef1223f8484d109ce4a25760",
     "https://esm.sh/@anthropic-ai/sdk@0.32.1/denonext/_shims/MultipartBody.mjs": "23ac1552eea88deb585b09ad5ee0f486685ab2c10579373d78f3bd2e429e3b8e",
     "https://esm.sh/@anthropic-ai/sdk@0.32.1/denonext/_shims/auto/runtime.mjs": "b76854845af8514b4e377204ad7a462d825560f4caf3665e74e265507e998a96",
@@ -27,12 +36,21 @@
     "https://esm.sh/@anthropic-ai/sdk@0.32.1/denonext/sdk.mjs": "43ac7b5ae75ca56fc9dcc5d4aa6167a45c8c6cd7fc23b83d45d48d4f248bd312",
     "https://esm.sh/@anthropic-ai/sdk@0.32.1/denonext/streaming.mjs": "10d69d2129a730f65c3a770a07fab81e9bb2c77d0f276b226e7f08961876c272",
     "https://esm.sh/@anthropic-ai/sdk@0.32.1/denonext/uploads.mjs": "9b801f8226e21fdacd344f004c79bd5b328d402f67b03b2d77568663870f6a12",
-    "https://esm.sh/@anthropic-ai/sdk@0.32.1/denonext/version.mjs": "3fdf75e395135f55c0c4157b22ce5a15d2bd01dd4568210f68a060975aff87e2"
+    "https://esm.sh/@anthropic-ai/sdk@0.32.1/denonext/version.mjs": "3fdf75e395135f55c0c4157b22ce5a15d2bd01dd4568210f68a060975aff87e2",
+    "https://esm.sh/@supabase/auth-js@2.84.0/denonext/auth-js.mjs": "61e3b0ad4ad68e2aa3ce0bb83c1084caecc6899cdc9b9e4b230212f8e0c44615",
+    "https://esm.sh/@supabase/functions-js@2.84.0/denonext/functions-js.mjs": "016355f24757e593e29ae3347332b30049a8f2f6b55bd7e7a2caf7a577696f85",
+    "https://esm.sh/@supabase/postgrest-js@2.84.0/denonext/postgrest-js.mjs": "78de00f3fca3c53f81c5765d0b960e01718a0e1164728e60b835299542fbb0d2",
+    "https://esm.sh/@supabase/realtime-js@2.84.0/denonext/realtime-js.mjs": "dccd1e457b9151c162ad84985eaa76075a59250cdd36c244872d14b80a55ed25",
+    "https://esm.sh/@supabase/storage-js@2.84.0/denonext/storage-js.mjs": "ef21eb110d5b1c9586f6acaa2070706bd7b9f3799a8f14f262a36f85ee7bb13e",
+    "https://esm.sh/@supabase/supabase-js@2.84.0": "4a536f134c4bae61c5ec9d2f849c0bafc40c7ee7e85ca61f075c016fab17a693",
+    "https://esm.sh/@supabase/supabase-js@2.84.0/denonext/supabase-js.mjs": "78718e70577f3505e37b515ca7983ac61689864180b9e2cfb130486252919876",
+    "https://esm.sh/tslib@2.8.1/denonext/tslib.mjs": "ebce3cd5facb654623020337f867b426ba95f71596ba87acc9e6c6f4e55905ca"
   },
   "workspace": {
     "packageJson": {
       "dependencies": [
         "npm:@anthropic-ai/sdk@0.68",
+        "npm:@google/generative-ai@~0.24.1",
         "npm:@huggingface/inference@^4.13.3",
         "npm:@mistralai/mistralai@^1.10.0",
         "npm:@supabase/supabase-js@^2.76.1",

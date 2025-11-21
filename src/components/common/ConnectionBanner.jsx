@@ -1,6 +1,15 @@
 import React from 'react';
 
 export default function ConnectionBanner({ connectionError, connectionState, realtimeStatus, authEvent, onRetry }) {
+  // Return null if everything is fine
+  if (
+    connectionState === 'connected' &&
+    realtimeStatus === 'subscribed' &&
+    (authEvent === 'SIGNED_IN' || authEvent === 'SIGNED_OUT') &&
+    !connectionError
+  ) {
+    return null;
+  }
   const getStatusColor = () => {
     switch (connectionState) {
       case 'connected': return 'green';
