@@ -1,5 +1,9 @@
 # Conditions d'utilisation
 
+> **Avertissement sur l’intelligence artificielle**
+>
+> Ce service utilise des technologies d’intelligence artificielle (IA) pour générer des réponses et des contenus. Malgré tous les efforts pour garantir la qualité et la pertinence des informations fournies, l’IA peut produire des erreurs, des approximations ou des réponses incomplètes. Les résultats doivent toujours être vérifiés et ne sauraient se substituer à l’avis d’un professionnel ou à une vérification humaine. L’utilisateur reste seul responsable de l’usage qu’il fait des informations obtenues via ce service.
+
 ## 1. Acceptation des conditions
 En utilisant cette plateforme open-source, vous acceptez les présentes conditions d'utilisation et la licence MIT. Si vous n'acceptez pas ces conditions, veuillez ne pas utiliser le service.
 
