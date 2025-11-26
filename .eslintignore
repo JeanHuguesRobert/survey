@@ -1,0 +1,8 @@
+# Ignore legacy/broken v1 chat files
+src/components/bob/broken-v1/**
+src/components/bob/legacy/**
+
+# Node and build outputs
+node_modules/**
+dist/**
+build/**
