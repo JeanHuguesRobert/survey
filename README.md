@@ -2,7 +2,9 @@
 
 > Prototype disponible sur [LePP.fr](http://lepp.fr/)
 
-**Survey** (aussi appelé **Pertitellu** en corse) est une plateforme numérique conçue pour renforcer la démocratie participative locale. Elle permet aux citoyens de donner leur avis, de proposer des idées et de participer activement à la vie de leur commune ou communauté.
+**Survey** (aussi appelé **Pertitellu** en corse) est une plateforme numérique conçue pour renforcer
+la démocratie participative locale. Elle permet aux citoyens de donner leur avis, de proposer des
+idées et de participer activement à la vie de leur commune ou communauté.
 
 ---
 
@@ -13,6 +15,7 @@ Cette application offre **six outils principaux** pour la participation citoyenn
 ### 1. ☕ **Café Pertitellu** - L'espace social citoyen
 
 Un espace de discussion et d'échange convivial où vous pouvez :
+
 - **Créer et rejoindre des groupes** thématiques (urbanisme, culture, environnement, etc.)
 - **Participer à des forums** de quartier pour s'organiser localement
 - **Partager des blogs citoyens** sur la vie locale
@@ -22,10 +25,12 @@ Un espace de discussion et d'échange convivial où vous pouvez :
 - **S'abonner aux contenus** qui vous intéressent pour suivre les discussions
 
 **Fonctionnalités :**
+
 - Types de groupes : Forums, Blogs, Quartiers, Associations
 - Types de publications : Discussions, Annonces, Événements, Questions/Réponses
 - Système de réactions (👍 ❤️ 😂 🤔 😮 😢)
-- **Abonnements universels** : suivez n'importe quel contenu commentable (posts, propositions, pages wiki)
+- **Abonnements universels** : suivez n'importe quel contenu commentable (posts, propositions, pages
+  wiki)
 - **Fil d'abonnements** : recevez les nouveaux commentaires sur vos contenus suivis
 - Modération citoyenne respectueuse
 - Authentification sécurisée avec gestion de profil complète
@@ -33,12 +38,14 @@ Un espace de discussion et d'échange convivial où vous pouvez :
 ### 2. 💬 **Ophélia** - L'assistante IA conversationnelle
 
 Une intelligence artificielle qui répond à vos questions en français et vous aide à :
+
 - Mieux comprendre les enjeux locaux
 - Créer des propositions citoyennes
 - Enrichir le wiki collaboratif
 - Accéder rapidement aux informations de la plateforme
 
 **Nouveautés récentes :**
+
 - Interface modernisée avec un design élégant et épuré
 - Ophélia connaît maintenant tout le contenu du wiki grâce à une consolidation automatique
 - Support de plusieurs fournisseurs d'IA (OpenAI, Hugging Face, Anthropic, etc.)
@@ -47,6 +54,7 @@ Une intelligence artificielle qui répond à vos questions en français et vous 
 ### 3. 📖 **Wiki Collaboratif** - La mémoire partagée
 
 Un espace où chacun peut documenter, partager et accéder aux connaissances :
+
 - Création et édition de pages en langage Markdown (simple et accessible)
 - Recherche rapide par titre ou adresse
 - Navigation intuitive entre les pages
@@ -54,6 +62,7 @@ Un espace où chacun peut documenter, partager et accéder aux connaissances :
 - Génération automatique de résumés
 
 **Nouveautés récentes :**
+
 - **Navigation moderne** avec tri (A-Z, Z-A, date de création, dernière modification)
 - **Recherche en temps réel** pour trouver rapidement une page
 - **Deux modes d'affichage** : grille ou liste
@@ -64,6 +73,7 @@ Un espace où chacun peut documenter, partager et accéder aux connaissances :
 ### 4. 🗳️ **Kudocratie** - Propositions et délégation de vote
 
 Un système de démocratie liquide où vous pouvez :
+
 - Proposer des idées et projets pour votre commune
 - Voter directement sur les propositions qui vous intéressent
 - Déléguer votre vote à des personnes de confiance sur certains sujets
@@ -73,6 +83,7 @@ Un système de démocratie liquide où vous pouvez :
 ### 5. 📊 **Consultations** - Sondages et enquêtes
 
 Des questionnaires sur des enjeux de démocratie locale :
+
 - Questions adaptables à différents types de communautés (municipalité, association, école, etc.)
 - Résultats visualisés en temps réel avec des graphiques interactifs
 - Anonymat garanti et respect du RGPD
@@ -81,6 +92,7 @@ Des questionnaires sur des enjeux de démocratie locale :
 ### 6. 📊 **Transparence** - Audit démocratique
 
 Un outil d'évaluation et de suivi de la transparence des institutions locales :
+
 - Critères de transparence adaptés au type de communauté
 - Suivi des bonnes pratiques démocratiques
 - Comparaison entre territoires
@@ -91,8 +103,10 @@ Un outil d'évaluation et de suivi de la transparence des institutions locales :
 ## ✨ Fonctionnalités supplémentaires
 
 - **Audit de transparence** : pour évaluer le respect du public lors des conseils municipaux
-- **Liens vers des services externes** : signalement d'incidents urbains, agenda social, entraide bénévole
-- **Configuration adaptable** : la plateforme peut être personnalisée pour n'importe quelle commune ou mouvement citoyen
+- **Liens vers des services externes** : signalement d'incidents urbains, agenda social, entraide
+  bénévole
+- **Configuration adaptable** : la plateforme peut être personnalisée pour n'importe quelle commune
+  ou mouvement citoyen
 
 ---
 
@@ -110,6 +124,7 @@ Un outil d'évaluation et de suivi de la transparence des institutions locales :
 ### Pour les développeurs et techniciens
 
 #### Prérequis
+
 - Node.js version 18 ou supérieure
 - Un compte Supabase (base de données)
 - Netlify CLI (pour les fonctions serverless)
@@ -151,56 +166,40 @@ L'application sera accessible sur `http://localhost:8888`
 
 ---
 
-## 📅 Dernières améliorations (Novembre 2025)
+## 📅 Dernières améliorations (Fin Novembre 2025 - v1.3.0)
 
-### Système d'abonnements universel (NOUVEAU)
+### 🤖 Ophélia V2 (Assistant IA)
+
+- ✨ **Nouvelle Interface (UI v2)** : Design modernisé et plus intuitif.
+- ✨ **Mode "Raisonnement"** : Affichage du processus de pensée (`<Think>`) pour des réponses plus
+  transparentes.
+- ✨ **Widget d'intégration** : Possibilité d'intégrer Ophélia sur des sites web externes (en
+  cours).
+- ✨ **RAG Avancé** : Ingestion de documents via Google Gemini 3.0 et Supabase Storage pour des
+  réponses plus précises (en cours).
+- ✨ **Connaissance Locale** : Amélioration du prompt sur les quartiers de Corte.
+- 🔧 **API & Intégrations** : Nouvelle API Javascript et développement d'un serveur MCP (Model
+  Context Protocol) (en cours).
+
+### 💾 Données & Fonctionnalités
+
+- ✨ **Flux de Données** : Nouvelles tables pour l'intégration de flux type RSS et données externes.
+- ✨ **Gestion Documentaire** : Amélioration du stockage et du traçage des documents sources
+  (`document_source`).
+- ✨ **Expérience Utilisateur** : Page de contact, édition de posts améliorée, et corrections sur
+  les réactions.
+
+### Système d'abonnements universel
+
 - ✨ **Abonnez-vous à n'importe quel contenu** : posts, propositions, pages wiki
 - ✨ **Fil d'abonnements personnalisé** avec filtres par type de contenu
-- ✨ **Notifications en temps réel** des nouveaux commentaires sur vos contenus suivis
 - ✨ **Compteur d'abonnés** visible sur chaque contenu
-- ✨ **Auto-abonnement** lors de la création de contenu
-- ✨ **Statistiques d'abonnements** dans le tableau de bord utilisateur
-- 🔧 Intégration dans PostView, Proposition et bientôt les pages Wiki
 
-### Café Pertitellu
+### Café Pertitellu & Profils
+
 - ✨ **Espace social complet** : forums, blogs, quartiers, associations
-- ✨ **Système de groupes** avec types personnalisables
-- ✨ **Publications diverses** : discussions, annonces, événements, Q&A
-- ✨ **Réactions et commentaires** pour enrichir les échanges
-- ✨ **Profils utilisateurs** avec nom d'affichage, quartier et centres d'intérêt
-- ✨ **Authentification sécurisée** avec création automatique de profil
-- 🔧 Intégration complète avec le système d'authentification Supabase
-
-### Gestion des profils utilisateurs
-- ✨ **Page de profil dédiée** pour gérer ses informations personnelles
-- ✨ **Hook personnalisé** `useUserProfile` pour accéder aux données de profil
-- ✨ **Trigger automatique** pour créer un profil lors de l'inscription
-- ✨ **Composant UserDisplay** pour afficher les noms d'utilisateurs de manière cohérente
-- ✨ **Affichage du profil** dans le footer et le menu avec lien vers la page de profil
-
-### Wiki
-- ✨ **Navigation moderne** : tri par titre ou date, recherche instantanée
-- ✨ Interface à deux panneaux avec barre latérale redimensionnable
-- ✨ Affichage des informations d'auteur et dates
-- ✨ Modes de visualisation grille/liste
-- 🔧 Correction de bugs sur la navigation entre pages
-- 🔧 Amélioration de la génération automatique de résumés
-
-### Ophélia (Assistant IA)
-- ✨ Look moderne et épuré inspiré des meilleures interfaces conversationnelles
-- ✨ Accès à toute la connaissance du wiki grâce à la consolidation automatique
-- 🔧 Gestion améliorée des différents fournisseurs d'IA
-- 🔧 Mode streaming pour des réponses fluides en temps réel
-- 🔧 Meilleure gestion des erreurs
-
-### Kudocratie
-- 🔧 Amélioration du système de tags
-- 🔧 Synchronisation plus fiable avec la base de données
-
-### Général
-- 📱 Optimisations pour une meilleure utilisation sur mobile
-- 🎨 Modernisation de l'interface globale
-- 🔒 Renforcement de la sécurité et du respect du RGPD
+- ✨ **Page de profil dédiée** avec gestion des informations personnelles
+- ✨ **Hook `useUserProfile`** pour une gestion unifiée des données utilisateur
 
 ---
 
@@ -209,13 +208,14 @@ L'application sera accessible sur `http://localhost:8888`
 ```
 survey/
 ├── netlify/
-│   └── functions/          # Fonctions serverless (IA, consolidation wiki, etc.)
+│   ├── functions/          # Fonctions serverless classiques
+│   └── edge-functions/     # Fonctions Edge (IA streaming, RAG)
 ├── public/
 │   ├── prompts/            # Configuration de l'assistant IA
 │   └── docs/               # Documents publics (audit éthique, annonces, etc.)
 ├── src/
 │   ├── components/
-│   │   ├── bob/           # Interface de l'assistant Ophélia
+│   │   ├── bob/           # Interface de l'assistant Ophélia (v1 & v2)
 │   │   ├── common/        # Composants réutilisables (AuthModal, UserDisplay, SubscribeButton, etc.)
 │   │   ├── kudocracy/     # Système de propositions et votes
 │   │   ├── layout/        # Layouts (SiteFooter, etc.)
@@ -244,7 +244,8 @@ survey/
 
 ## ⚙️ Configuration personnalisée
 
-La plateforme est **générique et adaptable** à n'importe quelle commune ou communauté. Vous pouvez personnaliser :
+La plateforme est **générique et adaptable** à n'importe quelle commune ou communauté. Vous pouvez
+personnaliser :
 
 - Le nom de votre commune (ex: `Corte`)
 - Le nom de votre mouvement (ex: `Pertitellu`)
@@ -259,12 +260,14 @@ Toute la configuration se fait via le fichier `.env`. Consultez `.env.example` p
 ## 🧭 Engagement pour la transparence
 
 Cette plateforme participe à l'initiative citoyenne **"Transparence"** qui vise à :
+
 - Rendre les consultations locales **lisibles et compréhensibles** par tous
 - Garantir l'**auditabilité** des données
 - Favoriser la **comparaison** entre territoires
 - Encourager la **publication responsable** des résultats
 
 **Respect de vos données :**
+
 - Aucune donnée sensible collectée
 - Anonymisation des réponses
 - Conformité RGPD stricte
@@ -296,10 +299,11 @@ Cette plateforme participe à l'initiative citoyenne **"Transparence"** qui vise
 
 **Initiative #PERTITELLU - Corti Capitale**
 
-📧 Email : [jeanhuguesrobert@gmail.com](mailto:jeanhuguesrobert@gmail.com)  
-🌐 Site : [lepp.fr](http://lepp.fr/)
+📧 Email : [jeanhuguesrobert@gmail.com](mailto:jeanhuguesrobert@gmail.com) 🌐 Site :
+[lepp.fr](http://lepp.fr/)
 
 **Vous souhaitez contribuer ?**
+
 - Testez la plateforme et signalez les bugs
 - Proposez des améliorations via GitHub Issues
 - Partagez la plateforme dans votre commune
@@ -313,6 +317,7 @@ Cette plateforme participe à l'initiative citoyenne **"Transparence"** qui vise
 <summary><strong>Configuration des providers IA</strong></summary>
 
 ### OpenAI
+
 ```bash
 OPENAI_API_KEY=votre_clé
 OPENAI_SMALL_MODEL=gpt-4o-mini
@@ -320,6 +325,7 @@ OPENAI_HEAVY_MODEL=gpt-4o
 ```
 
 ### Hugging Face
+
 ```bash
 HUGGINGFACE_API_KEY=votre_clé
 HUGGINGFACE_CHAT_MODEL=meta-llama/Meta-Llama-3-8B-Instruct
@@ -333,6 +339,7 @@ Si `OPENAI_API_KEY` est défini, OpenAI est utilisé en priorité.
 <summary><strong>Configuration Supabase</strong></summary>
 
 ### Tables principales
+
 - `users` : profils utilisateurs (display_name, neighborhood, interests, etc.)
 - `content_subscriptions` : abonnements aux contenus (posts, propositions, wiki)
 - `groups` : groupes du Café Pertitellu (forums, blogs, quartiers, associations)
@@ -351,7 +358,9 @@ Si `OPENAI_API_KEY` est défini, OpenAI est utilisé en priorité.
 - `municipal_transparency` : données de transparence des communes
 
 ### Métadonnées JSONB
-Toutes les tables principales utilisent une colonne `metadata` au format JSONB avec `schemaVersion` pour faciliter les évolutions futures :
+
+Toutes les tables principales utilisent une colonne `metadata` au format JSONB avec `schemaVersion`
+pour faciliter les évolutions futures :
 
 ```json
 {
