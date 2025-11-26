@@ -188,6 +188,8 @@ tailwind-classes.json
 .inline-css-map.json
 .classfinder-cache.json
 css-class-report.txt
+css-class-report.json
+css-class-report.md
 
 # Obsolete chat implementations (legacy code)
 src/components/bob/legacy/
