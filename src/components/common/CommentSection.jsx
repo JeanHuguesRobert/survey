@@ -1,27 +1,28 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
-import { isDeleted } from '../../lib/metadata';
-import { getParentCommentId, isReply, isEdited } from '../../lib/socialMetadata';
-import CommentForm from '../social/CommentForm';
-import ReactionPicker from '../social/ReactionPicker';
-import { getDisplayName, getUserInitial } from '../../lib/userDisplay';
-import { useDataLoader, useDataSaver, useFormSubmitter } from '../../lib/useStatusOperations';
+import { useState, useEffect } from "react";
+import { supabase } from "../../lib/supabase";
+import { isDeleted } from "../../lib/metadata";
+import { getParentCommentId, isReply, isEdited } from "../../lib/socialMetadata";
+import CommentForm from "../social/CommentForm";
+import ReactionPicker from "../social/ReactionPicker";
+import { getDisplayName, getUserInitial } from "../../lib/userDisplay";
+import { useDataLoader, useDataSaver, useFormSubmitter } from "../../lib/useStatusOperations";
+import { canComment } from "../../lib/permissions";
 
 /**
  * Section de commentaires réutilisable avec toggle show/hide
  * Peut être utilisée pour n'importe quel type de contenu (wiki, proposition, etc.)
- * 
+ *
  * @param {Object} props
  * @param {string} props.linkedType - Type de contenu (wiki_page, proposition, etc.)
  * @param {string} props.linkedId - ID du contenu
  * @param {Object} props.currentUser - Utilisateur connecté
  * @param {boolean} props.defaultExpanded - État initial (déplié par défaut ou non)
  */
-export default function CommentSection({ 
-  linkedType, 
-  linkedId, 
+export default function CommentSection({
+  linkedType,
+  linkedId,
   currentUser,
-  defaultExpanded = false 
+  defaultExpanded = false,
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [discussionPost, setDiscussionPost] = useState(null);
@@ -32,7 +33,7 @@ export default function CommentSection({
   const loadDiscussionPostOp = useDataLoader();
   const createDiscussionPostOp = useDataSaver();
   const loadCommentsOp = useDataLoader();
-  const submitCommentOp = useFormSubmitter('Posting comment');
+  const submitCommentOp = useFormSubmitter("Posting comment");
   const deleteCommentOp = useDataSaver();
   const editCommentOp = useDataSaver();
 
@@ -51,13 +52,14 @@ export default function CommentSection({
 
     const channel = supabase
       .channel(`comments:${discussionPost.id}`)
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'comments',
-          filter: `post_id=eq.${discussionPost.id}`
-        }, 
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "comments",
+          filter: `post_id=eq.${discussionPost.id}`,
+        },
         () => loadComments()
       )
       .subscribe();
@@ -71,11 +73,11 @@ export default function CommentSection({
     await loadDiscussionPostOp(async () => {
       // Cherche un post de discussion existant pour ce contenu
       const { data: existingPosts, error: searchError } = await supabase
-        .from('posts')
-        .select('*')
-        .eq('metadata->>linkedType', linkedType)
-        .eq('metadata->>linkedId', linkedId)
-        .eq('metadata->>isDiscussionThread', 'true')
+        .from("posts")
+        .select("*")
+        .eq("metadata->>linkedType", linkedType)
+        .eq("metadata->>linkedId", linkedId)
+        .eq("metadata->>isDiscussionThread", "true")
         .limit(1);
 
       if (searchError) throw searchError;
@@ -95,24 +97,24 @@ export default function CommentSection({
 
     return await createDiscussionPostOp(async () => {
       const { data, error } = await supabase
-        .from('posts')
+        .from("posts")
         .insert({
           user_id: currentUser.id,
           content: `Discussion automatique pour ${linkedType}`,
           metadata: {
             schemaVersion: 1,
-            postType: 'forum',
+            postType: "forum",
             isDiscussionThread: true,
             linkedType,
             linkedId,
-            isHidden: true // Le post est invisible dans le feed social
-          }
+            isHidden: true, // Le post est invisible dans le feed social
+          },
         })
         .select()
         .single();
 
       if (error) throw error;
-      
+
       setDiscussionPost(data);
       return data;
     });
@@ -123,44 +125,42 @@ export default function CommentSection({
 
     await loadCommentsOp(async () => {
       const { data, error: fetchError } = await supabase
-        .from('comments')
-        .select('*, users(id, email, display_name, metadata)')
-        .eq('post_id', discussionPost.id)
-        .order('created_at', { ascending: true });
+        .from("comments")
+        .select("*, users(id, email, display_name, metadata)")
+        .eq("post_id", discussionPost.id)
+        .order("created_at", { ascending: true });
 
       if (fetchError) throw fetchError;
 
-      const activeComments = (data || []).filter(c => !isDeleted(c));
+      const activeComments = (data || []).filter((c) => !isDeleted(c));
       setComments(activeComments);
     });
   }
 
   async function handleCommentSubmit(content, parentId = null) {
-    if (!currentUser) {
-      alert('Vous devez être connecté pour commenter');
+    if (!canComment(currentUser)) {
+      alert("Vous devez être connecté pour commenter");
       return;
     }
 
     await submitCommentOp(async () => {
       let post = discussionPost;
-      
+
       // Crée le post de discussion si nécessaire
       if (!post) {
         post = await createDiscussionPost();
-        if (!post) throw new Error('Impossible de créer la discussion');
+        if (!post) throw new Error("Impossible de créer la discussion");
       }
 
-      const { error } = await supabase
-        .from('comments')
-        .insert({
-          post_id: post.id,
-          user_id: currentUser.id,
-          content,
-          metadata: {
-            schemaVersion: 1,
-            parentCommentId: parentId || null
-          }
-        });
+      const { error } = await supabase.from("comments").insert({
+        post_id: post.id,
+        user_id: currentUser.id,
+        content,
+        metadata: {
+          schemaVersion: 1,
+          parentCommentId: parentId || null,
+        },
+      });
 
       if (error) throw error;
 
@@ -170,23 +170,23 @@ export default function CommentSection({
   }
 
   async function handleDelete(commentId) {
-    if (!confirm('Supprimer ce commentaire ?')) return;
+    if (!confirm("Supprimer ce commentaire ?")) return;
 
     await deleteCommentOp(async () => {
-      const comment = comments.find(c => c.id === commentId);
+      const comment = comments.find((c) => c.id === commentId);
       if (!comment) return;
 
       const { error } = await supabase
-        .from('comments')
+        .from("comments")
         .update({
           metadata: {
             ...comment.metadata,
             isDeleted: true,
             deletedAt: new Date().toISOString(),
-            deletedBy: currentUser.id
-          }
+            deletedBy: currentUser.id,
+          },
         })
-        .eq('id', commentId);
+        .eq("id", commentId);
 
       if (error) throw error;
       await loadComments();
@@ -194,20 +194,20 @@ export default function CommentSection({
   }
 
   function buildCommentTree(comments) {
-    const topLevel = comments.filter(c => !isReply(c));
-    
+    const topLevel = comments.filter((c) => !isReply(c));
+
     function getReplies(parentId) {
       return comments
-        .filter(c => getParentCommentId(c) === parentId)
-        .map(c => ({
+        .filter((c) => getParentCommentId(c) === parentId)
+        .map((c) => ({
           ...c,
-          replies: getReplies(c.id)
+          replies: getReplies(c.id),
         }));
     }
 
-    return topLevel.map(c => ({
+    return topLevel.map((c) => ({
       ...c,
-      replies: getReplies(c.id)
+      replies: getReplies(c.id),
     }));
   }
 
@@ -220,16 +220,16 @@ export default function CommentSection({
     async function handleEdit() {
       await editCommentOp(async () => {
         const { error } = await supabase
-          .from('comments')
+          .from("comments")
           .update({
             content: editContent,
             metadata: {
               ...comment.metadata,
               isEdited: true,
-              editedAt: new Date().toISOString()
-            }
+              editedAt: new Date().toISOString(),
+            },
           })
-          .eq('id', comment.id);
+          .eq("id", comment.id);
 
         if (error) throw error;
 
@@ -239,10 +239,10 @@ export default function CommentSection({
     }
 
     return (
-      <div 
-        className={`${depth > 0 ? 'ml-8 mt-4' : 'mt-4'} ${depth > 0 ? 'border-l-2 border-gray-200 pl-4' : ''}`}
+      <div
+        className={`${depth > 0 ? "ml-8 mt-4" : "mt-4"} ${depth > 0 ? "border-l-2 border-gray-200 pl-4" : ""}`}
       >
-        <div className="bg-gray-50 rounded-lg p-4">
+        <div className="rounded-lg p-4">
           {/* Header */}
           <div className="flex items-start justify-between mb-2">
             <div className="flex items-center gap-3">
@@ -250,15 +250,15 @@ export default function CommentSection({
                 {getUserInitial(comment.users)}
               </div>
               <div>
-                <span className="text-sm font-medium text-gray-900">
+                <span className="text-sm font-medium text-gray-50">
                   {getDisplayName(comment.users)}
                 </span>
-                <div className="text-xs text-gray-500">
-                  {new Date(comment.created_at).toLocaleDateString('fr-FR', {
-                    day: 'numeric',
-                    month: 'short',
-                    hour: '2-digit',
-                    minute: '2-digit'
+                <div className="text-xs text-gray-400">
+                  {new Date(comment.created_at).toLocaleDateString("fr-FR", {
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
                   })}
                   {edited && <span className="ml-2 italic">(modifié)</span>}
                 </div>
@@ -269,7 +269,7 @@ export default function CommentSection({
               <div className="flex gap-2">
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="text-xs text-gray-600 hover:text-gray-900"
+                  className="text-xs text-gray-300 hover:text-gray-50"
                 >
                   Modifier
                 </button>
@@ -295,7 +295,7 @@ export default function CommentSection({
               <div className="flex gap-2 mt-2">
                 <button
                   onClick={handleEdit}
-                  className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                  className="px-3 py-1 text-xs bg-blue-600 text-bauhaus-white rounded hover:bg-blue-700"
                 >
                   Enregistrer
                 </button>
@@ -312,9 +312,7 @@ export default function CommentSection({
             </div>
           ) : (
             <>
-              <p className="text-gray-700 text-sm whitespace-pre-wrap mb-2">
-                {comment.content}
-              </p>
+              <p className="text-gray-200 text-sm whitespace-pre-wrap mb-2">{comment.content}</p>
 
               {/* Actions */}
               <div className="flex items-center gap-4 text-xs">
@@ -323,7 +321,7 @@ export default function CommentSection({
                   targetId={comment.id}
                   currentUser={currentUser}
                 />
-                
+
                 {currentUser && (
                   <button
                     onClick={() => setReplyToId(replyToId === comment.id ? null : comment.id)}
@@ -351,7 +349,7 @@ export default function CommentSection({
         {/* Nested replies */}
         {comment.replies && comment.replies.length > 0 && (
           <div>
-            {comment.replies.map(reply => (
+            {comment.replies.map((reply) => (
               <CommentItem key={reply.id} comment={reply} depth={depth + 1} />
             ))}
           </div>
@@ -364,26 +362,26 @@ export default function CommentSection({
   const commentCount = comments.length;
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mt-8">
+    <div className="rounded-lg shadow-sm border border-gray-200 overflow-hidden mt-8">
       {/* Toggle Header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full px-6 py-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
+        className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-100 transition-colors"
       >
         <div className="flex items-center gap-3">
           <span className="text-lg">💬</span>
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-lg font-semibold text-gray-50">
             Commentaires {commentCount > 0 && `(${commentCount})`}
           </h2>
         </div>
         <div className="flex items-center gap-2">
           {!expanded && commentCount > 0 && (
-            <span className="text-sm text-gray-500">
-              {commentCount} commentaire{commentCount !== 1 ? 's' : ''}
+            <span className="text-sm text-gray-400">
+              {commentCount} commentaire{commentCount !== 1 ? "s" : ""}
             </span>
           )}
           <svg
-            className={`w-5 h-5 text-gray-500 transition-transform ${expanded ? 'rotate-180' : ''}`}
+            className={`w-5 h-5 text-gray-400 transition-transform ${expanded ? "rotate-180" : ""}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -398,7 +396,7 @@ export default function CommentSection({
         <div className="p-6">
           <>
             {/* New comment form */}
-            {currentUser ? (
+            {canComment(currentUser) ? (
               <div className="mb-6">
                 <CommentForm
                   onSubmit={(content) => handleCommentSubmit(content)}
@@ -406,19 +404,19 @@ export default function CommentSection({
                 />
               </div>
             ) : (
-              <div className="mb-6 p-4 bg-gray-50 rounded text-center text-gray-600">
+              <div className="mb-6 p-4 rounded text-center text-gray-300">
                 Connectez-vous pour commenter
               </div>
             )}
 
             {/* Comments tree */}
             {commentTree.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">
+              <p className="text-center text-gray-400 py-8">
                 Aucun commentaire pour l'instant. Soyez le premier !
               </p>
             ) : (
               <div className="space-y-0">
-                {commentTree.map(comment => (
+                {commentTree.map((comment) => (
                   <CommentItem key={comment.id} comment={comment} depth={0} />
                 ))}
               </div>
