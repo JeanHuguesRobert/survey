@@ -21,9 +21,9 @@ BEGIN
       SELECT id FROM propositions WHERE author_id = target_user_id
     ))
     OR
-    -- Wiki pages by user (latest revision)
+    -- Wiki pages by user
     (cs.content_type = 'wiki_page' AND cs.content_id IN (
-      SELECT DISTINCT page_id FROM wiki_revisions WHERE author_id = target_user_id
+      SELECT DISTINCT id FROM wiki_pages WHERE author_id = target_user_id
     ))
   );
   
