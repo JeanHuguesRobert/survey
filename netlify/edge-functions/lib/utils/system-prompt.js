@@ -6,83 +6,86 @@
  * Petit utilitaire pour prévisualiser les valeurs dans les logs
  */
 function previewForLog(value, max = 400) {
-    try {
-        const s = typeof value === "string" ? value : JSON.stringify(value);
-        return s.length > max ? s.slice(0, max) + "..." : s;
-    } catch {
-        return String(value).slice(0, max) + (String(value).length > max ? "..." : "");
-    }
+  try {
+    const s = typeof value === "string" ? value : JSON.stringify(value);
+    return s.length > max ? s.slice(0, max) + "..." : s;
+  } catch {
+    return String(value).slice(0, max) + (String(value).length > max ? "..." : "");
+  }
 }
 
 /**
  * Récupère le prompt système depuis l'URL publique
  */
 async function fetchPublicSystemPrompt(siteUrl) {
-    if (!siteUrl) return null;
-    try {
-        const promptUrl = `${siteUrl}/prompts/bob-system.md`;
-        console.log(`[Prompt] ➜ fetching system prompt from ${promptUrl}`);
-        const response = await fetch(promptUrl);
-        console.log(`[Prompt] ⬅ status=${response.status}`);
-        if (response.ok) {
-            const content = await response.text();
-            console.log(`[Prompt] ⬅ content length=${content.length}`);
-            if (content.trim()) return content;
-        }
-    } catch (error) {
-        console.warn("[SystemPrompt] Erreur fetch:", error.message);
+  if (!siteUrl) return null;
+  try {
+    const promptUrl = `${siteUrl}/prompts/bob-system.md`;
+    console.log(`[Prompt] ➜ fetching system prompt from ${promptUrl}`);
+    const response = await fetch(promptUrl);
+    console.log(`[Prompt] ⬅ status=${response.status}`);
+    if (response.ok) {
+      const content = await response.text();
+      console.log(`[Prompt] ⬅ content length=${content.length}`);
+      if (content.trim()) return content;
     }
-    return null;
+  } catch (error) {
+    console.warn("[SystemPrompt] Erreur fetch:", error.message);
+  }
+  return null;
 }
 
 /**
  * Récupère le contexte municipal consolidé
  */
 async function fetchCouncilContext(siteUrl) {
-    if (!siteUrl) return null;
-    try {
-        const councilUrl = `${siteUrl}/docs/conseils/conseil-consolidated.semantic.md`;
-        console.log(`[Council] ➜ fetching consolidated council context from ${councilUrl}`);
-        const response = await fetch(councilUrl);
-        console.log(`[Council] ⬅ status=${response.status}`);
-        if (response.ok) {
-            const text = await response.text();
-            console.log(`[Council] ⬅ content length=${text.length}`);
-            if (text.trim()) return text;
-        }
-    } catch (error) {
-        console.warn("[Council] ❌ Unable to fetch consolidated council context:", error.message);
+  if (!siteUrl) return null;
+  try {
+    const councilUrl = `${siteUrl}/docs/conseils/conseil-consolidated.semantic.md`;
+    console.log(`[Council] ➜ fetching consolidated council context from ${councilUrl}`);
+    const response = await fetch(councilUrl);
+    console.log(`[Council] ⬅ status=${response.status}`);
+    if (response.ok) {
+      const text = await response.text();
+      console.log(`[Council] ⬅ content length=${text.length}`);
+      if (text.trim()) return text;
     }
-    return null;
+  } catch (error) {
+    console.warn("[Council] ❌ Unable to fetch consolidated council context:", error.message);
+  }
+  return null;
 }
 
 /**
  * Charge et construit le system prompt complet
- * 
+ *
  * @returns {Promise<string>} System prompt complet
  */
 export async function getSystemPrompt() {
-    const currentDate = new Date().toLocaleDateString('fr-FR', {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-    });
-    let basePrompt = `📅 **Date actuelle :** ${currentDate}\\n\\n`;
+  const currentDate = new Date().toLocaleDateString("fr-FR", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  let basePrompt = `📅 **Date actuelle :** ${currentDate}\\n\\n`;
 
-    // 1. Charge le prompt depuis l'URL publique
-    const siteUrl = Deno.env.get("URL") || Deno.env.get("DEPLOY_PRIME_URL");
-    const localPrompt = await fetchPublicSystemPrompt(siteUrl);
-    if (localPrompt) {
-        basePrompt += localPrompt;
+  // 1. Charge le prompt depuis l'URL publique
+  const siteUrl = Deno.env.get("URL") || Deno.env.get("DEPLOY_PRIME_URL");
+  const localPrompt = await fetchPublicSystemPrompt(siteUrl);
+  if (localPrompt) {
+    basePrompt += localPrompt;
+  } else {
+    // 2. Fallback avec les variables d'environnement
+    const envPrompt = Deno.env.get("BOB_SYSTEM_PROMPT");
+    if (envPrompt) {
+      basePrompt += envPrompt;
     } else {
-        // 2. Fallback avec les variables d'environnement
-        const envPrompt = Deno.env.get("BOB_SYSTEM_PROMPT");
-        if (envPrompt) {
-            basePrompt += envPrompt;
-        } else {
-            // 3. Fallback par défaut
-            const city = Deno.env.get("CITY_NAME") || "Corte";
-            const movement = Deno.env.get("MOVEMENT_NAME") || "Pertitellu";
-            const bot = Deno.env.get("BOT_NAME") || "Ophélia";
-            basePrompt += `
+      // 3. Fallback par défaut
+      const city = Deno.env.get("CITY_NAME") || "Corte";
+      const movement = Deno.env.get("MOVEMENT_NAME") || "Pertitellu";
+      const bot = Deno.env.get("BOT_NAME") || "Ophélia";
+      basePrompt += `
       **Rôle :** Tu es **${bot}**, l'assistant citoyen du mouvement **${movement}** pour la commune de **${city}**.
 
       **Instructions :**
@@ -90,50 +93,53 @@ export async function getSystemPrompt() {
       - Cite toujours tes **sources officielles** quand c'est possible.
       - Pour les questions locales (projets, horaires), utilise les outils disponibles (**web_search**, base de données locale).
       - Si tu ne connais pas la réponse, dis-le clairement et propose une alternative.
+      - **Processus de Réflexion** : Pour les questions complexes, détaille ton raisonnement dans des balises \`<Think>...</Think>\` avant ta réponse.
 
       **Exemple de réponse :**
       > **Horaires de la mairie :**
       > - Lundi-vendredi : 8h30-17h
       > - Samedi : 9h-12h
       > *(Source : [site de la mairie](#))*`;
+    }
+  }
+
+  // 4. Charge le wiki consolidé depuis Supabase
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (supabaseUrl && supabaseKey) {
+    try {
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/consolidated_wiki_documents?select=content&order=updated_at.desc&limit=1`,
+        {
+          headers: {
+            apikey: supabaseKey,
+            Authorization: `Bearer ${supabaseKey}`,
+            "Content-Type": "application/json",
+          },
         }
-    }
-
-    // 4. Charge le wiki consolidé depuis Supabase
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (supabaseUrl && supabaseKey) {
-        try {
-            const response = await fetch(
-                `${supabaseUrl}/rest/v1/consolidated_wiki_documents?select=content&order=updated_at.desc&limit=1`,
-                {
-                    headers: {
-                        "apikey": supabaseKey,
-                        "Authorization": `Bearer ${supabaseKey}`,
-                        "Content-Type": "application/json"
-                    }
-                }
-            );
-            if (response.ok) {
-                const data = await response.json();
-                console.log(`[SystemPrompt] Supabase data preview: ${previewForLog(data?.[0]?.content, 100)}`);
-                if (data?.length > 0 && data[0].content) {
-                    basePrompt += `\n\n📚 **Contexte local (wiki) :**\n${data[0].content}...`;
-                }
-            }
-        } catch (error) {
-            console.error("[SystemPrompt] Erreur Supabase:", error.message);
+      );
+      if (response.ok) {
+        const data = await response.json();
+        console.log(
+          `[SystemPrompt] Supabase data preview: ${previewForLog(data?.[0]?.content, 100)}`
+        );
+        if (data?.length > 0 && data[0].content) {
+          basePrompt += `\n\n📚 **Contexte local (wiki) :**\n${data[0].content}...`;
         }
+      }
+    } catch (error) {
+      console.error("[SystemPrompt] Erreur Supabase:", error.message);
     }
+  }
 
-    // 5. Charge le contexte municipal (si disponible)
-    const councilContext = await fetchCouncilContext(siteUrl);
-    if (councilContext) {
-        basePrompt += `\n\n🏛 **Contexte municipal (conseils consolidés) :**\n${councilContext}...`;
-    } else {
-        basePrompt += `\n\n🏛 **Contexte municipal (conseils consolidés) :** indisponible pour le moment.`;
-    }
+  // 5. Charge le contexte municipal (si disponible)
+  const councilContext = await fetchCouncilContext(siteUrl);
+  if (councilContext) {
+    basePrompt += `\n\n🏛 **Contexte municipal (conseils consolidés) :**\n${councilContext}...`;
+  } else {
+    basePrompt += `\n\n🏛 **Contexte municipal (conseils consolidés) :** indisponible pour le moment.`;
+  }
 
-    console.log(`[SystemPrompt] ✅ Prompt chargé (${basePrompt.length} caractères)`);
-    return basePrompt;
+  console.log(`[SystemPrompt] ✅ Prompt chargé (${basePrompt.length} caractères)`);
+  return basePrompt;
 }

@@ -1,6 +1,6 @@
 // netlify/edge-functions/getOpheliaAnswer.js
 // Fonction utilitaire pour obtenir une réponse complète d'Ophélia (non-stream)
-import handler from './rag_chatbot_v2.js';
+import handler from "./rag_chatbot.js";
 
 /**
  * Appelle le moteur RAG Ophélia et retourne la réponse complète (non streamée)
@@ -12,17 +12,23 @@ import handler from './rag_chatbot_v2.js';
  * @param {string} [params.modelMode]
  * @returns {Promise<{answer: string, metadata: object, sources: Array}>}
  */
-export async function getOpheliaAnswer({ question, conversation_history = [], provider, model, modelMode }) {
+export async function getOpheliaAnswer({
+  question,
+  conversation_history = [],
+  provider,
+  model,
+  modelMode,
+}) {
   // Simule une requête POST compatible avec rag_chatbot_v2.js
   const req = {
-    method: 'POST',
+    method: "POST",
     json: async () => ({
       question,
       conversation_history,
       provider,
       model,
-      modelMode
-    })
+      modelMode,
+    }),
   };
   // Appel du handler (en mode local, pas via HTTP)
   const res = await handler(req);
@@ -32,6 +38,6 @@ export async function getOpheliaAnswer({ question, conversation_history = [], pr
   return {
     answer: text,
     metadata: {},
-    sources: []
+    sources: [],
   };
 }
