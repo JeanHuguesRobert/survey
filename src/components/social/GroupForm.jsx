@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
-import { createGroupMetadata, GROUP_TYPES } from '../../lib/socialMetadata';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../../lib/supabase";
+import { createGroupMetadata, GROUP_TYPES } from "../../lib/socialMetadata";
 
 /**
  * Formulaire de création/édition de groupe
@@ -11,14 +11,14 @@ export default function GroupForm({ group = null, currentUser }) {
   const isEditing = !!group;
 
   const [formData, setFormData] = useState({
-    name: group?.name || '',
-    description: group?.description || '',
+    name: group?.name || "",
+    description: group?.description || "",
     groupType: group?.metadata?.groupType || GROUP_TYPES.COMMUNITY,
-    location: group?.metadata?.location || '',
-    avatarUrl: group?.metadata?.avatarUrl || '',
-    tags: group?.metadata?.tags?.join(', ') || '',
+    location: group?.metadata?.location || "",
+    avatarUrl: group?.metadata?.avatarUrl || "",
+    tags: group?.metadata?.tags?.join(", ") || "",
     isPrivate: group?.metadata?.isPrivate || false,
-    requireApproval: group?.metadata?.requireApproval || false
+    requireApproval: group?.metadata?.requireApproval || false,
   });
 
   const [loading, setLoading] = useState(false);
@@ -26,22 +26,22 @@ export default function GroupForm({ group = null, currentUser }) {
 
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    
+
     if (!currentUser) {
-      setError('Vous devez être connecté');
+      setError("Vous devez être connecté");
       return;
     }
 
     if (!formData.name.trim()) {
-      setError('Le nom est requis');
+      setError("Le nom est requis");
       return;
     }
 
@@ -50,42 +50,42 @@ export default function GroupForm({ group = null, currentUser }) {
       setError(null);
 
       const tagsArray = formData.tags
-        .split(',')
-        .map(t => t.trim())
-        .filter(t => t.length > 0);
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
 
       const metadata = createGroupMetadata(formData.groupType, {
         location: formData.location || null,
         avatarUrl: formData.avatarUrl || null,
         tags: tagsArray,
         isPrivate: formData.isPrivate,
-        requireApproval: formData.requireApproval
+        requireApproval: formData.requireApproval,
       });
 
       if (isEditing) {
         // Update existing group
         const { error: updateError } = await supabase
-          .from('groups')
+          .from("groups")
           .update({
             name: formData.name,
             description: formData.description,
-            metadata
+            metadata,
           })
-          .eq('id', group.id);
+          .eq("id", group.id);
 
         if (updateError) throw updateError;
-        
-        alert('Groupe mis à jour !');
+
+        alert("Groupe mis à jour !");
         navigate(`/groups/${group.id}`);
       } else {
         // Create new group
         const { data: newGroup, error: insertError } = await supabase
-          .from('groups')
+          .from("groups")
           .insert({
             name: formData.name,
             description: formData.description,
             created_by: currentUser.id,
-            metadata
+            metadata,
           })
           .select()
           .single();
@@ -93,25 +93,25 @@ export default function GroupForm({ group = null, currentUser }) {
         if (insertError) throw insertError;
 
         // Add creator as member
-        await supabase.from('group_members').insert({
+        await supabase.from("group_members").insert({
           group_id: newGroup.id,
           user_id: currentUser.id,
-          metadata: { schemaVersion: 1 }
+          metadata: { schemaVersion: 1 },
         });
 
         // Add creator as admin
-        await supabase.from('group_roles').insert({
+        await supabase.from("group_roles").insert({
           group_id: newGroup.id,
           user_id: currentUser.id,
-          role: 'admin',
-          metadata: { schemaVersion: 1 }
+          role: "admin",
+          metadata: { schemaVersion: 1 },
         });
 
-        alert('Groupe créé !');
+        alert("Groupe créé !");
         navigate(`/groups/${newGroup.id}`);
       }
     } catch (err) {
-      console.error('Error saving group:', err);
+      console.error("Error saving group:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -121,7 +121,7 @@ export default function GroupForm({ group = null, currentUser }) {
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">
-        {isEditing ? 'Modifier le groupe' : 'Créer un groupe'}
+        {isEditing ? "Modifier le groupe" : "Créer un groupe"}
       </h1>
 
       {error && (
@@ -130,12 +130,10 @@ export default function GroupForm({ group = null, currentUser }) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+      <form onSubmit={handleSubmit} className=" rounded-lg shadow-sm p-6 space-y-6">
         {/* Nom */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Nom du groupe *
-          </label>
+          <label className="block text-sm font-medium text-gray-200 mb-2">Nom du groupe *</label>
           <input
             type="text"
             name="name"
@@ -149,9 +147,7 @@ export default function GroupForm({ group = null, currentUser }) {
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Description
-          </label>
+          <label className="block text-sm font-medium text-gray-200 mb-2">Description</label>
           <textarea
             name="description"
             value={formData.description}
@@ -164,9 +160,7 @@ export default function GroupForm({ group = null, currentUser }) {
 
         {/* Type */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Type de groupe
-          </label>
+          <label className="block text-sm font-medium text-gray-200 mb-2">Type de groupe</label>
           <select
             name="groupType"
             value={formData.groupType}
@@ -182,9 +176,7 @@ export default function GroupForm({ group = null, currentUser }) {
 
         {/* Location */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Localisation
-          </label>
+          <label className="block text-sm font-medium text-gray-200 mb-2">Localisation</label>
           <input
             type="text"
             name="location"
@@ -197,7 +189,7 @@ export default function GroupForm({ group = null, currentUser }) {
 
         {/* Avatar URL */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-200 mb-2">
             URL de l'avatar (optionnel)
           </label>
           <input
@@ -212,7 +204,7 @@ export default function GroupForm({ group = null, currentUser }) {
 
         {/* Tags */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-200 mb-2">
             Tags (séparés par des virgules)
           </label>
           <input
@@ -235,7 +227,7 @@ export default function GroupForm({ group = null, currentUser }) {
               onChange={handleChange}
               className="w-4 h-4 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
             />
-            <span className="text-sm text-gray-700">Groupe privé (non visible publiquement)</span>
+            <span className="text-sm text-gray-200">Groupe privé (non visible publiquement)</span>
           </label>
 
           <label className="flex items-center gap-2">
@@ -246,7 +238,7 @@ export default function GroupForm({ group = null, currentUser }) {
               onChange={handleChange}
               className="w-4 h-4 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
             />
-            <span className="text-sm text-gray-700">Nécessite approbation pour rejoindre</span>
+            <span className="text-sm text-gray-200">Nécessite approbation pour rejoindre</span>
           </label>
         </div>
 
@@ -255,14 +247,14 @@ export default function GroupForm({ group = null, currentUser }) {
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:bg-gray-400"
+            className="flex-1 px-4 py-2 bg-primary-600 text-bauhaus-white rounded hover:bg-primary-700 disabled:bg-gray-400"
           >
-            {loading ? 'Enregistrement...' : (isEditing ? 'Mettre à jour' : 'Créer le groupe')}
+            {loading ? "Enregistrement..." : isEditing ? "Mettre à jour" : "Créer le groupe"}
           </button>
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+            className="px-4 py-2 bg-gray-200 text-gray-200 rounded hover:bg-gray-300"
           >
             Annuler
           </button>

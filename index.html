@@ -1,60 +1,48 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title id="page-title">Consultation Citoyenne</title>
-  
+
   <!-- Favicon -->
   <link rel="icon" type="image/x-icon" href="images/favicon.svg" />
-  
+
   <!-- Métadonnées SEO et partage social -->
-  <meta name="description" id="page-description" content="Plateforme de consultation citoyenne incluant un wiki collaboratif et un système de propositions citoyennes.">
+  <meta name="description" id="page-description"
+    content="Plateforme de consultation citoyenne incluant un wiki collaboratif et un système de propositions citoyennes.">
   <meta property="og:title" id="og-title" content="Consultation Citoyenne">
-  <meta property="og:description" id="og-description" content="Participez à la démocratie locale avec notre plateforme de consultation citoyenne.">
+  <meta property="og:description" id="og-description"
+    content="Participez à la démocratie locale avec notre plateforme de consultation citoyenne.">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
-  
+
   <!-- Police Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Montserrat', 'sans-serif'],
-          },
-        }
-      }
-    }
-  </script>
-  <style>
-    body {
-      font-family: 'Montserrat', sans-serif;
-    }
-  </style>
+
 </head>
+
 <body>
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
-  
+
   <!-- Script pour dynamiser les métadonnées -->
   <script type="module">
     // Récupération des constantes depuis les variables d'environnement
     const CITY_NAME = import.meta.env.VITE_CITY_NAME || 'Corte';
     const PARTY_NAME = import.meta.env.VITE_PARTY_NAME || 'Petit Parti';
-    
+
     // Mise à jour dynamique des métadonnées
     document.getElementById('page-title').textContent = `Consultation Citoyenne - ${PARTY_NAME}`;
-    document.getElementById('page-description').setAttribute('content', 
+    document.getElementById('page-description').setAttribute('content',
       `Plateforme de consultation citoyenne pour les élections municipales de ${CITY_NAME}, incluant un wiki collaboratif et un système de propositions citoyennes.`);
     document.getElementById('og-title').setAttribute('content', `Consultation Citoyenne - ${PARTY_NAME}`);
-    document.getElementById('og-description').setAttribute('content', 
+    document.getElementById('og-description').setAttribute('content',
       `Participez à la démocratie locale de ${CITY_NAME} avec notre plateforme de consultation citoyenne.`);
   </script>
 </body>
+
 </html>

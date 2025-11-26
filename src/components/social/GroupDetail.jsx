@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
-import { isDeleted, getMetadata } from '../../lib/metadata';
-import { getGroupType, isPrivateGroup, requiresApproval } from '../../lib/socialMetadata';
-import CommentSection from '../common/CommentSection';
-import { getDisplayName, getUserInitial } from '../../lib/userDisplay';
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { supabase } from "../../lib/supabase";
+import { isDeleted, getMetadata } from "../../lib/metadata";
+import { getGroupType, isPrivateGroup, requiresApproval } from "../../lib/socialMetadata";
+import CommentSection from "../common/CommentSection";
+import { getDisplayName, getUserInitial } from "../../lib/userDisplay";
 
 /**
  * Page détail d'un groupe avec membres et posts
@@ -12,7 +12,7 @@ import { getDisplayName, getUserInitial } from '../../lib/userDisplay';
 export default function GroupDetail({ currentUser }) {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+
   const [group, setGroup] = useState(null);
   const [members, setMembers] = useState([]);
   const [posts, setPosts] = useState([]);
@@ -34,57 +34,56 @@ export default function GroupDetail({ currentUser }) {
 
       // Charger le groupe
       const { data: groupData, error: groupError } = await supabase
-        .from('groups')
-        .select('*')
-        .eq('id', id)
+        .from("groups")
+        .select("*")
+        .eq("id", id)
         .single();
 
       if (groupError) throw groupError;
       if (isDeleted(groupData)) {
-        throw new Error('Ce groupe a été supprimé');
+        throw new Error("Ce groupe a été supprimé");
       }
 
       setGroup(groupData);
 
       // Charger les membres
       const { data: membersData, error: membersError } = await supabase
-        .from('group_members')
-        .select('*, users(id, email, display_name, metadata)')
-        .eq('group_id', id);
+        .from("group_members")
+        .select("*, users(id, display_name, metadata)")
+        .eq("group_id", id);
 
       if (membersError) throw membersError;
       setMembers(membersData || []);
 
       // Vérifier si user actuel est membre/admin
       if (currentUser) {
-        const membership = membersData?.find(m => m.user_id === currentUser.id);
+        const membership = membersData?.find((m) => m.user_id === currentUser.id);
         setIsMember(!!membership);
-        
+
         const { data: roleData } = await supabase
-          .from('group_roles')
-          .select('role')
-          .eq('group_id', id)
-          .eq('user_id', currentUser.id)
+          .from("group_roles")
+          .select("role")
+          .eq("group_id", id)
+          .eq("user_id", currentUser.id)
           .single();
-        
-        setIsAdmin(roleData?.role === 'admin');
+
+        setIsAdmin(roleData?.role === "admin");
       }
 
       // Charger les posts du groupe
       const { data: postsData, error: postsError } = await supabase
-        .from('posts')
-        .select('*, users(id, email, display_name, metadata)')
-        .eq('metadata->>groupId', id)
-        .order('created_at', { ascending: false })
+        .from("posts")
+        .select("*, users(id, display_name, metadata)")
+        .eq("metadata->>groupId", id)
+        .order("created_at", { ascending: false })
         .limit(10);
 
       if (postsError) throw postsError;
-      
-      const activePosts = (postsData || []).filter(p => !isDeleted(p));
-      setPosts(activePosts);
 
+      const activePosts = (postsData || []).filter((p) => !isDeleted(p));
+      setPosts(activePosts);
     } catch (err) {
-      console.error('Error loading group:', err);
+      console.error("Error loading group:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -93,52 +92,50 @@ export default function GroupDetail({ currentUser }) {
 
   async function handleJoinGroup() {
     if (!currentUser) {
-      alert('Vous devez être connecté pour rejoindre un groupe');
+      alert("Vous devez être connecté pour rejoindre un groupe");
       return;
     }
 
     try {
-      const { error } = await supabase
-        .from('group_members')
-        .insert({
-          group_id: id,
-          user_id: currentUser.id,
-          metadata: { schemaVersion: 1 }
-        });
+      const { error } = await supabase.from("group_members").insert({
+        group_id: id,
+        user_id: currentUser.id,
+        metadata: { schemaVersion: 1 },
+      });
 
       if (error) throw error;
 
       // Si approbation requise
       if (requiresApproval(group)) {
-        alert('Demande envoyée ! En attente d\'approbation par les admins.');
+        alert("Demande envoyée ! En attente d'approbation par les admins.");
       } else {
-        alert('Vous avez rejoint le groupe !');
+        alert("Vous avez rejoint le groupe !");
       }
 
       loadGroupData();
     } catch (err) {
-      console.error('Error joining group:', err);
-      alert('Erreur lors de l\'adhésion : ' + err.message);
+      console.error("Error joining group:", err);
+      alert("Erreur lors de l'adhésion : " + err.message);
     }
   }
 
   async function handleLeaveGroup() {
-    if (!confirm('Êtes-vous sûr de vouloir quitter ce groupe ?')) return;
+    if (!confirm("Êtes-vous sûr de vouloir quitter ce groupe ?")) return;
 
     try {
       const { error } = await supabase
-        .from('group_members')
+        .from("group_members")
         .delete()
-        .eq('group_id', id)
-        .eq('user_id', currentUser.id);
+        .eq("group_id", id)
+        .eq("user_id", currentUser.id);
 
       if (error) throw error;
-      
-      alert('Vous avez quitté le groupe');
+
+      alert("Vous avez quitté le groupe");
       loadGroupData();
     } catch (err) {
-      console.error('Error leaving group:', err);
-      alert('Erreur : ' + err.message);
+      console.error("Error leaving group:", err);
+      alert("Erreur : " + err.message);
     }
   }
 
@@ -157,7 +154,7 @@ export default function GroupDetail({ currentUser }) {
           {error}
         </div>
         <button
-          onClick={() => navigate('/social')}
+          onClick={() => navigate("/social")}
           className="mt-4 text-primary-600 hover:underline"
         >
           ← Retour aux groupes
@@ -170,57 +167,46 @@ export default function GroupDetail({ currentUser }) {
 
   const groupType = getGroupType(group);
   const isPrivate = isPrivateGroup(group);
-  const avatarUrl = getMetadata(group, 'avatarUrl');
-  const location = getMetadata(group, 'location');
-  const tags = getMetadata(group, 'tags', []);
+  const avatarUrl = getMetadata(group, "avatarUrl");
+  const location = getMetadata(group, "location");
+  const tags = getMetadata(group, "tags", []);
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+      <div className=" rounded-lg shadow-sm p-6 mb-6">
         <div className="flex items-start gap-6">
           {avatarUrl ? (
-            <img 
-              src={avatarUrl} 
-              alt={group.name}
-              className="w-24 h-24 rounded-lg object-cover"
-            />
+            <img src={avatarUrl} alt={group.name} className="w-24 h-24 rounded-lg object-cover" />
           ) : (
             <div className="w-24 h-24 rounded-lg bg-primary-100 flex items-center justify-center text-4xl">
-              {groupType === 'neighborhood' && '🏘️'}
-              {groupType === 'association' && '🤝'}
-              {groupType === 'community' && '👥'}
-              {groupType === 'forum' && '💬'}
+              {groupType === "neighborhood" && "🏘️"}
+              {groupType === "association" && "🤝"}
+              {groupType === "community" && "👥"}
+              {groupType === "forum" && "💬"}
             </div>
           )}
 
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {group.name}
-            </h1>
-            
-            {location && (
-              <p className="text-gray-600 mb-2">📍 {location}</p>
-            )}
+            <h1 className="text-3xl font-bold text-gray-50 mb-2">{group.name}</h1>
+
+            {location && <p className="text-gray-300 mb-2">📍 {location}</p>}
 
             {tags.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-3">
                 {tags.map((tag, idx) => (
-                  <span 
-                    key={idx}
-                    className="text-sm bg-blue-50 text-blue-700 px-3 py-1 rounded"
-                  >
+                  <span key={idx} className="text-sm bg-blue-50 text-blue-700 px-3 py-1 rounded">
                     {tag}
                   </span>
                 ))}
               </div>
             )}
 
-            <p className="text-gray-600 mb-4">{group.description}</p>
+            <p className="text-gray-300 mb-4">{group.description}</p>
 
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-500">
-                {members.length} membre{members.length !== 1 ? 's' : ''}
+              <span className="text-sm text-gray-400">
+                {members.length} membre{members.length !== 1 ? "s" : ""}
               </span>
               {isPrivate && (
                 <span className="text-sm bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
@@ -235,7 +221,7 @@ export default function GroupDetail({ currentUser }) {
             {currentUser && !isMember && (
               <button
                 onClick={handleJoinGroup}
-                className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
+                className="px-4 py-2 bg-primary-600 text-bauhaus-white rounded hover:bg-primary-700"
               >
                 Rejoindre
               </button>
@@ -243,7 +229,7 @@ export default function GroupDetail({ currentUser }) {
             {isMember && !isAdmin && (
               <button
                 onClick={handleLeaveGroup}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                className="px-4 py-2 bg-gray-200 text-gray-200 rounded hover:bg-gray-300"
               >
                 Quitter
               </button>
@@ -251,7 +237,7 @@ export default function GroupDetail({ currentUser }) {
             {isAdmin && (
               <button
                 onClick={() => navigate(`/groups/${id}/edit`)}
-                className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
+                className="px-4 py-2 bg-primary-600 text-bauhaus-white rounded hover:bg-primary-700"
               >
                 Gérer
               </button>
@@ -264,38 +250,35 @@ export default function GroupDetail({ currentUser }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Posts */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className=" rounded-lg shadow-sm p-6">
             <h2 className="text-xl font-semibold mb-4">Publications</h2>
-            
+
             {isMember && (
               <button
                 onClick={() => navigate(`/posts/new?groupId=${id}`)}
-                className="w-full mb-4 px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
+                className="w-full mb-4 px-4 py-2 bg-primary-600 text-bauhaus-white rounded hover:bg-primary-700"
               >
                 + Nouvelle publication
               </button>
             )}
 
             {posts.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">
-                Aucune publication pour l'instant
-              </p>
+              <p className="text-gray-400 text-center py-8">Aucune publication pour l'instant</p>
             ) : (
               <div className="space-y-4">
-                {posts.map(post => (
-                  <div 
+                {posts.map((post) => (
+                  <div
                     key={post.id}
                     className="border border-gray-200 rounded p-4 hover:bg-gray-50 cursor-pointer"
                     onClick={() => navigate(`/posts/${post.id}`)}
                   >
-                    <h3 className="font-semibold text-gray-900 mb-2">
-                      {getMetadata(post, 'title', 'Sans titre')}
+                    <h3 className="font-semibold text-gray-50 mb-2">
+                      {getMetadata(post, "title", "Sans titre")}
                     </h3>
-                    <p className="text-gray-600 text-sm line-clamp-2 mb-2">
-                      {post.content}
-                    </p>
-                    <div className="text-xs text-gray-500">
-                      Par {getDisplayName(post.users)} • {new Date(post.created_at).toLocaleDateString('fr-FR')}
+                    <p className="text-gray-300 text-sm line-clamp-2 mb-2">{post.content}</p>
+                    <div className="text-xs text-gray-400">
+                      Par {getDisplayName(post.users)} •{" "}
+                      {new Date(post.created_at).toLocaleDateString("fr-FR")}
                     </div>
                   </div>
                 ))}
@@ -306,20 +289,20 @@ export default function GroupDetail({ currentUser }) {
 
         {/* Membres */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className=" rounded-lg shadow-sm p-6">
             <h2 className="text-xl font-semibold mb-4">Membres</h2>
             <div className="space-y-3">
-              {members.map(member => (
+              {members.map((member) => (
                 <div key={member.id} className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
                     {getUserInitial(member.users)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-sm font-medium text-gray-50 truncate">
                       {getDisplayName(member.users)}
                     </p>
-                    <p className="text-xs text-gray-500">
-                      Depuis {new Date(member.created_at).toLocaleDateString('fr-FR')}
+                    <p className="text-xs text-gray-400">
+                      Depuis {new Date(member.created_at).toLocaleDateString("fr-FR")}
                     </p>
                   </div>
                 </div>

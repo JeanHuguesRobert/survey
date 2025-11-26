@@ -1,0 +1,108 @@
+/* ==========================================================================
+   UI COMPONENTS
+   Reusable UI components (Cards, Tabs, Accordions, etc.).
+   ========================================================================== */
+
+/* Theme Card (Bauhaus Style) */
+.theme-card {
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-primary);
+  border: 2px solid var(--color-border-strong);
+  box-shadow: 4px 4px 0 0 var(--color-border-strong);
+  transition:
+    transform var(--duration-normal) var(--ease-smooth),
+    box-shadow var(--duration-normal) var(--ease-smooth);
+  padding: var(--space-6);
+}
+
+.theme-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 0 var(--color-border-strong);
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 2px solid var(--color-action-highlight);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Icon Rotated State */
+.icon-rotated {
+  transform: rotate(180deg);
+  transition: transform var(--duration-normal) var(--ease-smooth);
+}
+
+/* Success Message Box */
+.success-message {
+  border: 2px solid var(--color-status-success);
+  box-shadow: 8px 8px 0 0 var(--color-status-success);
+  color: var(--color-status-success);
+  padding: var(--space-6);
+  background: var(--color-bg-app);
+  border-radius: var(--radius-sm);
+}
+
+.success-message h2 {
+  color: var(--color-status-success);
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.success-message p {
+  color: var(--color-content-primary);
+}
+
+/* Bordered Section */
+.bordered-section {
+  border: 2px solid var(--color-border-default);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border-radius: var(--radius-sm);
+}
+
+.bordered-section-primary {
+  border-color: var(--color-action-primary);
+}
+
+.bordered-section-accent {
+  border-color: var(--color-action-accent);
+}
+
+/* Avatar Components */
+.avatar-container {
+  width: 128px;
+  height: 128px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-placeholder {
+  width: 128px;
+  height: 128px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-content-tertiary);
+  font-size: 3rem;
+}
+
+.avatar-image {
+  object-fit: cover;
+  width: 128px;
+  height: 128px;
+}

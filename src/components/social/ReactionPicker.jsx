@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
-import { REACTION_EMOJIS } from '../../lib/socialMetadata';
+import { useState, useEffect } from "react";
+import { supabase } from "../../lib/supabase";
+import { REACTION_EMOJIS } from "../../lib/socialMetadata";
 
 /**
  * Sélecteur de réactions emoji avec compteur
@@ -18,12 +18,13 @@ export default function ReactionPicker({ targetType, targetId, currentUser }) {
       // Subscribe to realtime changes
       const channel = supabase
         .channel(`reactions:${targetType}:${targetId}`)
-        .on('postgres_changes',
+        .on(
+          "postgres_changes",
           {
-            event: '*',
-            schema: 'public',
-            table: 'reactions',
-            filter: `target_type=eq.${targetType}`
+            event: "*",
+            schema: "public",
+            table: "reactions",
+            filter: `target_type=eq.${targetType}`,
           },
           () => loadReactions()
         )
@@ -40,10 +41,10 @@ export default function ReactionPicker({ targetType, targetId, currentUser }) {
       setLoading(true);
 
       const { data, error } = await supabase
-        .from('reactions')
-        .select('*')
-        .eq('target_type', targetType)
-        .eq('target_id', targetId);
+        .from("reactions")
+        .select("*")
+        .eq("target_type", targetType)
+        .eq("target_id", targetId);
 
       if (error) throw error;
 
@@ -51,11 +52,11 @@ export default function ReactionPicker({ targetType, targetId, currentUser }) {
 
       // Trouver les réactions de l'utilisateur actuel
       if (currentUser) {
-        const userReacts = (data || []).filter(r => r.user_id === currentUser.id);
-        setUserReactions(userReacts.map(r => r.emoji));
+        const userReacts = (data || []).filter((r) => r.user_id === currentUser.id);
+        setUserReactions(userReacts.map((r) => r.emoji));
       }
     } catch (err) {
-      console.error('Error loading reactions:', err);
+      console.error("Error loading reactions:", err);
     } finally {
       setLoading(false);
     }
@@ -63,70 +64,67 @@ export default function ReactionPicker({ targetType, targetId, currentUser }) {
 
   async function toggleReaction(emoji) {
     if (!currentUser) {
-      alert('Vous devez être connecté pour réagir');
+      alert("Vous devez être connecté pour réagir");
       return;
     }
 
-    console.log('toggleReaction called', { emoji, currentUser: currentUser.id, targetType, targetId });
+    console.log("toggleReaction called", {
+      emoji,
+      currentUser: currentUser.id,
+      targetType,
+      targetId,
+    });
 
     try {
       // Check if user already reacted with this emoji
-      const existing = reactions.find(
-        r => r.user_id === currentUser.id && r.emoji === emoji
-      );
+      const existing = reactions.find((r) => r.user_id === currentUser.id && r.emoji === emoji);
 
-      console.log('Existing reaction:', existing);
+      console.log("Existing reaction:", existing);
 
       if (existing) {
         // Remove reaction
-        console.log('Removing reaction', existing.id);
-        const { error } = await supabase
-          .from('reactions')
-          .delete()
-          .eq('id', existing.id);
+        console.log("Removing reaction", existing.id);
+        const { error } = await supabase.from("reactions").delete().eq("id", existing.id);
 
         if (error) {
-          console.error('Delete error:', error);
+          console.error("Delete error:", error);
           throw error;
         }
-        console.log('Reaction removed successfully');
+        console.log("Reaction removed successfully");
       } else {
         // Add reaction
-        console.log('Adding new reaction');
+        console.log("Adding new reaction");
         const newReaction = {
           user_id: currentUser.id,
           target_type: targetType,
           target_id: targetId,
           emoji,
-          metadata: { schemaVersion: 1 }
+          metadata: { schemaVersion: 1 },
         };
-        console.log('Insert data:', newReaction);
+        console.log("Insert data:", newReaction);
 
-        const { error, data } = await supabase
-          .from('reactions')
-          .insert(newReaction)
-          .select();
+        const { error, data } = await supabase.from("reactions").insert(newReaction).select();
 
-        console.log('Insert completed, error:', error, 'data:', data);
+        console.log("Insert completed, error:", error, "data:", data);
 
         if (error) {
-          console.error('Insert error:', error);
+          console.error("Insert error:", error);
           throw error;
         }
-        console.log('Reaction added successfully:', data);
+        console.log("Reaction added successfully:", data);
       }
 
       await loadReactions();
       setShowPicker(false);
     } catch (err) {
-      console.error('Error toggling reaction:', err);
-      alert('Erreur : ' + err.message + '\n\nVoir la console pour plus de détails.');
+      console.error("Error toggling reaction:", err);
+      alert("Erreur : " + err.message + "\n\nVoir la console pour plus de détails.");
     }
   }
 
   // Compter les réactions par emoji
   const reactionCounts = {};
-  reactions.forEach(r => {
+  reactions.forEach((r) => {
     reactionCounts[r.emoji] = (reactionCounts[r.emoji] || 0) + 1;
   });
 
@@ -143,10 +141,11 @@ export default function ReactionPicker({ targetType, targetId, currentUser }) {
           <button
             key={emoji}
             onClick={() => toggleReaction(emoji)}
-            className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors ${hasReacted
-              ? 'bg-primary-100 text-primary-700 border border-primary-300'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+            className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors ${
+              hasReacted
+                ? "bg-primary-100 text-primary-700 border border-primary-300"
+                : "bg-gray-100 text-gray-300 hover:bg-gray-200"
+            }`}
           >
             <span>{emoji}</span>
             <span className="font-medium">{count}</span>
@@ -162,18 +161,19 @@ export default function ReactionPicker({ targetType, targetId, currentUser }) {
             className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-sm transition-colors"
             title="Ajouter une réaction"
           >
-            {showPicker ? '✕' : '😀'}
+            {showPicker ? "✕" : "😀"}
           </button>
 
           {/* Emoji picker popup */}
           {showPicker && (
-            <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-lg p-2 flex gap-1 z-10">
-              {Object.values(REACTION_EMOJIS).map(emoji => (
+            <div className="absolute bottom-full left-0 mb-2  border border-gray-200 rounded-lg shadow-lg p-2 flex gap-1 z-10">
+              {Object.values(REACTION_EMOJIS).map((emoji) => (
                 <button
                   key={emoji}
                   onClick={() => toggleReaction(emoji)}
-                  className={`w-8 h-8 rounded hover:bg-gray-100 flex items-center justify-center text-lg transition-colors ${userReactions.includes(emoji) ? 'bg-primary-50' : ''
-                    }`}
+                  className={`w-8 h-8 rounded hover:bg-gray-100 flex items-center justify-center text-lg transition-colors ${
+                    userReactions.includes(emoji) ? "bg-primary-50" : ""
+                  }`}
                   title={emoji}
                 >
                   {emoji}

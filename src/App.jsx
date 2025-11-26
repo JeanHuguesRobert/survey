@@ -1,76 +1,109 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Routes, Route, Link, useNavigate, useParams, useLocation } from 'react-router-dom';
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import Methodologie from './pages/Methodologie';
-import { APP_VERSION, DEPLOY_DATE, GOOGLE_SCRIPT_URL, COLORS, PRIMARY_COLOR, SECONDARY_COLOR, CITY_NAME, CITY_TAGLINE, MOVEMENT_NAME, PARTY_NAME, HASHTAG, VOLUNTEER_URL, COMMUNITY_NAME, COMMUNITY_TYPE, getCommunityLabels } from './constants';
-import { getCommunityQuestionnaireModules, generateInitialFormState } from './config/questionnaireModules';
-import Audit from './pages/Audit';
-import Kudocracy from './pages/Kudocracy';
-import Wiki from './pages/Wiki';
-import WikiPage from './pages/WikiPage';
-import WikiCreate from './pages/WikiCreate';
-import WikiEdit from './pages/WikiEdit';
-import Bob from './pages/Bob';
-import Proposition from './pages/Proposition';
-import Transparence from './pages/Transparence';
-import Survey from './pages/Survey';
+// src/App.jsx
+
+import { useState, useEffect } from "react";
+import { Routes, Route, Link } from "react-router-dom";
+import {
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import Methodologie from "./pages/Methodologie";
+import GestureHeaderMenu from "./components/layout/GestureHeaderMenu";
+import {
+  GOOGLE_SCRIPT_URL,
+  COLORS,
+  CITY_NAME,
+  CITY_TAGLINE,
+  MOVEMENT_NAME,
+  PARTY_NAME,
+  HASHTAG,
+  COMMUNITY_NAME,
+  COMMUNITY_TYPE,
+  getCommunityLabels,
+} from "./constants";
+import {
+  getCommunityQuestionnaireModules,
+  generateInitialFormState,
+} from "./config/questionnaireModules";
+import Audit from "./pages/Audit";
+import Kudocracy from "./pages/Kudocracy";
+import Wiki from "./pages/Wiki";
+import WikiPage from "./pages/WikiPage";
+import WikiCreate from "./pages/WikiCreate";
+import WikiEdit from "./pages/WikiEdit";
+import Bob from "./pages/Bob";
+import Proposition from "./pages/Proposition";
+import Transparence from "./pages/Transparence";
+import Survey from "./pages/Survey";
 import SiteFooter from "./components/layout/SiteFooter";
 import { LegalPage } from "./components/common/LegalLinks";
 import PublicBrowser from "./components/features/PublicBrowser";
-import Social from './pages/Social';
-import GroupPage from './pages/GroupPage';
-import GroupCreate from './pages/GroupCreate';
-import PostPage from './pages/PostPage';
-import PostCreate from './pages/PostCreate';
-import UserProfile from './pages/UserProfile';
-import VotingDashboard from './pages/VotingDashboard';
-import UserDashboard from './pages/UserDashboard';
-import GlobalDashboard from './pages/GlobalDashboard';
-import WikiDashboard from './pages/WikiDashboard';
-import SocialDashboard from './pages/SocialDashboard';
-import SubscriptionFeed from './pages/SubscriptionFeed';
-import { supabase } from './lib/supabase';
-import { SupabaseProvider, useSupabase } from './contexts/SupabaseContext';
-import AuthModal from './components/common/AuthModal';
-import ConnectionBanner from './components/common/ConnectionBanner';
-import GlobalStatusIndicator from './components/common/GlobalStatusIndicator';
-import JobMonitorDemo from './components/examples/JobMonitorDemo';
-import Contact from './pages/Contact';
+import Social from "./pages/Social";
+import GroupPage from "./pages/GroupPage";
+import GroupCreate from "./pages/GroupCreate";
+import PostPage from "./pages/PostPage";
+import PostCreate from "./pages/PostCreate";
+import UserProfile from "./pages/UserProfile";
+import VotingDashboard from "./pages/VotingDashboard";
+import UserDashboard from "./pages/UserDashboard";
+import GlobalDashboard from "./pages/GlobalDashboard";
+import WikiDashboard from "./pages/WikiDashboard";
+import SocialDashboard from "./pages/SocialDashboard";
+import SubscriptionFeed from "./pages/SubscriptionFeed";
+import { supabase } from "./lib/supabase";
+import { useCurrentUser } from "./lib/useCurrentUser";
+import AuthModal from "./components/common/AuthModal";
+import GlobalStatusIndicator from "./components/common/GlobalStatusIndicator";
+import JobMonitorDemo from "./components/examples/JobMonitorDemo";
+import Contact from "./pages/Contact";
+import DataCollector from "./pages/DataCollector";
+import DataReview from "./pages/admin/DataReview";
 
-export default function ConsultationPertitellu() {
-  const [page, setPage] = useState('form');
+export default function Consultation() {
+  // Feature flag for gesture header menu
+  const USE_GESTURE_HEADER_MENU = true; // Set to false to revert to modal hamburger
+  const [page, setPage] = useState("form");
   const baseInitialState = generateInitialFormState(COMMUNITY_TYPE);
   const [formData, setFormData] = useState({
     ...baseInitialState,
     satisfactionDemocratie: baseInitialState.satisfactionDemocratie ?? 3,
     declinVille: 3,
-    favorableReferendum: '',
+    favorableReferendum: "",
     sujetsReferendum: [],
-    inscritListe: '',
-    quartier: '',
-    age: '',
-    dureeHabitation: '',
-    email: '',
+    inscritListe: "",
+    quartier: "",
+    age: "",
+    dureeHabitation: "",
+    email: "",
     participationEtudeIA: false,
-    horaireConseil: '',
-    commentaire: ''
+    horaireConseil: "",
+    commentaire: "",
   });
-
   const [responses, setResponses] = useState([]);
   const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [hasConsent, setHasConsent] = useState(null);
-  const [isClearingHistory, setIsClearingHistory] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
+  const [error, setError] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isFormOpen, setIsFormOpen] = useState(true);
+  const [isFormOpen, setIsFormOpen] = useState(() => {
+    const saved = localStorage.getItem("formOpen");
+    return saved !== null ? JSON.parse(saved) : true;
+  });
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const { currentUser } = useSupabase();
-  const { connectionError, connectionState, realtimeStatus, authEvent, testConnection } = useSupabase();
-  const isCorte = String(CITY_NAME || '').toLowerCase() === 'corte';
+  const { currentUser, loading, error: userError, userStatus } = useCurrentUser();
+  const isCorte = String(CITY_NAME || "").toLowerCase() === "corte";
   const modules = getCommunityQuestionnaireModules(COMMUNITY_TYPE);
+
+  // Persist form open/closed state
+  useEffect(() => {
+    localStorage.setItem("formOpen", JSON.stringify(isFormOpen));
+  }, [isFormOpen]);
 
   // Charger les réponses depuis Google Sheets
   useEffect(() => {
@@ -83,85 +116,80 @@ export default function ConsultationPertitellu() {
       const data = await response.json();
 
       if (data.success && data.data) {
-        const formattedResponses = data.data.map(row => ({
-          connaissanceQuasquara: row['Connaissance Quasquara'] || '',
-          positionQuasquara: row['Position Quasquara'] || '',
-          quiDecide: row['Qui décide'] || '',
-          satisfactionDemocratie: parseInt(row['Satisfaction Démocratie']) || 3,
-          favorableReferendum: row['Favorable Référendum'] || '',
-          horaireConseil: row['Horaire Conseil'] || '',
-          declinVille: parseInt(row['Déclin Ville']) || 3, // Correction du parsing
-          sujetsReferendum: row['Sujets Référendum'] ? row['Sujets Référendum'].split(', ') : [],
-          age: row['Âge'] || '',
-          dureeHabitation: row['Durée Habitation'] || ''
+        const formattedResponses = data.data.map((row) => ({
+          connaissanceQuasquara: row["Connaissance Quasquara"] || "",
+          positionQuasquara: row["Position Quasquara"] || "",
+          quiDecide: row["Qui décide"] || "",
+          satisfactionDemocratie: parseInt(row["Satisfaction Démocratie"]) || 3,
+          favorableReferendum: row["Favorable Référendum"] || "",
+          horaireConseil: row["Horaire Conseil"] || "",
+          declinVille: parseInt(row["Déclin Ville"]) || 3,
+          sujetsReferendum: row["Sujets Référendum"] ? row["Sujets Référendum"].split(", ") : [],
+          age: row["Âge"] || "",
+          dureeHabitation: row["Durée Habitation"] || "",
         }));
         setResponses(formattedResponses);
       }
     } catch (err) {
-      console.error('Erreur chargement:', err);
+      console.error("Erreur chargement:", err);
       // En cas d'erreur, utiliser des données de démo
       setResponses([
         {
-          connaissanceQuasquara: 'Oui',
-          positionQuasquara: 'Maintien',
-          quiDecide: 'Référendum des habitants',
+          connaissanceQuasquara: "Oui",
+          positionQuasquara: "Maintien",
+          quiDecide: "Référendum des habitants",
           satisfactionDemocratie: 2,
-          favorableReferendum: 'Oui',
-          sujetsReferendum: ['culture', 'patrimoine'],
-          age: '41-60',
-          dureeHabitation: '>10 ans'
-        }
+          favorableReferendum: "Oui",
+          sujetsReferendum: ["culture", "patrimoine"],
+          age: "41-60",
+          dureeHabitation: ">10 ans",
+        },
       ]);
     }
   };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    if (type === 'checkbox' && name === 'sujetsReferendum') {
-      setFormData(prev => ({
+    if (type === "checkbox" && name === "sujetsReferendum") {
+      setFormData((prev) => ({
         ...prev,
         sujetsReferendum: checked
           ? [...prev.sujetsReferendum, value]
-          : prev.sujetsReferendum.filter(s => s !== value)
+          : prev.sujetsReferendum.filter((s) => s !== value),
       }));
-    } else if (type === 'checkbox') {
-      setFormData(prev => ({ ...prev, [name]: checked }));
+    } else if (type === "checkbox") {
+      setFormData((prev) => ({ ...prev, [name]: checked }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
   const handleSubmit = async () => {
-    // Soumission sans validation spécifique aux anciens champs pour permettre des modules agnostiques
-
-    setLoading(true);
-    setError('');
+    setFormLoading(true);
+    setError("");
 
     try {
       const response = await fetch(GOOGLE_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
+        method: "POST",
+        mode: "no-cors",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       });
 
-      // Avec no-cors, on ne peut pas lire la réponse, on assume que ça a fonctionné
       setSubmitted(true);
 
-      // Recharger les données après 2 secondes
       setTimeout(async () => {
         await loadResponses();
-        setPage('results');
+        setPage("results");
         setSubmitted(false);
-        setLoading(false);
+        setFormLoading(false);
       }, 2000);
-
     } catch (err) {
-      console.error('Erreur soumission:', err);
-      setError('Erreur lors de l\'envoi. Veuillez réessayer.');
-      setLoading(false);
+      console.error("Erreur soumission:", err);
+      setError("Erreur lors de l'envoi. Veuillez réessayer.");
+      setFormLoading(false);
     }
   };
 
@@ -169,42 +197,59 @@ export default function ConsultationPertitellu() {
     if (responses.length === 0) return null;
 
     const connaissanceData = [
-      { name: 'Oui', value: responses.filter(r => r.connaissanceQuasquara === 'Oui').length },
-      { name: 'Non', value: responses.filter(r => r.connaissanceQuasquara === 'Non').length }
+      { name: "Oui", value: responses.filter((r) => r.connaissanceQuasquara === "Oui").length },
+      { name: "Non", value: responses.filter((r) => r.connaissanceQuasquara === "Non").length },
     ];
 
     const positionData = [
-      { name: 'Maintien', value: responses.filter(r => r.positionQuasquara === 'Maintien').length },
-      { name: 'Retrait', value: responses.filter(r => r.positionQuasquara === 'Retrait').length },
-      { name: 'Sans avis', value: responses.filter(r => r.positionQuasquara === 'Sans').length }
+      {
+        name: "Maintien",
+        value: responses.filter((r) => r.positionQuasquara === "Maintien").length,
+      },
+      { name: "Retrait", value: responses.filter((r) => r.positionQuasquara === "Retrait").length },
+      { name: "Sans avis", value: responses.filter((r) => r.positionQuasquara === "Sans").length },
     ];
 
     const decisionData = [
-      { name: 'Justice', value: responses.filter(r => r.quiDecide === 'Justice').length },
-      { name: 'Élus locaux', value: responses.filter(r => r.quiDecide === 'Élus locaux').length },
-      { name: 'Référendum', value: responses.filter(r => r.quiDecide === 'Référendum des habitants').length },
-      { name: 'Autre', value: responses.filter(r => r.quiDecide === 'Autre').length }
+      { name: "Justice", value: responses.filter((r) => r.quiDecide === "Justice").length },
+      { name: "Élus locaux", value: responses.filter((r) => r.quiDecide === "Élus locaux").length },
+      {
+        name: "Référendum",
+        value: responses.filter((r) => r.quiDecide === "Référendum des habitants").length,
+      },
+      { name: "Autre", value: responses.filter((r) => r.quiDecide === "Autre").length },
     ];
 
     const horaireConseilData = [
-      { name: 'Oui', value: responses.filter(r => r.horaireConseil === 'Oui').length },
-      { name: 'Non', value: responses.filter(r => r.horaireConseil === 'Non').length },
-      { name: 'Je ne sais pas', value: responses.filter(r => r.horaireConseil === 'Je ne sais pas').length },
-      { name: 'Je préfère ne pas répondre', value: responses.filter(r => r.horaireConseil === 'Je préfère ne pas répondre').length }
+      { name: "Oui", value: responses.filter((r) => r.horaireConseil === "Oui").length },
+      { name: "Non", value: responses.filter((r) => r.horaireConseil === "Non").length },
+      {
+        name: "Je ne sais pas",
+        value: responses.filter((r) => r.horaireConseil === "Je ne sais pas").length,
+      },
+      {
+        name: "Je préfère ne pas répondre",
+        value: responses.filter((r) => r.horaireConseil === "Je préfère ne pas répondre").length,
+      },
     ];
 
-    const satisfactionMoyenne = responses.reduce((acc, r) => acc + r.satisfactionDemocratie, 0) / responses.length;
-    const declinMoyen = responses.reduce((acc, r) => acc + parseInt(r.declinVille || 3), 0) / responses.length;
+    const satisfactionMoyenne =
+      responses.reduce((acc, r) => acc + r.satisfactionDemocratie, 0) / responses.length;
+    const declinMoyen =
+      responses.reduce((acc, r) => acc + parseInt(r.declinVille || 3), 0) / responses.length;
 
     const referendumData = [
-      { name: 'Oui', value: responses.filter(r => r.favorableReferendum === 'Oui').length },
-      { name: 'Non', value: responses.filter(r => r.favorableReferendum === 'Non').length },
-      { name: 'Selon sujets', value: responses.filter(r => r.favorableReferendum === 'Selon').length }
+      { name: "Oui", value: responses.filter((r) => r.favorableReferendum === "Oui").length },
+      { name: "Non", value: responses.filter((r) => r.favorableReferendum === "Non").length },
+      {
+        name: "Selon sujets",
+        value: responses.filter((r) => r.favorableReferendum === "Selon").length,
+      },
     ];
 
     const sujetsCount = {};
-    responses.forEach(r => {
-      r.sujetsReferendum.forEach(sujet => {
+    responses.forEach((r) => {
+      r.sujetsReferendum.forEach((sujet) => {
         sujetsCount[sujet] = (sujetsCount[sujet] || 0) + 1;
       });
     });
@@ -214,12 +259,12 @@ export default function ConsultationPertitellu() {
       connaissanceData,
       positionData,
       decisionData,
-      horaireConseilData, // Ajout des données pour Horaire Conseil
+      horaireConseilData,
       satisfactionMoyenne,
       declinMoyen,
       referendumData,
       sujetsData,
-      totalResponses: responses.length
+      totalResponses: responses.length,
     };
   };
 
@@ -227,948 +272,975 @@ export default function ConsultationPertitellu() {
     const shareData = {
       title: `Consultation citoyenne ${MOVEMENT_NAME}`,
       text: `Participez à la consultation citoyenne sur la démocratie locale à ${CITY_NAME}`,
-      url: window.location.href
+      url: window.location.href,
     };
 
     try {
       if (navigator.share) {
         await navigator.share(shareData);
       } else {
-        // Fallback: copier le lien dans le presse-papier
         await navigator.clipboard.writeText(window.location.href);
-        alert('Lien copié dans le presse-papier !');
+        alert("Lien copié dans le presse-papier !");
       }
     } catch (err) {
-      console.error('Erreur lors du partage:', err);
+      console.error("Erreur lors du partage:", err);
     }
   };
 
   const closeMenu = () => setIsMenuOpen(false);
 
-  const stats = calculateStats();  // Ajout de cette ligne au niveau des autres déclarations d'état
+  const stats = calculateStats();
 
-  if (page === 'form') {
+  if (page === "form") {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <a href="#mainContent" className="sr-only focus:not-sr-only fixed top-2 left-2 z-50 px-3 py-2 rounded-md bg-white text-slate-900 shadow">Aller au contenu principal</a>
-        <ConnectionBanner connectionError={connectionError} connectionState={connectionState} realtimeStatus={realtimeStatus} authEvent={authEvent} onRetry={testConnection} />
-        <div className="bg-white shadow-sm">
-          <div className="max-w-4xl mx-auto px-4 py-6">
-            <div className="flex items-start justify-between">
-              <button
-                type="button"
-                className="group flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white/80 text-slate-700 shadow-sm backdrop-blur transition hover:bg-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-400"
-                aria-label={isMenuOpen ? "Fermer la navigation" : "Ouvrir la navigation"}
-                aria-expanded={isMenuOpen}
-                aria-controls="mainNav"
-                onClick={() => setIsMenuOpen((prev) => !prev)}
-              >
-                <div className="relative h-6 w-6">
-                  <span
-                    className={`absolute left-1 top-1 block h-0.5 w-4 rounded-sm bg-secondary transition-transform duration-300 ${isMenuOpen ? 'translate-y-2 rotate-45' : ''}`}
-                  />
-                  <span
-                    className={`absolute left-1 top-2.5 block h-0.5 w-4 rounded-sm bg-secondary transition-opacity duration-300 ${isMenuOpen ? 'opacity-0' : 'opacity-100'}`}
-                  />
-                  <span
-                    className={`absolute left-1 top-4 block h-0.5 w-4 rounded-sm bg-secondary transition-transform duration-300 ${isMenuOpen ? '-translate-y-2 -rotate-45' : ''}`}
-                  />
-                </div>
-                <span className="sr-only">{isMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}</span>
-              </button>
-
-              <div className="text-center flex-1">
-                <div className="mb-4">
-                  <div className="text-5xl font-bold text-primary">
-                    {HASHTAG}
+      <div className="app-shell">
+        <a href="#mainContent" className="skip-link">
+          Aller au contenu principal
+        </a>
+        {USE_GESTURE_HEADER_MENU ? (
+          <GestureHeaderMenu />
+        ) : (
+          <>
+            <header className="site-header">
+              <div className="site-header-inner">
+                <button
+                  type="button"
+                  className="nav-toggle"
+                  aria-label={isMenuOpen ? "Fermer la navigation" : "Ouvrir la navigation"}
+                  aria-expanded={isMenuOpen}
+                  aria-controls="mainNav"
+                  onClick={() => setIsMenuOpen((prev) => !prev)}
+                >
+                  <div className="relative h-6 w-6">
+                    <span
+                      className={`absolute left-1 top-1 block h-0.5 w-4 rounded-sm bg-light transition-transform duration-300 ${isMenuOpen ? "translate-y-2 rotate-45" : ""}`}
+                    />
+                    <span
+                      className={`absolute left-1 top-2.5 block h-0.5 w-4 rounded-sm bg-light transition-opacity duration-300 ${isMenuOpen ? "opacity-0" : "opacity-100"}`}
+                    />
+                    <span
+                      className={`absolute left-1 top-4 block h-0.5 w-4 rounded-sm bg-light transition-transform duration-300 ${isMenuOpen ? "-translate-y-2 -rotate-45" : ""}`}
+                    />
                   </div>
-                  <div className="h-1 my-3 max-w-2xl mx-auto bg-secondary"></div>
-                  <div className="text-4xl font-bold text-secondary">
-                    {String(CITY_NAME).toUpperCase()}<br />{CITY_TAGLINE}
-                  </div>
-                </div>
+                  <span className="sr-only">
+                    {isMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+                  </span>
+                </button>
               </div>
+            </header>
+            {isMenuOpen && (
+              <div className="nav-overlay" onClick={closeMenu}>
+                <nav
+                  id="mainNav"
+                  role="navigation"
+                  aria-labelledby="navTitle"
+                  className="nav-panel theme-card"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <span id="navTitle" className="nav-title">
+                      Navigation {MOVEMENT_NAME}
+                    </span>
+                    <button
+                      type="button"
+                      className="nav-toggle"
+                      onClick={closeMenu}
+                      aria-label="Fermer"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.8}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                  <ul className="nav-list">
+                    <li className="nav-item">
+                      <Link to="/" onClick={closeMenu} className="nav-link">
+                        Consultation
+                      </Link>
+                    </li>
+                    <li className="nav-item">
+                      <Link to="/kudocracy" onClick={closeMenu} className="nav-link">
+                        Propositions
+                      </Link>
+                    </li>
+                    <li className="nav-item">
+                      <Link to="/wiki" onClick={closeMenu} className="nav-link">
+                        Wiki
+                      </Link>
+                    </li>
+                    <li className="nav-item">
+                      <Link to="/bob" onClick={closeMenu} className="nav-link">
+                        Ophélia
+                      </Link>
+                    </li>
+                    <li className="nav-item">
+                      <Link to="/social" onClick={closeMenu} className="nav-link">
+                        Café
+                      </Link>
+                    </li>
+                    <li className="nav-item">
+                      <Link to="/transparence" onClick={closeMenu} className="nav-link">
+                        Transparence
+                      </Link>
+                    </li>
+                    <li className="nav-item">
+                      <Link to="/methodologie" onClick={closeMenu} className="nav-link">
+                        Méthodologie
+                      </Link>
+                    </li>
+                    <li className="nav-item">
+                      <Link to="/audit" onClick={closeMenu} className="nav-link">
+                        Audit
+                      </Link>
+                    </li>
+                    <li className="nav-item">
+                      <Link to="/global-dashboard" onClick={closeMenu} className="nav-link">
+                        📊 Tableau de bord
+                      </Link>
+                    </li>
+                    <li className="nav-item">
+                      <Link to="/wiki-dashboard" onClick={closeMenu} className="nav-link">
+                        📖 Vos contributions Wiki
+                      </Link>
+                    </li>
+                    <li className="nav-item">
+                      <Link to="/social-dashboard" onClick={closeMenu} className="nav-link">
+                        💬 Vos contributions sociales
+                      </Link>
+                    </li>
+                    {currentUser && (
+                      <li className="nav-item">
+                        <Link to="/subscriptions" onClick={closeMenu} className="nav-link">
+                          🔔 Vos abonnements
+                        </Link>
+                      </li>
+                    )}
+                  </ul>
+                  <div className="mt-4 pt-4 border-t border-gray-700">
+                    {currentUser ? (
+                      <div className="px-3 py-2">
+                        <div className="text-xs text-gray-400 mb-2">👤 Connecté en tant que:</div>
+                        <div className="text-sm font-medium text-light mb-3">
+                          {currentUser.display_name || currentUser.email}
+                        </div>
+                        <Link
+                          to="/user-dashboard"
+                          onClick={closeMenu}
+                          className="block w-full px-3 py-2 mb-2 text-sm text-center bg-primary text-light font-bold border-2 border-light hover:bg-primary hover:opacity-90"
+                        >
+                          Votre tableau de bord
+                        </Link>
+                        <button
+                          onClick={async () => {
+                            await supabase.auth.signOut();
+                            closeMenu();
+                          }}
+                          className="w-full px-3 py-2 text-sm bg-accent text-light font-bold border-2 border-light hover:opacity-90"
+                        >
+                          Déconnexion
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setShowAuthModal(true);
+                          closeMenu();
+                        }}
+                        className="w-full px-3 py-2 text-sm bg-highlight text-dark font-bold border-2 border-dark hover:opacity-90"
+                      >
+                        🔐 Connexion / Inscription
+                      </button>
+                    )}
+                  </div>
+                  <div className="mt-6 text-xs text-gray-400">
+                    {PARTY_NAME} — {MOVEMENT_NAME} {CITY_NAME} © {new Date().getFullYear()}
+                  </div>
+                </nav>
+              </div>
+            )}
+          </>
+        )}
+        <div className="max-w-6xl mx-auto px-4 py-6">
+          <div className="text-center">
+            <div className="text-5xl font-bold text-primary">{HASHTAG}</div>
+            <div className="h-1 my-3 max-w-2xl mx-auto bg-highlight"></div>
+            <div className="text-4xl font-bold text-accent">
+              {String(CITY_NAME).toUpperCase()}
+              <br />
+              {CITY_TAGLINE}
             </div>
           </div>
         </div>
-
-        {isMenuOpen && (
-          <div
-            className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm"
-            onClick={closeMenu}
-          >
-            <nav
-              id="mainNav"
-              role="navigation"
-              aria-labelledby="navTitle"
-              className="absolute left-1/2 top-6 w-[90%] max-w-sm -translate-x-1/2 rounded-2xl bg-white p-6 shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <span id="navTitle" className="text-lg font-semibold text-slate-800">Navigation {MOVEMENT_NAME}</span>
-                <button
-                  type="button"
-                  className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100"
-                  onClick={closeMenu}
-                  aria-label="Fermer"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <ul className="space-y-3 text-left text-sm font-semibold text-slate-700">
-                <li>
-                  <Link to="/" onClick={closeMenu} className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-100">
-                    Consultation citoyenne
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/kudocracy" onClick={closeMenu} className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-100">
-                    Propositions Kudocracy
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/wiki" onClick={closeMenu} className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-100">
-                    Wiki collaboratif
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/bob" onClick={closeMenu} className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-100">
-                    IA Ophélia
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/social" onClick={closeMenu} className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-100">
-                    Café
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/transparence" onClick={closeMenu} className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-100">
-                    Transparence nationale
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/methodologie" onClick={closeMenu} className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-100">
-                    Méthodologie
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/audit" onClick={closeMenu} className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-100">
-                    Audit éthique
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/global-dashboard" onClick={closeMenu} className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-100">
-                    📊 Tableau de bord global
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/wiki-dashboard" onClick={closeMenu} className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-100">
-                    📖 Vos contributions Wiki
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/social-dashboard" onClick={closeMenu} className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-100">
-                    💬 Vos contributions sociales
-                  </Link>
-                </li>
-                {currentUser && (
-                  <li>
-                    <Link to="/subscriptions" onClick={closeMenu} className="flex items-center rounded-lg px-3 py-2 hover:bg-slate-100">
-                      🔔 Mes abonnements
-                    </Link>
-                  </li>
-                )}
-              </ul>
-
-              {/* Auth section */}
-              <div className="mt-4 pt-4 border-t border-slate-200">
-                {currentUser ? (
-                  <div className="px-3 py-2">
-                    <div className="text-xs text-slate-500 mb-2">👤 Connecté en tant que:</div>
-                    <div className="text-sm font-medium text-slate-700 mb-3">
-                      {currentUser.display_name || currentUser.email}
-                    </div>
-                    <Link
-                      to="/user-dashboard"
-                      onClick={closeMenu}
-                      className="block w-full px-3 py-2 mb-2 text-sm text-center bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200"
-                    >
-                      Votre tableau de bord
-                    </Link>
-                    <button
-                      onClick={async () => {
-                        await supabase.auth.signOut();
-                        closeMenu();
-                      }}
-                      className="w-full px-3 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200"
-                    >
-                      Déconnexion
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => {
-                      setShowAuthModal(true);
-                      closeMenu();
-                    }}
-                    className="w-full px-3 py-2 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-semibold"
-                  >
-                    🔐 Connexion / Inscription
-                  </button>
-                )}
-              </div>
-
-              <div className="mt-6 text-xs text-slate-500">
-                {PARTY_NAME} — {MOVEMENT_NAME} {CITY_NAME} © {new Date().getFullYear()}
-              </div>
-            </nav>
-          </div>
-        )}
-
-        <div className="max-w-3xl mx-auto px-4 py-8">
+        <main className="landing-main">
           {submitted ? (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-8 text-center">
-              <h2 className="text-2xl font-bold text-green-800 mb-2">Merci pour votre participation !</h2>
-              <p className="text-green-700">Votre réponse a été enregistrée. Redirection vers les résultats...</p>
+            <div className="theme-card success-message">
+              <h2>Merci pour votre participation !</h2>
+              <p>Votre réponse a été enregistrée. Redirection vers les résultats...</p>
             </div>
           ) : (
-            <>
-              <div className="rounded-lg shadow-md overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => setIsFormOpen((open) => !open)}
-                  className="flex w-full items-center justify-between bg-slate-100 px-6 py-4 text-left text-lg font-semibold text-slate-800 transition hover:bg-slate-200"
+            <div className="landing-card">
+              <button
+                type="button"
+                onClick={() => setIsFormOpen((open) => !open)}
+                className="landing-card-header"
+              >
+                <span>Questionnaire citoyen {MOVEMENT_NAME}</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className={`h-5 w-5 transition-transform ${isFormOpen ? "rotate-180" : ""}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
                 >
-                  <span>Questionnaire citoyen {MOVEMENT_NAME}</span>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className={`h-5 w-5 transition-transform ${isFormOpen ? 'rotate-180' : ''}`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.8}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
 
-                {isFormOpen && isCorte && (
-                  <div id="mainContent" className="bg-white p-8">
-                    <h1 className="text-3xl font-bold text-gray-800 mb-2">Consultation {getCommunityLabels().citizens} sur la démocratie locale</h1>
-                    <p className="text-gray-600 mb-6">Une initiative {MOVEMENT_NAME} pour la {getCommunityLabels().name} de {COMMUNITY_NAME}</p>
+              {isFormOpen && isCorte && (
+                <div id="mainContent" className="landing-card-body">
+                  <h1 className="page-title">
+                    Consultation {getCommunityLabels().citizens} sur la démocratie locale
+                  </h1>
+                  <p className="section-description">
+                    Une initiative {MOVEMENT_NAME} pour la {getCommunityLabels().name} de{" "}
+                    {COMMUNITY_NAME}
+                  </p>
 
-                    {error && (
-                      <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-red-700">
-                        {error}
-                      </div>
-                    )}
+                  {error && (
+                    <div className="bg-accent border-2 border-accent p-4 mb-6 text-light">
+                      {error}
+                    </div>
+                  )}
 
-                    <div className="space-y-8">
-                      {/* Modules de questionnaire dynamiques basés sur le type de communauté */}
-                      <div className="mb-8">
-                        <h2 className="text-xl font-bold text-gray-800 mb-4">{modules.title}</h2>
-                        {modules.modules.map((module) => (
-                          <div key={module.id} className="mb-6">
-                            <h3 className="text-lg font-semibold text-gray-800 mb-2">{module.title}</h3>
-                            {module.questions.map((q) => (
-                              <div key={q.id} className="mb-4">
-                                <label className="block text-gray-700 font-medium mb-2">
-                                  {q.label}
-                                </label>
-                                {/* Radios */}
-                                {q.type === 'radio' && (
-                                  <div className="space-y-2">
-                                    {q.options.map((opt) => (
-                                      <label key={opt} className="flex items-center cursor-pointer">
+                  <div className="landing-content">
+                    {/* Modules de questionnaire dynamiques */}
+                    <div className="question-set">
+                      <h2 className="section-title">{modules.title}</h2>
+                      {modules.modules.map((module) => (
+                        <div key={module.id} className="question-group">
+                          <h3 className="subsection-title">{module.title}</h3>
+                          {module.questions.map((q) => (
+                            <div key={q.id} className="question-group">
+                              <label className="form-label">{q.label}</label>
+                              {q.type === "radio" && (
+                                <div className="choice-group">
+                                  {q.options.map((opt) => (
+                                    <label key={opt} className="choice-label">
+                                      <input
+                                        type="radio"
+                                        name={q.id}
+                                        value={opt}
+                                        checked={formData[q.id] === opt}
+                                        onChange={handleInputChange}
+                                      />
+                                      {opt}
+                                    </label>
+                                  ))}
+                                </div>
+                              )}
+                              {q.type === "scale" && (
+                                <div>
+                                  <div className="md:hidden">
+                                    <select
+                                      name={q.id}
+                                      value={formData[q.id] ?? 3}
+                                      onChange={handleInputChange}
+                                      className="w-full"
+                                    >
+                                      <option value="1">{q.labels?.[0] || "1"}</option>
+                                      <option value="2">{q.labels?.[1] || "2"}</option>
+                                      <option value="3">{q.labels?.[2] || "3"}</option>
+                                      <option value="4">{q.labels?.[3] || "4"}</option>
+                                      <option value="5">{q.labels?.[4] || "5"}</option>
+                                    </select>
+                                  </div>
+                                  <div className="hidden md:flex items-center space-x-4">
+                                    <span className="hint-text">{q.labels?.[0] || "1"}</span>
+                                    {[1, 2, 3, 4, 5].map((num) => (
+                                      <label key={num} className="choice-label">
                                         <input
                                           type="radio"
                                           name={q.id}
-                                          value={opt}
-                                          checked={formData[q.id] === opt}
+                                          value={num}
+                                          checked={Number(formData[q.id] ?? 3) === num}
                                           onChange={handleInputChange}
-                                          className="mr-2"
                                         />
-                                        {opt}
+                                        {num}
                                       </label>
                                     ))}
+                                    <span className="hint-text">{q.labels?.[4] || "5"}</span>
                                   </div>
-                                )}
-                                {/* Échelle 1-5 */}
-                                {q.type === 'scale' && (
-                                  <div>
-                                    {/* Version mobile */}
-                                    <div className="md:hidden">
-                                      <select
-                                        name={q.id}
-                                        value={formData[q.id] ?? 3}
-                                        onChange={handleInputChange}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-md"
-                                      >
-                                        <option value="1">{q.labels?.[0] || '1'}</option>
-                                        <option value="2">{q.labels?.[1] || '2'}</option>
-                                        <option value="3">{q.labels?.[2] || '3'}</option>
-                                        <option value="4">{q.labels?.[3] || '4'}</option>
-                                        <option value="5">{q.labels?.[4] || '5'}</option>
-                                      </select>
-                                    </div>
-                                    {/* Version desktop */}
-                                    <div className="hidden md:flex items-center space-x-4">
-                                      <span className="text-sm text-gray-600">{q.labels?.[0] || '1'}</span>
-                                      {[1, 2, 3, 4, 5].map(num => (
-                                        <label key={num} className="flex items-center cursor-pointer">
-                                          <input
-                                            type="radio"
-                                            name={q.id}
-                                            value={num}
-                                            checked={Number(formData[q.id] ?? 3) === num}
-                                            onChange={handleInputChange}
-                                            className="mr-1"
-                                          />
-                                          {num}
-                                        </label>
-                                      ))}
-                                      <span className="text-sm text-gray-600">{q.labels?.[4] || '5'}</span>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="bordered-section bordered-section-primary question-set">
+                      <h2 className="section-title">L'affaire de Quasquara</h2>
+
+                      <div className="question-group">
+                        <label className="form-label">
+                          Connaissez-vous la polémique sur la croix de Quasquara ?
+                        </label>
+                        <div className="choice-group">
+                          {["Oui", "Non"].map((option) => (
+                            <label key={option} className="choice-label">
+                              <input
+                                type="radio"
+                                name="connaissanceQuasquara"
+                                value={option}
+                                checked={formData.connaissanceQuasquara === option}
+                                onChange={handleInputChange}
+                              />
+                              {option}
+                            </label>
+                          ))}
+                        </div>
                       </div>
-                      <div className="pl-4 border-l-4 border-primary">
-                        <h2 className="text-xl font-bold text-gray-800 mb-4">L'affaire de Quasquara</h2>
 
-                        <div className="mb-6">
-                          <label className="block text-gray-700 font-semibold mb-2">
-                            Connaissez-vous la polémique sur la croix de Quasquara ?
-                          </label>
-                          <div className="space-y-2">
-                            {['Oui', 'Non'].map(option => (
-                              <label key={option} className="flex items-center cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name="connaissanceQuasquara"
-                                  value={option}
-                                  checked={formData.connaissanceQuasquara === option}
-                                  onChange={handleInputChange}
-                                  className="mr-2"
-                                />
-                                {option}
-                              </label>
-                            ))}
-                          </div>
+                      <div className="question-group">
+                        <label className="form-label">
+                          Quelle est votre position sur cette affaire ?
+                        </label>
+                        <div className="choice-group">
+                          {[
+                            { label: "Maintien de la croix", value: "Maintien" },
+                            { label: "Retrait de la croix", value: "Retrait" },
+                            { label: "Sans avis", value: "Sans" },
+                            { label: "Je préfère ne pas répondre", value: "NoAnswer" },
+                          ].map((option) => (
+                            <label key={option.value} className="choice-label">
+                              <input
+                                type="radio"
+                                name="positionQuasquara"
+                                value={option.value}
+                                checked={formData.positionQuasquara === option.value}
+                                onChange={handleInputChange}
+                              />
+                              {option.label}
+                            </label>
+                          ))}
                         </div>
+                      </div>
 
-                        <div className="mb-6">
-                          <label className="block text-gray-700 font-semibold mb-2">
-                            Quelle est votre position sur cette affaire ?
-                          </label>
-                          <div className="space-y-2">
-                            {[
-                              { label: 'Maintien de la croix', value: 'Maintien' },
-                              { label: 'Retrait de la croix', value: 'Retrait' },
-                              { label: 'Sans avis', value: 'Sans' },
-                              { label: 'Je préfère ne pas répondre', value: 'NoAnswer' }
-                            ].map(option => (
-                              <label key={option.value} className="flex items-center cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name="positionQuasquara"
-                                  value={option.value}
-                                  checked={formData.positionQuasquara === option.value}
-                                  onChange={handleInputChange}
-                                  className="mr-2"
-                                />
-                                {option.label}
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="mb-6">
-                          <label className="block text-gray-700 font-semibold mb-2">
-                            Qui devrait décider dans ce type de situation ?
-                          </label>
-                          <div className="space-y-2">
-                            {['Justice', 'Élus locaux', 'Référendum des habitants', 'Autre'].map(option => (
-                              <label key={option} className="flex items-center cursor-pointer">
+                      <div className="question-group">
+                        <label className="form-label">
+                          Qui devrait décider dans ce type de situation ?
+                        </label>
+                        <div className="choice-group">
+                          {["Justice", "Élus locaux", "Référendum des habitants", "Autre"].map(
+                            (option) => (
+                              <label key={option} className="choice-label">
                                 <input
                                   type="radio"
                                   name="quiDecide"
                                   value={option}
                                   checked={formData.quiDecide === option}
                                   onChange={handleInputChange}
-                                  className="mr-2"
                                 />
                                 {option}
                               </label>
-                            ))}
-                          </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bordered-section bordered-section-accent question-set">
+                      <h2 className="section-title">Démocratie {getCommunityLabels().name}</h2>
+
+                      <div className="question-group">
+                        <label className="form-label">
+                          Êtes-vous satisfait de la démocratie locale actuelle ?
+                        </label>
+                        <div className="md:hidden">
+                          <select
+                            name="satisfactionDemocratie"
+                            value={formData.satisfactionDemocratie}
+                            onChange={handleInputChange}
+                            className="w-full"
+                          >
+                            <option value="">Je préfère ne pas répondre</option>
+                            <option value="1">1 - Pas du tout satisfait</option>
+                            <option value="2">2 - Peu satisfait</option>
+                            <option value="3">3 - Moyennement satisfait</option>
+                            <option value="4">4 - Satisfait</option>
+                            <option value="5">5 - Très satisfait</option>
+                          </select>
+                        </div>
+                        <div className="hidden md:flex items-center space-x-4">
+                          <span className="hint-text">Pas du tout (1)</span>
+                          {[1, 2, 3, 4, 5].map((num) => (
+                            <label key={num} className="choice-label">
+                              <input
+                                type="radio"
+                                name="satisfactionDemocratie"
+                                value={num}
+                                checked={Number(formData.satisfactionDemocratie) === num}
+                                onChange={handleInputChange}
+                              />
+                              {num}
+                            </label>
+                          ))}
+                          <span className="hint-text">Très satisfait (5)</span>
                         </div>
                       </div>
 
-                      <div className="pl-4 border-l-4 border-secondary">
-                        <h2 className="text-xl font-bold text-gray-800 mb-4">Démocratie {getCommunityLabels().name}</h2>
-
-                        <div className="mb-6">
-                          <label className="block text-gray-700 font-semibold mb-2">
-                            Êtes-vous satisfait de la démocratie locale actuelle ?
-                          </label>
-                          {/* Version mobile des notes */}
-                          <div className="md:hidden">
-                            <select
-                              name="satisfactionDemocratie"
-                              value={formData.satisfactionDemocratie}
-                              onChange={handleInputChange}
-                              className="w-full px-4 py-2 border border-gray-300 rounded-md"
-                            >
-                              <option value="">Je préfère ne pas répondre</option>
-                              <option value="1">1 - Pas du tout satisfait</option>
-                              <option value="2">2 - Peu satisfait</option>
-                              <option value="3">3 - Moyennement satisfait</option>
-                              <option value="4">4 - Satisfait</option>
-                              <option value="5">5 - Très satisfait</option>
-                            </select>
-                          </div>
-                          {/* Version desktop des notes */}
-                          <div className="hidden md:flex items-center space-x-4">
-                            <span className="text-sm text-gray-600">Pas du tout (1)</span>
-                            {[1, 2, 3, 4, 5].map(num => (
-                              <label key={num} className="flex items-center cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name="satisfactionDemocratie"
-                                  value={num}
-                                  checked={Number(formData.satisfactionDemocratie) === num}
-                                  onChange={handleInputChange}
-                                  className="mr-1"
-                                />
-                                {num}
-                              </label>
-                            ))}
-                            <span className="text-sm text-gray-600">Très satisfait (5)</span>
-                          </div>
+                      <div className="question-group">
+                        <label className="form-label">
+                          Pensez-vous que {CITY_NAME} est en déclin ?
+                        </label>
+                        <div className="md:hidden">
+                          <select
+                            name="declinVille"
+                            value={formData.declinVille}
+                            onChange={handleInputChange}
+                            className="w-full"
+                          >
+                            <option value="">Je préfère ne pas répondre</option>
+                            <option value="1">1 - En développement</option>
+                            <option value="2">2 - Plutôt en développement</option>
+                            <option value="3">3 - Stable</option>
+                            <option value="4">4 - Plutôt en déclin</option>
+                            <option value="5">5 - En fort déclin</option>
+                          </select>
                         </div>
-
-                        <div className="mb-6">
-                          <label className="block text-gray-700 font-semibold mb-2">
-                            Pensez-vous que {CITY_NAME} est en déclin ?
-                          </label>
-                          <div className="md:hidden">
-                            <select
-                              name="declinVille"
-                              value={formData.declinVille}
-                              onChange={handleInputChange}
-                              className="w-full px-4 py-2 border border-gray-300 rounded-md"
-                            >
-                              <option value="">Je préfère ne pas répondre</option>
-                              <option value="1">1 - En développement</option>
-                              <option value="2">2 - Plutôt en développement</option>
-                              <option value="3">3 - Stable</option>
-                              <option value="4">4 - Plutôt en déclin</option>
-                              <option value="5">5 - En fort déclin</option>
-                            </select>
-                          </div>
-                          <div className="hidden md:flex items-center space-x-4">
-                            <span className="text-sm text-gray-600">En développement (1)</span>
-                            {[1, 2, 3, 4, 5].map(num => (
-                              <label key={num} className="flex items-center cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name="declinVille"
-                                  value={num}
-                                  checked={Number(formData.declinVille) === num}
-                                  onChange={handleInputChange}
-                                  className="mr-1"
-                                />
-                                {num}
-                              </label>
-                            ))}
-                            <span className="text-sm text-gray-600">En déclin (5)</span>
-                          </div>
+                        <div className="hidden md:flex items-center space-x-4">
+                          <span className="hint-text">En développement (1)</span>
+                          {[1, 2, 3, 4, 5].map((num) => (
+                            <label key={num} className="choice-label">
+                              <input
+                                type="radio"
+                                name="declinVille"
+                                value={num}
+                                checked={Number(formData.declinVille) === num}
+                                onChange={handleInputChange}
+                              />
+                              {num}
+                            </label>
+                          ))}
+                          <span className="hint-text">En déclin (5)</span>
                         </div>
+                      </div>
 
-                        <div className="mb-6">
-                          <label className="block text-gray-700 font-semibold mb-2">
-                            Seriez-vous favorable à des référendums locaux sur des questions importantes ?
-                          </label>
-                          <div className="space-y-2">
-                            {[
-                              { label: 'Oui', value: 'Oui' },
-                              { label: 'Non', value: 'Non' },
-                              { label: 'Selon les sujets', value: 'Selon' }
-                            ].map(option => (
-                              <label key={option.value} className="flex items-center cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name="favorableReferendum"
-                                  value={option.value}
-                                  checked={formData.favorableReferendum === option.value}
-                                  onChange={handleInputChange}
-                                  className="mr-2"
-                                />
-                                {option.label}
-                              </label>
-                            ))}
-                          </div>
+                      <div className="question-group">
+                        <label className="form-label">
+                          Seriez-vous favorable à des référendums locaux sur des questions
+                          importantes ?
+                        </label>
+                        <div className="choice-group">
+                          {[
+                            { label: "Oui", value: "Oui" },
+                            { label: "Non", value: "Non" },
+                            { label: "Selon les sujets", value: "Selon" },
+                          ].map((option) => (
+                            <label key={option.value} className="choice-label">
+                              <input
+                                type="radio"
+                                name="favorableReferendum"
+                                value={option.value}
+                                checked={formData.favorableReferendum === option.value}
+                                onChange={handleInputChange}
+                              />
+                              {option.label}
+                            </label>
+                          ))}
                         </div>
+                      </div>
 
-                        <div className="mb-6">
-                          <label className="block text-gray-700 font-semibold mb-2">
-                            Sur quels sujets ces référendums devraient-ils porter ? (choix multiples)
-                          </label>
-                          <div className="space-y-2">
-                            {['urbanisme', 'culture', 'budget', 'environnement', 'patrimoine', 'autre'].map(option => (
-                              <label key={option} className="flex items-center cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  name="sujetsReferendum"
-                                  value={option}
-                                  checked={formData.sujetsReferendum.includes(option)}
-                                  onChange={handleInputChange}
-                                  className="mr-2"
-                                />
-                                {option.charAt(0).toUpperCase() + option.slice(1)}
-                              </label>
-                            ))}
-                          </div>
+                      <div className="question-group">
+                        <label className="form-label">
+                          Sur quels sujets ces référendums devraient-ils porter ? (choix multiples)
+                        </label>
+                        <div className="choice-group">
+                          {[
+                            "urbanisme",
+                            "culture",
+                            "budget",
+                            "environnement",
+                            "patrimoine",
+                            "autre",
+                          ].map((option) => (
+                            <label key={option} className="choice-label">
+                              <input
+                                type="checkbox"
+                                name="sujetsReferendum"
+                                value={option}
+                                checked={formData.sujetsReferendum.includes(option)}
+                                onChange={handleInputChange}
+                              />
+                              {option.charAt(0).toUpperCase() + option.slice(1)}
+                            </label>
+                          ))}
                         </div>
+                      </div>
 
-                        <div className="mb-6">
-                          <label className="block text-gray-700 font-semibold mb-2">
-                            Les horaires actuels des conseils municipaux vous paraissent-ils pratiques ?
-                          </label>
-                          <div className="space-y-2">
-                            {['Oui', 'Non', 'Je ne sais pas', 'Je préfère ne pas répondre'].map(option => (
-                              <label key={option} className="flex items-center cursor-pointer">
+                      <div className="question-group">
+                        <label className="form-label">
+                          Les horaires actuels des conseils municipaux vous paraissent-ils pratiques
+                          ?
+                        </label>
+                        <div className="choice-group">
+                          {["Oui", "Non", "Je ne sais pas", "Je préfère ne pas répondre"].map(
+                            (option) => (
+                              <label key={option} className="choice-label">
                                 <input
                                   type="radio"
                                   name="horaireConseil"
                                   value={option}
                                   checked={formData.horaireConseil === option}
                                   onChange={handleInputChange}
-                                  className="mr-2"
                                 />
                                 {option}
                               </label>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="pl-4 border-l-4 border-primary">
-                        <h2 className="text-xl font-bold text-gray-800 mb-4">
-                          Profil <span className="font-normal text-base text-gray-600">(toutes les questions sont optionnelles)</span>
-                        </h2>
-
-                        <div className="mb-6">
-                          <label className="block text-gray-700 font-semibold mb-2">
-                            Êtes-vous inscrit(e) sur les listes électorales à {CITY_NAME} ?
-                          </label>
-                          <div className="space-y-2">
-                            {['Oui', 'Non', 'Pas encore mais je compte le faire', 'Je ne souhaite pas répondre'].map(option => (
-                              <label key={option} className="flex items-center cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name="inscritListe"
-                                  value={option}
-                                  checked={formData.inscritListe === option}
-                                  onChange={handleInputChange}
-                                  className="mr-2"
-                                />
-                                {option}
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="mb-6">
-                          <label className="block text-gray-700 font-semibold mb-2">
-                            Quartier de {CITY_NAME}
-                          </label>
-                          <input
-                            type="text"
-                            name="quartier"
-                            value={formData.quartier}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-md"
-                            placeholder="Ex: Centre-ville, Citadelle..."
-                          />
-                        </div>
-
-                        <div className="mb-6">
-                          <label className="block text-gray-700 font-semibold mb-2">
-                            Tranche d'âge
-                          </label>
-                          <select
-                            name="age"
-                            value={formData.age}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-md"
-                          >
-                            <option value="">-- Sélectionnez --</option>
-                            <option value="18-25">18-25 ans</option>
-                            <option value="26-40">26-40 ans</option>
-                            <option value="41-60">41-60 ans</option>
-                            <option value="60+">60 ans et plus</option>
-                          </select>
-                        </div>
-
-                        <div className="mb-6">
-                          <label className="block text-gray-700 font-semibold mb-2">
-                            Depuis combien de temps habitez-vous {CITY_NAME} ?
-                          </label>
-                          <select
-                            name="dureeHabitation"
-                            value={formData.dureeHabitation}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-md"
-                          >
-                            <option value="">-- Sélectionnez --</option>
-                            <option value="<1 an">Moins d'1 an</option>
-                            <option value="1-5 ans">1 à 5 ans</option>
-                            <option value="5-10 ans">5 à 10 ans</option>
-                            <option value=">10 ans">Plus de 10 ans</option>
-                            <option value="toute ma vie">Toute ma vie</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="pl-4 border-l-4 border-secondary">
-                        <div className="mb-6">
-                          <label className="block text-gray-700 font-semibold mb-2">
-                            Commentaire libre
-                          </label>
-                          <textarea
-                            name="commentaire"
-                            value={formData.commentaire}
-                            onChange={handleInputChange}
-                            rows="4"
-                            className="w-full px-4 py-2 border border-gray-300 rounded-md"
-                            placeholder="Vos suggestions, remarques..."
-                          />
-                        </div>
-
-                        <div className="mb-6 bg-gray-50 p-4 rounded-md">
-                          <label className="block text-gray-700 font-semibold mb-2">
-                            Souhaitez-vous être tenu informé de nos propositions ?
-                          </label>
-                          <div className="flex items-center mb-3">
-                            <input
-                              type="checkbox"
-                              name="accepteContact"
-                              checked={formData.accepteContact}
-                              onChange={handleInputChange}
-                              className="mr-2 cursor-pointer"
-                            />
-                            <span className="text-gray-700">Oui, je souhaite être contacté</span>
-                          </div>
-                          {formData.accepteContact && (
-                            <input
-                              type="email"
-                              name="email"
-                              value={formData.email}
-                              onChange={handleInputChange}
-                              className="w-full px-4 py-2 border border-gray-300 rounded-md"
-                              placeholder="Votre email"
-                            />
+                            )
                           )}
+                        </div>
+                      </div>
+                    </div>
 
-                          <div className="flex items-center mt-4">
-                            <input
-                              type="checkbox"
-                              name="participationEtudeIA"
-                              checked={formData.participationEtudeIA}
-                              onChange={handleInputChange}
-                              className="mr-2 cursor-pointer"
-                            />
-                            <span className="text-gray-700">
-                              Je veux aussi participer à l'étude &quot;IA pour tous&quot;
-                              <span
-                                className="ml-2 inline-block cursor-pointer text-blue-500 hover:text-blue-700"
-                                title="Informations sur l'étude &quot;IA pour tous&quot;"
-                                onClick={() => window.open('https://www.ia-pour-tous.fr', '_blank')}
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline" viewBox="0 0 20 20" fill="currentColor">
-                                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9z" clipRule="evenodd" />
-                                </svg>
-                              </span>
-                            </span>
-                          </div>
+                    <div className="bordered-section bordered-section-primary question-set">
+                      <h2 className="section-title">
+                        Profil{" "}
+                        <span className="helper-text">
+                          (toutes les questions sont optionnelles)
+                        </span>
+                      </h2>
+
+                      <div className="question-group">
+                        <label className="form-label">
+                          Êtes-vous inscrit(e) sur les listes électorales à {CITY_NAME} ?
+                        </label>
+                        <div className="choice-group">
+                          {[
+                            "Oui",
+                            "Non",
+                            "Pas encore mais je compte le faire",
+                            "Je ne souhaite pas répondre",
+                          ].map((option) => (
+                            <label key={option} className="choice-label">
+                              <input
+                                type="radio"
+                                name="inscritListe"
+                                value={option}
+                                checked={formData.inscritListe === option}
+                                onChange={handleInputChange}
+                              />
+                              {option}
+                            </label>
+                          ))}
                         </div>
                       </div>
 
-                      <button
-                        onClick={handleSubmit}
-                        disabled={loading}
-                        className="w-full py-3 px-6 bg-primary text-white font-bold rounded-md text-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-                      >
-                        {loading ? 'Envoi en cours...' : 'Envoyer ma réponse'}
+                      <div className="question-group">
+                        <label className="form-label--emphasis">Quartier de {CITY_NAME}</label>
+                        <input
+                          type="text"
+                          name="quartier"
+                          value={formData.quartier}
+                          onChange={handleInputChange}
+                          className="w-full"
+                          placeholder="Ex: Centre-ville, Citadelle..."
+                        />
+                      </div>
+
+                      <div className="question-group">
+                        <label className="form-label">Tranche d'âge</label>
+                        <select
+                          name="age"
+                          value={formData.age}
+                          onChange={handleInputChange}
+                          className="w-full"
+                        >
+                          <option value="">-- Sélectionnez --</option>
+                          <option value="18-25">18-25 ans</option>
+                          <option value="26-40">26-40 ans</option>
+                          <option value="41-60">41-60 ans</option>
+                          <option value="60+">60 ans et plus</option>
+                        </select>
+                      </div>
+
+                      <div className="question-group">
+                        <label className="form-label">
+                          Depuis combien de temps habitez-vous {CITY_NAME} ?
+                        </label>
+                        <select
+                          name="dureeHabitation"
+                          value={formData.dureeHabitation}
+                          onChange={handleInputChange}
+                          className="w-full"
+                        >
+                          <option value="">-- Sélectionnez --</option>
+                          <option value="<1 an">Moins d'1 an</option>
+                          <option value="1-5 ans">1 à 5 ans</option>
+                          <option value="5-10 ans">5 à 10 ans</option>
+                          <option value=">10 ans">Plus de 10 ans</option>
+                          <option value="toute ma vie">Toute ma vie</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="bordered-section bordered-section-accent question-set">
+                      <div className="question-group">
+                        <label className="form-label">Commentaire libre</label>
+                        <textarea
+                          name="commentaire"
+                          value={formData.commentaire}
+                          onChange={handleInputChange}
+                          rows="4"
+                          className="w-full"
+                          placeholder="Vos suggestions, remarques..."
+                        />
+                      </div>
+
+                      <div className="info-box">
+                        <label className="form-label">
+                          Souhaitez-vous être tenu informé de nos propositions ?
+                        </label>
+                        <div className="choice-label">
+                          <input
+                            type="checkbox"
+                            name="accepteContact"
+                            checked={formData.accepteContact}
+                            onChange={handleInputChange}
+                          />
+                          <span>Oui, je souhaite être contacté</span>
+                        </div>
+                        {formData.accepteContact && (
+                          <input
+                            type="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleInputChange}
+                            className="w-full mt-3"
+                            placeholder="Votre email"
+                          />
+                        )}
+
+                        <div className="choice-label mt-4">
+                          <input
+                            type="checkbox"
+                            name="participationEtudeIA"
+                            checked={formData.participationEtudeIA}
+                            onChange={handleInputChange}
+                          />
+                          <span>
+                            Je veux aussi participer à l'étude &quot;IA pour tous&quot;
+                            <span
+                              className="ml-2 inline-block cursor-pointer text-primary hover:opacity-80"
+                              title='Informations sur l&apos;étude "IA pour tous"'
+                              onClick={() => window.open("https://www.ia-pour-tous.fr", "_blank")}
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4 inline"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={handleSubmit}
+                      disabled={formLoading}
+                      className="btn btn-primary w-full py-3 px-6 text-lg"
+                    >
+                      {formLoading ? "Envoi en cours..." : "Envoyer votre réponse"}
+                    </button>
+                  </div>
+
+                  <div className="mt-8 text-center">
+                    <div className="flex justify-center gap-4">
+                      <button onClick={handleShare} className="btn-secondary-action">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+                        </svg>
+                        Partager
+                      </button>
+                      <button onClick={() => setPage("results")} className="btn-tertiary-action">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                        </svg>
+                        Voir les résultats
                       </button>
                     </div>
-
-                    <div className="mt-8 text-center">
-                      <div className="flex justify-center gap-4">
-                        <button
-                          onClick={handleShare}
-                          className="px-4 py-2 bg-secondary text-white rounded-md hover:opacity-90 flex items-center gap-2"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
-                          </svg>
-                          Partager
-                        </button>
-                        <button
-                          onClick={() => setPage('results')}
-                          className="px-4 py-2 bg-gray-100 text-secondary font-semibold rounded-md hover:bg-gray-200 flex items-center gap-2"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
-                          </svg>
-                          Voir les résultats
-                        </button>
-                      </div>
-                    </div>
                   </div>
-                )}
-              </div>
-            </>
+                </div>
+              )}
+            </div>
           )}
-        </div>
-        <div className="mt-8">
-          <SiteFooter />
-        </div>
+        </main>
+        <SiteFooter />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <ConnectionBanner connectionError={connectionError} connectionState={connectionState} realtimeStatus={realtimeStatus} authEvent={authEvent} onRetry={testConnection} />
-      <div className="bg-white shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="text-center">
-            <div className="mb-4">
-              <div className="text-5xl font-bold text-primary">
-                {HASHTAG}
-              </div>
-              <div className="h-1 my-3 max-w-2xl mx-auto bg-secondary"></div>
-              <div className="text-4xl font-bold text-secondary">
-                {String(CITY_NAME).toUpperCase()}<br />{CITY_TAGLINE}
+    <div className="app-shell">
+      <a href="#mainContent" className="skip-link">
+        Aller au contenu principal
+      </a>
+      <div className="min-h-screen bg-dark">
+        <header className="border-b-2 border-light">
+          <div className="max-w-6xl mx-auto px-4 py-6">
+            <div className="text-center">
+              <div className="text-5xl font-bold text-primary">{HASHTAG}</div>
+              <div className="h-1 my-3 max-w-2xl mx-auto bg-highlight"></div>
+              <div className="text-4xl font-bold text-accent">
+                {String(CITY_NAME).toUpperCase()}
+                <br />
+                {CITY_TAGLINE}
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </header>
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-md p-8">
-          {!stats ? (
-            <div className="text-center text-gray-600">
-              Chargement des résultats...
-            </div>
-          ) : (
-            <>
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-800 mb-2">Résultats de la consultation</h1>
-                  <p className="text-gray-600">
-                    {stats?.totalResponses} participation{stats?.totalResponses > 1 ? 's' : ''} enregistrée{stats?.totalResponses > 1 ? 's' : ''}
-                  </p>
-                </div>
-                <button
-                  onClick={loadResponses}
-                  className="px-4 py-2 bg-secondary text-white rounded-md hover:opacity-90"
-                >
-                  Actualiser
-                </button>
-              </div>
-
-              <div className="space-y-12">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-800 mb-4">Connaissance de l'affaire de Quasquara</h2>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={stats.connaissanceData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, value }) => `${name}: ${value}`}
-                        outerRadius={window.innerWidth < 768 ? 60 : 80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {stats.connaissanceData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-
-                <div className="px-2 md:px-4">
-                  <ResponsiveContainer width="100%" height={window.innerWidth < 768 ? 200 : 300}>
-                    <BarChart
-                      data={stats.positionData}
-                      margin={window.innerWidth < 768 ?
-                        { top: 5, right: 10, left: -20, bottom: 5 } :
-                        { top: 5, right: 30, left: 20, bottom: 5 }
-                      }
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="value" fill="#F54928" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                <div>
-                  <h2 className="text-xl font-bold text-gray-800 mb-4">Qui devrait décider ?</h2>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={stats.decisionData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="value" fill="#0A3F73" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                <div>
-                  <h2 className="text-xl font-bold text-gray-800 mb-4">Satisfaction de la démocratie locale</h2>
-                  <div className="text-center">
-                    <div className="text-6xl font-bold text-primary">
-                      {stats.satisfactionMoyenne.toFixed(1)}/5
-                    </div>
-                    <p className="text-gray-600 mt-2">Note moyenne</p>
-                  </div>
-                </div>
-
-                <div>
-                  <h2 className="text-xl font-bold text-gray-800 mb-4">État de {CITY_NAME}</h2>
-                  <div className="text-center">
-                    <div className="text-6xl font-bold text-primary">
-                      {stats.declinMoyen.toFixed(1)}/5
-                    </div>
-                    <p className="text-gray-600 mt-2">1 = En développement, 5 = En déclin</p>
-                  </div>
-                </div>
-
-                <div>
-                  <h2 className="text-xl font-bold text-gray-800 mb-4">Favorable aux référendums locaux ?</h2>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={stats.referendumData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, value }) => `${name}: ${value}`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {stats.referendumData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {stats.sujetsData.length > 0 && (
+        <main className="max-w-6xl mx-auto px-4 py-8">
+          <div
+            style={{
+              background: "var(--color-bg-app)",
+              border: "2px solid var(--color-border-strong)",
+              padding: "2rem",
+              borderRadius: "var(--radius-md)",
+            }}
+          >
+            {!stats ? (
+              <div className="text-center hint-text">Chargement des résultats...</div>
+            ) : (
+              <>
+                <div className="flex justify-between items-center mb-6">
                   <div>
-                    <h2 className="text-xl font-bold text-gray-800 mb-4">Sujets prioritaires pour les référendums</h2>
+                    <h1 className="page-title">Résultats de la consultation</h1>
+                    <p className="section-description">
+                      {stats?.totalResponses} participation{stats?.totalResponses > 1 ? "s" : ""}{" "}
+                      enregistrée{stats?.totalResponses > 1 ? "s" : ""}
+                    </p>
+                  </div>
+                  <button onClick={loadResponses} className="btn btn-secondary">
+                    Actualiser
+                  </button>
+                </div>
+
+                <div className="space-y-12">
+                  <section>
+                    <h2 className="section-title">Connaissance de l'affaire de Quasquara</h2>
                     <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={stats.sujetsData}>
+                      <PieChart>
+                        <Pie
+                          data={stats.connaissanceData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, value }) => `${name}: ${value}`}
+                          outerRadius={window.innerWidth < 768 ? 60 : 80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {stats.connaissanceData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </section>
+
+                  <section className="px-2 md:px-4">
+                    <ResponsiveContainer width="100%" height={window.innerWidth < 768 ? 200 : 300}>
+                      <BarChart
+                        data={stats.positionData}
+                        margin={
+                          window.innerWidth < 768
+                            ? { top: 5, right: 10, left: -20, bottom: 5 }
+                            : { top: 5, right: 30, left: 20, bottom: 5 }
+                        }
+                      >
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="name" />
                         <YAxis />
                         <Tooltip />
-                        <Bar dataKey="value" fill="#F54928" />
+                        <Bar dataKey="value" fill="#B35A4A" />
                       </BarChart>
                     </ResponsiveContainer>
-                  </div>
-                )}
+                  </section>
 
-                <div>
-                  <h2 className="text-xl font-bold text-gray-800 mb-4">Les horaires des conseils municipaux</h2>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={stats?.horaireConseilData || []} // Vérification que les données existent
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, value }) => `${name}: ${value}`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {stats?.horaireConseilData?.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <section>
+                    <h2 className="section-title">Qui devrait décider ?</h2>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={stats.decisionData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Bar dataKey="value" fill="#3B4E6B" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </section>
+
+                  <section>
+                    <h2 className="section-title">Satisfaction de la démocratie locale</h2>
+                    <div className="text-center">
+                      <div className="text-6xl font-bold text-primary">
+                        {stats.satisfactionMoyenne.toFixed(1)}/5
+                      </div>
+                      <p className="hint-text mt-2">Note moyenne</p>
+                    </div>
+                  </section>
+
+                  <section>
+                    <h2 className="section-title">État de {CITY_NAME}</h2>
+                    <div className="text-center">
+                      <div className="text-6xl font-bold text-primary">
+                        {stats.declinMoyen.toFixed(1)}/5
+                      </div>
+                      <p className="hint-text mt-2">1 = En développement, 5 = En déclin</p>
+                    </div>
+                  </section>
+
+                  <section>
+                    <h2 className="section-title">Favorable aux référendums locaux ?</h2>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={stats.referendumData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, value }) => `${name}: ${value}`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {stats.referendumData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </section>
+
+                  {stats.sujetsData.length > 0 && (
+                    <section>
+                      <h2 className="section-title">Sujets prioritaires pour les référendums</h2>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={stats.sujetsData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <Tooltip />
+                          <Bar dataKey="value" fill="#B35A4A" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </section>
+                  )}
+
+                  <section>
+                    <h2 className="section-title">Les horaires des conseils municipaux</h2>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={stats?.horaireConseilData || []}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, value }) => `${name}: ${value}`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {stats?.horaireConseilData?.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </section>
                 </div>
-              </div>
-            </>
-          )}
+              </>
+            )}
 
-          <div className="mt-8 text-center">
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={() => setPage('form')}
-                className="py-3 px-6 bg-secondary text-white font-bold rounded-md hover:opacity-90 transition-opacity"
-              >
-                Participer à la consultation
-              </button>
-              <button
-                onClick={handleShare}
-                className="text-secondary underline hover:opacity-80 flex items-center gap-1"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
-                </svg>
-                Partager
-              </button>
+            <div className="mt-8 text-center">
+              <div className="flex justify-center gap-4">
+                <button onClick={() => setPage("form")} className="btn btn-secondary py-3 px-6">
+                  Participer à la consultation
+                </button>
+                <button
+                  onClick={handleShare}
+                  className="text-accent underline hover:opacity-80 flex items-center gap-1"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+                  </svg>
+                  Partager
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-      <div className="mt-8">
+        </main>
         <SiteFooter />
+        {showAuthModal && (
+          <AuthModal
+            onClose={() => setShowAuthModal(false)}
+            onSuccess={() => setShowAuthModal(false)}
+          />
+        )}
       </div>
-
-      {/* Auth Modal */}
-      {showAuthModal && (
-        <AuthModal
-          onClose={() => setShowAuthModal(false)}
-          onSuccess={() => setShowAuthModal(false)}
-        />
-      )}
     </div>
   );
 }
 
 export function App() {
-
   return (
     <>
       <GlobalStatusIndicator />
       <Routes>
-        <Route path="/" element={<ConsultationPertitellu />} />
-        <Route path="/consultation" element={<ConsultationPertitellu />} />
+        <Route path="/" element={<Consultation />} />
+        <Route path="/consultation" element={<Consultation />} />
         <Route path="/transparence" element={<Transparence />} />
         <Route path="/methodologie" element={<Methodologie />} />
         <Route path="/audit" element={<Audit />} />
@@ -1192,7 +1264,6 @@ export function App() {
         <Route path="/global-dashboard" element={<GlobalDashboard />} />
         <Route path="/wiki-dashboard" element={<WikiDashboard />} />
         <Route path="/social-dashboard" element={<SocialDashboard />} />
-        {/* Social routes */}
         <Route path="/social" element={<Social />} />
         <Route path="/subscriptions" element={<SubscriptionFeed />} />
         <Route path="/groups/new" element={<GroupCreate />} />
@@ -1200,8 +1271,9 @@ export function App() {
         <Route path="/posts/new" element={<PostCreate />} />
         <Route path="/posts/:id" element={<PostPage />} />
         <Route path="/job-monitor-demo" element={<JobMonitorDemo />} />
+        <Route path="/data-collector" element={<DataCollector />} />
+        <Route path="/admin/data-review" element={<DataReview />} />
       </Routes>
     </>
   );
 }
-

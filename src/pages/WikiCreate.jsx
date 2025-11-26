@@ -1,36 +1,40 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { supabase } from "../lib/supabase";
 
 export default function WikiCreate() {
   const { slug: initialSlugParam } = useParams();
   const location = useLocation();
 
   const normalizeSlug = (str) => {
-    if (!str) return '';
+    if (!str) return "";
     return String(str)
-      .normalize('NFD').replace(/\p{Diacritic}+/gu, '') // remove accents
-      .replace(/[^a-zA-Z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .replace(/-{2,}/g, '-');
+      .normalize("NFD")
+      .replace(/\p{Diacritic}+/gu, "") // remove accents
+      .replace(/[^a-zA-Z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .replace(/-{2,}/g, "-");
   };
 
   const rawSlug = useMemo(() => {
-    const querySlug = new URLSearchParams(location.search).get('slug');
-    const source = initialSlugParam || querySlug || '';
-    return source ? decodeURIComponent(source) : '';
+    const querySlug = new URLSearchParams(location.search).get("slug");
+    const source = initialSlugParam || querySlug || "";
+    return source ? decodeURIComponent(source) : "";
   }, [initialSlugParam, location.search]);
-  const prefilledSlug = useMemo(() => rawSlug ? normalizeSlug(rawSlug) : 'nouvelle-page', [rawSlug]);
-  const [title, setTitle] = useState('');
+  const prefilledSlug = useMemo(
+    () => (rawSlug ? normalizeSlug(rawSlug) : "nouvelle-page"),
+    [rawSlug]
+  );
+  const [title, setTitle] = useState("");
   const [slug, setSlug] = useState(prefilledSlug);
-  const [content, setContent] = useState('');
+  const [content, setContent] = useState("");
   const [allowSlugEdit, setAllowSlugEdit] = useState(!initialSlugParam);
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     // Si le paramètre change (navigation), réinitialiser les champs
-    setTitle('');
+    setTitle("");
     setSlug(prefilledSlug);
     setAllowSlugEdit(!initialSlugParam);
     setIsSlugManuallyEdited(false);
@@ -49,32 +53,32 @@ export default function WikiCreate() {
   const handleSave = async () => {
     try {
       const { data: existing, error: slugError } = await supabase
-        .from('wiki_pages')
-        .select('*')
-        .eq('slug', slug)
+        .from("wiki_pages")
+        .select("*")
+        .eq("slug", slug)
         .single();
 
       if (!slugError && existing) {
-        alert('Une page avec cette adresse existe déjà. Veuillez en choisir une autre.');
+        alert("Une page avec cette adresse existe déjà. Veuillez en choisir une autre.");
         return;
       }
 
       const { data, error } = await supabase
-        .from('wiki_pages')
+        .from("wiki_pages")
         .insert([{ title, content, slug }])
         .select()
         .single();
 
       if (error) {
-        console.error('Erreur création page :', error);
-        alert('Une erreur est survenue lors de la création.');
+        console.error("Erreur création page :", error);
+        alert("Une erreur est survenue lors de la création.");
         return;
       }
 
       navigate(`/wiki/${data.slug}`);
     } catch (err) {
-      console.error('Erreur inattendue :', err);
-      alert('Une erreur inattendue est survenue.');
+      console.error("Erreur inattendue :", err);
+      alert("Une erreur inattendue est survenue.");
     }
   };
 
@@ -90,14 +94,14 @@ export default function WikiCreate() {
         />
         <div>
           {initialSlugParam && (
-            <div className="text-sm text-gray-600 mb-2">
-              Adresse pré-remplie à partir de l’URL.{' '}
+            <div className="text-sm text-gray-300 mb-2">
+              Adresse pré-remplie à partir de l’URL.{" "}
               <button
                 type="button"
                 onClick={() => setAllowSlugEdit((prev) => !prev)}
                 className="underline text-blue-600 hover:text-blue-800"
               >
-                {allowSlugEdit ? 'Verrouiller l’adresse' : 'Modifier l’adresse'}
+                {allowSlugEdit ? "Verrouiller l’adresse" : "Modifier l’adresse"}
               </button>
             </div>
           )}
@@ -105,27 +109,24 @@ export default function WikiCreate() {
             value={slug}
             onChange={handleSlugChange}
             placeholder="Adresse de la page (ex : page-exemple)"
-            className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 ${allowSlugEdit ? 'border-gray-300 focus:ring-blue-500' : 'border-gray-200 bg-gray-100 cursor-not-allowed'}`}
+            className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 ${allowSlugEdit ? "border-gray-300 focus:ring-blue-500" : "border-gray-200 bg-gray-100 cursor-not-allowed"}`}
             disabled={!allowSlugEdit}
           />
         </div>
         <textarea
           value={content}
-          onChange={e => setContent(e.target.value)}
+          onChange={(e) => setContent(e.target.value)}
           rows={20}
           placeholder="Contenu de la page..."
           className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
         />
         <div className="flex gap-4">
-          <button
-            onClick={handleSave}
-            className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-          >
+          <button onClick={handleSave} className="btn btn-success px-6 py-2 rounded-md">
             Enregistrer
           </button>
           <button
-            onClick={() => navigate('/wiki')}
-            className="px-6 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400"
+            onClick={() => navigate("/wiki")}
+            className="btn btn-secondary px-6 py-2 rounded-md"
           >
             Annuler
           </button>

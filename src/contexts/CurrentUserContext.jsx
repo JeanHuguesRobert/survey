@@ -1,0 +1,264 @@
+import React, { createContext, useState, useEffect, useRef, useCallback } from "react";
+import { supabase } from "../lib/supabase";
+import { useDataLoader } from "../lib/useStatusOperations";
+
+export const CurrentUserContext = createContext({
+  currentUser: null,
+  loading: true,
+  error: null,
+  userStatus: "signed_out",
+  updateProfile: async () => {},
+});
+
+export function CurrentUserProvider({ children }) {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [userStatus, setUserStatus] = useState("signed_out");
+  const loadUserProfile = useDataLoader();
+  const lastFetchedUserIdRef = useRef(null);
+  const isSigningInRef = useRef(false);
+  const hasProfileRef = useRef(false);
+
+  // Helper to get stored session from localStorage
+  function getSessionViaLocalStorage() {
+    console.log("[CurrentUserContext] getSessionViaLocalStorage called");
+    try {
+      const url = import.meta.env.VITE_SUPABASE_URL;
+      const projectRef = url.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
+      if (!projectRef) {
+        console.log("[CurrentUserContext] No projectRef found");
+        return null;
+      }
+      const key = `sb-${projectRef}-auth-token`;
+      const stored = localStorage.getItem(key);
+      if (!stored) {
+        console.log("[CurrentUserContext] No stored session found in localStorage");
+        return null;
+      }
+      const session = JSON.parse(stored);
+      if (!session || !session.access_token || !session.user) {
+        console.log("[CurrentUserContext] Invalid session object:", session);
+        return null;
+      }
+      const expiresAt = session.expires_at;
+      if (!expiresAt || Date.now() / 1000 > expiresAt) {
+        console.log("[CurrentUserContext] Session expired");
+        return null;
+      }
+      console.log("[CurrentUserContext] Found valid session for userId:", session.user.id);
+      return session;
+    } catch (err) {
+      console.error("[CurrentUserContext] Error getting stored session:", err);
+      return null;
+    }
+  }
+
+  // Centralized profile fetch logic
+  const handleProfileFetch = useCallback(async (authUser) => {
+    console.log("[CurrentUserContext] handleProfileFetch called with:", authUser);
+    if (!authUser || !authUser.id) {
+      console.log("[CurrentUserContext] No authUser or missing id");
+      setError("Impossible de charger le profil utilisateur (id manquant)");
+      setCurrentUser(null);
+      setUserStatus("signed_out");
+      setLoading(false);
+      isSigningInRef.current = false;
+      hasProfileRef.current = false;
+      return;
+    }
+    if (lastFetchedUserIdRef.current === authUser.id && hasProfileRef.current) {
+      console.log("[CurrentUserContext] Profile already loaded for userId:", authUser.id);
+      setLoading(false);
+      setUserStatus("signed_in");
+      isSigningInRef.current = false;
+      return;
+    }
+    if (isSigningInRef.current && lastFetchedUserIdRef.current === authUser.id) {
+      console.log("[CurrentUserContext] Already signing in for userId:", authUser.id);
+      return;
+    }
+    setLoading(true);
+    setUserStatus("signing_in");
+    isSigningInRef.current = true;
+    lastFetchedUserIdRef.current = authUser.id;
+    let timedOut = false;
+    const timeoutId = setTimeout(() => {
+      if (isSigningInRef.current) {
+        timedOut = true;
+        isSigningInRef.current = false;
+        setUserStatus("signed_out");
+        setLoading(false);
+        alert("Désolé, la connexion a pris trop de temps. Veuillez réessayer plus tard.");
+        console.log("[CurrentUserContext] Profile fetch timed out for userId:", authUser.id);
+      }
+    }, 10000);
+    // Fetch profile
+    let profile = null,
+      fetchError = null;
+    try {
+      console.log(
+        "[CurrentUserContext] Fetching profile from users table for userId:",
+        authUser.id
+      );
+      const promise = supabase.from("users").select("*").eq("id", authUser.id).maybeSingle();
+      const { data, error } = await promise;
+      if (error) throw error;
+      profile = data;
+      console.log("[CurrentUserContext] Profile fetch result:", profile);
+    } catch (err) {
+      fetchError = err.message || String(err);
+      console.error("[CurrentUserContext] Error fetching profile:", fetchError);
+    }
+    isSigningInRef.current = false;
+    clearTimeout(timeoutId);
+    if (profile) {
+      const userWithEmail = { ...authUser, ...profile };
+      // Ensure critical auth fields are not overwritten by potentially stale/empty profile data
+      if (authUser.email) userWithEmail.email = authUser.email;
+      if (authUser.id) userWithEmail.id = authUser.id;
+      setCurrentUser(userWithEmail);
+      setUserStatus("signed_in");
+      setError(null);
+      setLoading(false);
+      hasProfileRef.current = true;
+      console.log("[CurrentUserContext] User signed in and profile set:", userWithEmail);
+    } else if (!timedOut) {
+      // Fallback: User is authenticated but has no profile row yet.
+      // We log them in with just the auth data so they can create their profile.
+      console.log("[CurrentUserContext] No profile found, using authUser only");
+      setCurrentUser(authUser);
+      setUserStatus("signed_in");
+      setError(fetchError); // Keep the error if there was one, for debug
+      setLoading(false);
+      hasProfileRef.current = false;
+      console.log("[CurrentUserContext] No profile found or error:", fetchError);
+    }
+  }, []);
+
+  // Auth state management
+  useEffect(() => {
+    console.log("[CurrentUserContext] useEffect initializing");
+    if (!supabase) {
+      console.log("[CurrentUserContext] Supabase client not initialized");
+      setError("Supabase client not initialized");
+      setLoading(false);
+      setUserStatus("signed_out");
+      return;
+    }
+    // Check for stored session
+    const storedSession = getSessionViaLocalStorage();
+    if (storedSession) {
+      console.log("[CurrentUserContext] Found stored session, fetching profile...");
+      handleProfileFetch(storedSession.user);
+    } else {
+      console.log("[CurrentUserContext] No stored session, setting user to null");
+      setCurrentUser(null);
+      setUserStatus("signed_out");
+      setLoading(false);
+    }
+    // Listen to auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(
+        "[CurrentUserContext] Auth state change event:",
+        event,
+        "user:",
+        session?.user?.id
+      );
+      if (session?.user) {
+        const newUserId = session.user.id;
+        const shouldFetch = event === "SIGNED_IN" || lastFetchedUserIdRef.current !== newUserId;
+        if (shouldFetch) {
+          console.log(
+            "[CurrentUserContext] Auth event requires profile fetch for userId:",
+            newUserId
+          );
+          await handleProfileFetch(session.user);
+        } else {
+          setLoading(false);
+          setUserStatus("signed_in");
+          console.log("[CurrentUserContext] User already signed in, no fetch needed");
+        }
+      } else {
+        setCurrentUser(null);
+        setUserStatus("signed_out");
+        setLoading(false);
+        hasProfileRef.current = false;
+        console.log("[CurrentUserContext] Signed out, user cleared");
+      }
+    });
+    return () => {
+      console.log("[CurrentUserContext] Cleaning up auth subscription");
+      subscription.unsubscribe();
+    };
+  }, [handleProfileFetch]);
+
+  // Update profile function
+  const updateProfile = async (updates) => {
+    try {
+      if (!currentUser?.id) {
+        return { success: false, error: "No user logged in" };
+      }
+      setLoading(true);
+      const safeUpdates = {
+        display_name: updates.display_name,
+        neighborhood: updates.neighborhood,
+        interests: updates.interests,
+      };
+      // Ajoute metadata si présent
+      if (updates.metadata) {
+        safeUpdates.metadata = updates.metadata;
+      }
+      const { data, error } = await supabase
+        .from("users")
+        .upsert(
+          {
+            id: currentUser.id,
+            ...safeUpdates,
+          },
+          { onConflict: ["id"] }
+        )
+        .select()
+        .single();
+      if (error) throw error;
+      if (!data) {
+        return { success: false, error: "Aucune donnée modifiée, profil non mis à jour." };
+      }
+      // Merge updated profile into currentUser, preserving session info
+      setCurrentUser((prev) => (prev ? { ...prev, ...data } : data));
+      return { success: true, data };
+    } catch (err) {
+      setError(err.message);
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshUser = async (user) => {
+    console.log("[CurrentUserContext] Manual refresh requested");
+    let targetUser = user;
+    if (!targetUser) {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      targetUser = session?.user;
+    }
+    if (targetUser) {
+      await handleProfileFetch(targetUser);
+    }
+  };
+
+  const contextValue = {
+    currentUser,
+    loading,
+    error,
+    userStatus,
+    updateProfile,
+    refreshUser,
+  };
+
+  return <CurrentUserContext.Provider value={contextValue}>{children}</CurrentUserContext.Provider>;
+}

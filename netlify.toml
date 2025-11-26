@@ -12,6 +12,10 @@
   node_bundler = "esbuild"
   included_files = ["public/**"]
 
+[[edge_functions]]
+  path = "/api/chat-stream"
+  function = "rag_chatbot"
+
 [[redirects]]
   from = "/docs/*"
   to = "/docs/:splat"

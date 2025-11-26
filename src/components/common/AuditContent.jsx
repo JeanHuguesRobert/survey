@@ -1,36 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { APP_VERSION, DEPLOY_DATE } from '../../constants';
-import { linkifyWardWiki } from '../../lib/wikiLinks';
+import React, { useState, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { APP_VERSION, DEPLOY_DATE } from "../../constants";
+import { linkifyWardWiki } from "../../lib/wikiLinks";
 
 export default function AuditContent() {
-  const [markdownContent, setMarkdownContent] = useState('');
+  const [markdownContent, setMarkdownContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     // Charger le fichier Markdown
-    fetch('/docs/audit-ethique.md')
-      .then(response => {
+    fetch("/docs/audit-ethique.md")
+      .then((response) => {
         if (!response.ok) {
           throw new Error(`Erreur lors du chargement du rapport: ${response.status}`);
         }
         return response.text();
       })
-      .then(text => {
+      .then((text) => {
         setMarkdownContent(text);
         setLoading(false);
       })
-      .catch(err => {
-        console.error('Erreur lors du chargement du rapport:', err);
+      .catch((err) => {
+        console.error("Erreur lors du chargement du rapport:", err);
         setError(err.message);
         setLoading(false);
       });
   }, []);
 
   if (loading) {
-    return <div className="flex justify-center p-8"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div></div>;
+    return (
+      <div className="flex justify-center p-8">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
   }
 
   if (error) {
@@ -45,15 +49,15 @@ export default function AuditContent() {
   return (
     <div className="prose prose-blue max-w-none">
       <div className="markdown-content">
-        <ReactMarkdown 
-          remarkPlugins={[remarkGfm]} 
-        >
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>
           {linkifyWardWiki(markdownContent)}
         </ReactMarkdown>
       </div>
-      
+
       <hr />
-      <p className="text-sm text-gray-500 mt-8">Document public - Reproduction et partage encouragés avec mention de la source</p>
+      <p className="text-sm text-gray-400 mt-8">
+        Document public - Reproduction et partage encouragés avec mention de la source
+      </p>
     </div>
   );
 }

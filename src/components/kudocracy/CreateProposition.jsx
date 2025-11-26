@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
-import { createPropositionWithTags } from '../../lib/propositions';
+import React, { useState, useEffect } from "react";
+import { supabase } from "../../lib/supabase";
+import { createPropositionWithTags } from "../../lib/propositions";
 
 export default function CreateProposition({ user }) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [tags, setTags] = useState([]);
   const [selectedTags, setSelectedTags] = useState([]);
-  const [newTagName, setNewTagName] = useState('');
+  const [newTagName, setNewTagName] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -16,10 +16,7 @@ export default function CreateProposition({ user }) {
   }, []);
 
   const loadTags = async () => {
-    const { data, error } = await supabase
-      .from('tags')
-      .select('*')
-      .order('name');
+    const { data, error } = await supabase.from("tags").select("*").order("name");
 
     if (!error && data) {
       setTags(data);
@@ -30,7 +27,7 @@ export default function CreateProposition({ user }) {
     if (!newTagName.trim()) return;
 
     const { data, error } = await supabase
-      .from('tags')
+      .from("tags")
       .insert({ name: newTagName.toLowerCase().trim() })
       .select()
       .single();
@@ -38,15 +35,13 @@ export default function CreateProposition({ user }) {
     if (!error && data) {
       setTags([...tags, data]);
       setSelectedTags([...selectedTags, data.id]);
-      setNewTagName('');
+      setNewTagName("");
     }
   };
 
   const toggleTag = (tagId) => {
-    setSelectedTags(prev =>
-      prev.includes(tagId)
-        ? prev.filter(id => id !== tagId)
-        : [...prev, tagId]
+    setSelectedTags((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
     );
   };
 
@@ -54,7 +49,7 @@ export default function CreateProposition({ user }) {
     e.preventDefault();
 
     if (!title.trim() || !description.trim()) {
-      alert('Veuillez remplir tous les champs obligatoires');
+      alert("Veuillez remplir tous les champs obligatoires");
       return;
     }
 
@@ -64,44 +59,44 @@ export default function CreateProposition({ user }) {
 
     try {
       // DEBUG: Vérifions le user
-      console.log('User object:', user);
-      console.log('User ID:', user?.id);
-      
+      console.log("User object:", user);
+      console.log("User ID:", user?.id);
+
       // Vérifions si le user existe dans la table users
       const { data: userExists, error: userCheckError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('id', user.id)
+        .from("users")
+        .select("id")
+        .eq("id", user.id)
         .single();
-      
-      console.log('User exists in DB?', userExists);
-      console.log('User check error?', userCheckError);
+
+      console.log("User exists in DB?", userExists);
+      console.log("User check error?", userCheckError);
 
       const proposition = await createPropositionWithTags({
         userId: user.id,
         title: title.trim(),
         description: description.trim(),
-        status: 'active',
-        selectedTags
+        status: "active",
+        selectedTags,
       });
 
       setSuccess(true);
-      setTitle('');
-      setDescription('');
+      setTitle("");
+      setDescription("");
       setSelectedTags([]);
 
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
-      console.error('Erreur lors de la création:', error);
-      alert('Erreur lors de la création de la proposition');
+      console.error("Erreur lors de la création:", error);
+      alert("Erreur lors de la création de la proposition");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-8">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Créer une nouvelle proposition</h2>
+    <div className=" rounded-lg shadow-md p-8">
+      <h2 className="text-2xl font-bold text-gray-50 mb-6">Créer une nouvelle proposition</h2>
 
       {success && (
         <div className="bg-green-50 border border-green-200 rounded-md p-4 mb-6">
@@ -111,9 +106,7 @@ export default function CreateProposition({ user }) {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label className="block text-gray-700 font-semibold mb-2">
-            Titre de la proposition
-          </label>
+          <label className="block text-gray-200 font-semibold mb-2">Titre de la proposition</label>
           <input
             type="text"
             value={title}
@@ -125,9 +118,7 @@ export default function CreateProposition({ user }) {
         </div>
 
         <div>
-          <label className="block text-gray-700 font-semibold mb-2">
-            Description détaillée
-          </label>
+          <label className="block text-gray-200 font-semibold mb-2">Description détaillée</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -139,20 +130,20 @@ export default function CreateProposition({ user }) {
         </div>
 
         <div>
-          <label className="block text-gray-700 font-semibold mb-2">
+          <label className="block text-gray-200 font-semibold mb-2">
             Tags (sélectionnez ou créez)
           </label>
 
           <div className="flex flex-wrap gap-2 mb-3">
-            {tags.map(tag => (
+            {tags.map((tag) => (
               <button
                 key={tag.id}
                 type="button"
                 onClick={() => toggleTag(tag.id)}
                 className={`px-3 py-1 rounded-full text-sm font-semibold transition-colors ${
                   selectedTags.includes(tag.id)
-                    ? 'bg-blue-900 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? "bg-blue-900 text-bauhaus-white"
+                    : "bg-gray-800 text-gray-200 hover:bg-gray-500"
                 }`}
               >
                 {tag.name}
@@ -171,7 +162,7 @@ export default function CreateProposition({ user }) {
             <button
               type="button"
               onClick={handleCreateTag}
-              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+              className="px-4 py-2 bg-gray-600 text-bauhaus-white rounded-md hover:bg-gray-700"
             >
               Créer
             </button>
@@ -181,9 +172,9 @@ export default function CreateProposition({ user }) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 bg-blue-900 text-white font-bold rounded-md hover:bg-blue-800 disabled:opacity-50"
+          className="w-full py-3 bg-blue-900 text-bauhaus-white font-bold rounded-md hover:bg-blue-800 disabled:opacity-50"
         >
-          {loading ? 'Création en cours...' : 'Créer la proposition'}
+          {loading ? "Création en cours..." : "Créer la proposition"}
         </button>
       </form>
     </div>

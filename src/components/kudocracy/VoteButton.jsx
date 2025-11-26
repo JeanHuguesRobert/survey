@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { supabase } from '../../lib/supabase';
+import React, { useState } from "react";
+import { supabase } from "../../lib/supabase";
 
 export default function VoteButton({ propositionId, userId, currentVote, onVoteChange }) {
   const [loading, setLoading] = useState(false);
@@ -11,31 +11,26 @@ export default function VoteButton({ propositionId, userId, currentVote, onVoteC
       if (currentVote) {
         // Si on clique sur le même vote, on le retire
         if (currentVote.vote_value === voteValue) {
-          await supabase
-            .from('votes')
-            .delete()
-            .eq('id', currentVote.id);
+          await supabase.from("votes").delete().eq("id", currentVote.id);
         } else {
           // Sinon on met à jour avec la nouvelle valeur
           await supabase
-            .from('votes')
+            .from("votes")
             .update({ vote_value: voteValue, updated_at: new Date().toISOString() })
-            .eq('id', currentVote.id);
+            .eq("id", currentVote.id);
         }
       } else {
         // Nouveau vote
-        await supabase
-          .from('votes')
-          .insert({
-            user_id: userId,
-            proposition_id: propositionId,
-            vote_value: voteValue
-          });
+        await supabase.from("votes").insert({
+          user_id: userId,
+          proposition_id: propositionId,
+          vote_value: voteValue,
+        });
       }
 
       onVoteChange();
     } catch (error) {
-      console.error('Erreur lors du vote:', error);
+      console.error("Erreur lors du vote:", error);
     } finally {
       setLoading(false);
     }
@@ -48,8 +43,8 @@ export default function VoteButton({ propositionId, userId, currentVote, onVoteC
         disabled={loading}
         className={`flex-1 py-2 px-4 rounded-md font-semibold transition-colors disabled:opacity-50 ${
           currentVote?.vote_value === true
-            ? 'bg-green-600 text-white'
-            : 'bg-green-100 text-green-700 hover:bg-green-200'
+            ? "bg-green-600 text-bauhaus-white"
+            : "bg-green-100 text-green-700 hover:bg-green-200"
         }`}
       >
         Pour
@@ -59,8 +54,8 @@ export default function VoteButton({ propositionId, userId, currentVote, onVoteC
         disabled={loading}
         className={`flex-1 py-2 px-4 rounded-md font-semibold transition-colors disabled:opacity-50 ${
           currentVote?.vote_value === null
-            ? 'bg-gray-600 text-white'
-            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            ? "bg-gray-600 text-bauhaus-white"
+            : "bg-gray-100 text-gray-200 hover:bg-gray-200"
         }`}
       >
         Blanc
@@ -70,8 +65,8 @@ export default function VoteButton({ propositionId, userId, currentVote, onVoteC
         disabled={loading}
         className={`flex-1 py-2 px-4 rounded-md font-semibold transition-colors disabled:opacity-50 ${
           currentVote?.vote_value === false
-            ? 'bg-red-600 text-white'
-            : 'bg-red-100 text-red-700 hover:bg-red-200'
+            ? "bg-red-600 text-bauhaus-white"
+            : "bg-red-100 text-red-700 hover:bg-red-200"
         }`}
       >
         Contre

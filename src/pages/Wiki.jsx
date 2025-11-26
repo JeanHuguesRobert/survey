@@ -1,32 +1,35 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { supabase } from '../lib/supabase';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from "react";
+import { supabase } from "../lib/supabase";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import ErrorBoundary from "../components/common/ErrorBoundary";
-import { linkifyWardWiki } from '../lib/wikiLinks';
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
-import ShareModal from '../components/wiki/ShareModal';
+import { linkifyWardWiki } from "../lib/wikiLinks";
+import { marked } from "marked";
+import DOMPurify from "dompurify";
+import ShareModal from "../components/wiki/ShareModal";
+import SiteFooter from "../components/layout/SiteFooter";
 
 export default function Wiki() {
   const [pages, setPages] = useState([]);
   const [activePage, setActivePage] = useState(null);
   const [editMode, setEditMode] = useState(false);
-  const [content, setContent] = useState('');
-  const [title, setTitle] = useState('');
-  const [slug, setSlug] = useState('');
+  const [content, setContent] = useState("");
+  const [title, setTitle] = useState("");
+  const [slug, setSlug] = useState("");
   const [editingPageId, setEditingPageId] = useState(null);
-  const [formMode, setFormMode] = useState('view');
+  const [formMode, setFormMode] = useState("view");
   const { slug: urlSlug } = useParams();
   const navigate = useNavigate();
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   // Nouveaux états pour la navigation moderne
-  const [sortBy, setSortBy] = useState(() => localStorage.getItem('wiki-sort') || 'updated-desc');
-  const [viewMode, setViewMode] = useState(() => localStorage.getItem('wiki-view') || 'grid');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sidebarWidth, setSidebarWidth] = useState(() => parseInt(localStorage.getItem('wiki-sidebar-width')) || 400);
+  const [sortBy, setSortBy] = useState(() => localStorage.getItem("wiki-sort") || "updated-desc");
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem("wiki-view") || "grid");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sidebarWidth, setSidebarWidth] = useState(
+    () => parseInt(localStorage.getItem("wiki-sidebar-width")) || 400
+  );
   const [isResizing, setIsResizing] = useState(false);
 
   useEffect(() => {
@@ -43,28 +46,31 @@ export default function Wiki() {
 
   // Sauvegarder les préférences
   useEffect(() => {
-    localStorage.setItem('wiki-sort', sortBy);
+    localStorage.setItem("wiki-sort", sortBy);
   }, [sortBy]);
 
   useEffect(() => {
-    localStorage.setItem('wiki-view', viewMode);
+    localStorage.setItem("wiki-view", viewMode);
   }, [viewMode]);
 
   useEffect(() => {
-    localStorage.setItem('wiki-sidebar-width', sidebarWidth.toString());
+    localStorage.setItem("wiki-sidebar-width", sidebarWidth.toString());
   }, [sidebarWidth]);
 
   const loadPages = async () => {
-    const { data } = await supabase.from('wiki_pages').select('*').order('updated_at', { ascending: false });
+    const { data } = await supabase
+      .from("wiki_pages")
+      .select("*")
+      .order("updated_at", { ascending: false });
     setPages(data || []);
   };
 
   const loadPageBySlug = async (slug) => {
-    const { data } = await supabase.from('wiki_pages').select('*').eq('slug', slug).single();
+    const { data } = await supabase.from("wiki_pages").select("*").eq("slug", slug).single();
     setActivePage(data || null);
   };
 
-  const handleNewPage = () => navigate('/wiki/new');
+  const handleNewPage = () => navigate("/wiki/new");
 
   // Fonction de tri et filtrage
   const filteredAndSortedPages = useMemo(() => {
@@ -73,26 +79,27 @@ export default function Wiki() {
     // Filtrage par recherche
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(page =>
-        page.title.toLowerCase().includes(query) ||
-        (page.content && page.content.toLowerCase().includes(query))
+      result = result.filter(
+        (page) =>
+          page.title.toLowerCase().includes(query) ||
+          (page.content && page.content.toLowerCase().includes(query))
       );
     }
 
     // Tri
     result.sort((a, b) => {
       switch (sortBy) {
-        case 'title-asc':
+        case "title-asc":
           return a.title.localeCompare(b.title);
-        case 'title-desc':
+        case "title-desc":
           return b.title.localeCompare(a.title);
-        case 'updated-desc':
+        case "updated-desc":
           return new Date(b.updated_at) - new Date(a.updated_at);
-        case 'updated-asc':
+        case "updated-asc":
           return new Date(a.updated_at) - new Date(b.updated_at);
-        case 'created-desc':
+        case "created-desc":
           return new Date(b.created_at) - new Date(a.created_at);
-        case 'created-asc':
+        case "created-asc":
           return new Date(a.created_at) - new Date(b.created_at);
         default:
           return 0;
@@ -112,21 +119,34 @@ export default function Wiki() {
 
     return {
       totalPages: pages.length,
-      lastUpdate: lastUpdate.toLocaleDateString('fr-FR', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric'
-      })
+      lastUpdate: lastUpdate.toLocaleDateString("fr-FR", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }),
     };
   }, [pages]);
 
   function renderLink({ href, children }) {
-    const isInternal = !href.startsWith('http') && !href.startsWith('//');
+    const isInternal = !href.startsWith("http") && !href.startsWith("//");
     if (isInternal) {
-      const prefixedHref = `/wiki/${href.replace(/^\//, '')}`;
-      return <Link to={prefixedHref} className="text-blue-600 hover:underline">{children}</Link>;
+      const prefixedHref = `/wiki/${href.replace(/^\//, "")}`;
+      return (
+        <Link to={prefixedHref} className="text-primary hover:underline">
+          {children}
+        </Link>
+      );
     }
-    return <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{children}</a>;
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary hover:underline"
+      >
+        {children}
+      </a>
+    );
   }
 
   const handleShare = () => {
@@ -134,181 +154,484 @@ export default function Wiki() {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return "N/A";
     const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
+    return date.toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
     });
   };
 
   const getContentPreview = (page) => {
-    // Utiliser le summary s'il existe, sinon le contenu
-    if (page.summary) return page.summary;
-    if (!page.content) return 'Pas de contenu';
-    const text = page.content.replace(/[#*\[\]()]/g, '').trim();
-    return text.length > 120 ? text.substring(0, 120) + '...' : text;
+    // Always use at most 240 chars, even if summary exists
+    const source = page.summary || page.content || "";
+    const text = source.replace(/[#*\[\]()]/g, "").trim();
+    return text.length > 240 ? text.substring(0, 240) + "..." : text || "Pas de contenu";
   };
 
   // Gestion du redimensionnement de la sidebar
   const handleMouseDown = (e) => {
     setIsResizing(true);
     e.preventDefault();
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
   };
 
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!isResizing) return;
-      const newWidth = e.clientX;
-      if (newWidth >= 240 && newWidth <= 600) {
-        setSidebarWidth(newWidth);
-      }
+      // compute width directly from viewport X (simple and robust)
+      let newWidth = Math.round(e.clientX);
+      const min = 240;
+      const max = Math.max(320, window.innerWidth - 320);
+      if (newWidth < min) newWidth = min;
+      if (newWidth > max) newWidth = max;
+      setSidebarWidth(newWidth);
     };
 
     const handleMouseUp = () => {
+      if (isResizing) {
+        localStorage.setItem("wiki-sidebar-width", String(sidebarWidth));
+      }
       setIsResizing(false);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
     };
 
     if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-    } else {
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
     }
-
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
     };
-  }, [isResizing]);
+  }, [isResizing, sidebarWidth]);
 
   const isWelcomePage = !urlSlug;
 
-  return (
-    <div className="wiki-container flex flex-col min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+  // Reusable style objects
+  const styles = {
+    container: {
+      minHeight: "100vh",
+      background: "var(--color-bg-app)",
+      display: "flex",
+      flexDirection: "column",
+    },
+    flexRow: {
+      display: "flex",
+      flexDirection: "row",
+      gap: 0,
+      flexGrow: 1,
+      maxWidth: "100%",
+      /* do NOT set fixed height here — allow document scrollbar to drive page scrolling */
+    },
+    sidebar: {
+      minWidth: 240,
+      maxWidth: window.innerWidth - 320,
+      marginTop: 24,
+      marginLeft: 24,
+      position: "relative",
+      background: "var(--color-surface-secondary)",
+      borderRadius: "var(--radius-md)",
+      padding: "16px",
+      boxSizing: "border-box",
+      border: "1px solid var(--color-border-medium)",
+      display: "flex",
+      flexDirection: "column",
+      gap: "16px",
+      /* allow natural height; no internal full-height scrollbar */
+    },
+    sidebarTitle: {
+      fontWeight: 700,
+      fontSize: "1.05em", // slightly smaller to reduce wrap risk
+      color: "var(--color-action-primary)",
+      marginBottom: "8px",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+      display: "block",
+      maxWidth: "100%",
+    },
+    splitter: {
+      width: 8,
+      cursor: "col-resize",
+      background: isResizing ? "var(--color-action-primary)" : "transparent",
+      display: "flex",
+      alignItems: "stretch",
+      justifyContent: "center",
+      alignSelf: "stretch", // stretch with content height
+    },
+    splitterBar: {
+      width: 2,
+      background: "var(--color-border-medium)",
+      borderRadius: 2,
+      height: "100%",
+    },
+    main: {
+      flex: 1,
+      minWidth: 320,
+      /* no internal scrolling; rely on document scrollbar */
+      overflow: "visible",
+      padding: "24px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "24px",
+      background: "var(--color-bg-app)",
+      boxSizing: "border-box",
+    },
+    themeCard: {
+      background: "var(--color-surface-secondary)",
+      borderRadius: "var(--radius-md)",
+      padding: "20px",
+      boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+      border: "1px solid var(--color-border-medium)",
+      marginBottom: "12px",
+      width: "100%",
+      boxSizing: "border-box",
+    },
+    toolbar: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "12px",
+      marginBottom: "12px",
+      alignItems: "center",
+      width: "100%",
+    },
+    toolbarRow: {
+      display: "flex",
+      flexDirection: "row",
+      gap: "12px",
+      alignItems: "center",
+      justifyContent: "space-between",
+      width: "100%",
+      flexWrap: "wrap",
+    },
+    searchInput: {
+      width: "100%",
+      padding: "8px 12px",
+      borderRadius: "var(--radius-sm)",
+      border: "1px solid var(--color-border-medium)",
+      fontSize: "1em",
+      background: "var(--color-bg-app)",
+      color: "var(--color-content-primary)",
+      marginBottom: "8px",
+      boxSizing: "border-box",
+    },
+    select: {
+      padding: "6px 10px",
+      borderRadius: "var(--radius-sm)",
+      border: "1px solid var(--color-border-medium)",
+      fontSize: "1em",
+      background: "var(--color-bg-app)",
+      color: "var(--color-content-primary)",
+      marginRight: "8px",
+    },
+    viewToggle: {
+      display: "flex",
+      background: "var(--color-surface-tertiary)",
+      borderRadius: "var(--radius-md)",
+      padding: "2px",
+      gap: "2px",
+    },
+    toolbarButton: {
+      padding: "6px 16px",
+      borderRadius: "var(--radius-sm)",
+      fontWeight: 500,
+      fontSize: "0.95em",
+      background: "none",
+      border: "none",
+      cursor: "pointer",
+      color: "var(--color-content-secondary)",
+      transition: "background var(--duration-fast) ease",
+    },
+    toolbarButtonActive: {
+      background: "var(--color-action-primary)",
+      color: "var(--color-bg-app)",
+    },
+    grid: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", // limit card width
+      gap: "16px",
+      width: "100%",
+      justifyContent: "center", // center grid content
+    },
+    gridMd: {
+      gridTemplateColumns: "1fr 1fr",
+    },
+    gridLg: {
+      gridTemplateColumns: "1fr 1fr 1fr",
+    },
+    wikiCard: {
+      background: "var(--color-surface-secondary)",
+      borderRadius: "var(--radius-md)",
+      padding: "16px",
+      boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+      border: "1px solid var(--color-border-medium)",
+      display: "flex",
+      flexDirection: "column",
+      gap: "8px",
+      textDecoration: "none",
+      color: "var(--color-content-primary)",
+      transition: "background var(--duration-fast) ease",
+      cursor: "pointer",
+      maxWidth: "320px", // limit card width
+      margin: "0 auto", // center card in grid cell
+      minHeight: "220px", // add this line for uniform height
+      justifyContent: "space-between", // ensures footer stays at bottom
+    },
+    wikiCardTitle: {
+      fontWeight: 600,
+      fontSize: "1.1em",
+      color: "var(--color-content-primary)",
+      marginBottom: "4px",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+    },
+    wikiCardPreview: {
+      fontSize: "0.95em",
+      color: "var(--color-content-secondary)",
+      marginBottom: "8px",
+    },
+    wikiCardFooter: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      fontSize: "0.85em",
+      color: "var(--color-content-secondary)",
+      borderTop: "1px solid var(--color-border-medium)",
+      paddingTop: "6px",
+      marginTop: "8px",
+    },
+    listItem: {
+      display: "flex",
+      alignItems: "center",
+      gap: "12px",
+      padding: "12px 0",
+      borderBottom: "1px solid var(--color-border-medium)",
+      textDecoration: "none",
+      color: "var(--color-content-primary)",
+      cursor: "pointer",
+    },
+    listItemTitle: {
+      fontWeight: 600,
+      fontSize: "1em",
+      color: "var(--color-content-primary)",
+      marginBottom: "2px",
+    },
+    listItemPreview: {
+      fontSize: "0.95em",
+      color: "var(--color-content-secondary)",
+      marginBottom: "2px",
+    },
+    listItemFooter: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-end",
+      gap: "2px",
+      fontSize: "0.85em",
+      color: "var(--color-content-secondary)",
+    },
+    footer: {
+      marginTop: "auto",
+      textAlign: "center",
+      padding: "24px",
+      borderTop: "1px solid var(--color-border-medium)",
+      background: "var(--color-bg-app)",
+    },
+    btn: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "8px",
+      padding: "8px 16px",
+      borderRadius: "var(--radius-sm)",
+      fontWeight: 600,
+      fontSize: "1em",
+      background: "var(--color-action-primary)",
+      color: "var(--color-bg-app)",
+      border: "none",
+      cursor: "pointer",
+      textDecoration: "none",
+      transition: "background var(--duration-fast) ease",
+    },
+    btnSecondary: {
+      background: "var(--color-action-accent)",
+      color: "var(--color-bg-app)",
+    },
+    btnOutline: {
+      background: "transparent",
+      color: "var(--color-content-primary)",
+      border: "1px solid var(--color-content-primary)",
+    },
+    markdownContent: {
+      fontSize: "1em",
+      color: "var(--color-content-primary)",
+      lineHeight: 1.6,
+      wordBreak: "break-word",
+      background: "var(--color-bg-app)",
+      padding: "8px",
+      borderRadius: "var(--radius-sm)",
+    },
+    errorText: {
+      color: "var(--color-content-secondary)",
+      fontSize: "1em",
+      margin: "12px 0",
+    },
+    fadeIn: {
+      animation: "fadeIn 0.3s",
+    },
+  };
 
-      <div className="flex flex-col md:flex-row gap-0 flex-grow max-w-full overflow-hidden">
-        {/* Sidebar */}
+  return (
+    <div style={styles.container}>
+      <div
+        className="wiki-container-flex-row"
+        style={{
+          ...styles.flexRow,
+        }}
+      >
+        {/* Sidebar (fixed width via inline style) */}
         <aside
-          className="bg-white p-6 rounded-xl shadow-lg h-fit sticky top-6 flex-shrink-0 hidden md:block min-w-[240px] max-w-[600px] my-6 ml-6 relative"
-          style={{ width: `${sidebarWidth}px` }}
+          style={{
+            ...styles.sidebar,
+            width: sidebarWidth,
+            flex: "0 0 auto",
+          }}
         >
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
-              Wiki
-            </h2>
+          <div style={{ marginBottom: "16px" }}>
+            <h2 style={styles.sidebarTitle}>Wiki</h2>
             {stats && (
-              <div className="text-sm space-y-1 text-gray-600">
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span>{stats.totalPages} {stats.totalPages > 1 ? 'pages' : 'page'}</span>
+              <div style={styles.sidebarStats}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span>
+                    {stats.totalPages} {stats.totalPages > 1 ? "pages" : "page"}
+                  </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                   <span>Mis à jour le {stats.lastUpdate}</span>
                 </div>
               </div>
             )}
           </div>
-
-          <button
-            onClick={handleNewPage}
-            className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 font-medium shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          <button onClick={handleNewPage} style={styles.btn}>
+            <svg
+              style={{ width: 20, height: 20 }}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
             </svg>
             Nouvelle page
           </button>
-
-          <div className="mt-6">
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-              Accès rapide
-            </h3>
-            <ul className="space-y-1 max-h-96 overflow-y-auto">
-              {pages.slice(0, 10).map(page => (
+          <div style={styles.sidebarQuick}>
+            <h3 style={styles.sidebarQuickTitle}>Accès rapide</h3>
+            <ul style={styles.sidebarQuickList}>
+              {pages.slice(0, 10).map((page) => (
                 <li key={page.id}>
-                  <Link
-                    to={`/wiki/${page.slug}`}
-                    className="flex items-center gap-2 text-gray-700 hover:text-blue-600 py-2 px-3 rounded-md hover:bg-blue-50 transition-colors"
-                  >
-                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <span className="truncate text-sm">{page.title}</span>
+                  <Link to={`/wiki/${page.slug}`} style={styles.sidebarQuickItem}>
+                    <span
+                      style={{ fontSize: "0.95em", overflow: "hidden", textOverflow: "ellipsis" }}
+                    >
+                      {page.title}
+                    </span>
                   </Link>
                 </li>
               ))}
             </ul>
           </div>
-
-          {/* Resize Handle */}
-          <div
-            className={`resize-handle ${isResizing ? 'resizing' : ''}`}
-            onMouseDown={handleMouseDown}
-          />
         </aside>
 
+        {/* Splitter (sibling between aside and main) */}
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          style={styles.splitter}
+          onMouseDown={handleMouseDown}
+          title="Redimensionner la colonne"
+        >
+          <div style={styles.splitterBar} />
+        </div>
+
         {/* Main Content */}
-        <main className="flex-1 space-y-6 p-6 min-w-0 overflow-hidden">
+        <main
+          style={{
+            ...styles.main,
+            marginTop: 24,
+            marginRight: 24,
+            marginBottom: 24,
+          }}
+        >
           {editMode ? (
-            <div className="bg-white p-6 rounded-xl shadow-lg space-y-4">
-              <h1 className="text-2xl font-bold text-gray-900">
-                {formMode === 'edit' ? 'Modifier la page' : 'Créer une nouvelle page'}
+            <div style={styles.themeCard}>
+              <h1
+                style={{
+                  fontWeight: 700,
+                  fontSize: "1.2em",
+                  color: "var(--color-content-primary)",
+                  marginBottom: "8px",
+                }}
+              >
+                {formMode === "edit" ? "Modifier la page" : "Créer une nouvelle page"}
               </h1>
               <input
                 value={title}
-                onChange={e => setTitle(e.target.value)}
+                onChange={(e) => setTitle(e.target.value)}
                 placeholder="Titre"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                style={styles.searchInput}
               />
               <input
                 value={slug}
-                onChange={e => setSlug(e.target.value)}
+                onChange={(e) => setSlug(e.target.value)}
                 placeholder="Identifiant unique (ex : page-exemple)"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                style={styles.searchInput}
               />
               <textarea
                 value={content}
-                onChange={e => setContent(e.target.value)}
-                rows={20}
+                onChange={(e) => setContent(e.target.value)}
+                rows={12}
                 placeholder="Contenu de la page..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none font-mono"
+                style={{ ...styles.searchInput, fontFamily: "monospace", resize: "none" }}
               ></textarea>
-              <div className="flex gap-4">
-                <button
-                  onClick={savePage}
-                  className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors"
-                >
+              <div style={{ display: "flex", gap: "12px" }}>
+                <button onClick={savePage} style={styles.btn}>
                   Enregistrer
                 </button>
                 <button
                   onClick={() => {
                     setEditMode(false);
-                    setFormMode('view');
+                    setFormMode("view");
                     setEditingPageId(null);
                   }}
-                  className="px-6 py-3 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 font-medium transition-colors"
+                  style={{ ...styles.btn, ...styles.btnSecondary }}
                 >
                   Annuler
                 </button>
               </div>
             </div>
           ) : activePage ? (
-            <div className="bg-white p-8 rounded-xl shadow-lg fade-in">
-              <h1 className="text-3xl font-bold mb-6 text-gray-900">{activePage.title}</h1>
-              {activePage.content && typeof activePage.content === 'string' ? (
-                <div className="markdown-content prose prose-slate max-w-none">
+            <div style={styles.themeCard}>
+              <h1
+                style={{
+                  fontWeight: 700,
+                  fontSize: "1.3em",
+                  color: "var(--color-content-primary)",
+                  marginBottom: "16px",
+                }}
+              >
+                {activePage.title}
+              </h1>
+              {activePage.content && typeof activePage.content === "string" ? (
+                <div style={styles.markdownContent}>
                   <ErrorBoundary>
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
@@ -321,169 +644,169 @@ export default function Wiki() {
                   </ErrorBoundary>
                 </div>
               ) : (
-                <div className="text-gray-600">Le contenu de cette page est invalide ou vide.</div>
+                <div style={styles.errorText}>Le contenu de cette page est invalide ou vide.</div>
               )}
-              <div className="mt-8 flex gap-4">
-                <button
-                  onClick={handleShare}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors flex items-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                  </svg>
+              <div style={{ marginTop: "24px", display: "flex", gap: "12px" }}>
+                <button onClick={handleShare} style={{ ...styles.btn, ...styles.btnOutline }}>
                   Partager
                 </button>
                 <button
                   onClick={() => activePage && navigate(`/wiki/${activePage.slug}/edit`)}
-                  className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition-colors flex items-center gap-2"
+                  style={styles.btn}
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
                   Modifier
                 </button>
               </div>
             </div>
           ) : (
-            <div className="space-y-6 fade-in">
+            <div style={styles.fadeIn}>
               {/* Toolbar */}
-              <div className="bg-white p-6 rounded-xl shadow-lg">
-                <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+              <div style={styles.toolbar}>
+                <div style={styles.toolbarRow}>
                   {/* Search */}
-                  <div className="relative flex-1 w-full lg:max-w-md">
-                    <svg className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <input
-                      type="text"
-                      placeholder="Rechercher dans les pages..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="search-input w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  <div className="flex gap-3 items-center flex-wrap">
-                    {/* Sort Dropdown */}
-                    <div className="relative">
-                      <select
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value)}
-                        className="px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white appearance-none cursor-pointer font-medium text-sm"
-                      >
-                        <option value="updated-desc">📝 Dernière modification ↓</option>
-                        <option value="updated-asc">📝 Dernière modification ↑</option>
-                        <option value="title-asc">🔤 Titre A → Z</option>
-                        <option value="title-desc">🔤 Titre Z → A</option>
-                        <option value="created-desc">✨ Date de création ↓</option>
-                        <option value="created-asc">✨ Date de création ↑</option>
-                      </select>
-                      <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-
-                    {/* View Toggle */}
-                    <div className="flex bg-gray-100 rounded-lg p-1">
-                      <button
-                        onClick={() => setViewMode('grid')}
-                        className={`toolbar-button px-4 py-2 rounded-md font-medium text-sm flex items-center gap-2 ${viewMode === 'grid' ? 'active' : 'text-gray-600'}`}
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                        </svg>
-                        Grille
-                      </button>
-                      <button
-                        onClick={() => setViewMode('list')}
-                        className={`toolbar-button px-4 py-2 rounded-md font-medium text-sm flex items-center gap-2 ${viewMode === 'list' ? 'active' : 'text-gray-600'}`}
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                        Liste
-                      </button>
-                    </div>
+                  <input
+                    type="text"
+                    placeholder="Rechercher dans les pages..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={styles.searchInput}
+                  />
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    style={styles.select}
+                  >
+                    <option value="updated-desc">📝 Dernière modification ↓</option>
+                    <option value="updated-asc">📝 Dernière modification ↑</option>
+                    <option value="title-asc">🔤 Titre A → Z</option>
+                    <option value="title-desc">🔤 Titre Z → A</option>
+                    <option value="created-desc">✨ Date de création ↓</option>
+                    <option value="created-asc">✨ Date de création ↑</option>
+                  </select>
+                  <div style={styles.viewToggle}>
+                    <button
+                      onClick={() => setViewMode("grid")}
+                      style={
+                        viewMode === "grid"
+                          ? { ...styles.toolbarButton, ...styles.toolbarButtonActive }
+                          : styles.toolbarButton
+                      }
+                    >
+                      Grille
+                    </button>
+                    <button
+                      onClick={() => setViewMode("list")}
+                      style={
+                        viewMode === "list"
+                          ? { ...styles.toolbarButton, ...styles.toolbarButtonActive }
+                          : styles.toolbarButton
+                      }
+                    >
+                      Liste
+                    </button>
                   </div>
                 </div>
-
                 {searchQuery && (
-                  <div className="mt-4 text-sm text-gray-600">
-                    {filteredAndSortedPages.length} résultat{filteredAndSortedPages.length > 1 ? 's' : ''} trouvé{filteredAndSortedPages.length > 1 ? 's' : ''}
+                  <div
+                    style={{
+                      marginTop: "8px",
+                      fontSize: "0.95em",
+                      color: "var(--color-content-secondary)",
+                    }}
+                  >
+                    {filteredAndSortedPages.length} résultat
+                    {filteredAndSortedPages.length > 1 ? "s" : ""} trouvé
+                    {filteredAndSortedPages.length > 1 ? "s" : ""}
                   </div>
                 )}
               </div>
-
               {/* Pages Display */}
               {filteredAndSortedPages.length === 0 ? (
-                <div className="bg-white p-12 rounded-xl shadow-lg text-center">
-                  <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <p className="text-gray-600 text-lg mb-2">
-                    {searchQuery ? 'Aucune page trouvée' : 'Aucune page pour le moment'}
+                <div style={{ ...styles.themeCard, textAlign: "center", padding: "32px" }}>
+                  <p
+                    style={{
+                      color: "var(--color-content-secondary)",
+                      fontSize: "1.1em",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    {searchQuery ? "Aucune page trouvée" : "Aucune page pour le moment"}
                   </p>
-                  <p className="text-gray-500 text-sm">
-                    {searchQuery ? 'Essayez avec d\'autres mots-clés' : 'Créez votre première page pour commencer'}
+                  <p style={{ color: "var(--color-content-secondary)", fontSize: "0.95em" }}>
+                    {searchQuery
+                      ? "Essayez avec d'autres mots-clés"
+                      : "Créez votre première page pour commencer"}
                   </p>
                 </div>
-              ) : viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredAndSortedPages.map(page => (
-                    <Link
-                      key={page.id}
-                      to={`/wiki/${page.slug}`}
-                      className="page-card bg-white p-6 rounded-xl shadow-md hover:shadow-xl block"
-                    >
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="p-2 bg-blue-50 rounded-lg flex-shrink-0">
-                          <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-lg text-gray-900 truncate">
-                            {page.title}
-                          </h3>
-                        </div>
+              ) : viewMode === "grid" ? (
+                <div
+                  style={{
+                    ...styles.grid,
+                    ...(filteredAndSortedPages.length > 2 ? styles.gridMd : {}),
+                    ...(filteredAndSortedPages.length > 5 ? styles.gridLg : {}),
+                  }}
+                >
+                  {filteredAndSortedPages.map((page) => (
+                    <Link key={page.id} to={`/wiki/${page.slug}`} style={styles.wikiCard}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        <svg
+                          style={{ width: 20, height: 20 }}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                        <span style={styles.wikiCardTitle}>{page.title}</span>
                       </div>
-                      <p className="content-preview text-sm text-gray-600 line-clamp-3 mb-4">
-                        {getContentPreview(page)}
-                      </p>
-                      <div className="flex items-center justify-between text-xs text-gray-500 pt-4 border-t border-gray-100">
-                        <div className="flex items-center gap-1">
-                          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          {formatDate(page.updated_at)}
-                        </div>
-                        <div className="text-blue-600 font-medium">
+                      <p style={styles.wikiCardPreview}>{getContentPreview(page)}</p>
+                      <div style={styles.wikiCardFooter}>
+                        <span>{formatDate(page.updated_at)}</span>
+                        <span style={{ color: "var(--color-action-primary)", fontWeight: 600 }}>
                           Voir →
-                        </div>
+                        </span>
                       </div>
                     </Link>
                   ))}
                 </div>
               ) : (
-                <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div style={{ ...styles.themeCard, overflow: "hidden", padding: 0 }}>
                   {filteredAndSortedPages.map((page, index) => (
-                    <Link
-                      key={page.id}
-                      to={`/wiki/${page.slug}`}
-                      className={`page-list-item flex items-center gap-4 p-5 hover:bg-slate-50 ${index !== filteredAndSortedPages.length - 1 ? 'border-b border-gray-100' : ''}`}
-                    >
-                      <div className="p-2 bg-blue-50 rounded-lg flex-shrink-0">
-                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
+                    <Link key={page.id} to={`/wiki/${page.slug}`} style={styles.listItem}>
+                      <svg
+                        style={{ width: 16, height: 16 }}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <span style={styles.listItemTitle}>{page.title}</span>
+                        <p style={styles.listItemPreview}>{getContentPreview(page)}</p>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-900 mb-1">{page.title}</h3>
-                        <p className="content-preview text-sm text-gray-600 truncate">{getContentPreview(page)}</p>
-                      </div>
-                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                        <span className="text-xs text-gray-500">{formatDate(page.updated_at)}</span>
-                        <span className="text-xs text-blue-600 font-medium">Ouvrir →</span>
+                      <div style={styles.listItemFooter}>
+                        <span>{formatDate(page.updated_at)}</span>
+                        <span style={{ color: "var(--color-action-primary)", fontWeight: 600 }}>
+                          Ouvrir →
+                        </span>
                       </div>
                     </Link>
                   ))}
@@ -493,25 +816,12 @@ export default function Wiki() {
           )}
         </main>
       </div>
-
-      {/* Footer */}
-      <footer className="mt-auto text-center p-6 bg-white border-t border-gray-200">
-        <Link
-          to={isWelcomePage ? "/" : "/wiki"}
-          className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 font-semibold shadow-md hover:shadow-lg transition-all"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          {isWelcomePage ? "Retour à l'accueil général" : "Retour à la page d'accueil du Wiki"}
-        </Link>
-      </footer>
-
+      <SiteFooter />
       <ShareModal
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         shareUrl={window.location.href}
-        shareTitle={activePage?.title || 'Wiki'}
+        shareTitle={activePage?.title || "Wiki"}
       />
     </div>
   );

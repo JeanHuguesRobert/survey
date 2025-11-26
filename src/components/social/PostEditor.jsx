@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
-import { createPostMetadata, POST_TYPES, LINKED_TYPES } from '../../lib/socialMetadata';
+import { useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { supabase } from "../../lib/supabase";
+import { createPostMetadata, POST_TYPES, LINKED_TYPES } from "../../lib/socialMetadata";
 
 /**
  * Éditeur de post (nouveau ou édition)
@@ -12,20 +12,20 @@ export default function PostEditor({ post = null, currentUser }) {
   const isEditing = !!post;
 
   // Récupérer groupId depuis URL si création depuis un groupe
-  const groupIdFromUrl = searchParams.get('groupId');
-  const linkedTypeFromUrl = searchParams.get('linkedType');
-  const linkedIdFromUrl = searchParams.get('linkedId');
+  const groupIdFromUrl = searchParams.get("groupId");
+  const linkedTypeFromUrl = searchParams.get("linkedType");
+  const linkedIdFromUrl = searchParams.get("linkedId");
 
   const [formData, setFormData] = useState({
-    title: post?.metadata?.title || '',
-    content: post?.content || '',
+    title: post?.metadata?.title || "",
+    content: post?.content || "",
     postType: post?.metadata?.postType || POST_TYPES.FORUM,
-    groupId: post?.metadata?.groupId || groupIdFromUrl || '',
-    linkedType: post?.metadata?.linkedType || linkedTypeFromUrl || '',
-    linkedId: post?.metadata?.linkedId || linkedIdFromUrl || '',
-    tags: post?.metadata?.tags?.join(', ') || '',
+    groupId: post?.metadata?.groupId || groupIdFromUrl || "",
+    linkedType: post?.metadata?.linkedType || linkedTypeFromUrl || "",
+    linkedId: post?.metadata?.linkedId || linkedIdFromUrl || "",
+    tags: post?.metadata?.tags?.join(", ") || "",
     isPinned: post?.metadata?.isPinned || false,
-    isLocked: post?.metadata?.isLocked || false
+    isLocked: post?.metadata?.isLocked || false,
   });
 
   const [loading, setLoading] = useState(false);
@@ -33,9 +33,9 @@ export default function PostEditor({ post = null, currentUser }) {
 
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
   }
 
@@ -43,12 +43,12 @@ export default function PostEditor({ post = null, currentUser }) {
     e.preventDefault();
 
     if (!currentUser) {
-      setError('Vous devez être connecté');
+      setError("Vous devez être connecté");
       return;
     }
 
     if (!formData.title.trim() || !formData.content.trim()) {
-      setError('Le titre et le contenu sont requis');
+      setError("Le titre et le contenu sont requis");
       return;
     }
 
@@ -57,9 +57,9 @@ export default function PostEditor({ post = null, currentUser }) {
       setError(null);
 
       const tagsArray = formData.tags
-        .split(',')
-        .map(t => t.trim())
-        .filter(t => t.length > 0);
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
 
       const metadata = createPostMetadata(formData.postType, formData.title, {
         groupId: formData.groupId || null,
@@ -67,31 +67,31 @@ export default function PostEditor({ post = null, currentUser }) {
         linkedId: formData.linkedId || null,
         isPinned: formData.isPinned,
         isLocked: formData.isLocked,
-        tags: tagsArray
+        tags: tagsArray,
       });
 
       if (isEditing) {
         // Update existing post
         const { error: updateError } = await supabase
-          .from('posts')
+          .from("posts")
           .update({
             content: formData.content,
-            metadata
+            metadata,
           })
-          .eq('id', post.id);
+          .eq("id", post.id);
 
         if (updateError) throw updateError;
 
-        alert('Post mis à jour !');
+        alert("Post mis à jour !");
         navigate(`/posts/${post.id}`);
       } else {
         // Create new post
         const { data: newPost, error: insertError } = await supabase
-          .from('posts')
+          .from("posts")
           .insert({
             user_id: currentUser.id,
             content: formData.content,
-            metadata
+            metadata,
           })
           .select()
           .single();
@@ -99,15 +99,13 @@ export default function PostEditor({ post = null, currentUser }) {
         if (insertError) throw insertError;
 
         // Auto-subscribe to created post
-        await supabase
-          .from('content_subscriptions')
-          .insert({
-            user_id: currentUser.id,
-            content_type: 'post',
-            content_id: newPost.id
-          });
+        await supabase.from("content_subscriptions").insert({
+          user_id: currentUser.id,
+          content_type: "post",
+          content_id: newPost.id,
+        });
 
-        alert('Post créé !');
+        alert("Post créé !");
 
         // Rediriger vers le groupe si c'est un post de groupe
         if (formData.groupId) {
@@ -117,7 +115,7 @@ export default function PostEditor({ post = null, currentUser }) {
         }
       }
     } catch (err) {
-      console.error('Error saving post:', err);
+      console.error("Error saving post:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -127,7 +125,7 @@ export default function PostEditor({ post = null, currentUser }) {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">
-        {isEditing ? 'Modifier le post' : 'Nouvelle publication'}
+        {isEditing ? "Modifier le post" : "Nouvelle publication"}
       </h1>
 
       {error && (
@@ -136,10 +134,10 @@ export default function PostEditor({ post = null, currentUser }) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+      <form onSubmit={handleSubmit} className=" rounded-lg shadow-sm p-6 space-y-6">
         {/* Type de post */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-200 mb-2">
             Type de publication
           </label>
           <select
@@ -156,9 +154,7 @@ export default function PostEditor({ post = null, currentUser }) {
 
         {/* Titre */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Titre *
-          </label>
+          <label className="block text-sm font-medium text-gray-200 mb-2">Titre *</label>
           <input
             type="text"
             name="title"
@@ -172,9 +168,7 @@ export default function PostEditor({ post = null, currentUser }) {
 
         {/* Contenu */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Contenu *
-          </label>
+          <label className="block text-sm font-medium text-gray-200 mb-2">Contenu *</label>
           <textarea
             name="content"
             value={formData.content}
@@ -184,7 +178,7 @@ export default function PostEditor({ post = null, currentUser }) {
             className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono text-sm"
             placeholder="Écrivez votre message... (Markdown supporté)"
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-400 mt-1">
             Vous pouvez utiliser Markdown pour formater votre texte
           </p>
         </div>
@@ -192,12 +186,12 @@ export default function PostEditor({ post = null, currentUser }) {
         {/* Lien vers entité existante (optionnel) */}
         {!groupIdFromUrl && (
           <div className="border-t pt-4">
-            <h3 className="text-sm font-medium text-gray-700 mb-3">
+            <h3 className="text-sm font-medium text-gray-200 mb-3">
               Lier à une page existante (optionnel)
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-gray-600 mb-1">Type</label>
+                <label className="block text-xs text-gray-300 mb-1">Type</label>
                 <select
                   name="linkedType"
                   value={formData.linkedType}
@@ -211,7 +205,7 @@ export default function PostEditor({ post = null, currentUser }) {
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-1">ID de l'entité</label>
+                <label className="block text-xs text-gray-300 mb-1">ID de l'entité</label>
                 <input
                   type="text"
                   name="linkedId"
@@ -228,7 +222,7 @@ export default function PostEditor({ post = null, currentUser }) {
 
         {/* Tags */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-200 mb-2">
             Tags (séparés par des virgules)
           </label>
           <input
@@ -244,7 +238,7 @@ export default function PostEditor({ post = null, currentUser }) {
         {/* Options modérateur */}
         {currentUser && (
           <div className="border-t pt-4 space-y-3">
-            <h3 className="text-sm font-medium text-gray-700">Options</h3>
+            <h3 className="text-sm font-medium text-gray-200">Options</h3>
 
             <label className="flex items-center gap-2">
               <input
@@ -254,7 +248,7 @@ export default function PostEditor({ post = null, currentUser }) {
                 onChange={handleChange}
                 className="w-4 h-4 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
               />
-              <span className="text-sm text-gray-700">📌 Épingler ce post (en haut de liste)</span>
+              <span className="text-sm text-gray-200">📌 Épingler ce post (en haut de liste)</span>
             </label>
 
             <label className="flex items-center gap-2">
@@ -265,7 +259,9 @@ export default function PostEditor({ post = null, currentUser }) {
                 onChange={handleChange}
                 className="w-4 h-4 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
               />
-              <span className="text-sm text-gray-700">🔒 Verrouiller (empêcher nouveaux commentaires)</span>
+              <span className="text-sm text-gray-200">
+                🔒 Verrouiller (empêcher nouveaux commentaires)
+              </span>
             </label>
           </div>
         )}
@@ -275,14 +271,14 @@ export default function PostEditor({ post = null, currentUser }) {
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 disabled:bg-gray-400 font-semibold"
+            className="flex-1 px-4 py-2 bg-orange-600 text-bauhaus-white rounded hover:bg-orange-700 disabled:bg-gray-400 font-semibold"
           >
-            {loading ? 'Enregistrement...' : (isEditing ? 'Mettre à jour' : 'Publier')}
+            {loading ? "Enregistrement..." : isEditing ? "Mettre à jour" : "Publier"}
           </button>
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+            className="px-4 py-2 bg-gray-200 text-gray-200 rounded hover:bg-gray-300"
           >
             Annuler
           </button>

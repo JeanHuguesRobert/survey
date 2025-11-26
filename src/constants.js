@@ -1,12 +1,22 @@
 // centralised app version (single source of truth)
 // hardcoded value is the canonical version; CI/CD can override by setting process.env.APP_VERSION at build time
-export const APP_VERSION = import.meta.env.APP_VERSION ?? "1.2.21";
-export const DEPLOY_DATE = import.meta.env.DEPLOY_DATE ?? "2025-11-21";
+export const APP_VERSION = import.meta.env.APP_VERSION ?? "1.3.0";
+export const DEPLOY_DATE = import.meta.env.DEPLOY_DATE ?? "2025-11-26";
 
-export const COLORS = ["#F54928", "#0A3F73", "#FFA726", "#42A5F5", "#66BB6A", "#FF5722"];
-export const PRIMARY_COLOR = "#F54928"; // Orange #Pertitellu
-export const SECONDARY_COLOR = "#0A3F73"; // Bleu Corti Capitale
-// Palette cohérente avec Tailwind: COLORS[0]=primary, COLORS[1]=secondary, COLORS[2]=primary-light, COLORS[3]=secondary-light, COLORS[4]=accent-green, COLORS[5]=accent-orange
+// Palette Bauhaus sombre harmonisée avec le thème CSS
+// Voir src/index.css pour la correspondance exacte
+export const COLORS = [
+  "#B35A4A", // bauhaus-red
+  "#3B4E6B", // bauhaus-blue
+  "#C1A05A", // bauhaus-yellow
+  "#D0C1AA", // bauhaus-white
+  "#E93D3D", // bauhaus-red-fresh (accent)
+  "#2D58B8", // bauhaus-blue-fresh (accent)
+];
+export const PRIMARY_COLOR = "#B35A4A"; // bauhaus-red
+export const SECONDARY_COLOR = "#3B4E6B"; // bauhaus-blue
+// COLORS[0]=primary (rouge brique), COLORS[1]=secondary (bleu grisâtre),
+// COLORS[2]=jaune ocre, COLORS[3]=offwhite, COLORS[4]=accent rouge vif, COLORS[5]=accent bleu vif
 
 export const GOOGLE_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwyzcR0hiou7CiQTv35Jek8CWgHTBPptps65v76YqISjE64J5tC1PkPVOb_QaIdZ5Vc/exec";
@@ -19,13 +29,11 @@ export const PARTY_NAME = import.meta.env.VITE_PARTY_NAME || "Petit Parti";
 export const HASHTAG = import.meta.env.VITE_HASHTAG || "#PERTITELLU";
 export const BOT_NAME = import.meta.env.VITE_BOT_NAME || "Ophélia";
 export const VOLUNTEER_URL =
-  import.meta.env.VITE_VOLUNTEER_URL ||
-  "https://entraide-cortenaise.lovable.app/";
+  import.meta.env.VITE_VOLUNTEER_URL || "https://entraide-cortenaise.lovable.app/";
 
 // Configuration type de communauté
 export const COMMUNITY_NAME = import.meta.env.VITE_COMMUNITY_NAME || CITY_NAME;
-export const COMMUNITY_TYPE =
-  import.meta.env.VITE_COMMUNITY_TYPE || "municipality";
+export const COMMUNITY_TYPE = import.meta.env.VITE_COMMUNITY_TYPE || "municipality";
 
 // Configuration des libellés par type de communauté
 export const COMMUNITY_LABELS = {
@@ -126,5 +134,4 @@ export const getCommunityLabels = () =>
   COMMUNITY_LABELS[COMMUNITY_TYPE] || COMMUNITY_LABELS.municipality;
 
 // Contact email
-export const CONTACT_EMAIL =
-  import.meta.env.VITE_CONTACT_EMAIL || "jeanhuguesrobert@gmail.com";
+export const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || "jeanhuguesrobert@gmail.com";

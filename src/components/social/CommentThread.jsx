@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
-import { isDeleted } from '../../lib/metadata';
-import { getParentCommentId, isReply, isEdited } from '../../lib/socialMetadata';
-import CommentForm from './CommentForm';
-import ReactionPicker from './ReactionPicker';
-import { getDisplayName, getUserInitial } from '../../lib/userDisplay';
+import { useState, useEffect } from "react";
+import { supabase } from "../../lib/supabase";
+import { isDeleted } from "../../lib/metadata";
+import { getParentCommentId, isReply, isEdited } from "../../lib/socialMetadata";
+import CommentForm from "./CommentForm";
+import ReactionPicker from "./ReactionPicker";
+import { getDisplayName, getUserInitial } from "../../lib/userDisplay";
 
 /**
  * Thread de commentaires avec réponses imbriquées
@@ -18,17 +18,18 @@ export default function CommentThread({ postId, currentUser }) {
   useEffect(() => {
     if (postId) {
       loadComments();
-      
+
       // Subscribe to realtime changes
       const channel = supabase
         .channel(`comments:${postId}`)
-        .on('postgres_changes', 
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'comments',
-            filter: `post_id=eq.${postId}`
-          }, 
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "comments",
+            filter: `post_id=eq.${postId}`,
+          },
           () => loadComments()
         )
         .subscribe();
@@ -45,18 +46,18 @@ export default function CommentThread({ postId, currentUser }) {
       setError(null);
 
       const { data, error: fetchError } = await supabase
-        .from('comments')
-        .select('*, users(id, email, display_name, metadata)')
-        .eq('post_id', postId)
-        .order('created_at', { ascending: true });
+        .from("comments")
+        .select("*, users(id, display_name, metadata)")
+        .eq("post_id", postId)
+        .order("created_at", { ascending: true });
 
       if (fetchError) throw fetchError;
 
       // Filtre soft delete
-      const activeComments = (data || []).filter(c => !isDeleted(c));
+      const activeComments = (data || []).filter((c) => !isDeleted(c));
       setComments(activeComments);
     } catch (err) {
-      console.error('Error loading comments:', err);
+      console.error("Error loading comments:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -65,76 +66,74 @@ export default function CommentThread({ postId, currentUser }) {
 
   async function handleCommentSubmit(content, parentId = null) {
     if (!currentUser) {
-      alert('Vous devez être connecté');
+      alert("Vous devez être connecté");
       return;
     }
 
     try {
-      const { error } = await supabase
-        .from('comments')
-        .insert({
-          post_id: postId,
-          user_id: currentUser.id,
-          content,
-          metadata: {
-            schemaVersion: 1,
-            parentCommentId: parentId || null
-          }
-        });
+      const { error } = await supabase.from("comments").insert({
+        post_id: postId,
+        user_id: currentUser.id,
+        content,
+        metadata: {
+          schemaVersion: 1,
+          parentCommentId: parentId || null,
+        },
+      });
 
       if (error) throw error;
 
       setReplyToId(null);
       loadComments();
     } catch (err) {
-      console.error('Error creating comment:', err);
-      alert('Erreur : ' + err.message);
+      console.error("Error creating comment:", err);
+      alert("Erreur : " + err.message);
     }
   }
 
   async function handleDelete(commentId) {
-    if (!confirm('Supprimer ce commentaire ?')) return;
+    if (!confirm("Supprimer ce commentaire ?")) return;
 
     try {
-      const comment = comments.find(c => c.id === commentId);
+      const comment = comments.find((c) => c.id === commentId);
       if (!comment) return;
 
       const { error } = await supabase
-        .from('comments')
+        .from("comments")
         .update({
           metadata: {
             ...comment.metadata,
             isDeleted: true,
             deletedAt: new Date().toISOString(),
-            deletedBy: currentUser.id
-          }
+            deletedBy: currentUser.id,
+          },
         })
-        .eq('id', commentId);
+        .eq("id", commentId);
 
       if (error) throw error;
       loadComments();
     } catch (err) {
-      console.error('Error deleting comment:', err);
-      alert('Erreur : ' + err.message);
+      console.error("Error deleting comment:", err);
+      alert("Erreur : " + err.message);
     }
   }
 
   // Organise les commentaires en arbre
   function buildCommentTree(comments) {
-    const topLevel = comments.filter(c => !isReply(c));
-    
+    const topLevel = comments.filter((c) => !isReply(c));
+
     function getReplies(parentId) {
       return comments
-        .filter(c => getParentCommentId(c) === parentId)
-        .map(c => ({
+        .filter((c) => getParentCommentId(c) === parentId)
+        .map((c) => ({
           ...c,
-          replies: getReplies(c.id)
+          replies: getReplies(c.id),
         }));
     }
 
-    return topLevel.map(c => ({
+    return topLevel.map((c) => ({
       ...c,
-      replies: getReplies(c.id)
+      replies: getReplies(c.id),
     }));
   }
 
@@ -147,32 +146,32 @@ export default function CommentThread({ postId, currentUser }) {
     async function handleEdit() {
       try {
         const { error } = await supabase
-          .from('comments')
+          .from("comments")
           .update({
             content: editContent,
             metadata: {
               ...comment.metadata,
               isEdited: true,
-              editedAt: new Date().toISOString()
-            }
+              editedAt: new Date().toISOString(),
+            },
           })
-          .eq('id', comment.id);
+          .eq("id", comment.id);
 
         if (error) throw error;
 
         setIsEditing(false);
         loadComments();
       } catch (err) {
-        console.error('Error editing comment:', err);
-        alert('Erreur : ' + err.message);
+        console.error("Error editing comment:", err);
+        alert("Erreur : " + err.message);
       }
     }
 
     return (
-      <div 
-        className={`${depth > 0 ? 'ml-8 mt-4' : 'mt-4'} ${depth > 0 ? 'border-l-2 border-gray-200 pl-4' : ''}`}
+      <div
+        className={`${depth > 0 ? "ml-8 mt-4" : "mt-4"} ${depth > 0 ? "border-l-2 border-gray-200 pl-4" : ""}`}
       >
-        <div className="bg-gray-50 rounded-lg p-4">
+        <div className="rounded-lg p-4">
           {/* Header */}
           <div className="flex items-start justify-between mb-2">
             <div className="flex items-center gap-3">
@@ -180,15 +179,15 @@ export default function CommentThread({ postId, currentUser }) {
                 {getUserInitial(comment.users)}
               </div>
               <div>
-                <span className="text-sm font-medium text-gray-900">
+                <span className="text-sm font-medium text-gray-50">
                   {getDisplayName(comment.users)}
                 </span>
-                <div className="text-xs text-gray-500">
-                  {new Date(comment.created_at).toLocaleDateString('fr-FR', {
-                    day: 'numeric',
-                    month: 'short',
-                    hour: '2-digit',
-                    minute: '2-digit'
+                <div className="text-xs text-gray-400">
+                  {new Date(comment.created_at).toLocaleDateString("fr-FR", {
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
                   })}
                   {edited && <span className="ml-2 italic">(modifié)</span>}
                 </div>
@@ -199,7 +198,7 @@ export default function CommentThread({ postId, currentUser }) {
               <div className="flex gap-2">
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="text-xs text-gray-600 hover:text-gray-900"
+                  className="text-xs text-gray-300 hover:text-gray-50"
                 >
                   Modifier
                 </button>
@@ -225,7 +224,7 @@ export default function CommentThread({ postId, currentUser }) {
               <div className="flex gap-2 mt-2">
                 <button
                   onClick={handleEdit}
-                  className="px-3 py-1 text-xs bg-primary-600 text-white rounded hover:bg-primary-700"
+                  className="px-3 py-1 text-xs bg-primary-600 text-bauhaus-white rounded hover:bg-primary-700"
                 >
                   Enregistrer
                 </button>
@@ -242,9 +241,7 @@ export default function CommentThread({ postId, currentUser }) {
             </div>
           ) : (
             <>
-              <p className="text-gray-700 text-sm whitespace-pre-wrap mb-2">
-                {comment.content}
-              </p>
+              <p className="text-gray-200 text-sm whitespace-pre-wrap mb-2">{comment.content}</p>
 
               {/* Actions */}
               <div className="flex items-center gap-4 text-xs">
@@ -253,7 +250,7 @@ export default function CommentThread({ postId, currentUser }) {
                   targetId={comment.id}
                   currentUser={currentUser}
                 />
-                
+
                 {currentUser && (
                   <button
                     onClick={() => setReplyToId(replyToId === comment.id ? null : comment.id)}
@@ -281,7 +278,7 @@ export default function CommentThread({ postId, currentUser }) {
         {/* Nested replies */}
         {comment.replies && comment.replies.length > 0 && (
           <div>
-            {comment.replies.map(reply => (
+            {comment.replies.map((reply) => (
               <CommentItem key={reply.id} comment={reply} depth={depth + 1} />
             ))}
           </div>
@@ -309,9 +306,9 @@ export default function CommentThread({ postId, currentUser }) {
   const commentTree = buildCommentTree(comments);
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
+    <div className=" rounded-lg shadow-sm p-6">
       <h2 className="text-xl font-semibold mb-4">
-        {comments.length} commentaire{comments.length !== 1 ? 's' : ''}
+        {comments.length} commentaire{comments.length !== 1 ? "s" : ""}
       </h2>
 
       {/* New comment form */}
@@ -323,19 +320,19 @@ export default function CommentThread({ postId, currentUser }) {
           />
         </div>
       ) : (
-        <div className="mb-6 p-4 bg-gray-50 rounded text-center text-gray-600">
+        <div className="mb-6 p-4 rounded text-center text-gray-300">
           Connectez-vous pour commenter
         </div>
       )}
 
       {/* Comments tree */}
       {commentTree.length === 0 ? (
-        <p className="text-center text-gray-500 py-8">
+        <p className="text-center text-gray-400 py-8">
           Aucun commentaire pour l'instant. Soyez le premier !
         </p>
       ) : (
         <div className="space-y-0">
-          {commentTree.map(comment => (
+          {commentTree.map((comment) => (
             <CommentItem key={comment.id} comment={comment} depth={0} />
           ))}
         </div>

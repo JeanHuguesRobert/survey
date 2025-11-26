@@ -1,34 +1,34 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { supabase } from "../lib/supabase";
 
 export default function WikiEdit() {
   const { slug: initialSlug } = useParams();
   const navigate = useNavigate();
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState("");
   const [slug, setSlug] = useState(initialSlug);
-  const [content, setContent] = useState('');
+  const [content, setContent] = useState("");
   const [pageId, setPageId] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadPage = async () => {
       const { data, error } = await supabase
-        .from('wiki_pages')
-        .select('*')
-        .eq('slug', initialSlug)
+        .from("wiki_pages")
+        .select("*")
+        .eq("slug", initialSlug)
         .single();
 
       if (error || !data) {
-        alert('Page introuvable.');
-        navigate('/wiki');
+        alert("Page introuvable.");
+        navigate("/wiki");
         return;
       }
 
       setPageId(data.id);
-      setTitle(data.title || '');
-      setSlug(data.slug || '');
-      setContent(data.content || '');
+      setTitle(data.title || "");
+      setSlug(data.slug || "");
+      setContent(data.content || "");
       setLoading(false);
     };
 
@@ -38,37 +38,37 @@ export default function WikiEdit() {
   const handleSave = async () => {
     try {
       const { data: slugPage, error: slugError } = await supabase
-        .from('wiki_pages')
-        .select('*')
-        .eq('slug', slug)
+        .from("wiki_pages")
+        .select("*")
+        .eq("slug", slug)
         .single();
 
-      if (slugError && slugError.code !== 'PGRST116') {
-        console.error('Erreur vérification slug :', slugError);
-        alert('Une erreur est survenue lors de la vérification de l’adresse.');
+      if (slugError && slugError.code !== "PGRST116") {
+        console.error("Erreur vérification slug :", slugError);
+        alert("Une erreur est survenue lors de la vérification de l’adresse.");
         return;
       }
 
       if (slugPage && slugPage.id !== pageId) {
-        alert('Une autre page utilise déjà cette adresse.');
+        alert("Une autre page utilise déjà cette adresse.");
         return;
       }
 
       const { error } = await supabase
-        .from('wiki_pages')
+        .from("wiki_pages")
         .update({ title, content, slug, updated_at: new Date() })
-        .eq('id', pageId);
+        .eq("id", pageId);
 
       if (error) {
-        console.error('Erreur mise à jour :', error);
-        alert('Une erreur est survenue lors de la mise à jour.');
+        console.error("Erreur mise à jour :", error);
+        alert("Une erreur est survenue lors de la mise à jour.");
         return;
       }
 
       navigate(`/wiki/${slug}`);
     } catch (err) {
-      console.error('Erreur inattendue :', err);
-      alert('Une erreur inattendue est survenue.');
+      console.error("Erreur inattendue :", err);
+      alert("Une erreur inattendue est survenue.");
     }
   };
 
@@ -82,33 +82,30 @@ export default function WikiEdit() {
       <div className="space-y-4">
         <input
           value={title}
-          onChange={e => setTitle(e.target.value)}
+          onChange={(e) => setTitle(e.target.value)}
           placeholder="Titre"
           className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <input
           value={slug}
-          onChange={e => setSlug(e.target.value)}
+          onChange={(e) => setSlug(e.target.value)}
           placeholder="Adresse de la page (ex : page-exemple)"
           className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <textarea
           value={content}
-          onChange={e => setContent(e.target.value)}
+          onChange={(e) => setContent(e.target.value)}
           rows={20}
           placeholder="Contenu de la page..."
           className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
         />
         <div className="flex gap-4">
-          <button
-            onClick={handleSave}
-            className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-          >
+          <button onClick={handleSave} className="btn btn-success px-6 py-2 rounded-md">
             Enregistrer
           </button>
           <button
             onClick={() => navigate(`/wiki/${initialSlug}`)}
-            className="px-6 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400"
+            className="btn btn-secondary px-6 py-2 rounded-md"
           >
             Annuler
           </button>

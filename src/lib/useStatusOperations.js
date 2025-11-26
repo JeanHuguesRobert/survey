@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from "react";
 
 /**
  * Simple status monitoring system using custom events
@@ -13,39 +13,39 @@ const statusEventTarget = new EventTarget();
  */
 export const STATUS_TYPES = {
   // Data operations
-  DATA_LOADING: 'data_loading',
-  DATA_SAVING: 'data_saving',
-  DATA_DELETING: 'data_deleting',
+  DATA_LOADING: "data_loading",
+  DATA_SAVING: "data_saving",
+  DATA_DELETING: "data_deleting",
 
   // API operations
-  API_CALL: 'api_call',
-  FORM_SUBMISSION: 'form_submission',
-  FILE_UPLOAD: 'file_upload',
+  API_CALL: "api_call",
+  FORM_SUBMISSION: "form_submission",
+  FILE_UPLOAD: "file_upload",
 
   // Auth operations
-  AUTH_LOGIN: 'auth_login',
-  AUTH_LOGOUT: 'auth_logout',
-  AUTH_REFRESH: 'auth_refresh',
+  AUTH_LOGIN: "auth_login",
+  AUTH_LOGOUT: "auth_logout",
+  AUTH_REFRESH: "auth_refresh",
 
   // Background operations
-  BACKGROUND_TASK: 'background_task',
-  SYNC_OPERATION: 'sync_operation',
+  BACKGROUND_TASK: "background_task",
+  SYNC_OPERATION: "sync_operation",
 
   // Network operations
-  NETWORK_CHECK: 'network_check',
-  CONNECTION_TEST: 'connection_test'
+  NETWORK_CHECK: "network_check",
+  CONNECTION_TEST: "connection_test",
 };
 
 /**
  * Status states
  */
 export const STATUS_STATES = {
-  IDLE: 'idle',
-  PENDING: 'pending',
-  RUNNING: 'running',
-  SUCCESS: 'success',
-  ERROR: 'error',
-  CANCELLED: 'cancelled'
+  IDLE: "idle",
+  PENDING: "pending",
+  RUNNING: "running",
+  SUCCESS: "success",
+  ERROR: "error",
+  CANCELLED: "cancelled",
 };
 
 /**
@@ -58,8 +58,8 @@ let operationCounter = 0;
  * Dispatch status event
  */
 function dispatchStatusEvent(type, data) {
-  const event = new CustomEvent('status-operation', {
-    detail: { type, ...data }
+  const event = new CustomEvent("status-operation", {
+    detail: { type, ...data },
   });
   statusEventTarget.dispatchEvent(event);
 }
@@ -76,18 +76,21 @@ export function useDataLoader() {
     operationIdRef.current = operationId;
 
     setIsActive(true);
-    dispatchStatusEvent('start', {
+    dispatchStatusEvent("start", {
       id: operationId,
       type: STATUS_TYPES.DATA_LOADING,
-      description: 'Loading data'
+      description: "Loading data",
     });
 
+    console.log("[useDataLoader] loader called");
     try {
       const result = await operationFn();
-      dispatchStatusEvent('complete', { id: operationId });
+      console.log("[useDataLoader] loader result:", result);
+      dispatchStatusEvent("complete", { id: operationId });
       return result;
     } catch (error) {
-      dispatchStatusEvent('error', { id: operationId, error: error.message });
+      console.error("[useDataLoader] loader error:", error);
+      dispatchStatusEvent("error", { id: operationId, error: error.message });
       throw error;
     } finally {
       setIsActive(false);
@@ -109,18 +112,18 @@ export function useDataSaver() {
     operationIdRef.current = operationId;
 
     setIsActive(true);
-    dispatchStatusEvent('start', {
+    dispatchStatusEvent("start", {
       id: operationId,
       type: STATUS_TYPES.DATA_SAVING,
-      description: 'Saving data'
+      description: "Saving data",
     });
 
     try {
       const result = await operationFn();
-      dispatchStatusEvent('complete', { id: operationId });
+      dispatchStatusEvent("complete", { id: operationId });
       return result;
     } catch (error) {
-      dispatchStatusEvent('error', { id: operationId, error: error.message });
+      dispatchStatusEvent("error", { id: operationId, error: error.message });
       throw error;
     } finally {
       setIsActive(false);
@@ -133,32 +136,35 @@ export function useDataSaver() {
 /**
  * Hook for form submissions with status monitoring
  */
-export function useFormSubmitter(description = 'Submitting form') {
+export function useFormSubmitter(description = "Submitting form") {
   const [isActive, setIsActive] = useState(false);
   const operationIdRef = useRef(null);
 
-  const submitForm = useCallback(async (operationFn) => {
-    const operationId = `form_submit_${++operationCounter}`;
-    operationIdRef.current = operationId;
+  const submitForm = useCallback(
+    async (operationFn) => {
+      const operationId = `form_submit_${++operationCounter}`;
+      operationIdRef.current = operationId;
 
-    setIsActive(true);
-    dispatchStatusEvent('start', {
-      id: operationId,
-      type: STATUS_TYPES.FORM_SUBMISSION,
-      description
-    });
+      setIsActive(true);
+      dispatchStatusEvent("start", {
+        id: operationId,
+        type: STATUS_TYPES.FORM_SUBMISSION,
+        description,
+      });
 
-    try {
-      const result = await operationFn();
-      dispatchStatusEvent('complete', { id: operationId });
-      return result;
-    } catch (error) {
-      dispatchStatusEvent('error', { id: operationId, error: error.message });
-      throw error;
-    } finally {
-      setIsActive(false);
-    }
-  }, [description]);
+      try {
+        const result = await operationFn();
+        dispatchStatusEvent("complete", { id: operationId });
+        return result;
+      } catch (error) {
+        dispatchStatusEvent("error", { id: operationId, error: error.message });
+        throw error;
+      } finally {
+        setIsActive(false);
+      }
+    },
+    [description]
+  );
 
   return Object.assign(submitForm, { isActive });
 }
@@ -166,32 +172,35 @@ export function useFormSubmitter(description = 'Submitting form') {
 /**
  * Hook for API calls with status monitoring
  */
-export function useApiCaller(description = 'API call') {
+export function useApiCaller(description = "API call") {
   const [isActive, setIsActive] = useState(false);
   const operationIdRef = useRef(null);
 
-  const callApi = useCallback(async (operationFn) => {
-    const operationId = `api_call_${++operationCounter}`;
-    operationIdRef.current = operationId;
+  const callApi = useCallback(
+    async (operationFn) => {
+      const operationId = `api_call_${++operationCounter}`;
+      operationIdRef.current = operationId;
 
-    setIsActive(true);
-    dispatchStatusEvent('start', {
-      id: operationId,
-      type: STATUS_TYPES.API_CALL,
-      description
-    });
+      setIsActive(true);
+      dispatchStatusEvent("start", {
+        id: operationId,
+        type: STATUS_TYPES.API_CALL,
+        description,
+      });
 
-    try {
-      const result = await operationFn();
-      dispatchStatusEvent('complete', { id: operationId });
-      return result;
-    } catch (error) {
-      dispatchStatusEvent('error', { id: operationId, error: error.message });
-      throw error;
-    } finally {
-      setIsActive(false);
-    }
-  }, [description]);
+      try {
+        const result = await operationFn();
+        dispatchStatusEvent("complete", { id: operationId });
+        return result;
+      } catch (error) {
+        dispatchStatusEvent("error", { id: operationId, error: error.message });
+        throw error;
+      } finally {
+        setIsActive(false);
+      }
+    },
+    [description]
+  );
 
   return Object.assign(callApi, { isActive });
 }
@@ -199,32 +208,35 @@ export function useApiCaller(description = 'API call') {
 /**
  * Hook for file uploads with status monitoring
  */
-export function useFileUploader(description = 'Uploading file') {
+export function useFileUploader(description = "Uploading file") {
   const [isActive, setIsActive] = useState(false);
   const operationIdRef = useRef(null);
 
-  const uploadFile = useCallback(async (operationFn) => {
-    const operationId = `file_upload_${++operationCounter}`;
-    operationIdRef.current = operationId;
+  const uploadFile = useCallback(
+    async (operationFn) => {
+      const operationId = `file_upload_${++operationCounter}`;
+      operationIdRef.current = operationId;
 
-    setIsActive(true);
-    dispatchStatusEvent('start', {
-      id: operationId,
-      type: STATUS_TYPES.FILE_UPLOAD,
-      description
-    });
+      setIsActive(true);
+      dispatchStatusEvent("start", {
+        id: operationId,
+        type: STATUS_TYPES.FILE_UPLOAD,
+        description,
+      });
 
-    try {
-      const result = await operationFn();
-      dispatchStatusEvent('complete', { id: operationId });
-      return result;
-    } catch (error) {
-      dispatchStatusEvent('error', { id: operationId, error: error.message });
-      throw error;
-    } finally {
-      setIsActive(false);
-    }
-  }, [description]);
+      try {
+        const result = await operationFn();
+        dispatchStatusEvent("complete", { id: operationId });
+        return result;
+      } catch (error) {
+        dispatchStatusEvent("error", { id: operationId, error: error.message });
+        throw error;
+      } finally {
+        setIsActive(false);
+      }
+    },
+    [description]
+  );
 
   return Object.assign(uploadFile, { isActive });
 }
@@ -232,32 +244,35 @@ export function useFileUploader(description = 'Uploading file') {
 /**
  * Hook for background sync operations with status monitoring
  */
-export function useSyncOperation(description = 'Syncing data') {
+export function useSyncOperation(description = "Syncing data") {
   const [isActive, setIsActive] = useState(false);
   const operationIdRef = useRef(null);
 
-  const syncData = useCallback(async (operationFn) => {
-    const operationId = `sync_${++operationCounter}`;
-    operationIdRef.current = operationId;
+  const syncData = useCallback(
+    async (operationFn) => {
+      const operationId = `sync_${++operationCounter}`;
+      operationIdRef.current = operationId;
 
-    setIsActive(true);
-    dispatchStatusEvent('start', {
-      id: operationId,
-      type: STATUS_TYPES.SYNC_OPERATION,
-      description
-    });
+      setIsActive(true);
+      dispatchStatusEvent("start", {
+        id: operationId,
+        type: STATUS_TYPES.SYNC_OPERATION,
+        description,
+      });
 
-    try {
-      const result = await operationFn();
-      dispatchStatusEvent('complete', { id: operationId });
-      return result;
-    } catch (error) {
-      dispatchStatusEvent('error', { id: operationId, error: error.message });
-      throw error;
-    } finally {
-      setIsActive(false);
-    }
-  }, [description]);
+      try {
+        const result = await operationFn();
+        dispatchStatusEvent("complete", { id: operationId });
+        return result;
+      } catch (error) {
+        dispatchStatusEvent("error", { id: operationId, error: error.message });
+        throw error;
+      } finally {
+        setIsActive(false);
+      }
+    },
+    [description]
+  );
 
   return Object.assign(syncData, { isActive });
 }
@@ -272,33 +287,33 @@ export function useGlobalStatus() {
     const handleStatusEvent = (event) => {
       const { type, id, ...data } = event.detail;
 
-      setOperations(prev => {
+      setOperations((prev) => {
         const newOps = new Map(prev);
 
-        if (type === 'start') {
+        if (type === "start") {
           newOps.set(id, {
             id,
             ...data,
             state: STATUS_STATES.RUNNING,
-            startTime: Date.now()
+            startTime: Date.now(),
           });
-        } else if (type === 'complete') {
+        } else if (type === "complete") {
           const op = newOps.get(id);
           if (op) {
             newOps.set(id, {
               ...op,
               state: STATUS_STATES.SUCCESS,
-              endTime: Date.now()
+              endTime: Date.now(),
             });
           }
-        } else if (type === 'error') {
+        } else if (type === "error") {
           const op = newOps.get(id);
           if (op) {
             newOps.set(id, {
               ...op,
               state: STATUS_STATES.ERROR,
               error: data.error,
-              endTime: Date.now()
+              endTime: Date.now(),
             });
           }
         }
@@ -307,15 +322,15 @@ export function useGlobalStatus() {
       });
     };
 
-    statusEventTarget.addEventListener('status-operation', handleStatusEvent);
+    statusEventTarget.addEventListener("status-operation", handleStatusEvent);
 
     return () => {
-      statusEventTarget.removeEventListener('status-operation', handleStatusEvent);
+      statusEventTarget.removeEventListener("status-operation", handleStatusEvent);
     };
   }, []);
 
   const clearCompletedOperations = useCallback(() => {
-    setOperations(prev => {
+    setOperations((prev) => {
       const newOps = new Map();
       for (const [id, op] of prev) {
         if (![STATUS_STATES.SUCCESS, STATUS_STATES.ERROR].includes(op.state)) {
@@ -333,22 +348,22 @@ export function useGlobalStatus() {
  * Utility function to wrap database operations with error tracking
  * Use this for operations that don't use the status hooks yet
  */
-export function trackDatabaseOperation(operationFn, description = 'Database operation') {
+export function trackDatabaseOperation(operationFn, description = "Database operation") {
   const operationId = `db_op_${++operationCounter}`;
 
-  dispatchStatusEvent('start', {
+  dispatchStatusEvent("start", {
     id: operationId,
     type: STATUS_TYPES.API_CALL,
-    description
+    description,
   });
 
   return operationFn()
-    .then(result => {
-      dispatchStatusEvent('complete', { id: operationId });
+    .then((result) => {
+      dispatchStatusEvent("complete", { id: operationId });
       return result;
     })
-    .catch(error => {
-      dispatchStatusEvent('error', { id: operationId, error: error.message });
+    .catch((error) => {
+      dispatchStatusEvent("error", { id: operationId, error: error.message });
       throw error;
     });
 }

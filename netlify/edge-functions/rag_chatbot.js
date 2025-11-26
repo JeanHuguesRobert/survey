@@ -2,49 +2,76 @@
 // CONFIGURATION - Modèles et paramètres par défaut
 // ============================================================================
 const PROVIDER_META_PREFIX = "__PROVIDER_INFO__";
+import { providerMetrics } from "./lib/utils/provider-metrics.js";
+const PROVIDERS_STATUS_PREFIX = "__PROVIDERS_STATUS__";
 
 const MODEL_MODES = {
   mistral: {
     fast: "mistral-small-latest",
     strong: "mistral-large-latest",
-    reasoning: "magistral-medium-latest"
+    reasoning: "magistral-medium-latest",
   },
+
   anthropic: {
     main: "claude-sonnet-4-5-20250929",
-    cheap: "claude-3-haiku-20240307"
+    cheap: "claude-3-haiku-20240307",
   },
+
   openai: {
-    main: "gpt-4.1-mini",
+    main: "gpt-4.1",
     reasoning: "gpt-5.1",
-    cheap: "gpt-4.1-nano"
+    cheap: "gpt-5.1-nano",
   },
+
+  google: {
+    // Le modèle le plus intelligent (Gemini 3)
+    main: "gemini-3-pro-preview",
+    // Le modèle rapide et stable (Gemini 2.5 Flash)
+    fast: "gemini-2.5-flash",
+    // Modèle de raisonnement avancé (Thinking)
+    reasoning: "gemini-2.0-flash-thinking-exp",
+    // Pas cher
+    cheap: "gemini-2.5-flash-lite",
+  },
+
   huggingface: {
-  // Chat généraliste (non limité au reasoning)
-  main: "deepseek-ai/DeepSeek-V3",
-
-  // Version plus légère (distill, toujours capable de reasoning mais moins coûteuse)
-  small: "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
-
-  // Gros modèle reasoning quand tu veux l’artillerie lourde
-  reasoning: "deepseek-ai/DeepSeek-R1",
-}
+    // Chat généraliste (non limité au reasoning)
+    main: "deepseek-ai/DeepSeek-V3",
+    // Version plus légère (distill, toujours capable de reasoning mais moins coûteuse)
+    small: "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+    // Gros modèle reasoning quand tu veux l’artillerie lourde
+    reasoning: "deepseek-ai/DeepSeek-R1",
+  },
 };
 
 const DEFAULT_MODEL_MODE = {
   mistral: "fast",
   anthropic: "main",
   openai: "reasoning", // Changé à reasoning pour gpt-5.1
-  huggingface: "main"
+  huggingface: "main",
+  google: "main",
 };
 
 const MODEL_MODE_DIRECTIVE_REGEX = /model_mode\s*=\s*([^\s;]+)/i;
 const resolveModelForProvider = (provider, overrideMode) => {
   const providerModes = MODEL_MODES[provider];
-  if (!providerModes) return undefined;
-  const candidateMode = overrideMode && providerModes[overrideMode]
-    ? overrideMode
-    : DEFAULT_MODEL_MODE[provider] || Object.keys(providerModes)[0];
-  return providerModes[candidateMode];
+  if (!providerModes) {
+    console.warn(`[resolveModel] No modes defined for provider: ${provider}`);
+    return undefined;
+  }
+
+  console.log(`[resolveModel] Resolving for provider=${provider}, overrideMode=${overrideMode}`);
+  console.log(`[resolveModel] Available modes:`, Object.keys(providerModes));
+  console.log(`[resolveModel] Default mode:`, DEFAULT_MODEL_MODE[provider]);
+
+  const candidateMode =
+    overrideMode && providerModes[overrideMode]
+      ? overrideMode
+      : DEFAULT_MODEL_MODE[provider] || Object.keys(providerModes)[0];
+
+  const resolved = providerModes[candidateMode];
+  console.log(`[resolveModel] Resolved mode=${candidateMode} -> model=${resolved}`);
+  return resolved;
 };
 
 // ============================================================================
@@ -53,7 +80,8 @@ const resolveModelForProvider = (provider, overrideMode) => {
 const TOOLS = {
   web_search: {
     name: "web_search",
-    description: "Recherche des informations actualisées sur Internet. Utilise cet outil pour des questions sur des actualités, horaires, ou données externes (ex: 'horaires mairie corte 2025').",
+    description:
+      "Recherche des informations actualisées sur Internet. Utilise cet outil pour des questions sur des actualités, horaires, ou données externes (ex: 'horaires mairie corte 2025').",
     parameters: {
       type: "object",
       properties: {
@@ -61,11 +89,11 @@ const TOOLS = {
           type: "string",
           description: "Requête de recherche courte et précise (3-8 mots).",
           minLength: 3,
-          maxLength: 50
-        }
+          maxLength: 50,
+        },
       },
-      required: ["query"]
-    }
+      required: ["query"],
+    },
   },
   // Ajoute d'autres outils ici (ex: search_local_db, weather, etc.)
 };
@@ -76,7 +104,7 @@ const TOOLS = {
 const TOOL_HANDLERS = {
   async web_search({ query }) {
     return performWebSearch(query);
-  }
+  },
   // Ajoute d'autres handlers ici
 };
 
@@ -111,9 +139,9 @@ async function performWebSearch(query) {
     console.log(`[WebSearch] 🌐 fetch url=${previewForLog(url.toString())}`);
     const response = await fetch(url.toString(), {
       headers: {
-        "Accept": "application/json",
-        "X-Subscription-Token": apiKey
-      }
+        Accept: "application/json",
+        "X-Subscription-Token": apiKey,
+      },
     });
 
     console.log(`[WebSearch] ⬅ status=${response.status}`);
@@ -138,7 +166,7 @@ async function performWebSearch(query) {
     // Résultats locaux
     if (data.locations?.results?.length > 0) {
       resultText += `📍 **Infos locales :**\n`;
-      data.locations.results.slice(0, 10).forEach(loc => {
+      data.locations.results.slice(0, 10).forEach((loc) => {
         resultText += `- **${loc.title}**\n`;
         if (loc.address) resultText += `  📍 ${loc.address}\n`;
         if (loc.phone) resultText += `  📞 ${loc.phone}\n`;
@@ -183,7 +211,7 @@ async function executeToolCalls(toolCalls, provider = "mistral", fallbackContext
       if (toolName === "web_search") {
         if (!args || !args.query) {
           // fallbackContext may contain a default query string
-          const fallbackQuery = (fallbackContext?.web_search?.query) || fallbackContext?.defaultQuery;
+          const fallbackQuery = fallbackContext?.web_search?.query || fallbackContext?.defaultQuery;
           if (fallbackQuery && typeof fallbackQuery === "string" && fallbackQuery.trim()) {
             args = { ...args, query: fallbackQuery };
             console.log(`[${provider}] ℹ️ web_search fallback -> query="${fallbackQuery}"`);
@@ -192,18 +220,25 @@ async function executeToolCalls(toolCalls, provider = "mistral", fallbackContext
       }
 
       // Validate required parameters based on TOOLS definition
-      const toolDef = Object.values(TOOLS).find(t => t.name === toolName);
+      const toolDef = Object.values(TOOLS).find((t) => t.name === toolName);
       if (toolDef) {
-        const required = (toolDef.parameters?.required) || [];
+        const required = toolDef.parameters?.required || [];
         let hasAllRequired = true;
         for (const r of required) {
-          if (!args || args[r] === undefined || args[r] === null || (typeof args[r] === "string" && args[r].trim() === "")) {
+          if (
+            !args ||
+            args[r] === undefined ||
+            args[r] === null ||
+            (typeof args[r] === "string" && args[r].trim() === "")
+          ) {
             hasAllRequired = false;
             break;
           }
         }
         if (!hasAllRequired) {
-          console.warn(`[${provider}] ⚠️ Paramètres manquants pour ${toolName} (call id=${call.id}). Ignoré.`);
+          console.warn(
+            `[${provider}] ⚠️ Paramètres manquants pour ${toolName} (call id=${call.id}). Ignoré.`
+          );
           continue;
         }
       }
@@ -216,7 +251,9 @@ async function executeToolCalls(toolCalls, provider = "mistral", fallbackContext
 
       console.log(`[${provider}] 🛠 Exécution de ${toolName} avec:`, args);
       const output = await handler(args);
-      console.log(`[${provider}] ⬅ Tool result for ${toolName} preview: ${previewForLog(output, 400)}`);
+      console.log(
+        `[${provider}] ⬅ Tool result for ${toolName} preview: ${previewForLog(output, 400)}`
+      );
       results.push({
         role: "tool",
         tool_call_id: call.id,
@@ -236,7 +273,6 @@ async function executeToolCalls(toolCalls, provider = "mistral", fallbackContext
   return results;
 }
 
-
 // ============================================================================
 // APPels API - Gestion unifiée des LLM (Mistral, Anthropic, OpenAI)
 // ============================================================================
@@ -244,38 +280,43 @@ const PROVIDER_CONFIGS = {
   mistral: {
     apiUrl: "https://api.mistral.ai/v1/chat/completions",
     defaultModel: "mistral-large-latest",
-    toolFormat: "openai" // Mistral utilise le même format qu'OpenAI
+    toolFormat: "openai", // Mistral utilise le même format qu'OpenAI
   },
   anthropic: {
     apiUrl: "https://api.anthropic.com/v1/messages",
     defaultModel: "claude-3-opus-20240229",
-    toolFormat: "anthropic" // Format spécifique
+    toolFormat: "anthropic", // Format spécifique
   },
   openai: {
     apiUrl: "https://api.openai.com/v1/chat/completions",
     defaultModel: "gpt-4o-mini",
-    toolFormat: "openai" // ✅ Identique à Mistral (SSE)
+    toolFormat: "openai", // ✅ Identique à Mistral (SSE)
   },
   huggingface: {
     apiUrl: (model) => `https://router.huggingface.co/v1/chat/completions`,
     defaultModel: "mistralai/Mixtral-8x22B-Instruct-v0.1",
-    toolFormat: null // Pas de support des outils
-  }
+    toolFormat: null, // Pas de support des outils
+  },
+  google: {
+    // Utilisation de l'endpoint de compatibilité OpenAI de Google
+    apiUrl: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    defaultModel: "gemini-2.5-flash",
+    toolFormat: "openai", // Gemini via cet endpoint supporte le format OpenAI
+  },
 };
-
 
 function formatToolsForProvider(tools, provider) {
   const config = PROVIDER_CONFIGS[provider];
   if (config.toolFormat === "anthropic") {
-    return tools.map(tool => ({
+    return tools.map((tool) => ({
       name: tool.name,
       description: tool.description,
-      input_schema: tool.parameters
+      input_schema: tool.parameters,
     }));
   } else if (config.toolFormat === "openai") {
-    return tools.map(tool => ({
+    return tools.map((tool) => ({
       type: "function",
-      function: tool
+      function: tool,
     }));
   } else {
     return []; // Pas de support des outils
@@ -288,10 +329,16 @@ async function callLLMAPI({
   messages,
   tools = [],
   toolChoice = "auto",
-  stream = true
+  stream = true,
 }) {
   const config = PROVIDER_CONFIGS[provider];
-  const apiKey = Deno.env.get(`${provider.toUpperCase()}_API_KEY`);
+  // GESTION SPÉCIFIQUE POUR LA CLÉ API GEMINI
+  let apiKey;
+  if (provider === "google") {
+    apiKey = Deno.env.get("GEMINI_API_KEY");
+  } else {
+    apiKey = Deno.env.get(`${provider.toUpperCase()}_API_KEY`);
+  }
   if (!apiKey) throw new Error(`Clé API manquante pour ${provider}`);
 
   const formattedTools = formatToolsForProvider(Object.values(TOOLS), provider);
@@ -302,18 +349,30 @@ async function callLLMAPI({
     ...(toolChoice !== "none" ? { tool_choice: toolChoice } : {}),
     stream: stream && provider !== "huggingface",
     temperature: 0.3,
-    top_p: 0.95
+    top_p: 0.95,
   };
 
-  // Debug: request payload summary
-  console.log(`[LLM] ➜ ${provider} request: model=${payload.model}, messages=${payload.messages?.length || 0}, tools=${formattedTools.length}, stream=${payload.stream}`);
-  console.log(`[LLM] ➜ ${provider} payload preview: ${previewForLog({ model: payload.model, firstMessage: payload.messages?.[0]?.content || "", toolCount: formattedTools.length }, 100)}`);
+  // Add extended thinking for Anthropic (Claude)
+  if (provider === "anthropic") {
+    payload.thinking = {
+      type: "enabled",
+      budget_tokens: 2000, // Adjust based on your needs
+    };
+  }
 
-  const apiUrl = typeof config.apiUrl === 'function' ? config.apiUrl(model) : config.apiUrl;
+  // Debug: request payload summary
+  console.log(
+    `[LLM] ➜ ${provider} request: model=${payload.model}, messages=${payload.messages?.length || 0}, tools=${formattedTools.length}, stream=${payload.stream}`
+  );
+  console.log(
+    `[LLM] ➜ ${provider} payload preview: ${previewForLog({ model: payload.model, firstMessage: payload.messages?.[0]?.content || "", toolCount: formattedTools.length }, 100)}`
+  );
+
+  const apiUrl = typeof config.apiUrl === "function" ? config.apiUrl(model) : config.apiUrl;
 
   // Headers spécifiques par provider
   let headers = {
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
   };
   if (provider === "anthropic") {
     headers["x-api-key"] = apiKey;
@@ -325,7 +384,7 @@ async function callLLMAPI({
   const response = await fetch(apiUrl, {
     method: "POST",
     headers,
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   });
 
   console.log(`[LLM] ⬅ ${provider} response status=${response.status} stream=${stream}`);
@@ -348,111 +407,122 @@ async function callLLMAPI({
 
 // Update handleStreamingResponse to yield event objects instead of raw strings
 async function* handleStreamingResponse(response, provider) {
-	const reader = response.body.getReader();
-	const decoder = new TextDecoder();
-	let buffer = "";
-	let toolCalls = [];
-	let fullContent = "";
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let toolCalls = [];
+  let fullContent = "";
 
-	// Buffering for tool call fragments: id -> { name, argsStr }
-	const pendingToolArgs = new Map();
-	const pushedToolIds = new Set();
-	const context = { pendingToolArgs, pushedToolIds, toolCalls, toolFragmentCounter: 0 };
+  // Buffering for tool call fragments: id -> { name, argsStr }
+  const pendingToolArgs = new Map();
+  const pushedToolIds = new Set();
+  const context = { pendingToolArgs, pushedToolIds, toolCalls, toolFragmentCounter: 0 };
 
-	while (true) {
-		const { done, value } = await reader.read();
-		if (done) break;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
 
-		buffer += decoder.decode(value, { stream: true });
-		const lines = buffer.split("\n");
-		buffer = lines.pop() || "";
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
 
-		for (const line of lines) {
-			const trimmed = line.trim();
-			if (!trimmed) continue;
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
 
-			const payload = trimmed.startsWith("data:")
-				? trimmed.slice(trimmed.indexOf(":") + 1).trim()
-				: trimmed;
-			if (!payload || payload === "[DONE]") continue;
+      const payload = trimmed.startsWith("data:")
+        ? trimmed.slice(trimmed.indexOf(":") + 1).trim()
+        : trimmed;
+      if (!payload || payload === "[DONE]") continue;
 
-			try {
-				// Small preview to help debugging
-				const preview = payload.length > 300 ? payload.slice(0, 300) + "..." : payload;
-				const data = JSON.parse(payload);
-				const delta = provider === "anthropic"
-					? data.delta
-					: data.choices?.[0]?.delta;
-				const hasToolDelta =
-					Boolean(delta?.tool_calls?.length) ||
-					Boolean(delta?.tool_call) ||
-					Boolean(delta?.tool_use?.length);
-				const onlyContentDelta =
-					Boolean(delta?.content) &&
-					!hasToolDelta &&
-					!delta?.tool_use?.length;
-				const shouldLogPayload = !onlyContentDelta;
+      try {
+        // Small preview to help debugging
+        const preview = payload.length > 300 ? payload.slice(0, 300) + "..." : payload;
+        const data = JSON.parse(payload);
+        const delta = provider === "anthropic" ? data.delta : data.choices?.[0]?.delta;
+        const hasToolDelta =
+          Boolean(delta?.tool_calls?.length) ||
+          Boolean(delta?.tool_call) ||
+          Boolean(delta?.tool_use?.length);
+        const onlyContentDelta =
+          Boolean(delta?.content) && !hasToolDelta && !delta?.tool_use?.length;
+        const shouldLogPayload = !onlyContentDelta;
 
-				if (shouldLogPayload) {
-					console.log(`[${provider}] [SSE] incoming payload preview: ${preview}`);
-					console.log(`[${provider}] [SSE] parsed keys: ${Object.keys(data).join(",")}`);
-					if (delta) {
-						console.log(`[${provider}] [SSE] delta keys: ${Object.keys(delta).join(",")}`);
-					}
-				}
+        if (shouldLogPayload) {
+          console.log(`[${provider}] [SSE] incoming payload preview: ${preview}`);
+          console.log(`[${provider}] [SSE] parsed keys: ${Object.keys(data).join(",")}`);
+          if (delta) {
+            console.log(`[${provider}] [SSE] delta keys: ${Object.keys(delta).join(",")}`);
+          }
+        }
 
-				if (provider === "anthropic") {
-					if (delta?.text) {
-						fullContent += delta.text;
-						yield delta.text;
-					}
-					const calls = delta?.tool_use
-						? delta.tool_use.map(normalizeToolCall)
-						: [];
-					if (calls.length) toolCalls.push(...calls);
-				} else {
-					if (delta?.content) {
-						fullContent += delta.content;
-						yield delta.content;
-					}
-					const rawToolCalls =
-						delta?.tool_calls ||
-						(delta?.tool_call ? [delta.tool_call] : []);
-					if (rawToolCalls.length) {
-						for (const raw of rawToolCalls) {
-							processToolCallFragment(context, raw, provider);
-						}
-						while (context.toolCalls.length > 0) {
-							const call = context.toolCalls.shift();
-							toolCalls.push(call);
-							yield { type: "tool_call", call };
-						}
-					}
-				}
-			} catch (err) {
-				console.error(`[${provider}] [SSE] Erreur parsing payload: ${err.message}`, { payloadPreview: payload.slice(0, 200) });
-			}
-		}
-	}
+        if (provider === "anthropic") {
+          // Handle thinking blocks (extended thinking feature)
+          if (delta?.type === "thinking" && delta?.thinking) {
+            // Wrap thinking in <Think> tags for frontend
+            const thinkingText = `<Think>${delta.thinking}</Think>`;
+            fullContent += thinkingText;
+            yield thinkingText;
+          }
 
-	return {
-		content: fullContent,
-		toolCalls: toolCalls.length > 0 ? toolCalls : undefined
-	};
+          // Handle regular text content
+          if (delta?.text) {
+            fullContent += delta.text;
+            yield delta.text;
+          }
+
+          // Handle tool calls
+          const calls = delta?.tool_use ? delta.tool_use.map(normalizeToolCall) : [];
+          if (calls.length) toolCalls.push(...calls);
+        } else {
+          if (delta?.content) {
+            fullContent += delta.content;
+            yield delta.content;
+          }
+          const rawToolCalls = delta?.tool_calls || (delta?.tool_call ? [delta.tool_call] : []);
+          if (rawToolCalls.length) {
+            for (const raw of rawToolCalls) {
+              processToolCallFragment(context, raw, provider);
+            }
+            while (context.toolCalls.length > 0) {
+              const call = context.toolCalls.shift();
+              toolCalls.push(call);
+              yield { type: "tool_call", call };
+            }
+          }
+        }
+      } catch (err) {
+        console.error(`[${provider}] [SSE] Erreur parsing payload: ${err.message}`, {
+          payloadPreview: payload.slice(0, 200),
+        });
+      }
+    }
+  }
+
+  return {
+    content: fullContent,
+    toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+  };
 }
-
-
 
 function handleDirectResponse(data, provider) {
   if (provider === "anthropic") {
+    let content = "";
+
+    // Check for thinking blocks
+    if (data.thinking && Array.isArray(data.thinking)) {
+      const thinkingContent = data.thinking.map((t) => t.content || t.text || "").join("\n");
+      if (thinkingContent) {
+        content += `<Think>${thinkingContent}</Think>\n\n`;
+      }
+    }
+
+    // Add regular content
+    content += data.content[0].text;
+
     return {
-      content: data.content[0].text,
-      toolCalls: data.tool_uses || []
-    };
-  } else {
-    return {
-      content: data.choices[0].message.content,
-      toolCalls: data.choices[0].message.tool_calls || []
+      content,
+      toolCalls: data.tool_uses || [],
     };
   }
 }
@@ -461,7 +531,14 @@ function handleDirectResponse(data, provider) {
 const normalizeToolCall = (call, idx = 0) => {
   // Accept multiple possible shapes and extract function-like properties
   const fnShape = call.function || call.tool || call.action || call.intent || call.metadata || {};
-  let name = fnShape.name || call.name || call.tool?.name || call.action?.name || call.intent?.name || call.metadata?.name || "";
+  let name =
+    fnShape.name ||
+    call.name ||
+    call.tool?.name ||
+    call.action?.name ||
+    call.intent?.name ||
+    call.metadata?.name ||
+    "";
   let args = fnShape.arguments ?? call.arguments ?? call.params ?? call.payload ?? "{}";
 
   if (args == null) args = "{}";
@@ -495,8 +572,8 @@ const normalizeToolCall = (call, idx = 0) => {
     type: "function",
     function: {
       name,
-      arguments: args
-    }
+      arguments: args,
+    },
   };
 };
 const normalizeToolCalls = (calls = []) => calls.map(normalizeToolCall);
@@ -506,7 +583,11 @@ function processToolCallFragment(context, raw, provider) {
   const { pendingToolArgs, pushedToolIds, toolCalls } = context;
   context.toolFragmentCounter = context.toolFragmentCounter || 0;
 
-  const id = raw.id || raw.tool_call_id || raw.tool_call?.id || `tool-${Date.now()}-${context.toolFragmentCounter++}`;
+  const id =
+    raw.id ||
+    raw.tool_call_id ||
+    raw.tool_call?.id ||
+    `tool-${Date.now()}-${context.toolFragmentCounter++}`;
 
   const fn = raw.function || raw.tool || raw.tool_call || raw;
   let name = fn?.name || "";
@@ -554,8 +635,8 @@ function processToolCallFragment(context, raw, provider) {
         type: "function",
         function: {
           name: finalName,
-          arguments: JSON.stringify(parsedArgs)
-        }
+          arguments: JSON.stringify(parsedArgs),
+        },
       };
       toolCalls.push(fullCall);
       pushedToolIds.add(id);
@@ -564,7 +645,9 @@ function processToolCallFragment(context, raw, provider) {
       // Mark as pushed/handled so we don't loop forever on fragments
       pushedToolIds.add(id);
       pendingToolArgs.delete(id);
-      console.warn(`[${provider}] Outil ignoré après assemblage : ${finalName || "(no-name)"} (id=${id})`);
+      console.warn(
+        `[${provider}] Outil ignoré après assemblage : ${finalName || "(no-name)"} (id=${id})`
+      );
     }
   }
 }
@@ -574,16 +657,17 @@ function processToolCallFragment(context, raw, provider) {
 // ============================================================================
 
 const MODEL_DIRECTIVE_REGEX = /model\s*=\s*([^\s;]+)/i;
-const PROVIDER_DIRECTIVE_REGEX = /provider\s*=\s*(anthropic|openai|huggingface|mistral)/i;
+const PROVIDER_DIRECTIVE_REGEX = /provider\s*=\s*(anthropic|openai|huggingface|mistral|google)/i;
 const MODE_DIRECTIVE_REGEX = /mode\s*=\s*(debug)/i;
 
 const MODEL_PROVIDER_PATTERNS = {
   anthropic: ["claude", "anthropic"],
   openai: ["gpt-", "gpt", "openai", "oai"],
   mistral: ["mistral"],
-  huggingface: ["huggingface", "hf"]
+  huggingface: ["huggingface", "hf"],
+  google: ["gemini", "google", "goog"],
 };
-const PROVIDERS = ["openai", "mistral", "huggingface", "anthropic"];
+const PROVIDERS = ["openai", "mistral", "huggingface", "anthropic", "google"];
 
 const parseDirectives = (rawQuestion = "") => {
   const trimmed = String(rawQuestion).trim();
@@ -610,15 +694,15 @@ const parseDirectives = (rawQuestion = "") => {
     hasDirectiveBlock: semicolonIndex >= 0,
     directiveModelMode: modelModeMatch ? modelModeMatch[1].toLowerCase() : null,
     directiveProvider: providerMatch ? providerMatch[1].toLowerCase() : null,
-    directiveModel: modelMatch ? modelMatch[1].toLowerCase() : null
+    directiveModel: modelMatch ? modelMatch[1].toLowerCase() : null,
   };
 };
 
 const detectModelProvider = (model) => {
   if (!model) return null;
   const target = model.toLowerCase();
-  return PROVIDERS.find(provider =>
-    MODEL_PROVIDER_PATTERNS[provider]?.some(pattern => target.includes(pattern))
+  return PROVIDERS.find((provider) =>
+    MODEL_PROVIDER_PATTERNS[provider]?.some((pattern) => target.includes(pattern))
   );
 };
 
@@ -626,7 +710,8 @@ const PROVIDER_ENV_CHECKERS = {
   anthropic: () => Boolean(Deno.env.get("ANTHROPIC_API_KEY")),
   openai: () => Boolean(Deno.env.get("OPENAI_API_KEY")),
   mistral: () => Boolean(Deno.env.get("MISTRAL_API_KEY")),
-  huggingface: () => Boolean(Deno.env.get("HUGGINGFACE_API_KEY"))
+  huggingface: () => Boolean(Deno.env.get("HUGGINGFACE_API_KEY")),
+  google: () => Boolean(Deno.env.get("GEMINI_API_KEY")),
 };
 const isProviderAvailable = (provider) => Boolean(PROVIDER_ENV_CHECKERS[provider]?.());
 
@@ -648,11 +733,11 @@ const shuffleProviders = (providers) => {
 const buildProviderOrder = (modelProvider, failedProviders = new Set()) => {
   const order = [...PROVIDERS];
   if (modelProvider && order.includes(modelProvider)) {
-    return [modelProvider, ...order.filter(p => p !== modelProvider)];
+    return [modelProvider, ...order.filter((p) => p !== modelProvider)];
   }
   // Prioriser OpenAI si non échoué
   if (!failedProviders.has("openai") && order.includes("openai")) {
-    return ["openai", ...order.filter(p => p !== "openai")];
+    return ["openai", ...order.filter((p) => p !== "openai")];
   }
   return order; // Si OpenAI échoué, garder l'ordre par défaut (sera mélangé si SHOULD_RANDOMIZE)
 };
@@ -675,7 +760,7 @@ function createDebugLogger() {
   const originals = {};
 
   const formatArgs = (args) =>
-    args.map(arg => (typeof arg === "string" ? arg : JSON.stringify(arg))).join(" ");
+    args.map((arg) => (typeof arg === "string" ? arg : JSON.stringify(arg))).join(" ");
 
   const safeEnqueue = (line) => {
     if (!controllerRef || !encoderRef) {
@@ -697,10 +782,12 @@ function createDebugLogger() {
     safeEnqueue(line);
   };
 
-  const wrap = (level) => (...args) => {
-    originals[level](...args);
-    emit(level, args);
-  };
+  const wrap =
+    (level) =>
+    (...args) => {
+      originals[level](...args);
+      emit(level, args);
+    };
 
   return {
     enable() {
@@ -741,7 +828,7 @@ function createDebugLogger() {
       enabled = false;
       controllerRef = null;
       encoderRef = null;
-    }
+    },
   };
 }
 
@@ -785,8 +872,11 @@ async function fetchCouncilContext(siteUrl) {
 }
 
 async function getSystemPrompt() {
-  const currentDate = new Date().toLocaleDateString('fr-FR', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  const currentDate = new Date().toLocaleDateString("fr-FR", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   });
   let basePrompt = `📅 **Date actuelle :** ${currentDate}\n\n`;
 
@@ -831,15 +921,17 @@ async function getSystemPrompt() {
         `${supabaseUrl}/rest/v1/consolidated_wiki_documents?select=content&order=updated_at.desc&limit=1`,
         {
           headers: {
-            "apikey": supabaseKey,
-            "Authorization": `Bearer ${supabaseKey}`,
-            "Content-Type": "application/json"
-          }
+            apikey: supabaseKey,
+            Authorization: `Bearer ${supabaseKey}`,
+            "Content-Type": "application/json",
+          },
         }
       );
       if (response.ok) {
         const data = await response.json();
-        console.log(`[SystemPrompt] Supabase data preview: ${previewForLog(data?.[0]?.content, 100)}`);
+        console.log(
+          `[SystemPrompt] Supabase data preview: ${previewForLog(data?.[0]?.content, 100)}`
+        );
         if (data?.length > 0 && data[0].content) {
           basePrompt += `\n\n📚 **Contexte local (wiki) :**\n${data[0].content}...`;
         }
@@ -865,6 +957,37 @@ async function getSystemPrompt() {
 // ============================================================================
 
 const handler = async (request) => {
+  // Quick healthcheck support (frontend calls GET /api/chat-stream?healthcheck=true)
+  try {
+    const url = new URL(request.url);
+    if (request.method === "GET" && url.searchParams.get("healthcheck") === "true") {
+      const providersList = (PROVIDERS || []).map((p) => {
+        const configured = isProviderAvailable(p);
+        const model = resolveModelForProvider(p);
+        return {
+          name: p,
+          status: configured ? "available" : "not_configured",
+          models: [
+            {
+              name: model || null,
+              avgResponseTime: null,
+              successRate: null,
+              recentlyUsed: false,
+              retryAfter: null,
+              consecutiveErrors: 0,
+            },
+          ],
+        };
+      });
+      return new Response(JSON.stringify({ providers: providersList }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  } catch (e) {
+    // continue to normal handler on malformed URL
+  }
+
   // 1. Vérifie la méthode HTTP
   if (request.method !== "POST") {
     return new Response(JSON.stringify({ error: "Méthode non autorisée." }), { status: 405 });
@@ -876,6 +999,39 @@ const handler = async (request) => {
     body = await request.json();
   } catch {
     return new Response("Charge utile invalide", { status: 400 });
+  }
+
+  // Support POST-based healthcheck bodies: { healthcheck: true } or question === 'healthcheck'
+  try {
+    if (
+      body &&
+      (body.healthcheck === true || String(body.question || "").toLowerCase() === "healthcheck")
+    ) {
+      const providersList = (PROVIDERS || []).map((p) => {
+        const configured = isProviderAvailable(p);
+        const model = resolveModelForProvider(p);
+        return {
+          name: p,
+          status: configured ? "available" : "not_configured",
+          models: [
+            {
+              name: model || null,
+              avgResponseTime: null,
+              successRate: null,
+              recentlyUsed: false,
+              retryAfter: null,
+              consecutiveErrors: 0,
+            },
+          ],
+        };
+      });
+      return new Response(JSON.stringify({ providers: providersList }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  } catch (e) {
+    // ignore and continue
   }
 
   // 3. Valide la question
@@ -896,24 +1052,23 @@ const handler = async (request) => {
     hasDirectiveBlock,
     directiveModelMode,
     directiveProvider,
-    directiveModel
+    directiveModel,
   } = parseDirectives(rawQuestion);
 
-  const bodyModelMode = typeof body?.modelMode === 'string'
-    ? body.modelMode.trim().toLowerCase()
-    : null;
+  const bodyModelMode =
+    typeof body?.modelMode === "string" ? body.modelMode.trim().toLowerCase() : null;
   const effectiveModelMode = directiveModelMode || bodyModelMode;
   const debugMode = Boolean(rawDirective && MODE_DIRECTIVE_REGEX.test(rawDirective));
 
   // 6. Détermine le fournisseur et le modèle
-  let forcedProvider = directiveProvider;  // Ex: "provider=anthropic"
+  let forcedProvider = directiveProvider; // Ex: "provider=anthropic"
   let modelProvider = directiveModel ? detectModelProvider(directiveModel) : null;
 
   // 7. Vérifie la disponibilité des clés API
   if (forcedProvider && !isProviderAvailable(forcedProvider)) {
     return new Response(
       JSON.stringify({
-        error: `Le fournisseur "${forcedProvider}" est demandé mais non configuré.`
+        error: `Le fournisseur "${forcedProvider}" est demandé mais non configuré.`,
       }),
       { status: 400 }
     );
@@ -922,7 +1077,7 @@ const handler = async (request) => {
   if (modelProvider && !isProviderAvailable(modelProvider)) {
     return new Response(
       JSON.stringify({
-        error: `Le modèle "${directiveModel}" requiert "${modelProvider}", mais sa clé API est absente.`
+        error: `Le modèle "${directiveModel}" requiert "${modelProvider}", mais sa clé API est absente.`,
       }),
       { status: 400 }
     );
@@ -935,7 +1090,9 @@ const handler = async (request) => {
   if (!enforcedProvider && SHOULD_RANDOMIZE_PROVIDERS) {
     providerOrder = shuffleProviders(providerOrder);
   }
-  console.log(`[EdgeFunction] 🔧 Fournisseur: ${enforcedProvider || "auto"} (ordre=${providerOrder.join(",")})`);
+  console.log(
+    `[EdgeFunction] 🔧 Fournisseur: ${enforcedProvider || "auto"} (ordre=${providerOrder.join(",")})`
+  );
 
   // 9. Active les logs de debug
   const debugLogger = debugMode ? createDebugLogger() : null;
@@ -959,7 +1116,7 @@ const handler = async (request) => {
       debugLogger?.attachStream(controller, encoder);
       const emitProviderMeta = (meta) =>
         controller.enqueue(encoder.encode(`${PROVIDER_META_PREFIX}${JSON.stringify(meta)}\n`));
-      
+
       // Préfixes pour les logs
       const logPrefix = "📜 [LOG] ";
       const errorPrefix = "❌ [ERREUR] ";
@@ -976,12 +1133,30 @@ const handler = async (request) => {
 
         while (providerRetries <= maxProviderRetries) {
           try {
-            const apiKey = Deno.env.get(`${provider.toUpperCase()}_API_KEY`);
+            // GESTION SPÉCIFIQUE POUR LA CLÉ API GEMINI
+            let apiKey;
+            if (provider === "google") {
+              apiKey = Deno.env.get("GEMINI_API_KEY");
+            } else {
+              apiKey = Deno.env.get(`${provider.toUpperCase()}_API_KEY`);
+            }
             if (!apiKey) {
               console.log(`[EdgeFunction] ⏭️ Skipping ${provider} (no API key)`);
-              continue;
+              // Mark provider as failed/unavailable so we don't retry indefinitely
+              try {
+                failedProviders.add(provider);
+              } catch (_) {}
+              // break the retry loop to move to the next provider
+              break;
             }
             const resolvedModel = resolveModelForProvider(provider, effectiveModelMode);
+            console.log(
+              `[EdgeFunction] 🔍 Model resolution: provider=${provider}, mode=${effectiveModelMode}, resolved=${resolvedModel}`
+            );
+            console.log(
+              `[EdgeFunction] 🔍 Available modes for ${provider}:`,
+              MODEL_MODES[provider]
+            );
             emitProviderMeta({ provider, model: resolvedModel });
             console.log(`[EdgeFunction] 🚀 Tentative avec ${provider} (model=${resolvedModel})...`);
             if (provider === "huggingface") {
@@ -1000,14 +1175,13 @@ const handler = async (request) => {
                 systemPrompt,
                 conversationHistory: conversation_history,
                 maxToolCalls: 2,
-                modelMode: effectiveModelMode
+                modelMode: effectiveModelMode,
               })) {
                 controller.enqueue(encoder.encode(chunkPrefix + chunk));
               }
             }
             handled = true;
             break;
-
           } catch (error) {
             const isForcedProvider = forcedProvider === provider;
             const capacityError = provider === "mistral" && isMistralCapacityError(error);
@@ -1015,24 +1189,44 @@ const handler = async (request) => {
 
             if (capacityError && !isForcedProvider) {
               const fallbackMessage = `${errorPrefix}${provider} indisponible (crédit/limite atteinte). Tentative avec un autre fournisseur...\n\n`;
-              console.warn(`[EdgeFunction] ⚠️ ${provider} capacité atteinte, passage au fournisseur suivant.`);
+              console.warn(
+                `[EdgeFunction] ⚠️ ${provider} capacité atteinte, passage au fournisseur suivant.`
+              );
               controller.enqueue(encoder.encode(fallbackMessage));
               failedProviders.add(provider);
               break; // Passe immédiatement au provider suivant
             } else if (rateLimitError && providerRetries < maxProviderRetries) {
               const delayMs = parseRetryAfter(error.message);
-              console.warn(`[EdgeFunction] ⏳ ${provider} rate limit, retrying in ${delayMs}ms (attempt ${providerRetries + 1}/${maxProviderRetries + 1})`);
-              await new Promise(resolve => setTimeout(resolve, delayMs));
+              console.warn(
+                `[EdgeFunction] ⏳ ${provider} rate limit, retrying in ${delayMs}ms (attempt ${providerRetries + 1}/${maxProviderRetries + 1})`
+              );
+              await new Promise((resolve) => setTimeout(resolve, delayMs));
               providerRetries++;
               continue; // retry same provider
             } else {
-              lastError = error;
-              const errorMessage = `${errorPrefix}${provider} a échoué: ${error.message}\n\n`;
-              if (error.stack && !errorMessage.includes("API")) {
-                console.error(errorMessage, error.stack);
-              }
+              const errorDetail = error.message || String(error);
+              const errorMessage = `⚠️ **${provider.toUpperCase()} FAILED**: ${errorDetail}\n\n`;
+              console.error(`[EdgeFunction] ❌ ${provider} error:`, errorDetail);
+
+              // Emit error as a visible message
               controller.enqueue(encoder.encode(errorMessage));
-              failedProviders.add(provider); // Marquer comme échoué
+
+              // If this is a forced provider, don't fallback
+              if (isForcedProvider) {
+                console.error(
+                  `[EdgeFunction] 🛑 Forced provider ${provider} failed, not falling back`
+                );
+                controller.enqueue(
+                  encoder.encode(
+                    `\n\n**Error**: You requested ${provider} specifically, but it failed. Please try a different provider or check your configuration.\n\n`
+                  )
+                );
+                handled = true;
+                break;
+              }
+
+              controller.enqueue(encoder.encode(`Trying next provider...\n\n`));
+              failedProviders.add(provider);
               break; // move to next provider
             }
           }
@@ -1045,12 +1239,61 @@ const handler = async (request) => {
         const message = lastError?.message || "Aucun fournisseur disponible.";
         controller.enqueue(encoder.encode(`${errorPrefix}${message}\n\n`));
       }
+      // Emit final providers status (frontend reads metrics from this stream end)
+      try {
+        const providersList = (PROVIDERS || []).map((provider) => {
+          const configured = isProviderAvailable(provider);
+          // Get all model keys for this provider
+          const modelModes = MODEL_MODES[provider] || {};
+          const modelNames = Object.values(modelModes);
+          const models = modelNames.map((modelName) => {
+            const metricEntry = providerMetrics.get(provider, modelName);
+            const m = metricEntry?.metrics || {};
+            const successRate =
+              m.requestCount && m.requestCount > 0
+                ? Math.round((m.successCount / m.requestCount) * 100)
+                : null;
+            let retryAfter = null;
+            if (
+              metricEntry?.status === "rate_limited" &&
+              metricEntry.metrics.lastError?.retryAfter
+            ) {
+              const retryTime =
+                metricEntry.metrics.lastError.timestamp +
+                metricEntry.metrics.lastError.retryAfter * 1000;
+              const secondsUntilRetry = Math.max(0, Math.ceil((retryTime - Date.now()) / 1000));
+              if (secondsUntilRetry > 0) retryAfter = secondsUntilRetry;
+            }
+            return {
+              name: modelName,
+              avgResponseTime: m.avgResponseTime ?? null,
+              successRate: successRate,
+              recentlyUsed: Boolean(m.lastUsed && Date.now() - m.lastUsed < 30000),
+              retryAfter: retryAfter,
+              consecutiveErrors: m.consecutiveErrors || 0,
+              status: metricEntry?.status || (configured ? "available" : "not_configured"),
+            };
+          });
+          return {
+            name: provider,
+            status: configured ? "available" : "not_configured",
+            models,
+          };
+        });
+        controller.enqueue(
+          encoder.encode(
+            `${PROVIDERS_STATUS_PREFIX}${JSON.stringify({ providers: providersList })}\n`
+          )
+        );
+      } catch (err) {
+        console.warn("[EdgeFunction] ⚠️ Failed to emit providers status:", err?.message || err);
+      }
       controller.close();
     },
 
     cancel() {
       debugLogger?.disable();
-    }
+    },
   });
 
   // 15. Retourne la réponse streamée
@@ -1058,8 +1301,8 @@ const handler = async (request) => {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "no-cache",
-      "X-Content-Type-Options": "nosniff"
-    }
+      "X-Content-Type-Options": "nosniff",
+    },
   });
 };
 
@@ -1070,7 +1313,7 @@ async function* runConversationalAgent({
   systemPrompt,
   conversationHistory = [],
   maxToolCalls = 2,
-  modelMode
+  modelMode,
 }) {
   let toolCallCount = 0;
   const idleTimeoutMs = Number(Deno.env.get("LLM_STREAM_TIMEOUT_MS")) || 30000;
@@ -1078,20 +1321,22 @@ async function* runConversationalAgent({
   let messages = [
     { role: "system", content: systemPrompt },
     ...conversationHistory,
-    { role: "user", content: question }
+    { role: "user", content: question },
   ];
 
   console.log(`[${provider}] ✅ runConversationalAgent initialized (maxToolCalls=${maxToolCalls})`);
 
   while (toolCallCount < maxToolCalls) {
-    console.log(`[${provider}] 🔁 Appel LLM (model=${resolveModelForProvider(provider, modelMode)}) - messages:${messages.length}`);
+    console.log(
+      `[${provider}] 🔁 Appel LLM (model=${resolveModelForProvider(provider, modelMode)}) - messages:${messages.length}`
+    );
     const streamOrDirect = await callLLMAPI({
       provider,
       model: resolveModelForProvider(provider, modelMode),
       messages,
       tools: Object.values(TOOLS),
       toolChoice: "auto",
-      stream: true
+      stream: true,
     });
 
     // Direct (non-stream) response
@@ -1100,15 +1345,25 @@ async function* runConversationalAgent({
       const data = streamOrDirect || {};
       if (data.toolCalls && data.toolCalls.length > 0) {
         const normalized = normalizeToolCalls(data.toolCalls);
-        const valid = normalized.filter(c => c.function?.name && TOOL_HANDLERS[c.function.name]);
+        const valid = normalized.filter((c) => c.function?.name && TOOL_HANDLERS[c.function.name]);
         if (valid.length > 0) {
           toolCallCount++;
-          console.log(`[${provider}] 🛠 Executing ${valid.length} tool(s) (direct):`, valid.map(c => c.function.name));
-          const toolMessages = await executeToolCalls(valid, provider, { web_search: { query: question }, defaultQuery: question });
+          console.log(
+            `[${provider}] 🛠 Executing ${valid.length} tool(s) (direct):`,
+            valid.map((c) => c.function.name)
+          );
+          const toolMessages = await executeToolCalls(valid, provider, {
+            web_search: { query: question },
+            defaultQuery: question,
+          });
           messages = [
             ...messages,
-            { role: "assistant", content: data.content || null, ...(provider === "anthropic" ? { tool_uses: valid } : { tool_calls: valid }) },
-            ...toolMessages
+            {
+              role: "assistant",
+              content: data.content || null,
+              ...(provider === "anthropic" ? { tool_uses: valid } : { tool_calls: valid }),
+            },
+            ...toolMessages,
           ];
           continue; // re-run LLM with augmented messages
         }
@@ -1134,11 +1389,15 @@ async function* runConversationalAgent({
         try {
           res = await Promise.race([
             nextPromise,
-            new Promise((_, reject) => setTimeout(() => reject(new Error("stream-timeout")), idleTimeoutMs))
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error("stream-timeout")), idleTimeoutMs)
+            ),
           ]);
         } catch (err) {
           if (err?.message === "stream-timeout") {
-            console.warn(`[${provider}] ⚠️ Stream idle timeout (${idleTimeoutMs}ms). Falling back to direct call.`);
+            console.warn(
+              `[${provider}] ⚠️ Stream idle timeout (${idleTimeoutMs}ms). Falling back to direct call.`
+            );
             streamTimedOut = true;
             break;
           }
@@ -1166,10 +1425,14 @@ async function* runConversationalAgent({
         if (evt.type === "tool_call") {
           const call = evt.call;
           const fnName = call?.function?.name;
-          console.log(`[${provider}] 🛠 Received tool_call event: id=${call?.id}, name=${fnName || "(no-name)"}`);
+          console.log(
+            `[${provider}] 🛠 Received tool_call event: id=${call?.id}, name=${fnName || "(no-name)"}`
+          );
 
           if (!fnName || !TOOL_HANDLERS[fnName]) {
-            console.warn(`[${provider}] ⚠️ Unknown/unsupported tool: ${fnName || "(no-name)"} - ignoring`);
+            console.warn(
+              `[${provider}] ⚠️ Unknown/unsupported tool: ${fnName || "(no-name)"} - ignoring`
+            );
             continue;
           }
 
@@ -1179,16 +1442,19 @@ async function* runConversationalAgent({
           }
 
           console.log(`[${provider}] 🛠 Executing tool now: ${fnName} (id=${call.id})`);
-          const toolMessages = await executeToolCalls([call], provider, { web_search: { query: question }, defaultQuery: question });
+          const toolMessages = await executeToolCalls([call], provider, {
+            web_search: { query: question },
+            defaultQuery: question,
+          });
 
           messages = [
             ...messages,
             {
               role: "assistant",
               content: accumulatedContent || null,
-              ...(provider === "anthropic" ? { tool_uses: [call] } : { tool_calls: [call] })
+              ...(provider === "anthropic" ? { tool_uses: [call] } : { tool_calls: [call] }),
             },
-            ...toolMessages
+            ...toolMessages,
           ];
 
           eventToolExecuted = true;
@@ -1196,44 +1462,68 @@ async function* runConversationalAgent({
         }
       }
     } finally {
-      try { if (iterator?.return) await iterator.return(); } catch { /* ignore */ }
+      try {
+        if (iterator?.return) await iterator.return();
+      } catch {
+        /* ignore */
+      }
     }
 
     if (eventToolExecuted) {
-      console.log(`[${provider}] 🔄 Completed a tool call cycle during streaming, restarting LLM loop`);
+      console.log(
+        `[${provider}] 🔄 Completed a tool call cycle during streaming, restarting LLM loop`
+      );
       continue;
     }
 
     const streamToolCalls = Array.isArray(finalStreamResult?.toolCalls)
       ? normalizeToolCalls(finalStreamResult.toolCalls)
       : [];
-    const validStreamCalls = streamToolCalls.filter(c => c.function?.name && TOOL_HANDLERS[c.function.name]);
+    const validStreamCalls = streamToolCalls.filter(
+      (c) => c.function?.name && TOOL_HANDLERS[c.function.name]
+    );
     if (validStreamCalls.length > 0) {
       toolCallCount++;
-      console.log(`[${provider}] 🛠 Executing ${validStreamCalls.length} tool(s) (stream completion):`, validStreamCalls.map(c => c.function.name));
-      const toolMessages = await executeToolCalls(validStreamCalls, provider, { web_search: { query: question }, defaultQuery: question });
+      console.log(
+        `[${provider}] 🛠 Executing ${validStreamCalls.length} tool(s) (stream completion):`,
+        validStreamCalls.map((c) => c.function.name)
+      );
+      const toolMessages = await executeToolCalls(validStreamCalls, provider, {
+        web_search: { query: question },
+        defaultQuery: question,
+      });
       messages = [
         ...messages,
-        { role: "assistant", content: finalStreamResult?.content || null, ...(provider === "anthropic" ? { tool_uses: validStreamCalls } : { tool_calls: validStreamCalls }) },
-        ...toolMessages
+        {
+          role: "assistant",
+          content: finalStreamResult?.content || null,
+          ...(provider === "anthropic"
+            ? { tool_uses: validStreamCalls }
+            : { tool_calls: validStreamCalls }),
+        },
+        ...toolMessages,
       ];
       continue;
     }
 
     if (accumulatedContent && accumulatedContent.trim().length > 0) {
-      console.log(`[${provider}] ✅ Streaming provided content (${accumulatedContent.length} chars). Returning.`);
+      console.log(
+        `[${provider}] ✅ Streaming provided content (${accumulatedContent.length} chars). Returning.`
+      );
       return;
     }
 
     // Fallback: direct call to fetch content/tool_calls if stream timed out or provided nothing
-    console.log(`[${provider}] ⚠️ ${streamTimedOut ? "Stream timed out." : "No tool calls/content from stream."} Attempting direct fallback.`);
+    console.log(
+      `[${provider}] ⚠️ ${streamTimedOut ? "Stream timed out." : "No tool calls/content from stream."} Attempting direct fallback.`
+    );
     const direct = await callLLMAPI({
       provider,
       model: resolveModelForProvider(provider, modelMode),
       messages,
       tools: Object.values(TOOLS),
       toolChoice: "auto",
-      stream: false
+      stream: false,
     });
 
     const directHasContent = Boolean(direct?.content && String(direct.content).trim());
@@ -1241,24 +1531,38 @@ async function* runConversationalAgent({
 
     if (directHasToolCalls) {
       const normalized = normalizeToolCalls(direct.toolCalls);
-      const valid = normalized.filter(c => c.function?.name && TOOL_HANDLERS[c.function.name]);
+      const valid = normalized.filter((c) => c.function?.name && TOOL_HANDLERS[c.function.name]);
       if (valid.length > 0) {
         toolCallCount++;
-        console.log(`[${provider}] 🛠 Executing ${valid.length} tool(s) (direct fallback):`, valid.map(c => c.function.name));
-        const toolMessages = await executeToolCalls(valid, provider, { web_search: { query: question }, defaultQuery: question });
+        console.log(
+          `[${provider}] 🛠 Executing ${valid.length} tool(s) (direct fallback):`,
+          valid.map((c) => c.function.name)
+        );
+        const toolMessages = await executeToolCalls(valid, provider, {
+          web_search: { query: question },
+          defaultQuery: question,
+        });
         messages = [
           ...messages,
-          { role: "assistant", content: direct.content || null, ...(provider === "anthropic" ? { tool_uses: valid } : { tool_calls: valid }) },
-          ...toolMessages
+          {
+            role: "assistant",
+            content: direct.content || null,
+            ...(provider === "anthropic" ? { tool_uses: valid } : { tool_calls: valid }),
+          },
+          ...toolMessages,
         ];
         continue; // re-run LLM
       } else {
-        console.warn(`[${provider}] ⚠️ Direct fallback tool_calls present but none were valid/handled.`);
+        console.warn(
+          `[${provider}] ⚠️ Direct fallback tool_calls present but none were valid/handled.`
+        );
       }
     }
 
     if (directHasContent) {
-      console.log(`[${provider}] ✅ Direct fallback returned content (${String(direct.content).length} chars).`);
+      console.log(
+        `[${provider}] ✅ Direct fallback returned content (${String(direct.content).length} chars).`
+      );
       yield direct.content;
       return;
     }
@@ -1275,14 +1579,16 @@ async function runHuggingFaceAgent(userQuestion, systemPrompt, modelMode) {
   const apiKey = Deno.env.get("HUGGINGFACE_API_KEY");
   if (!apiKey) throw new Error("Clé API manquante pour huggingface");
 
-  const model = resolveModelForProvider(provider, modelMode) || PROVIDER_CONFIGS.huggingface.defaultModel;
-  const url = typeof PROVIDER_CONFIGS.huggingface.apiUrl === "function"
-    ? PROVIDER_CONFIGS.huggingface.apiUrl(model)
-    : PROVIDER_CONFIGS.huggingface.apiUrl;
+  const model =
+    resolveModelForProvider(provider, modelMode) || PROVIDER_CONFIGS.huggingface.defaultModel;
+  const url =
+    typeof PROVIDER_CONFIGS.huggingface.apiUrl === "function"
+      ? PROVIDER_CONFIGS.huggingface.apiUrl(model)
+      : PROVIDER_CONFIGS.huggingface.apiUrl;
 
   const messages = [
     { role: "system", content: systemPrompt },
-    { role: "user", content: userQuestion }
+    { role: "user", content: userQuestion },
   ];
 
   const payload = {
@@ -1290,17 +1596,17 @@ async function runHuggingFaceAgent(userQuestion, systemPrompt, modelMode) {
     messages,
     temperature: 0.3,
     top_p: 0.95,
-    stream: false
+    stream: false,
   };
 
   console.log(`[huggingface] ➜ request model=${model}`);
   const resp = await fetch(url, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json"
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
     },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   });
 
   console.log(`[huggingface] ⬅ status=${resp.status}`);
@@ -1314,7 +1620,7 @@ async function runHuggingFaceAgent(userQuestion, systemPrompt, modelMode) {
   const text = data?.choices?.[0]?.message?.content || "";
 
   return String(text || "").trim();
-};
+}
 
 export default handler;
 export const config = { path: "/api/chat-stream" };

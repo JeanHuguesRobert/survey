@@ -7,7 +7,7 @@ export function LegalMarkdown({ file }) {
   const [content, setContent] = useState("");
   useEffect(() => {
     fetch(file)
-      .then(res => res.text())
+      .then((res) => res.text())
       .then(setContent);
   }, [file]);
   return (
@@ -31,7 +31,10 @@ export default function LegalLinks() {
         <LegalPage type="privacy" />
       </div>
       <div className="mt-8 text-center">
-        <a href="/contact" className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold shadow">
+        <a
+          href="/contact"
+          className="inline-block px-4 py-2 bg-blue-600 text-bauhaus-white rounded hover:bg-blue-700 font-semibold shadow"
+        >
           Contactez-nous
         </a>
       </div>
@@ -41,19 +44,18 @@ export default function LegalLinks() {
 
 // Ou pour affichage intégré Markdown :
 export function LegalPage({ type }) {
-  const file = type === "privacy"
-    ? "/docs/privacy-policy.md"
-    : "/docs/terms-of-use.md";
+  const file = type === "privacy" ? "/docs/privacy-policy.md" : "/docs/terms-of-use.md";
   return (
     <>
       <LegalMarkdown file={file} />
       <div className="mt-8 text-center">
-        <a href="/contact" className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold shadow">
+        <a
+          href="/contact"
+          className="inline-block px-4 py-2 bg-blue-600 text-bauhaus-white rounded hover:bg-blue-700 font-semibold shadow"
+        >
           Contactez-nous
         </a>
       </div>
     </>
   );
 }
-
-
