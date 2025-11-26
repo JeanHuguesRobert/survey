@@ -45,6 +45,15 @@ CREATE TABLE public.consolidated_wiki_documents (
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT consolidated_wiki_documents_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.content_subscriptions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  content_type text NOT NULL CHECK (content_type = ANY (ARRAY['post'::text, 'proposition'::text, 'wiki_page'::text])),
+  content_id uuid NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT content_subscriptions_pkey PRIMARY KEY (id),
+  CONSTRAINT content_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.delegations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   delegator_id uuid NOT NULL,
@@ -57,6 +66,24 @@ CREATE TABLE public.delegations (
   CONSTRAINT delegations_delegator_id_fkey FOREIGN KEY (delegator_id) REFERENCES public.users(id),
   CONSTRAINT delegations_delegate_id_fkey FOREIGN KEY (delegate_id) REFERENCES public.users(id),
   CONSTRAINT delegations_tag_id_fkey FOREIGN KEY (tag_id) REFERENCES public.tags(id)
+);
+CREATE TABLE public.document_sources (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  filename text NOT NULL,
+  content_hash text NOT NULL UNIQUE,
+  public_url text NOT NULL,
+  file_size_bytes bigint,
+  mime_type text,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  first_ingested_at timestamp with time zone DEFAULT now(),
+  last_ingested_at timestamp with time zone DEFAULT now(),
+  ingestion_method text CHECK (ingestion_method = ANY (ARRAY['ui_upload'::text, 'cli_bulk'::text, 'cache_rebuild'::text])),
+  status text DEFAULT 'active'::text CHECK (status = ANY (ARRAY['active'::text, 'archived'::text, 'deleted'::text])),
+  ingested_by uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT document_sources_pkey PRIMARY KEY (id),
+  CONSTRAINT document_sources_ingested_by_fkey FOREIGN KEY (ingested_by) REFERENCES auth.users(id)
 );
 CREATE TABLE public.git_sync_log (
   page_id uuid NOT NULL,
@@ -86,6 +113,23 @@ CREATE TABLE public.groups (
   metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
   CONSTRAINT groups_pkey PRIMARY KEY (id),
   CONSTRAINT groups_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.jobs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  owner uuid,
+  type text NOT NULL,
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'running'::text, 'completed'::text, 'failed'::text, 'cancelled'::text])),
+  progress integer NOT NULL DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
+  message text,
+  payload jsonb DEFAULT '{}'::jsonb,
+  result jsonb,
+  error_details jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  started_at timestamp with time zone,
+  completed_at timestamp with time zone,
+  CONSTRAINT jobs_pkey PRIMARY KEY (id),
+  CONSTRAINT jobs_owner_fkey FOREIGN KEY (owner) REFERENCES auth.users(id)
 );
 CREATE TABLE public.municipal_transparency (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -134,6 +178,17 @@ CREATE TABLE public.propositions (
   CONSTRAINT propositions_pkey PRIMARY KEY (id),
   CONSTRAINT propositions_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.reactions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  target_type text NOT NULL,
+  target_id uuid NOT NULL,
+  emoji text NOT NULL,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT reactions_pkey PRIMARY KEY (id),
+  CONSTRAINT reactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.tags (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   name text NOT NULL UNIQUE,
@@ -145,7 +200,6 @@ CREATE TABLE public.tags (
 );
 CREATE TABLE public.users (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  email text NOT NULL UNIQUE,
   display_name text NOT NULL DEFAULT ''::text,
   created_at timestamp with time zone DEFAULT now(),
   neighborhood text,
