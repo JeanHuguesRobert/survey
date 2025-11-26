@@ -1,19 +1,23 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    tailwindcss(), // ← Add this
+  ],
   optimizeDeps: {
-    include: ['remark-gfm'],
+    include: ["remark-gfm"],
   },
   build: {
     sourcemap: true,
-    minify: false
+    minify: false,
   },
   server: {
     watch: {
-      usePolling: true,
-      interval: 100,
+      usePolling: false,
+      interval: 500,
     },
     hmr: {
       overlay: true,

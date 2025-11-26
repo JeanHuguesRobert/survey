@@ -1,19 +1,32 @@
 {
   "name": "survey",
-  "version": "1.2.6",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "lint:css": "stylelint \"src/**/*.css\" --allow-empty-input",
+    "preview": "vite preview",
+    "extract:tw": "node scripts/extract-tailwind.js",
+    "count:loc": "node scripts/count-loc.js",
+    "generate-tailwind-dump": "node scripts/generate-tailwind-dump.js",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css,scss,md,json,html}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,css,scss,md,json,html}\"",
+    "prepare": "husky",
+    "lint-staged": "lint-staged"
+  },
+  "lint-staged": {
+    "*.{js,jsx,css,md}": "prettier --write"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
     "@google/generative-ai": "^0.24.1",
     "@huggingface/inference": "^4.13.3",
     "@mistralai/mistralai": "^1.10.0",
+    "@phosphor-icons/react": "^2.1.10",
     "@supabase/supabase-js": "^2.76.1",
     "@tailwindcss/typography": "^0.5.19",
+    "@tailwindcss/vite": "^4.1.17",
     "dompurify": "^3.3.0",
     "dotenv": "^17.2.3",
     "marked": "^16.4.1",
@@ -27,7 +40,16 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.0.0",
+    "autoprefixer": "^10.4.22",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "postcss": "^8.5.6",
     "prettier": "^3.6.2",
+    "stylelint": "^16.26.0",
+    "stylelint-config-standard": "^39.0.1",
+    "tailwindcss": "^4.1.17",
     "vite": "^5.4.21"
   }
 }
