@@ -164,3 +164,28 @@ public/docs/conseil/cache/
 
 # Backup files
 *.backup
+
+# Node / editor
+node_modules/
+dist/
+build/
+.vscode/
+.idea/
+.DS_Store
+*.log
+*.tmp
+*.bak
+*.orig
+*.snap
+
+# Env
+.env
+.env.local
+
+# Project-specific generated files / caches (noise)
+tailwind-dump.txt
+tailwind-classes.json
+.inline-css-map.json
+.classfinder-cache.json
+css-class-report.txt
+
