@@ -1,6 +1,6 @@
 # 📊 Survey - Plateforme de Consultation Citoyenne
 
-> Prototype disponible sur [LePP.fr](http://lepp.fr/)
+> Prototype disponible sur [LePP.fr](https://lepp.fr/)
 
 **Survey** (aussi appelé **Pertitellu** en corse) est une plateforme numérique conçue pour renforcer
 la démocratie participative locale. Elle permet aux citoyens de donner leur avis, de proposer des
@@ -114,7 +114,7 @@ Un outil d'évaluation et de suivi de la transparence des institutions locales :
 
 ### Pour les citoyens (utilisateurs)
 
-1. **Visitez le site** : [lepp.fr](http://lepp.fr/)
+1. **Visitez le site** : [lepp.fr](https://lepp.fr/)
 2. **Explorez sans compte** : la plupart des contenus sont accessibles sans inscription
 3. **Créez un compte** (optionnel) pour :
    - Discuter avec Ophélia
@@ -300,7 +300,7 @@ Cette plateforme participe à l'initiative citoyenne **"Transparence"** qui vise
 **Initiative #PERTITELLU - Corti Capitale**
 
 📧 Email : [jeanhuguesrobert@gmail.com](mailto:jeanhuguesrobert@gmail.com) 🌐 Site :
-[lepp.fr](http://lepp.fr/)
+[lepp.fr](https://lepp.fr/)
 
 **Vous souhaitez contribuer ?**
 
