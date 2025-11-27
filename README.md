@@ -1,10 +1,36 @@
 # 📊 Survey - Plateforme de Consultation Citoyenne
 
+Survey is a generic open-source platform for citizen consultation and participatory democracy,
+reusable by any municipality or collective worldwide. It belongs to the Kudocracy family of
+projects.
+
+The Corte (Corsica) deployment is the first real-world pilot.
+
+## Neutrality & Scope
+
+Kudocracy is a neutral open-source infrastructure.
+
+It does not fund, promote or support:
+
+- any political party
+- any electoral campaign
+- any candidate or list
+
+It provides digital tools that may be used by any citizen, collective or institution.
+
+--
+
+## Pilote à Corte
+
+A l'occasion des futures élections municipales, Survey sera utilisé pour la première fois en
+production. L'agent IA Ophélia est utilisé pour répondre aux questions des citoyens en faisant
+figure de candidate citoyenne virtuelle.
+
 > Prototype disponible sur [LePP.fr](https://lepp.fr/)
 
-**Survey** (aussi appelé **Pertitellu** en corse) est une plateforme numérique conçue pour renforcer
-la démocratie participative locale. Elle permet aux citoyens de donner leur avis, de proposer des
-idées et de participer activement à la vie de leur commune ou communauté.
+**Survey** est une plateforme numérique conçue pour renforcer la démocratie participative locale.
+Elle permet aux citoyens de donner leur avis, de proposer des idées et de participer activement à la
+vie de leur commune ou communauté.
 
 ---
 
@@ -12,7 +38,7 @@ idées et de participer activement à la vie de leur commune ou communauté.
 
 Cette application offre **six outils principaux** pour la participation citoyenne :
 
-### 1. ☕ **Café Pertitellu** - L'espace social citoyen
+### 1. ☕ **Café** - L'espace social citoyen
 
 Un espace de discussion et d'échange convivial où vous pouvez :
 
@@ -168,7 +194,7 @@ L'application sera accessible sur `http://localhost:8888`
 
 ## 📅 Dernières améliorations (Fin Novembre 2025 - v1.3.0)
 
-### 🤖 Ophélia V2 (Assistant IA)
+### 🤖 Ophélia V2 (Assistant "Bob" IA optimisé pour la ville de Corte)
 
 - ✨ **Nouvelle Interface (UI v2)** : Design modernisé et plus intuitif.
 - ✨ **Mode "Raisonnement"** : Affichage du processus de pensée (`<Think>`) pour des réponses plus
@@ -286,6 +312,40 @@ Cette plateforme participe à l'initiative citoyenne **"Transparence"** qui vise
 - 🔄 Carte interactive des propositions locales
 - 🔄 Tableau de bord "Transparence" national
 - 🔄 **Intégration calendrier** pour les événements du Café
+
+---
+
+## 💰 Open Source Funding & Transparency
+
+Survey est un **commun numérique open source**. Son développement est financé de manière **publique,
+traçable et indépendante** via **Open Collective**.
+
+👉 Page de financement : https://opencollective.com/survey (à activer après création)
+
+### Ce que votre soutien finance exclusivement
+
+- Développement logiciel (frontend, backend, IA)
+- Sécurité & audits
+- Hébergement & infrastructure
+- Documentation & traductions
+- Conformité RGPD & juridique open data
+
+### Ce que Survey ne finance jamais
+
+- Aucune campagne politique
+- Aucune liste électorale
+- Aucune action partisane
+- Aucun mouvement ou front
+
+Survey est une **infrastructure open source neutre**, réutilisable par :
+
+- les citoyens,
+- les communes,
+- les associations,
+- les universités,
+- les collectifs citoyens, sans exclusivité ni orientation politique imposée.
+
+✨ Financer Survey, c’est financer un **outil**, pas un parti.
 
 ---
 
