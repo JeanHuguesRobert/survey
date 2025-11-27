@@ -1,25 +1,31 @@
 # Ophélia – CivicTech RAG Chatbot (Hugging Face Space)
 
-Bienvenue sur le Space Hugging Face d’Ophélia, l’assistante citoyenne open source du "petit parti" de Corte, le Pertitellu, dédiée à la vie municipale à Corte en général et aux élections municipales en particulier. En toute transparence et à la gloire de la Corse !
+Bienvenue sur le Space Hugging Face d’Ophélia, l’assistante citoyenne open source du "petit parti"
+de Corte, le Pertitellu, dédiée à la vie municipale à Corte en général et aux élections municipales
+en particulier. En toute transparence et à la gloire de la Corse !
 
 ---
 
 ## Qu’est-ce qu’Ophélia ?
 
-Ophélia est un chatbot conversationnel basé sur le RAG (Retrieval-Augmented Generation), conçu pour :
+Ophélia est un chatbot conversationnel basé sur le RAG (Retrieval-Augmented Generation), conçu pour
+:
+
 - Répondre aux questions sur la vie municipale, la démocratie locale, la transparence, et la Corse
 - Valoriser la connaissance locale (wiki, documents publics, Q&A)
 - Offrir un accès simple, ouvert et sécurisé à l’information citoyenne
 - Être réutilisable et interopérable (API REST, npm, widget, MCP, Space…)
 - Prochainement facilement déployable pour d'autres commune, entière open source
 
-Ce Space est une vitrine interactive : posez vos questions, testez la pertinence, et découvrez la puissance du RAG appliqué au service de l'intérêt général.
+Ce Space est une vitrine interactive : posez vos questions, testez la pertinence, et découvrez la
+puissance du RAG appliqué au service de l'intérêt général.
 
 ---
 
 ## Fonctionnement
 
-- L’interface Gradio (Python) relaie vos questions à l’API REST centrale d’Ophélia (hébergée sur LePP.fr)
+- L’interface Gradio (Python) relaie vos questions à l’API REST centrale d’Ophélia (hébergée sur
+  LePP.fr)
 - Aucune logique métier n’est embarquée dans le Space : tout le traitement est fait côté serveur
 - Les réponses sont générées à partir de sources locales (wiki, docs, Q&A) et de modèles LLM
 
@@ -37,7 +43,7 @@ Ce Space est une vitrine interactive : posez vos questions, testez la pertinen
 
 - [Documentation API REST](../docs/API-OPHELIA.md)
 - [Plan technique complet](../docs/plan-ophelia.md)
-- [Widget web embeddable](http://LePP.fr/public/widget/demo-widget-ophelia.html)
+- [Widget web embeddable](https://LePP.fr/public/widget/demo-widget-ophelia.html)
 - [Dépôt GitHub](https://github.com/JeanHuguesRobert/survey)
 
 ---
@@ -102,6 +108,7 @@ Ce Space est une vitrine interactive : posez vos questions, testez la pertinen
    - (ex : https://huggingface.co/spaces/pertitellu/ophelia-space)
 
 **Astuces** :
+
 - Pour mettre à jour, modifiez localement puis `git push`.
 - Pour les secrets/API keys, utilisez l’onglet “Settings > Secrets” du Space.
 - Pour un Space privé, choisissez l’option lors de la création.
