@@ -68,6 +68,7 @@ import FacebookDeletionStatus from "./pages/FacebookDeletionStatus";
 import DataCollector from "./pages/DataCollector";
 import DataReview from "./pages/admin/DataReview";
 import Gazette from "./pages/Gazette";
+import NotFound from "./pages/NotFound";
 
 export default function Consultation() {
   // Feature flag for gesture header menu
@@ -1270,6 +1271,7 @@ export function App() {
           element={<FacebookDeletionInstructions />}
         />
         <Route path="/oauth/facebook/deletion-status" element={<FacebookDeletionStatus />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </>
   );
