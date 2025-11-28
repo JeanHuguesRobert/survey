@@ -1248,6 +1248,7 @@ export function App() {
         <Route path="/propositions/:id" element={<Proposition />} />
         <Route path="/proposition/:id" element={<Proposition />} />
         <Route path="/bob" element={<Bob />} />
+        <Route path="/ophelia" element={<Bob />} />
         <Route path="/wiki" element={<Wiki />} />
         <Route path="/wiki/new" element={<WikiCreate />} />
         <Route path="/wiki/new/:slug" element={<WikiCreate />} />
