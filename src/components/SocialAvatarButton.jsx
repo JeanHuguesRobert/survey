@@ -21,7 +21,11 @@ export default function SocialAvatarButton({ provider, label, userId, onAvatarSu
         onClick={start}
         disabled={loading}
         className={`px-4 py-2 rounded-md text-white font-semibold transition-colors flex items-center gap-2 ${
-          provider === "github" ? "bg-gray-800 hover:bg-gray-900" : "bg-red-600 hover:bg-red-700"
+          provider === "github"
+            ? "bg-gray-800 hover:bg-gray-900"
+            : provider === "facebook"
+              ? "bg-[#1877F2] hover:brightness-90"
+              : "bg-red-600 hover:bg-red-700"
         } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
       >
         {loading ? "Chargement..." : `Utiliser mon avatar ${label}`}

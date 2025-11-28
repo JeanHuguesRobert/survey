@@ -16,6 +16,10 @@
   path = "/api/chat-stream"
   function = "rag_chatbot"
 
+[[edge_functions]]
+  function = "supabase-test"
+  path = "/api/supabase-test"
+
 [[redirects]]
   from = "/docs/*"
   to = "/docs/:splat"

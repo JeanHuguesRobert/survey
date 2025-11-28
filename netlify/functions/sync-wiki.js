@@ -1,11 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
-import { GITHUB_CONFIG } from '../functions/constants.js';
+import { GITHUB_CONFIG } from "../functions/constants.js";
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 // ============================================================================
 // SUMMARY GENERATION
@@ -21,7 +18,7 @@ async function generatePageSummary(pageContent, pageTitle) {
   const client = new OpenAI({ apiKey });
 
   const systemPrompt = `Tu es un assistant expert en résumé. Ton rôle est de créer un résumé informatif d'une page wiki. Le résumé doit capturer les points clés et l'essence du contenu, être autonome et adapté à un agent conversationnel.`;
-  const userQuestion = `Résume la page wiki suivante intitulée "${pageTitle}":\n\n${pageContent}`; 
+  const userQuestion = `Résume la page wiki suivante intitulée "${pageTitle}":\n\n${pageContent}`;
 
   try {
     const response = await client.chat.completions.create({
@@ -46,9 +43,7 @@ async function generatePageSummary(pageContent, pageTitle) {
 // ============================================================================
 
 async function generateConsolidatedWikiDocument() {
-  const { data: pages, error } = await supabase
-    .from('wiki_pages')
-    .select('title, slug, summary');
+  const { data: pages, error } = await supabase.from("wiki_pages").select("title, slug, summary");
 
   if (error) {
     console.error("Erreur lors de la récupération des pages wiki:", error);
@@ -76,10 +71,10 @@ async function generateConsolidatedWikiDocument() {
 
 export default async (req, context) => {
   // Vérifier la méthode
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { "Content-Type": "application/json" },
     });
   }
 
@@ -87,54 +82,57 @@ export default async (req, context) => {
     const { pageId, slug } = await req.json();
 
     if (!pageId && !slug) {
-      return new Response(JSON.stringify({ error: 'pageId or slug required' }), {
+      return new Response(JSON.stringify({ error: "pageId or slug required" }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { "Content-Type": "application/json" },
       });
     }
 
     // 1. Récupérer la page depuis Supabase
-    let query = supabase.from('wiki_pages').select('*');
-    
+    let query = supabase.from("wiki_pages").select("*");
+
     if (pageId) {
-      query = query.eq('id', pageId);
+      query = query.eq("id", pageId);
     } else {
-      query = query.eq('slug', slug);
+      query = query.eq("slug", slug);
     }
-    
+
     const { data: page, error: pageError } = await query.single();
 
     if (pageError || !page) {
-      return new Response(JSON.stringify({ error: 'Page not found' }), {
+      return new Response(JSON.stringify({ error: "Page not found" }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { "Content-Type": "application/json" },
       });
     }
 
     // 2. Vérifier si déjà synced aujourd'hui
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split("T")[0];
     const { data: lastSync } = await supabase
-      .from('git_sync_log')
-      .select('*')
-      .eq('page_id', page.id)
-      .eq('last_sync_date', today)
+      .from("git_sync_log")
+      .select("*")
+      .eq("page_id", page.id)
+      .eq("last_sync_date", today)
       .single();
 
     if (lastSync) {
-      return new Response(JSON.stringify({ 
-        message: 'Already synced today',
-        commit_sha: lastSync.commit_sha 
-      }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return new Response(
+        JSON.stringify({
+          message: "Already synced today",
+          commit_sha: lastSync.commit_sha,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
 
     // 3. Préparer le contenu Markdown avec frontmatter
     const frontmatter = `---
 title: ${page.title}
 slug: ${page.slug}
-author_id: ${page.author_id || 'unknown'}
+author_id: ${page.author_id || "unknown"}
 created_at: ${page.created_at}
 updated_at: ${page.updated_at}
 ---
@@ -150,9 +148,9 @@ updated_at: ${page.updated_at}
     const summary = await generatePageSummary(page.content, page.title);
     if (summary) {
       const { error: updateError } = await supabase
-        .from('wiki_pages')
+        .from("wiki_pages")
         .update({ summary: summary })
-        .eq('id', page.id);
+        .eq("id", page.id);
 
       if (updateError) {
         console.error("Erreur lors de la sauvegarde du résumé dans Supabase:", updateError);
@@ -162,6 +160,7 @@ updated_at: ${page.updated_at}
     }
 
     // Générer le document wiki consolidé
+    /*
     const consolidatedDocument = await generateConsolidatedWikiDocument();
     if (consolidatedDocument) {
       // Sauvegarder le document consolidé sur GitHub
@@ -181,31 +180,37 @@ updated_at: ${page.updated_at}
         console.log("Document wiki consolidé sauvegardé dans Supabase.");
       }
     }
+      */
 
     // 5. Logger le sync
-    await supabase.from('git_sync_log').insert({
+    await supabase.from("git_sync_log").insert({
       page_id: page.id,
       last_sync_date: today,
-      commit_sha: commitSha
-    });
-
-    return new Response(JSON.stringify({ 
-      success: true,
       commit_sha: commitSha,
-      file_path: filePath
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
     });
 
+    return new Response(
+      JSON.stringify({
+        success: true,
+        commit_sha: commitSha,
+        file_path: filePath,
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   } catch (error) {
-    console.error('Sync error:', error);
-    return new Response(JSON.stringify({ 
-      error: error.message 
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    console.error("Sync error:", error);
+    return new Response(
+      JSON.stringify({
+        error: error.message,
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 };
 
@@ -218,9 +223,9 @@ async function commitToGitHub(path, content, title) {
   try {
     const getResponse = await fetch(url, {
       headers: {
-        'Authorization': `token ${token}`,
-        'Accept': 'application/vnd.github.v3+json'
-      }
+        Authorization: `token ${token}`,
+        Accept: "application/vnd.github.v3+json",
+      },
     });
 
     if (getResponse.ok) {
@@ -232,15 +237,15 @@ async function commitToGitHub(path, content, title) {
   }
 
   // 2. Créer ou mettre à jour le fichier
-  const contentBase64 = Buffer.from(content, 'utf8').toString('base64');
-  const commitMessage = sha 
-    ? `Update: ${title} - ${new Date().toISOString().split('T')[0]}`
-    : `Create: ${title} - ${new Date().toISOString().split('T')[0]}`;
+  const contentBase64 = Buffer.from(content, "utf8").toString("base64");
+  const commitMessage = sha
+    ? `Update: ${title} - ${new Date().toISOString().split("T")[0]}`
+    : `Create: ${title} - ${new Date().toISOString().split("T")[0]}`;
 
   const body = {
     message: commitMessage,
     content: contentBase64,
-    branch: branch
+    branch: branch,
   };
 
   if (sha) {
@@ -248,13 +253,13 @@ async function commitToGitHub(path, content, title) {
   }
 
   const response = await fetch(url, {
-    method: 'PUT',
+    method: "PUT",
     headers: {
-      'Authorization': `token ${token}`,
-      'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json'
+      Authorization: `token ${token}`,
+      Accept: "application/vnd.github.v3+json",
+      "Content-Type": "application/json",
     },
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {

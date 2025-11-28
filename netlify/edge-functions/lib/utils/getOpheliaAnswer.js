@@ -1,6 +1,6 @@
 // netlify/edge-functions/getOpheliaAnswer.js
 // Fonction utilitaire pour obtenir une réponse complète d'Ophélia (non-stream)
-import handler from "./rag_chatbot.js";
+import handler from "../../rag_chatbot.js";
 
 /**
  * Appelle le moteur RAG Ophélia et retourne la réponse complète (non streamée)

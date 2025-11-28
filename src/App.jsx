@@ -63,6 +63,8 @@ import AuthModal from "./components/common/AuthModal";
 import GlobalStatusIndicator from "./components/common/GlobalStatusIndicator";
 import JobMonitorDemo from "./components/examples/JobMonitorDemo";
 import Contact from "./pages/Contact";
+import FacebookDeletionInstructions from "./pages/FacebookDeletionInstructions";
+import FacebookDeletionStatus from "./pages/FacebookDeletionStatus";
 import DataCollector from "./pages/DataCollector";
 import DataReview from "./pages/admin/DataReview";
 import Gazette from "./pages/Gazette";
@@ -1263,6 +1265,11 @@ export function App() {
         <Route path="/gazette" element={<Gazette />} />
         <Route path="/gazette/:name" element={<Gazette />} />
         <Route path="/admin/data-review" element={<DataReview />} />
+        <Route
+          path="/oauth/facebook/deletion-instructions"
+          element={<FacebookDeletionInstructions />}
+        />
+        <Route path="/oauth/facebook/deletion-status" element={<FacebookDeletionStatus />} />
       </Routes>
     </>
   );

@@ -342,6 +342,15 @@ export default function useChatLogic(initial = {}) {
             // setMessages((m) => [...m, { id: `sys-${Date.now()}`, text: "Requête envoyée — attente de la réponse…", sender: "system", isNotification: true }]);
           } catch (_) {}
 
+          // Build normalized conversation history to send to backend
+          const conv = messagesRef.current
+            .filter((m) => !m.isNotification)
+            .slice(-50)
+            .map((m) => ({
+              role: m.sender === "user" ? "user" : "assistant",
+              content: m.text || m.content || "",
+            }));
+
           const response = await fetch("/api/chat-stream", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -349,6 +358,7 @@ export default function useChatLogic(initial = {}) {
               question: directivePrefix ? `${directivePrefix} ; ${text}` : text,
               user_id: user?.id ?? null,
               modelMode: modalMode,
+              conversation_history: conv,
             }),
             signal: abortControllerRef.current.signal,
           });
@@ -527,6 +537,17 @@ export default function useChatLogic(initial = {}) {
                   },
                 ]);
               }
+
+              // If we had a placeholder bot message, finalize it with the error text
+              if (errorMatch && botMessageId) {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === botMessageId
+                      ? { ...m, text: errorMatch[0].trim(), isStreaming: false, error: true }
+                      : m
+                  )
+                );
+              }
             }
 
             // Forward backend debug logs to frontend console
@@ -566,34 +587,30 @@ export default function useChatLogic(initial = {}) {
           // Persist interaction to Supabase when possible
           if (user && canWrite(user)) {
             try {
-              await supabase
-                .from("chat_interactions")
-                .insert([
-                  {
-                    user_id: user.id,
-                    question: text,
-                    answer: full,
-                    sources: [],
-                    created_at: new Date().toISOString(),
-                  },
-                ]);
+              await supabase.from("chat_interactions").insert([
+                {
+                  user_id: user.id,
+                  question: text,
+                  answer: full,
+                  sources: [],
+                  created_at: new Date().toISOString(),
+                },
+              ]);
               // If the response was served from cache, update cached_queries bookkeeping
               if (isCachedResponse) {
                 try {
-                  await supabase
-                    .from("cached_queries")
-                    .upsert(
-                      [
-                        {
-                          query: text,
-                          answer: full,
-                          last_used: new Date().toISOString(),
-                          cache_key: cacheKey,
-                          use_count: 1,
-                        },
-                      ],
-                      { onConflict: ["query"] }
-                    );
+                  await supabase.from("cached_queries").upsert(
+                    [
+                      {
+                        query: text,
+                        answer: full,
+                        last_used: new Date().toISOString(),
+                        cache_key: cacheKey,
+                        use_count: 1,
+                      },
+                    ],
+                    { onConflict: ["query"] }
+                  );
                   // also increment cache hit counter via RPC when available
                   try {
                     if (cacheKey) {
@@ -891,20 +908,44 @@ export default function useChatLogic(initial = {}) {
       const localHistory = localStorage.getItem("anonymous_chat_history");
       if (user && canWrite(user) && localHistory) {
         try {
-          const parsedHistory = JSON.parse(localHistory);
-          if (parsedHistory.length > 0) {
+          const parsedHistory = JSON.parse(localHistory || "[]");
+          if (Array.isArray(parsedHistory) && parsedHistory.length > 0) {
             const interactionsToInsert = [];
             let currentInteraction = {};
-            const sorted = [...parsedHistory].sort((a, b) => a.id - b.id);
+
+            const tsFor = (m) => {
+              try {
+                if (m.timestamp) return new Date(m.timestamp).getTime();
+                if (typeof m.id === "number") return m.id;
+                const n = parseInt(m.id);
+                if (!Number.isNaN(n)) return n;
+              } catch (e) {
+                // ignore
+              }
+              return 0;
+            };
+
+            const sorted = [...parsedHistory]
+              .filter((m) => m && !m.isNotification && !m.isStreaming)
+              .sort((a, b) => tsFor(a) - tsFor(b));
+
             for (const msg of sorted) {
               if (msg.sender === "user") {
+                const createdAt = msg.timestamp
+                  ? new Date(msg.timestamp).toISOString()
+                  : typeof msg.id === "number"
+                    ? new Date(msg.id).toISOString()
+                    : !Number.isNaN(parseInt(msg.id))
+                      ? new Date(parseInt(msg.id)).toISOString()
+                      : new Date().toISOString();
+
                 currentInteraction = {
                   user_id: user.id,
-                  question: msg.text,
-                  created_at: new Date(msg.id).toISOString(),
+                  question: msg.text || "",
+                  created_at: createdAt,
                 };
               } else if (msg.sender === "bot" && currentInteraction.question) {
-                currentInteraction.answer = msg.text;
+                currentInteraction.answer = msg.text || "";
                 currentInteraction.sources = msg.sources || [];
                 currentInteraction.feedback = msg.feedback || null;
                 interactionsToInsert.push({ ...currentInteraction });
@@ -979,10 +1020,23 @@ export default function useChatLogic(initial = {}) {
 
   // Persist anonymous history locally
   useEffect(() => {
-    if ((!user || !canWrite(user)) && messages.length > 0) {
-      const messagesToSave = messages.filter((m) => !m.isNotification);
+    if (!user || !canWrite(user)) {
+      const messagesToSave = messages
+        .filter((m) => !m.isNotification && !m.isStreaming)
+        .map((m) => {
+          const ts = m.timestamp
+            ? new Date(m.timestamp).toISOString()
+            : typeof m.id === "number"
+              ? new Date(m.id).toISOString()
+              : !Number.isNaN(parseInt(m.id))
+                ? new Date(parseInt(m.id)).toISOString()
+                : new Date().toISOString();
+          return { ...m, timestamp: ts };
+        });
       try {
-        localStorage.setItem("anonymous_chat_history", JSON.stringify(messagesToSave));
+        if (messagesToSave.length > 0)
+          localStorage.setItem("anonymous_chat_history", JSON.stringify(messagesToSave));
+        else localStorage.removeItem("anonymous_chat_history");
       } catch (e) {
         // ignore
       }

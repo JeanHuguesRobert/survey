@@ -46,6 +46,7 @@ export default function GazetteLayout({
           line-height: 1;
           margin-bottom: 0.5rem;
           text-transform: uppercase;
+          color: #2c241b;
         }
 
         .gazette-subtitle {
@@ -53,6 +54,7 @@ export default function GazetteLayout({
           font-style: italic;
           font-size: 1.5rem;
           margin-bottom: 1rem;
+          color: #2c241b;
         }
 
         .gazette-date-line {

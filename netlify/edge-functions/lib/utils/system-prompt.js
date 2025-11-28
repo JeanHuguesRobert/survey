@@ -104,6 +104,7 @@ export async function getSystemPrompt() {
   }
 
   // 4. Charge le wiki consolidé depuis Supabase
+  /*
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (supabaseUrl && supabaseKey) {
@@ -139,7 +140,7 @@ export async function getSystemPrompt() {
   } else {
     basePrompt += `\n\n🏛 **Contexte municipal (conseils consolidés) :** indisponible pour le moment.`;
   }
-
+  */
   console.log(`[SystemPrompt] ✅ Prompt chargé (${basePrompt.length} caractères)`);
   return basePrompt;
 }

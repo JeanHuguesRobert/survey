@@ -38,4 +38,20 @@ export const PROVIDERS = {
     }),
     normalizeAvatarUrl: (raw) => raw, // Google avatars are usually fine as is, or we can resize if needed
   },
+  facebook: {
+    name: "Facebook",
+    authorizeUrl: "https://www.facebook.com/v16.0/dialog/oauth",
+    tokenUrl: "https://graph.facebook.com/v16.0/oauth/access_token",
+    profileUrl: "https://graph.facebook.com/me?fields=id,name,picture{url}",
+    clientIdEnv: "FACEBOOK_CLIENT_ID",
+    clientSecretEnv: "FACEBOOK_CLIENT_SECRET",
+    redirectPath: "/oauth/facebook/callback",
+    scopes: ["public_profile", "email"],
+    mapProfile: (profile) => ({
+      providerUserId: profile.id,
+      username: profile.name,
+      rawAvatarUrl: profile.picture?.data?.url,
+    }),
+    normalizeAvatarUrl: (raw) => raw,
+  },
 };

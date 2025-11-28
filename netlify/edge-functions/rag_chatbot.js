@@ -1,6 +1,10 @@
 // ============================================================================
 // CONFIGURATION - Modèles et paramètres par défaut
 // ============================================================================
+// deno-lint-ignore-file no-import-prefix
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import postgres from "https://deno.land/x/postgresjs/mod.js";
+import OpenAI from "https://esm.sh/openai@4";
 const PROVIDER_META_PREFIX = "__PROVIDER_INFO__";
 import { providerMetrics } from "./lib/utils/provider-metrics.js";
 const PROVIDERS_STATUS_PREFIX = "__PROVIDERS_STATUS__";
@@ -95,6 +99,66 @@ const TOOLS = {
       required: ["query"],
     },
   },
+  vector_search: {
+    name: "vector_search",
+    description:
+      "Recherche dans la base de connaissances locale pour des questions sur l'histoire locale, événements passés, conseils municipaux, etc.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "Question ou requête de recherche en français.",
+        },
+        source_type: {
+          type: "string",
+          description:
+            "Optional filter to only search chunks from a specific source_type (e.g., 'wiki_page').",
+        },
+        domain: {
+          type: "string",
+          description: "Optional filter for domain field (e.g., 'wiki', 'history').",
+        },
+        limit: {
+          type: "integer",
+          description: "Maximum number of results to return (defaults to 5).",
+        },
+      },
+      required: ["query"],
+    },
+  },
+  wiki_search: {
+    name: "wiki_search",
+    description:
+      "Search within the wiki pages indexed in the knowledge_chunks table (source_type = 'wiki_page').",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Question or search query" },
+        limit: { type: "integer", description: "Max results to return" },
+      },
+      required: ["query"],
+    },
+  },
+  sql_query: {
+    name: "sql_query",
+    description:
+      "Execute a read-only SQL query against the database for advanced data access. Only SELECT queries are allowed. The model should target the condensed schema below and return only requested columns. Avoid UPDATE/INSERT/DELETE.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "The SQL SELECT query to execute. Must be read-only (SELECT only).",
+        },
+        limit: {
+          type: "integer",
+          description: "Maximum number of rows to return (default 100).",
+        },
+      },
+      required: ["query"],
+    },
+  },
   // Ajoute d'autres outils ici (ex: search_local_db, weather, etc.)
 };
 
@@ -102,8 +166,147 @@ const TOOLS = {
 // GESTIONNAIRES D'OUTILS - Fonctions d'exécution
 // ============================================================================
 const TOOL_HANDLERS = {
-  async web_search({ query }) {
+  web_search({ query }) {
     return performWebSearch(query);
+  },
+  async vector_search({ query, source_type, domain, limit = 5 }, { supabase, openai }) {
+    console.log(`[VectorSearch] ➜ query=${previewForLog(query)}`);
+    if (!supabase || !openai) {
+      return `Recherche vectorielle non configurée.`;
+    }
+    try {
+      // Embed the query
+      const embeddingResponse = await openai.embeddings.create({
+        model: "text-embedding-3-small",
+        input: query,
+      });
+      const queryEmbedding = embeddingResponse.data[0].embedding;
+
+      // Fetch chunks (limit to 1000 for performance)
+      let qb = supabase.from("knowledge_chunks").select("id,text,embedding,meta");
+      if (source_type) qb = qb.eq("source_type", source_type);
+      if (domain) qb = qb.eq("domain", domain);
+      const { data, error } = await qb.limit(1000);
+
+      if (error) {
+        console.error(`[VectorSearch] ❌ Supabase error:`, error);
+        return `Erreur de recherche: ${error.message}`;
+      }
+
+      if (!data || data.length === 0) {
+        return "Aucun résultat trouvé dans la base de connaissances locale.";
+      }
+
+      // Parse embeddings and compute cosine similarity
+      const scored = data.map((chunk) => {
+        let emb = chunk.embedding;
+        if (typeof emb === "string") {
+          try {
+            emb = JSON.parse(emb);
+          } catch {
+            emb = emb.split(",").map(Number);
+          }
+        }
+        const similarity = cosineSimilarity(queryEmbedding, emb);
+        return { chunk, score: similarity };
+      });
+
+      // Sort by similarity descending
+      scored.sort((a, b) => b.score - a.score);
+
+      // Take top limit
+      const topResults = scored.slice(0, limit);
+
+      let result = `📚 Résultats de la recherche locale pour "${query}":\n\n`;
+      topResults.forEach((item, i) => {
+        const title = item.chunk.meta?.title || `Résultat ${i + 1}`;
+        result += `📄 **${title}**\n`;
+        result += `${item.chunk.text.substring(0, 500)}...\n\n`;
+      });
+
+      console.log(`[VectorSearch] ✅ ${topResults.length} résultats`);
+      return result;
+    } catch (error) {
+      console.error(`[VectorSearch] ❌ Erreur:`, error);
+      return `⚠️ Erreur de recherche vectorielle: ${error.message}`;
+    }
+  },
+  async wiki_search({ query, limit = 5 }, { supabase, openai }) {
+    // Delegate to vector_search with specific filter
+    try {
+      return await TOOL_HANDLERS.vector_search(
+        { query, source_type: "wiki_page", limit },
+        { supabase, openai }
+      );
+    } catch (err) {
+      console.error(`[WikiSearch] ❌ Error:`, err);
+      return `⚠️ Erreur de recherche wiki: ${err.message}`;
+    }
+  },
+  async sql_query({ query, limit = 100 }, { postgres, supabase }) {
+    console.log(`[SqlQuery] ➜ query=${previewForLog(query)}`);
+
+    // Basic validation: only allow SELECT
+    const trimmed = String(query || "").trim();
+    if (!trimmed || !/^(SELECT)\b/i.test(trimmed)) {
+      return `❌ Seules les requêtes SELECT sont autorisées.`;
+    }
+
+    // Helper: try Supabase REST fallback for simple COUNT queries
+    const trySupabaseCount = async () => {
+      if (!supabase) return null;
+      // naive parse: look for FROM <table>
+      const m = query.match(/FROM\s+([a-zA-Z0-9_]+)/i);
+      if (!m) return null;
+      const table = m[1];
+      try {
+        console.log(`[SqlQuery] ℹ️ Attempting Supabase fallback for table=${table}`);
+        // Use head + count to get exact count without rows
+        const res = await supabase.from(table).select("id", { count: "exact", head: true });
+        const count = res?.count ?? (Array.isArray(res?.data) ? res.data.length : null);
+        if (typeof count === "number") {
+          return `📊 Résultat (via Supabase REST): ${count} ligne(s).`;
+        }
+      } catch (err) {
+        console.warn("[SqlQuery] ⚠️ Supabase fallback failed:", err?.message || err);
+      }
+      return null;
+    };
+
+    // If postgres client is available, try executing directly
+    if (postgres) {
+      try {
+        const sql = `${query} LIMIT ${limit}`;
+        console.log(`[SqlQuery] 🗃️ Executing: ${previewForLog(sql)}`);
+        const result = await postgres.unsafe(sql);
+        if (!result || result.length === 0) {
+          // If no result rows, still try supabase for COUNT-like queries
+          const fallback = await trySupabaseCount();
+          return fallback || "Aucun résultat trouvé.";
+        }
+
+        const columns = Object.keys(result[0] || {});
+        let response = `📊 Résultats (${result.length} lignes):\n\n`;
+        response += `| ${columns.join(" | ")} |\n`;
+        response += `| ${columns.map(() => "---").join(" | ")} |\n`;
+        result.forEach((row) => {
+          response += `| ${columns.map((col) => String(row[col] || "")).join(" | ")} |\n`;
+        });
+        console.log(`[SqlQuery] ✅ ${result.length} rows returned`);
+        return response;
+      } catch (error) {
+        console.error(`[SqlQuery] ❌ Error executing Postgres query:`, error?.message || error);
+        // Try Supabase REST fallback before returning error
+        const fallback = await trySupabaseCount();
+        if (fallback) return fallback;
+        return `⚠️ Erreur SQL: ${error?.message || String(error)}`;
+      }
+    }
+
+    // No Postgres client: attempt Supabase REST fallback
+    const supaResult = await trySupabaseCount();
+    if (supaResult) return supaResult;
+    return `Outil SQL non configuré (Postgres indisponible). Configurez SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY.`;
   },
   // Ajoute d'autres handlers ici
 };
@@ -116,6 +319,19 @@ function previewForLog(value, max = 400) {
   } catch {
     return String(value).slice(0, max) + (String(value).length > max ? "..." : "");
   }
+}
+
+// Vector similarity helpers
+function dot(a, b) {
+  let s = 0;
+  for (let i = 0; i < a.length; i++) s += a[i] * b[i];
+  return s;
+}
+function norm(a) {
+  return Math.sqrt(dot(a, a));
+}
+function cosineSimilarity(a, b) {
+  return dot(a, b) / (norm(a) * norm(b));
 }
 
 // ============================================================================
@@ -198,7 +414,15 @@ const isAsyncIterable = (value) =>
   Boolean(value && typeof value[Symbol.asyncIterator] === "function");
 
 // Update executeToolCalls to accept a fallbackContext for missing arguments
-async function executeToolCalls(toolCalls, provider = "mistral", fallbackContext = {}) {
+async function executeToolCalls(
+  toolCalls,
+  provider = "mistral",
+  fallbackContext = {},
+  supabase,
+  openai,
+  postgres,
+  metaCollector = null
+) {
   console.log(`[${provider}] 🔁 executeToolCalls called count=${toolCalls.length}`);
   const results = [];
   for (const call of toolCalls) {
@@ -250,7 +474,9 @@ async function executeToolCalls(toolCalls, provider = "mistral", fallbackContext
       }
 
       console.log(`[${provider}] 🛠 Exécution de ${toolName} avec:`, args);
-      const output = await handler(args);
+      const t0 = Date.now();
+      const output = await handler(args, { supabase, openai, postgres });
+      const t1 = Date.now();
       console.log(
         `[${provider}] ⬅ Tool result for ${toolName} preview: ${previewForLog(output, 400)}`
       );
@@ -260,6 +486,15 @@ async function executeToolCalls(toolCalls, provider = "mistral", fallbackContext
         name: toolName,
         content: output,
       });
+      if (metaCollector) {
+        metaCollector.tool_trace = metaCollector.tool_trace || [];
+        metaCollector.tool_trace.push({
+          id: call.id,
+          name: toolName,
+          duration_ms: t1 - t0,
+          result_preview: previewForLog(output, 400),
+        });
+      }
     } catch (error) {
       console.error(`[${provider}] ❌ Erreur outil:`, error);
       results.push({
@@ -293,7 +528,7 @@ const PROVIDER_CONFIGS = {
     toolFormat: "openai", // ✅ Identique à Mistral (SSE)
   },
   huggingface: {
-    apiUrl: (model) => `https://router.huggingface.co/v1/chat/completions`,
+    apiUrl: (_model) => `https://router.huggingface.co/v1/chat/completions`,
     defaultModel: "mistralai/Mixtral-8x22B-Instruct-v0.1",
     toolFormat: null, // Pas de support des outils
   },
@@ -327,7 +562,7 @@ async function callLLMAPI({
   provider,
   model,
   messages,
-  tools = [],
+  _tools = [],
   toolChoice = "auto",
   stream = true,
 }) {
@@ -371,7 +606,7 @@ async function callLLMAPI({
   const apiUrl = typeof config.apiUrl === "function" ? config.apiUrl(model) : config.apiUrl;
 
   // Headers spécifiques par provider
-  let headers = {
+  const headers = {
     "Content-Type": "application/json",
   };
   if (provider === "anthropic") {
@@ -398,7 +633,10 @@ async function callLLMAPI({
   if (!stream || provider === "huggingface") {
     const data = await response.json();
     console.log(`[LLM] ⬅ ${provider} non-stream preview: ${previewForLog(data, 1000)}`);
-    return handleDirectResponse(data, provider);
+    // For Anthropic we keep legacy handling (thinking blocks, tool_uses normalization).
+    // For other providers return the raw JSON so callers can normalize different shapes.
+    if (provider === "anthropic") return handleDirectResponse(data, provider);
+    return data;
   } else {
     console.log(`[LLM] ⬅ ${provider} streaming start`);
     return handleStreamingResponse(response, provider);
@@ -410,7 +648,7 @@ async function* handleStreamingResponse(response, provider) {
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-  let toolCalls = [];
+  const toolCalls = [];
   let fullContent = "";
 
   // Buffering for tool call fragments: id -> { name, argsStr }
@@ -590,7 +828,7 @@ function processToolCallFragment(context, raw, provider) {
     `tool-${Date.now()}-${context.toolFragmentCounter++}`;
 
   const fn = raw.function || raw.tool || raw.tool_call || raw;
-  let name = fn?.name || "";
+  const name = fn?.name || "";
   let argsFragment = fn?.arguments ?? fn?.args ?? fn?.arguments_text ?? "";
 
   if (argsFragment === undefined || argsFragment === null) {
@@ -769,7 +1007,7 @@ function createDebugLogger() {
     }
     try {
       controllerRef.enqueue(encoderRef.encode(`\n\n${line}\n\n`));
-    } catch (err) {
+    } catch {
       // Controller may be closed; fallback to pending logs and detach controller
       pendingLogs.push(line);
       controllerRef = null;
@@ -810,7 +1048,7 @@ function createDebugLogger() {
         for (const line of logsToFlush) {
           try {
             controller.enqueue(encoder.encode(`\n\n${line}\n\n`));
-          } catch (err) {
+          } catch {
             // If fails, put the remaining lines back to pending logs
             pendingLogs.unshift(line);
             controllerRef = null;
@@ -853,7 +1091,7 @@ async function fetchPublicSystemPrompt(siteUrl) {
   return null;
 }
 
-async function fetchCouncilContext(siteUrl) {
+async function _fetchCouncilContext(siteUrl) {
   if (!siteUrl) return null;
   try {
     const councilUrl = `${siteUrl}/docs/conseils/conseil-consolidated.semantic.md`;
@@ -901,7 +1139,7 @@ async function getSystemPrompt() {
       **Instructions :**
       - Réponds **uniquement en français**, de manière **factuelle, concise et structurée** (Markdown : titres, listes, liens).
       - Cite toujours tes **sources officielles** quand c'est possible.
-      - Pour les questions locales (projets, horaires), utilise les outils disponibles (**web_search**, base de données locale).
+      - Pour les questions locales (projets, horaires), utilise les outils disponibles (**web_search**, **vector_search** pour l'histoire locale).
       - Si tu ne connais pas la réponse, dis-le clairement et propose une alternative.
 
       **Exemple de réponse :**
@@ -910,9 +1148,34 @@ async function getSystemPrompt() {
       > - Samedi : 9h-12h
       > *(Source : [site de la mairie](#))*`;
     }
+    // 3. Ajoute le schéma de base de données pour les requêtes SQL
+    basePrompt += `
+
+🗄️ **Schéma de base de données (pour outil sql_query) — version condensée :**
+
+Utilise ces tables/colonnes quand tu construis des requêtes SELECT. Rappelle-toi : uniquement SELECT, pas de modifications.
+
+- **knowledge_chunks** (id, source_id, text, text_hash, type, status, source_type, domain, territory, info_date, layer, meta, created_at)
+- **document_sources** (id, filename, content_hash, public_url, domain, source_type, metadata, created_at)
+- **cortideri_items** (id, post_id, title, content_text, content_html, url, tags, scraped_at)
+- **municipal_transparency** (id, commune_name, insee_code, population, agenda_mentions_location, livestreamed, minutes_published_under_week, deliberations_open_data, annual_calendar_published)
+- **wiki_pages** (id, slug, title, content, summary, author_id, created_at)
+- **propositions** (id, title, description, author_id, status, created_at)
+- **users** (id, display_name, neighborhood, interests, created_at)
+- **posts** (id, user_id, content, created_at)
+- **comments** (id, post_id, user_id, content, created_at)
+- **chat_interactions** (id, user_id, question, answer, sources, created_at)
+
+Exemples d'usage (modèle) :
+- "SELECT id, title, created_at FROM propositions WHERE status='active' ORDER BY created_at DESC LIMIT 5;"
+- "SELECT title, scraped_at, url FROM cortideri_items WHERE scraped_at > '2025-01-01' ORDER BY scraped_at DESC LIMIT 10;"
+
+Colonnes fréquemment utiles : 'id', 'created_at', 'meta'/'metadata', 'domain', 'source_type'.
+"meta" / "metadata" sont du JSONB — extraire des clés spécifiques si nécessaire (ex: meta->>'key').`;
   }
 
   // 4. Charge le wiki consolidé depuis Supabase
+  /* JHR 2024-06-10 : désactivé pour l'instant car trop volumineux et ralentit tout le système
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (supabaseUrl && supabaseKey) {
@@ -940,14 +1203,17 @@ async function getSystemPrompt() {
       console.error("[SystemPrompt] Erreur Supabase:", error.message);
     }
   }
+  */
 
   // 5. Charge le contexte municipal (si disponible)
-  const councilContext = await fetchCouncilContext(siteUrl);
+  /* JHR 2024-06-10 : désactivé pour l'instant car trop volumineux et ralentit tout le système
+  const councilContext = await _fetchCouncilContext(siteUrl);
   if (councilContext) {
     basePrompt += `\n\n🏛 **Contexte municipal (conseils consolidés) :**\n${councilContext}...`;
   } else {
     basePrompt += `\n\n🏛 **Contexte municipal (conseils consolidés) :** indisponible pour le moment.`;
   }
+  */
   console.log(`[SystemPrompt] ✅ Prompt chargé (${basePrompt.length} caractères)`);
   return basePrompt;
 }
@@ -984,7 +1250,7 @@ const handler = async (request) => {
         headers: { "Content-Type": "application/json" },
       });
     }
-  } catch (e) {
+  } catch {
     // continue to normal handler on malformed URL
   }
 
@@ -1030,30 +1296,91 @@ const handler = async (request) => {
         headers: { "Content-Type": "application/json" },
       });
     }
-  } catch (e) {
+  } catch {
     // ignore and continue
   }
 
   // 3. Valide la question
+  // Early explicit SQL handling: allow `?sql=` or `body.sql` to run without a `question` field.
+  try {
+    const { handleExplicitSql } = await import("./lib/sql-handler.js");
+    const sqlResp = await handleExplicitSql(request, body, TOOL_HANDLERS);
+    if (sqlResp) return sqlResp;
+  } catch (err) {
+    console.warn("[EdgeFunction] ⚠️ Early SQL helper error:", err?.message || err);
+  }
   const rawQuestion = String(body?.question || "").trim();
   if (!rawQuestion) {
     return new Response("Question manquante", { status: 400 });
   }
 
-  // 4. Récupère l'historique de conversation
-  const conversation_history = Array.isArray(body?.conversation_history)
-    ? body.conversation_history
-    : [];
+  // 4. Récupère et normalise l'historique de conversation (accepte plusieurs formats)
+  let conversation_history = [];
+  const rawConvCandidates = [
+    body?.conversation_history,
+    body?.conversationHistory,
+    body?.history,
+    body?.messages,
+    body?.conversation,
+  ];
+  for (const candidate of rawConvCandidates) {
+    if (!candidate) continue;
+    if (Array.isArray(candidate)) {
+      conversation_history = candidate.slice();
+      break;
+    }
+    if (typeof candidate === "string") {
+      // Try JSON parse first
+      try {
+        const parsed = JSON.parse(candidate);
+        if (Array.isArray(parsed)) {
+          conversation_history = parsed;
+          break;
+        }
+      } catch {
+        // Not JSON: fall back to newline-splitting into user messages
+        const lines = candidate
+          .split(/\r?\n/)
+          .map((s) => s.trim())
+          .filter(Boolean);
+        if (lines.length > 0) {
+          conversation_history = lines.map((l) => ({ role: "user", content: l }));
+          break;
+        }
+      }
+    }
+  }
+
+  // Ensure normalized structure: array of {role, content}
+  conversation_history = conversation_history.map((m) => {
+    if (!m) return { role: "user", content: "" };
+    if (typeof m === "string") return { role: "user", content: m };
+    if (typeof m === "object" && (m.role || m.content))
+      return { role: m.role || "user", content: String(m.content || "") };
+    return { role: "user", content: String(m) };
+  });
+
+  // Diagnostic logging to help frontend debugging: show counts and sample
+  try {
+    const totalChars = conversation_history.reduce((s, m) => s + String(m.content || "").length, 0);
+    const first = conversation_history
+      .slice(0, 3)
+      .map((m) => ({ role: m.role, preview: String(m.content || "").slice(0, 200) }));
+    const last = conversation_history
+      .slice(-3)
+      .map((m) => ({ role: m.role, preview: String(m.content || "").slice(0, 200) }));
+    console.log(
+      `[EdgeFunction] 📚 Historique: ${conversation_history.length} messages, totalChars=${totalChars}`
+    );
+    console.log(`[EdgeFunction] 📚 Sample first: ${JSON.stringify(first)}`);
+    console.log(`[EdgeFunction] 📚 Sample last: ${JSON.stringify(last)}`);
+  } catch (err) {
+    console.warn("[EdgeFunction] ⚠️ Failed to log conversation sample:", err?.message || err);
+  }
 
   // 5. Parse les directives (modèle, fournisseur, debug)
-  const {
-    rawDirective,
-    userQuestion,
-    hasDirectiveBlock,
-    directiveModelMode,
-    directiveProvider,
-    directiveModel,
-  } = parseDirectives(rawQuestion);
+  const { rawDirective, userQuestion, directiveModelMode, directiveProvider, directiveModel } =
+    parseDirectives(rawQuestion);
 
   const bodyModelMode =
     typeof body?.modelMode === "string" ? body.modelMode.trim().toLowerCase() : null;
@@ -1061,8 +1388,8 @@ const handler = async (request) => {
   const debugMode = Boolean(rawDirective && MODE_DIRECTIVE_REGEX.test(rawDirective));
 
   // 6. Détermine le fournisseur et le modèle
-  let forcedProvider = directiveProvider; // Ex: "provider=anthropic"
-  let modelProvider = directiveModel ? detectModelProvider(directiveModel) : null;
+  const forcedProvider = directiveProvider; // Ex: "provider=anthropic"
+  const modelProvider = directiveModel ? detectModelProvider(directiveModel) : null;
 
   // 7. Vérifie la disponibilité des clés API
   if (forcedProvider && !isProviderAvailable(forcedProvider)) {
@@ -1106,8 +1433,70 @@ const handler = async (request) => {
   console.log(`[EdgeFunction] ⏱️ Début: ${new Date().toISOString()}`);
 
   // 11. Charge le prompt système
-  const systemPrompt = await getSystemPrompt();
+  let systemPrompt = await getSystemPrompt();
   console.log(`[EdgeFunction] 📏 System prompt: ${systemPrompt.length} caractères`);
+
+  // 11.5. Initialise les clients
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
+
+  // Construct postgres client safely. In some dev environments SUPABASE_URL may be local
+  // or missing; avoid throwing and mark postgres as unavailable when we cannot connect.
+  let postgresClient = null;
+  try {
+    if (
+      supabaseUrl &&
+      typeof supabaseUrl === "string" &&
+      supabaseUrl.includes(".supabase.co") &&
+      supabaseKey
+    ) {
+      const projectRef = supabaseUrl
+        .replace("https://", "")
+        .replace("http://", "")
+        .replace(".supabase.co", "");
+      const postgresConnectionString = `postgresql://postgres:${supabaseKey}@db.${projectRef}.supabase.co:5432/postgres`;
+      try {
+        postgresClient = new postgres(postgresConnectionString);
+        console.log("[EdgeFunction] ℹ️ Postgres client initialized");
+      } catch (err) {
+        console.error("[EdgeFunction] ❌ Failed to create Postgres client:", err?.message || err);
+        postgresClient = null;
+      }
+    } else {
+      console.warn(
+        "[EdgeFunction] ⚠️ SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing or not a hosted supabase URL, skipping Postgres client initialization"
+      );
+    }
+  } catch (err) {
+    console.error(
+      "[EdgeFunction] ❌ Unexpected error while initializing Postgres client:",
+      err?.message || err
+    );
+    postgresClient = null;
+  }
+
+  // 11.6. Retrieve local vector-search context and append to system prompt
+  try {
+    const vectorContext = await TOOL_HANDLERS.vector_search(
+      { query: userQuestion, limit: 5 },
+      { supabase, openai, postgres: postgresClient }
+    );
+    if (vectorContext && typeof vectorContext === "string" && vectorContext.trim()) {
+      // Keep inserted context concise to avoid prompt bloat
+      const truncated =
+        vectorContext.length > 4000
+          ? vectorContext.slice(0, 4000) + "\n... (truncated)"
+          : vectorContext;
+      systemPrompt += `\n\n📚 Connaissances locales (extrait) :\n${truncated}\n\n`;
+      console.log(
+        `[EdgeFunction] ℹ️ Appended vector-search context (${String(truncated).length} chars) to system prompt`
+      );
+    }
+  } catch (err) {
+    console.warn("[EdgeFunction] ⚠️ vector_search failed:", err?.message || err);
+  }
 
   // 12. Crée un ReadableStream pour la réponse
   const encoder = new TextEncoder();
@@ -1118,12 +1507,12 @@ const handler = async (request) => {
         controller.enqueue(encoder.encode(`${PROVIDER_META_PREFIX}${JSON.stringify(meta)}\n`));
 
       // Préfixes pour les logs
-      const logPrefix = "📜 [LOG] ";
+      const _logPrefix = "📜 [LOG] ";
       const errorPrefix = "❌ [ERREUR] ";
       const chunkPrefix = "";
 
       let handled = false;
-      let lastError = null;
+      const lastError = null;
 
       // 13. Essaie chaque fournisseur dans l'ordre
       for (let providerIndex = 0; providerIndex < providerOrder.length; providerIndex++) {
@@ -1145,7 +1534,9 @@ const handler = async (request) => {
               // Mark provider as failed/unavailable so we don't retry indefinitely
               try {
                 failedProviders.add(provider);
-              } catch (_) {}
+              } catch (_) {
+                /* ignored */
+              }
               // break the retry loop to move to the next provider
               break;
             }
@@ -1166,9 +1557,11 @@ const handler = async (request) => {
                 systemPrompt,
                 effectiveModelMode
               );
-              controller.enqueue(encoder.encode(chunkPrefix + result));
+              controller.enqueue(encoder.encode(chunkPrefix + String(result)));
             } else {
               // Mistral, OpenAI, Anthropic utilisent tous runConversationalAgent
+              const agentMeta = {};
+              const providerAttemptStart = Date.now();
               for await (const chunk of runConversationalAgent({
                 provider,
                 question: userQuestion,
@@ -1176,8 +1569,38 @@ const handler = async (request) => {
                 conversationHistory: conversation_history,
                 maxToolCalls: 2,
                 modelMode: effectiveModelMode,
+                supabase,
+                openai,
+                postgres: postgresClient,
+                metaCollector: agentMeta,
               })) {
-                controller.enqueue(encoder.encode(chunkPrefix + chunk));
+                // If the generator yields an object, serialize it as provider metadata
+                try {
+                  if (chunk && typeof chunk === "object") {
+                    controller.enqueue(
+                      encoder.encode(PROVIDER_META_PREFIX + JSON.stringify(chunk) + "\n")
+                    );
+                  } else {
+                    controller.enqueue(encoder.encode(chunkPrefix + String(chunk)));
+                  }
+                } catch (err) {
+                  console.warn("[EdgeFunction] ⚠️ Failed to enqueue chunk:", err);
+                }
+              }
+              // Populate and emit agent metadata if populated
+              try {
+                if (agentMeta) {
+                  agentMeta.provider = agentMeta.provider || provider;
+                  agentMeta.model = agentMeta.model || resolvedModel;
+                  agentMeta.agent_duration_ms = Date.now() - providerAttemptStart;
+                  agentMeta.tool_trace = agentMeta.tool_trace || [];
+                  emitProviderMeta({ __agent_metadata__: agentMeta });
+                }
+              } catch (err) {
+                console.warn(
+                  "[EdgeFunction] ⚠️ Failed to emit agent metadata:",
+                  err?.message || err
+                );
               }
             }
             handled = true;
@@ -1314,9 +1737,14 @@ async function* runConversationalAgent({
   conversationHistory = [],
   maxToolCalls = 2,
   modelMode,
+  supabase,
+  openai,
+  postgres,
+  metaCollector = null,
 }) {
   let toolCallCount = 0;
   const idleTimeoutMs = Number(Deno.env.get("LLM_STREAM_TIMEOUT_MS")) || 30000;
+  const agentStartMs = Date.now();
 
   let messages = [
     { role: "system", content: systemPrompt },
@@ -1325,7 +1753,6 @@ async function* runConversationalAgent({
   ];
 
   console.log(`[${provider}] ✅ runConversationalAgent initialized (maxToolCalls=${maxToolCalls})`);
-
   while (toolCallCount < maxToolCalls) {
     console.log(
       `[${provider}] 🔁 Appel LLM (model=${resolveModelForProvider(provider, modelMode)}) - messages:${messages.length}`
@@ -1338,6 +1765,18 @@ async function* runConversationalAgent({
       toolChoice: "auto",
       stream: true,
     });
+
+    // Diagnostic: capture exact shape returned by callLLMAPI for non-stream cases
+    try {
+      console.log(
+        `[${provider}] DEBUG streamOrDirect typeof=${typeof streamOrDirect} isAsyncIterable=${isAsyncIterable(streamOrDirect)}`
+      );
+      console.log(
+        `[${provider}] DEBUG streamOrDirect preview: ${previewForLog(streamOrDirect, 1000)}`
+      );
+    } catch (err) {
+      console.warn(`[${provider}] ⚠️ Failed to preview streamOrDirect: ${err?.message || err}`);
+    }
 
     // Direct (non-stream) response
     if (!isAsyncIterable(streamOrDirect)) {
@@ -1352,10 +1791,18 @@ async function* runConversationalAgent({
             `[${provider}] 🛠 Executing ${valid.length} tool(s) (direct):`,
             valid.map((c) => c.function.name)
           );
-          const toolMessages = await executeToolCalls(valid, provider, {
-            web_search: { query: question },
-            defaultQuery: question,
-          });
+          const toolMessages = await executeToolCalls(
+            valid,
+            provider,
+            {
+              web_search: { query: question },
+              defaultQuery: question,
+            },
+            supabase,
+            openai,
+            postgres,
+            metaCollector
+          );
           messages = [
             ...messages,
             {
@@ -1442,10 +1889,18 @@ async function* runConversationalAgent({
           }
 
           console.log(`[${provider}] 🛠 Executing tool now: ${fnName} (id=${call.id})`);
-          const toolMessages = await executeToolCalls([call], provider, {
-            web_search: { query: question },
-            defaultQuery: question,
-          });
+          const toolMessages = await executeToolCalls(
+            [call],
+            provider,
+            {
+              web_search: { query: question },
+              defaultQuery: question,
+            },
+            supabase,
+            openai,
+            postgres,
+            metaCollector
+          );
 
           messages = [
             ...messages,
@@ -1488,10 +1943,18 @@ async function* runConversationalAgent({
         `[${provider}] 🛠 Executing ${validStreamCalls.length} tool(s) (stream completion):`,
         validStreamCalls.map((c) => c.function.name)
       );
-      const toolMessages = await executeToolCalls(validStreamCalls, provider, {
-        web_search: { query: question },
-        defaultQuery: question,
-      });
+      const toolMessages = await executeToolCalls(
+        validStreamCalls,
+        provider,
+        {
+          web_search: { query: question },
+          defaultQuery: question,
+        },
+        supabase,
+        openai,
+        postgres,
+        metaCollector
+      );
       messages = [
         ...messages,
         {
@@ -1526,47 +1989,134 @@ async function* runConversationalAgent({
       stream: false,
     });
 
-    const directHasContent = Boolean(direct?.content && String(direct.content).trim());
-    const directHasToolCalls = Array.isArray(direct?.toolCalls) && direct.toolCalls.length > 0;
-
-    if (directHasToolCalls) {
-      const normalized = normalizeToolCalls(direct.toolCalls);
-      const valid = normalized.filter((c) => c.function?.name && TOOL_HANDLERS[c.function.name]);
-      if (valid.length > 0) {
-        toolCallCount++;
+    // Normalize possible shapes for tool_calls in direct responses.
+    // Providers may place tool calls in different locations:
+    // - direct.toolCalls or direct.tool_calls
+    // - direct.choices[0].message.tool_calls
+    // - direct.choices[0].message.function_call (single function)
+    // Normalize to `direct.toolCalls` as an array of { id, function: { name, arguments } }.
+    try {
+      try {
+        console.log(`[${provider}] 🔍 Direct response keys:`, Object.keys(direct || {}));
         console.log(
-          `[${provider}] 🛠 Executing ${valid.length} tool(s) (direct fallback):`,
-          valid.map((c) => c.function.name)
+          `[${provider}] 🔍 choices[0].message.tool_calls preview:`,
+          previewForLog(
+            direct?.choices?.[0]?.message?.tool_calls || direct?.choices?.[0]?.tool_calls,
+            200
+          )
         );
-        const toolMessages = await executeToolCalls(valid, provider, {
-          web_search: { query: question },
-          defaultQuery: question,
-        });
-        messages = [
-          ...messages,
-          {
-            role: "assistant",
-            content: direct.content || null,
-            ...(provider === "anthropic" ? { tool_uses: valid } : { tool_calls: valid }),
-          },
-          ...toolMessages,
-        ];
-        continue; // re-run LLM
-      } else {
-        console.warn(
-          `[${provider}] ⚠️ Direct fallback tool_calls present but none were valid/handled.`
+      } catch (e) {
+        /* ignore preview errors */
+      }
+
+      const directResp = { ...(direct || {}) };
+      // Top-level aliases
+      if (Array.isArray(directResp.toolCalls) && directResp.toolCalls.length > 0) {
+        // already normalized
+      } else if (Array.isArray(directResp.tool_calls) && directResp.tool_calls.length > 0) {
+        directResp.toolCalls = directResp.tool_calls;
+      } else if (Array.isArray(directResp.choices) && directResp.choices.length > 0) {
+        const choice = directResp.choices[0];
+        const message = choice?.message || choice || {};
+
+        // If tool_calls array is present on the message/choice, use it
+        const candidateArray =
+          message?.tool_calls || message?.toolCalls || choice?.tool_calls || choice?.toolCalls;
+        if (Array.isArray(candidateArray) && candidateArray.length > 0) {
+          directResp.toolCalls = candidateArray;
+        } else if (
+          message?.function_call &&
+          (message.function_call.name || message.function_call?.id)
+        ) {
+          // Single function_call -> convert to toolCalls array
+          directResp.toolCalls = [
+            {
+              id: choice?.id || `call-${Date.now()}`,
+              function: {
+                name: message.function_call.name || message.function_call?.id || "",
+                arguments: message.function_call.arguments || "{}",
+              },
+            },
+          ];
+        } else if (
+          choice?.function_call &&
+          (choice.function_call.name || choice.function_call.arguments)
+        ) {
+          directResp.toolCalls = [
+            {
+              id: choice?.id || `call-${Date.now()}`,
+              function: {
+                name: choice.function_call.name || "",
+                arguments: choice.function_call.arguments || "{}",
+              },
+            },
+          ];
+        }
+      }
+      // Ensure toolCalls is an array if present
+      if (directResp.toolCalls && !Array.isArray(directResp.toolCalls)) {
+        directResp.toolCalls = [directResp.toolCalls];
+      }
+      // Optional: surface the normalized payload for diagnostics
+      if (directResp.toolCalls && Array.isArray(directResp.toolCalls)) {
+        console.log(
+          `[${provider}] 🔧 Normalized direct.toolCalls:`,
+          directResp.toolCalls.map((c) => ({ id: c.id, name: c.function?.name }))
         );
       }
-    }
 
-    if (directHasContent) {
-      console.log(
-        `[${provider}] ✅ Direct fallback returned content (${String(direct.content).length} chars).`
-      );
-      yield direct.content;
-      return;
-    }
+      const directHasContent = Boolean(directResp?.content && String(directResp.content).trim());
+      const directHasToolCalls =
+        Array.isArray(directResp?.toolCalls) && directResp.toolCalls.length > 0;
 
+      if (directHasToolCalls) {
+        const normalized = normalizeToolCalls(directResp.toolCalls);
+        const valid = normalized.filter((c) => c.function?.name && TOOL_HANDLERS[c.function.name]);
+        if (valid.length > 0) {
+          toolCallCount++;
+          console.log(
+            `[${provider}] 🛠 Executing ${valid.length} tool(s) (direct fallback):`,
+            valid.map((c) => c.function.name)
+          );
+          const toolMessages = await executeToolCalls(
+            valid,
+            provider,
+            {
+              web_search: { query: question },
+              defaultQuery: question,
+            },
+            supabase,
+            openai,
+            postgres,
+            metaCollector
+          );
+          messages = [
+            ...messages,
+            {
+              role: "assistant",
+              content: directResp.content || null,
+              ...(provider === "anthropic" ? { tool_uses: valid } : { tool_calls: valid }),
+            },
+            ...toolMessages,
+          ];
+          continue; // re-run LLM
+        } else {
+          console.warn(
+            `[${provider}] ⚠️ Direct fallback tool_calls present but none were valid/handled.`
+          );
+        }
+      }
+
+      if (directHasContent) {
+        console.log(
+          `[${provider}] ✅ Direct fallback returned content (${String(directResp.content).length} chars).`
+        );
+        yield directResp.content;
+        return;
+      }
+    } catch (e) {
+      console.warn(`[${provider}] ⚠️ toolCalls normalization failed:`, e?.message || e);
+    }
     console.warn(`[${provider}] ⚠️ Direct fallback returned no content and no tool_calls.`);
     return;
   }

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { ANONYMOUS_EMAIL } from "../../lib/permissions";
 import { useCurrentUser } from "../../lib/useCurrentUser";
+const facebookAppId = import.meta.env.VITE_FACEBOOK_APP_ID;
 
 export default function AuthModal({ onClose, onSuccess }) {
   const [mode, setMode] = useState("signin");
@@ -63,6 +64,24 @@ export default function AuthModal({ onClose, onSuccess }) {
       onClose();
     } catch (err) {
       setError(err.message || "Erreur de connexion anonyme");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFacebookSignIn = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      // Initiates OAuth redirect to Facebook via Supabase
+      const { data, error } = await supabase.auth.signInWithOAuth({ provider: "facebook" });
+      if (error) throw error;
+
+      // In redirect flow, the user will come back to the app with session in the URL.
+      // We don't close the modal here because the page will navigate away.
+      console.log("Starting Facebook OAuth redirect", data);
+    } catch (err) {
+      setError(err.message || "Erreur de connexion Facebook");
     } finally {
       setLoading(false);
     }
@@ -195,6 +214,17 @@ export default function AuthModal({ onClose, onSuccess }) {
               <span className="px-2 bg-bauhaus-black text-gray-400">Ou</span>
             </div>
           </div>
+
+          {facebookAppId && (
+            <button
+              type="button"
+              onClick={handleFacebookSignIn}
+              className="w-full py-3 px-6 bg-[#1877F2] text-white font-bold border-3 border-bauhaus-white shadow-[4px_4px_0px_0px_#F0F0F0] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] transition-all flex items-center justify-center gap-2 mb-3"
+              disabled={loading}
+            >
+              Se connecter avec Facebook
+            </button>
+          )}
 
           <button
             type="button"
