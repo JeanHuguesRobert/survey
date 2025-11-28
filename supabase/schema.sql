@@ -26,6 +26,19 @@ CREATE TABLE public.chatbot_settings (
   metadata jsonb DEFAULT '{"schemaVersion": 1}'::jsonb,
   CONSTRAINT chatbot_settings_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.collected_data (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  source_url text NOT NULL,
+  data_type text NOT NULL CHECK (data_type = ANY (ARRAY['Titre'::text, 'Description'::text, 'Date'::text, 'Lieu'::text, 'Personne'::text, 'Organisation'::text, 'Autre'::text])),
+  value text NOT NULL,
+  status text NOT NULL DEFAULT 'draft'::text CHECK (status = ANY (ARRAY['draft'::text, 'reviewed'::text, 'published'::text, 'archived'::text])),
+  metadata jsonb DEFAULT '{"schemaVersion": 1}'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT collected_data_pkey PRIMARY KEY (id),
+  CONSTRAINT collected_data_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
 CREATE TABLE public.comments (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   post_id uuid NOT NULL,
@@ -53,6 +66,24 @@ CREATE TABLE public.content_subscriptions (
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT content_subscriptions_pkey PRIMARY KEY (id),
   CONSTRAINT content_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.cortideri_items (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  post_id bigint UNIQUE,
+  category_id integer,
+  url text,
+  list_title text,
+  title text,
+  content_text text,
+  image_url text,
+  content_html text,
+  comment_count integer,
+  tags ARRAY,
+  image_urls ARRAY,
+  scraped_at timestamp with time zone DEFAULT now(),
+  source_id uuid,
+  synced_at timestamp with time zone,
+  CONSTRAINT cortideri_items_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.delegations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -82,6 +113,9 @@ CREATE TABLE public.document_sources (
   ingested_by uuid,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  domain text,
+  source_type text,
+  external_id text,
   CONSTRAINT document_sources_pkey PRIMARY KEY (id),
   CONSTRAINT document_sources_ingested_by_fkey FOREIGN KEY (ingested_by) REFERENCES auth.users(id)
 );
@@ -130,6 +164,25 @@ CREATE TABLE public.jobs (
   completed_at timestamp with time zone,
   CONSTRAINT jobs_pkey PRIMARY KEY (id),
   CONSTRAINT jobs_owner_fkey FOREIGN KEY (owner) REFERENCES auth.users(id)
+);
+CREATE TABLE public.knowledge_chunks (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  source_id uuid,
+  text text NOT NULL,
+  text_hash text NOT NULL,
+  embedding USER-DEFINED,
+  type text NOT NULL CHECK (type = ANY (ARRAY['fact'::text, 'allegation'::text, 'opinion'::text])),
+  status text NOT NULL DEFAULT 'under_review'::text CHECK (status = ANY (ARRAY['under_review'::text, 'confirmed'::text, 'refuted'::text, 'obsolete'::text])),
+  source_type text NOT NULL,
+  domain text NOT NULL,
+  territory text NOT NULL DEFAULT 'Corte'::text,
+  info_date date,
+  layer text NOT NULL DEFAULT 'hot'::text CHECK (layer = ANY (ARRAY['hot'::text, 'summary'::text, 'archive'::text])),
+  meta jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT knowledge_chunks_pkey PRIMARY KEY (id),
+  CONSTRAINT knowledge_chunks_source_id_fkey FOREIGN KEY (source_id) REFERENCES public.document_sources(id)
 );
 CREATE TABLE public.municipal_transparency (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -235,3 +288,4 @@ CREATE TABLE public.wiki_pages (
   CONSTRAINT wiki_pages_pkey PRIMARY KEY (id),
   CONSTRAINT wiki_pages_author_id_fkey FOREIGN KEY (author_id) REFERENCES auth.users(id)
 );
+
