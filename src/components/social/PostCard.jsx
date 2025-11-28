@@ -19,6 +19,8 @@ export default function PostCard({ post, currentUserId }) {
   const locked = isLocked(post);
   const tags = getMetadata(post, "tags", []);
   const viewCount = getMetadata(post, "viewCount", 0);
+  const subtitle = getMetadata(post, "subtitle", "");
+  const event = getMetadata(post, "event", null);
 
   // Icônes par type
   const typeIcons = {
@@ -103,6 +105,17 @@ export default function PostCard({ post, currentUserId }) {
 
       {/* Titre */}
       <h3 className="text-xl font-bold text-gray-800 mb-2 font-bauhaus uppercase">{title}</h3>
+
+      {/* Sous-titre */}
+      {subtitle && <p className="text-sm text-gray-600 mb-2">{subtitle}</p>}
+
+      {/* Event summary */}
+      {event && (
+        <div className="text-xs text-gray-500 mb-2">
+          {event.date && <span>📅 {new Date(event.date).toLocaleDateString("fr-FR")} </span>}
+          {event.location && <span>• 📍 {event.location}</span>}
+        </div>
+      )}
 
       {/* Extrait du contenu */}
       <p className="text-gray-600 text-sm mb-3 line-clamp-3">{post.content}</p>

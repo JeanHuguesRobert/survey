@@ -18,11 +18,19 @@ export function getDisplayName(user) {
   // Essayer metadata.displayName
   if (user.metadata?.displayName) return user.metadata.displayName;
 
-  // Fallback sur email (dernier recours)
-  if (user.email) return user.email;
-  // ...existing code...
+  // Ne pas exposer l'email publiquement. Si aucun nom n'est disponible,
+  // retourner un email masqué pour permettre une reconnaissance limitée.
+  if (user.email && typeof user.email === "string") {
+    const parts = user.email.split("@");
+    if (parts.length === 2) {
+      const local = parts[0];
+      const domain = parts[1];
+      const visible = local.slice(0, 2);
+      return `${visible}****@${domain}`;
+    }
+  }
 
-  return "Anonyme";
+  return "Utilisateur";
 }
 
 /**

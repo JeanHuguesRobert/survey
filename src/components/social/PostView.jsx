@@ -5,6 +5,9 @@ import { isDeleted, getMetadata } from "../../lib/metadata";
 import {
   getPostTitle,
   getPostType,
+  getPostSubtitle,
+  getPostSubtype,
+  getPostEvent,
   getPostGroupId,
   getLinkedEntity,
   hasLinkedEntity,
@@ -16,6 +19,7 @@ import {
 import CommentThread from "./CommentThread";
 import { getDisplayName, getUserInitial } from "../../lib/userDisplay";
 import SubscribeButton from "../common/SubscribeButton";
+import EventInfo from "./EventInfo";
 
 /**
  * Vue détaillée d'un post avec commentaires
@@ -168,6 +172,9 @@ export default function PostView({ currentUser }) {
   const postType = getPostType(post);
   const pinned = isPinned(post);
   const locked = isLocked(post);
+  const subtitle = getPostSubtitle(post);
+  const subtype = getPostSubtype(post);
+  const event = getPostEvent(post);
   const tags = getMetadata(post, "tags", []);
   const viewCount = getMetadata(post, "viewCount", 0);
   const isAuthor = currentUser?.id === post.user_id;
@@ -287,6 +294,12 @@ export default function PostView({ currentUser }) {
 
         {/* Titre */}
         <h1 className="text-3xl font-bold text-gray-50 mb-4">{title}</h1>
+
+        {/* Sous-titre si présent */}
+        {subtitle && <h2 className="text-xl font-semibold text-gray-300 mb-4">{subtitle}</h2>}
+
+        {/* Event info */}
+        {subtype === "event" && <EventInfo event={event} />}
 
         {/* Entité liée */}
         {linkedEntity && (

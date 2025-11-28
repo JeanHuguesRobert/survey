@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { APP_VERSION, DEPLOY_DATE, VOLUNTEER_URL } from "../../constants";
 import { supabase } from "../../lib/supabase";
 import { useCurrentUser } from "../../lib/useCurrentUser";
+import { getDisplayName } from "../../lib/userDisplay";
 import AuthModal from "../common/AuthModal";
 
 export default function SiteFooter({
@@ -417,9 +418,7 @@ export default function SiteFooter({
             ) : currentUser ? (
               <div style={styles.authUser}>
                 <div style={styles.authMain}>
-                  <span style={styles.authName}>
-                    👤 {currentUser.display_name || currentUser.email}
-                  </span>
+                  <span style={styles.authName}>👤 {getDisplayName(currentUser)}</span>
                   <Link to="/profile" style={{ ...styles.authButton, ...styles.authButtonPrimary }}>
                     Votre profil
                   </Link>

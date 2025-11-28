@@ -59,6 +59,7 @@ import SocialDashboard from "./pages/SocialDashboard";
 import SubscriptionFeed from "./pages/SubscriptionFeed";
 import { supabase } from "./lib/supabase";
 import { useCurrentUser } from "./lib/useCurrentUser";
+import { getDisplayName } from "./lib/userDisplay";
 import AuthModal from "./components/common/AuthModal";
 import GlobalStatusIndicator from "./components/common/GlobalStatusIndicator";
 import JobMonitorDemo from "./components/examples/JobMonitorDemo";
@@ -436,7 +437,7 @@ export default function Consultation() {
                       <div className="px-3 py-2">
                         <div className="text-xs text-gray-400 mb-2">👤 Connecté en tant que:</div>
                         <div className="text-sm font-medium text-light mb-3">
-                          {currentUser.display_name || currentUser.email}
+                          {getDisplayName(currentUser)}
                         </div>
                         <Link
                           to="/user-dashboard"
@@ -1265,6 +1266,7 @@ export function App() {
         <Route path="/browser/*" element={<PublicBrowser />} />
         <Route path="/gazette" element={<Gazette />} />
         <Route path="/gazette/:name" element={<Gazette />} />
+        <Route path="/social" element={<Social />} />
         <Route path="/admin/data-review" element={<DataReview />} />
         <Route
           path="/oauth/facebook/deletion-instructions"

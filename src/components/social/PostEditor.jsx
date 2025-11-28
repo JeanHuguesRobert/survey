@@ -19,7 +19,12 @@ export default function PostEditor({ post = null, currentUser }) {
 
   const [formData, setFormData] = useState({
     title: post?.metadata?.title || "",
+    subtitle: post?.metadata?.subtitle || "",
     content: post?.content || "",
+    subtype: post?.metadata?.subtype || "",
+    eventDate: post?.metadata?.event?.date || "",
+    eventLocation: post?.metadata?.event?.location || "",
+    eventDuration: post?.metadata?.event?.duration || "",
     postType: post?.metadata?.postType || POST_TYPES.FORUM,
     groupId: post?.metadata?.groupId || groupIdFromUrl || "",
     linkedType: post?.metadata?.linkedType || linkedTypeFromUrl || "",
@@ -65,6 +70,7 @@ export default function PostEditor({ post = null, currentUser }) {
         .filter((t) => t.length > 0);
 
       const metadata = createPostMetadata(formData.postType, formData.title, {
+        subtitle: formData.subtitle || null,
         groupId: formData.groupId || null,
         linkedType: formData.linkedType || null,
         linkedId: formData.linkedId || null,
@@ -171,6 +177,21 @@ export default function PostEditor({ post = null, currentUser }) {
           />
         </div>
 
+        {/* Sous-titre (optionnel) */}
+        <div>
+          <label className="block text-sm font-medium text-gray-200 mb-2">
+            Sous-titre (optionnel)
+          </label>
+          <input
+            type="text"
+            name="subtitle"
+            value={formData.subtitle}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            placeholder="Court sous-titre qui complète le titre"
+          />
+        </div>
+
         {/* Contenu */}
         <div>
           <label className="block text-sm font-medium text-gray-200 mb-2">Contenu *</label>
@@ -187,6 +208,61 @@ export default function PostEditor({ post = null, currentUser }) {
             Vous pouvez utiliser Markdown pour formater votre texte
           </p>
         </div>
+
+        {/* Subtype (event) */}
+        <div>
+          <label className="block text-sm font-medium text-gray-200 mb-2">
+            Type spécial (optionnel)
+          </label>
+          <select
+            name="subtype"
+            value={formData.subtype}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded"
+          >
+            <option value="">Aucun</option>
+            <option value="event">Événement</option>
+          </select>
+        </div>
+
+        {/* Event fields shown when subtype=event */}
+        {formData.subtype === "event" && (
+          <div className="border-t pt-4 space-y-3">
+            <h3 className="text-sm font-medium text-gray-200">Détails de l'événement</h3>
+            <div>
+              <label className="block text-xs text-gray-300 mb-1">Date et heure</label>
+              <input
+                type="datetime-local"
+                name="eventDate"
+                value={formData.eventDate}
+                onChange={handleChange}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-300 mb-1">Lieu</label>
+              <input
+                type="text"
+                name="eventLocation"
+                value={formData.eventLocation}
+                onChange={handleChange}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded"
+                placeholder="Adresse, ville, lien de réunion..."
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-300 mb-1">Durée (optionnel)</label>
+              <input
+                type="text"
+                name="eventDuration"
+                value={formData.eventDuration}
+                onChange={handleChange}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded"
+                placeholder="ex: 2h, 90 minutes, 2025-12-01T10:00/2025-12-01T12:00"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Lien vers entité existante (optionnel) */}
         {!groupIdFromUrl && (

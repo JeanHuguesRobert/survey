@@ -5,6 +5,7 @@ import { supabase } from "../../lib/supabase";
 
 export default function GazettePost({ post, isEditor = false }) {
   const { id, title, content, created_at, users } = post;
+  const subtitle = post.metadata?.subtitle || "";
   const authorName = users?.display_name || "Anonyme";
   const sourceUrl = post.metadata?.sourceUrl;
   const isFacebook = sourceUrl && sourceUrl.includes("facebook.com");
@@ -42,6 +43,38 @@ export default function GazettePost({ post, isEditor = false }) {
       >
         {title}
       </h2>
+
+      {subtitle && (
+        <h3 className="font-['EB_Garamond'] text-lg italic mb-3 text-[#4b3c2f]">{subtitle}</h3>
+      )}
+
+      {/* Event info */}
+      {post.metadata?.event && (
+        <div className="mb-3 text-sm text-gray-700">
+          {post.metadata.event.date && (
+            <div>
+              📅 <strong>Date:</strong>{" "}
+              {new Date(post.metadata.event.date).toLocaleString("fr-FR", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </div>
+          )}
+          {post.metadata.event.location && (
+            <div>
+              📍 <strong>Lieu:</strong> {post.metadata.event.location}
+            </div>
+          )}
+          {post.metadata.event.duration && (
+            <div>
+              ⏱️ <strong>Durée:</strong> {post.metadata.event.duration}
+            </div>
+          )}
+        </div>
+      )}
       <div className="font-['EB_Garamond'] text-sm italic mb-4 text-gray-700 flex justify-between items-center">
         <span>Par {authorName}</span>
         {isEditor && (

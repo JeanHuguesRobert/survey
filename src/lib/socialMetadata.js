@@ -3,7 +3,7 @@
  * Utilise les helpers génériques de metadata.js
  */
 
-import { getMetadata, setMetadata, initMetadata } from './metadata.js';
+import { getMetadata, setMetadata, initMetadata } from "./metadata.js";
 
 // ============ GROUPS ============
 
@@ -11,10 +11,10 @@ import { getMetadata, setMetadata, initMetadata } from './metadata.js';
  * Types de groupes supportés
  */
 export const GROUP_TYPES = {
-  NEIGHBORHOOD: 'neighborhood',     // Quartier
-  ASSOCIATION: 'association',       // Association
-  COMMUNITY: 'community',           // Communauté générale
-  FORUM: 'forum'                   // Forum de discussion
+  NEIGHBORHOOD: "neighborhood", // Quartier
+  ASSOCIATION: "association", // Association
+  COMMUNITY: "community", // Communauté générale
+  FORUM: "forum", // Forum de discussion
 };
 
 /**
@@ -30,7 +30,7 @@ export function createGroupMetadata(groupType, options = {}) {
     avatarUrl: options.avatarUrl || null,
     tags: options.tags || [],
     isPrivate: options.isPrivate || false,
-    requireApproval: options.requireApproval || false
+    requireApproval: options.requireApproval || false,
   });
 }
 
@@ -38,21 +38,21 @@ export function createGroupMetadata(groupType, options = {}) {
  * Récupère le type d'un groupe
  */
 export function getGroupType(group) {
-  return getMetadata(group, 'groupType', GROUP_TYPES.COMMUNITY);
+  return getMetadata(group, "groupType", GROUP_TYPES.COMMUNITY);
 }
 
 /**
  * Vérifie si un groupe est privé
  */
 export function isPrivateGroup(group) {
-  return getMetadata(group, 'isPrivate', false) === true;
+  return getMetadata(group, "isPrivate", false) === true;
 }
 
 /**
  * Vérifie si un groupe nécessite approbation pour rejoindre
  */
 export function requiresApproval(group) {
-  return getMetadata(group, 'requireApproval', false) === true;
+  return getMetadata(group, "requireApproval", false) === true;
 }
 
 // ============ POSTS ============
@@ -61,18 +61,18 @@ export function requiresApproval(group) {
  * Types de posts supportés
  */
 export const POST_TYPES = {
-  BLOG: 'blog',               // Article de blog
-  FORUM: 'forum',             // Thread de forum
-  ANNOUNCEMENT: 'announcement' // Annonce
+  BLOG: "blog", // Article de blog
+  FORUM: "forum", // Thread de forum
+  ANNOUNCEMENT: "announcement", // Annonce
 };
 
 /**
  * Types de liens supportés pour posts
  */
 export const LINKED_TYPES = {
-  WIKI_PAGE: 'wiki_page',
-  PROPOSITION: 'proposition',
-  GROUP: 'group'
+  WIKI_PAGE: "wiki_page",
+  PROPOSITION: "proposition",
+  GROUP: "group",
 };
 
 /**
@@ -86,15 +86,18 @@ export function createPostMetadata(postType, title, options = {}) {
   const metadata = {
     postType,
     title,
+    subtitle: options.subtitle || null,
+    subtype: options.subtype || null,
+    event: options.event || null,
     groupId: options.groupId || null,
     linkedType: options.linkedType || null,
     linkedId: options.linkedId || null,
     isPinned: options.isPinned || false,
     isLocked: options.isLocked || false,
     tags: options.tags || [],
-    viewCount: 0
+    viewCount: 0,
   };
-  
+
   return initMetadata(metadata);
 }
 
@@ -102,29 +105,50 @@ export function createPostMetadata(postType, title, options = {}) {
  * Récupère le type d'un post
  */
 export function getPostType(post) {
-  return getMetadata(post, 'postType', POST_TYPES.FORUM);
+  return getMetadata(post, "postType", POST_TYPES.FORUM);
 }
 
 /**
  * Récupère le titre d'un post
  */
 export function getPostTitle(post) {
-  return getMetadata(post, 'title', '');
+  return getMetadata(post, "title", "");
+}
+
+/**
+ * Récupère le sous-titre d'un post
+ */
+export function getPostSubtitle(post) {
+  return getMetadata(post, "subtitle", "");
+}
+
+/**
+ * Récupère le subtype du post (ex: 'event')
+ */
+export function getPostSubtype(post) {
+  return getMetadata(post, "subtype", null);
+}
+
+/**
+ * Récupère les données d'événement si présentes
+ */
+export function getPostEvent(post) {
+  return getMetadata(post, "event", null);
 }
 
 /**
  * Récupère le groupId d'un post (null si pas dans un groupe)
  */
 export function getPostGroupId(post) {
-  return getMetadata(post, 'groupId', null);
+  return getMetadata(post, "groupId", null);
 }
 
 /**
  * Vérifie si un post est lié à une autre entité (wiki, proposition)
  */
 export function hasLinkedEntity(post) {
-  const linkedType = getMetadata(post, 'linkedType', null);
-  const linkedId = getMetadata(post, 'linkedId', null);
+  const linkedType = getMetadata(post, "linkedType", null);
+  const linkedId = getMetadata(post, "linkedId", null);
   return linkedType && linkedId;
 }
 
@@ -133,8 +157,8 @@ export function hasLinkedEntity(post) {
  */
 export function getLinkedEntity(post) {
   return {
-    type: getMetadata(post, 'linkedType', null),
-    id: getMetadata(post, 'linkedId', null)
+    type: getMetadata(post, "linkedType", null),
+    id: getMetadata(post, "linkedId", null),
   };
 }
 
@@ -142,21 +166,21 @@ export function getLinkedEntity(post) {
  * Vérifie si un post est épinglé
  */
 export function isPinned(post) {
-  return getMetadata(post, 'isPinned', false) === true;
+  return getMetadata(post, "isPinned", false) === true;
 }
 
 /**
  * Vérifie si un post est verrouillé (pas de nouveaux comments)
  */
 export function isLocked(post) {
-  return getMetadata(post, 'isLocked', false) === true;
+  return getMetadata(post, "isLocked", false) === true;
 }
 
 /**
  * Incrémente le compteur de vues d'un post
  */
 export function incrementViewCount(post) {
-  const currentCount = getMetadata(post, 'viewCount', 0);
+  const currentCount = getMetadata(post, "viewCount", 0);
   return setMetadata(post, { viewCount: currentCount + 1 });
 }
 
@@ -171,7 +195,7 @@ export function createCommentMetadata(options = {}) {
   return initMetadata({
     parentCommentId: options.parentCommentId || null,
     isEdited: false,
-    editedAt: null
+    editedAt: null,
   });
 }
 
@@ -179,7 +203,7 @@ export function createCommentMetadata(options = {}) {
  * Récupère l'ID du commentaire parent (null si commentaire de premier niveau)
  */
 export function getParentCommentId(comment) {
-  return getMetadata(comment, 'parentCommentId', null);
+  return getMetadata(comment, "parentCommentId", null);
 }
 
 /**
@@ -193,7 +217,7 @@ export function isReply(comment) {
  * Vérifie si un commentaire a été édité
  */
 export function isEdited(comment) {
-  return getMetadata(comment, 'isEdited', false) === true;
+  return getMetadata(comment, "isEdited", false) === true;
 }
 
 /**
@@ -202,7 +226,7 @@ export function isEdited(comment) {
 export function markAsEdited(comment) {
   return setMetadata(comment, {
     isEdited: true,
-    editedAt: new Date().toISOString()
+    editedAt: new Date().toISOString(),
   });
 }
 
@@ -212,13 +236,13 @@ export function markAsEdited(comment) {
  * Emojis de réaction supportés
  */
 export const REACTION_EMOJIS = {
-  THUMBS_UP: '👍',
-  THUMBS_DOWN: '👎',
-  HEART: '❤️',
-  LAUGH: '😂',
-  THINKING: '🤔',
-  CELEBRATE: '🎉',
-  EYES: '👀'
+  THUMBS_UP: "👍",
+  THUMBS_DOWN: "👎",
+  HEART: "❤️",
+  LAUGH: "😂",
+  THINKING: "🤔",
+  CELEBRATE: "🎉",
+  EYES: "👀",
 };
 
 /**
@@ -228,7 +252,7 @@ export const REACTION_EMOJIS = {
  */
 export function createReactionMetadata(options = {}) {
   return initMetadata({
-    note: options.note || null // Note optionnelle pour contexte
+    note: options.note || null, // Note optionnelle pour contexte
   });
 }
 
@@ -238,28 +262,28 @@ export function createReactionMetadata(options = {}) {
  * Types d'actions pour l'activity log
  */
 export const ACTIVITY_ACTIONS = {
-  CREATE: 'create',
-  UPDATE: 'update',
-  DELETE: 'delete',
-  PIN: 'pin',
-  UNPIN: 'unpin',
-  LOCK: 'lock',
-  UNLOCK: 'unlock',
-  JOIN: 'join',
-  LEAVE: 'leave',
-  PROMOTE: 'promote',
-  DEMOTE: 'demote'
+  CREATE: "create",
+  UPDATE: "update",
+  DELETE: "delete",
+  PIN: "pin",
+  UNPIN: "unpin",
+  LOCK: "lock",
+  UNLOCK: "unlock",
+  JOIN: "join",
+  LEAVE: "leave",
+  PROMOTE: "promote",
+  DEMOTE: "demote",
 };
 
 /**
  * Types de ressources pour l'activity log
  */
 export const RESOURCE_TYPES = {
-  GROUP: 'group',
-  POST: 'post',
-  COMMENT: 'comment',
-  REACTION: 'reaction',
-  GROUP_MEMBER: 'group_member'
+  GROUP: "group",
+  POST: "post",
+  COMMENT: "comment",
+  REACTION: "reaction",
+  GROUP_MEMBER: "group_member",
 };
 
 /**

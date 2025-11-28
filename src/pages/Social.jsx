@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import GroupList from "../components/social/GroupList";
 import PostList from "../components/social/PostList";
@@ -14,8 +14,29 @@ import { MOVEMENT_NAME } from "../constants";
 export default function Social() {
   const { currentUser, userStatus } = useCurrentUser();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("all"); // all | groups | posts
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "all"); // all | groups | posts
   const [filterType, setFilterType] = useState(null);
+
+  // Keep activeTab in sync with URL query param `tab`
+  useEffect(() => {
+    const tab = searchParams.get("tab") || "all";
+    setActiveTab(tab);
+  }, [searchParams]);
+
+  function setTab(tab) {
+    setActiveTab(tab);
+    // update URL param without removing other params
+    const params = new URLSearchParams(searchParams);
+    if (tab === "all") {
+      params.delete("tab");
+    } else {
+      params.set("tab", tab);
+    }
+    setSearchParams(params);
+    // reset filters when switching tabs
+    setFilterType(null);
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -42,19 +63,19 @@ export default function Social() {
       {/* Tabs */}
       <nav className="tabs-nav">
         <button
-          onClick={() => setActiveTab("all")}
+          onClick={() => setTab("all")}
           className={`tab-item ${activeTab === "all" ? "active" : ""}`}
         >
           Tout
         </button>
         <button
-          onClick={() => setActiveTab("groups")}
+          onClick={() => setTab("groups")}
           className={`tab-item ${activeTab === "groups" ? "active" : ""}`}
         >
           Groupes
         </button>
         <button
-          onClick={() => setActiveTab("posts")}
+          onClick={() => setTab("posts")}
           className={`tab-item ${activeTab === "posts" ? "active" : ""}`}
         >
           Publications
