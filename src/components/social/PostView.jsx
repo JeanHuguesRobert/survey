@@ -197,6 +197,27 @@ export default function PostView({ currentUser }) {
         <span className="text-gray-50">{title}</span>
       </div>
 
+      {/* Gazette Banner */}
+      {post.metadata?.gazette && (
+        <div className="mb-6 p-4 bg-[#f4e4bc] text-[#2c241b] rounded border border-[#d4c49c] flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">📰</span>
+            <div>
+              <h3 className="font-serif font-bold text-lg leading-tight">Extra ! Extra !</h3>
+              <p className="font-serif text-sm italic">Cet article est publié dans la Gazette.</p>
+            </div>
+          </div>
+          <Link
+            to={
+              post.metadata.gazette === "global" ? "/gazette" : `/gazette/${post.metadata.gazette}`
+            }
+            className="px-4 py-2 bg-[#2c241b] text-[#f4e4bc] font-serif font-bold rounded hover:bg-opacity-90 transition-colors"
+          >
+            Lire dans la Gazette
+          </Link>
+        </div>
+      )}
+
       {/* Post */}
       <article className=" rounded-lg shadow-sm p-8 mb-6">
         {/* Header */}

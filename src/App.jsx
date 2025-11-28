@@ -65,6 +65,7 @@ import JobMonitorDemo from "./components/examples/JobMonitorDemo";
 import Contact from "./pages/Contact";
 import DataCollector from "./pages/DataCollector";
 import DataReview from "./pages/admin/DataReview";
+import Gazette from "./pages/Gazette";
 
 export default function Consultation() {
   // Feature flag for gesture header menu
@@ -1259,20 +1260,8 @@ export function App() {
         <Route path="/survey" element={<Survey />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/browser/*" element={<PublicBrowser />} />
-        <Route path="/profile" element={<UserProfile />} />
-        <Route path="/voting-dashboard" element={<VotingDashboard />} />
-        <Route path="/user-dashboard" element={<UserDashboard />} />
-        <Route path="/global-dashboard" element={<GlobalDashboard />} />
-        <Route path="/wiki-dashboard" element={<WikiDashboard />} />
-        <Route path="/social-dashboard" element={<SocialDashboard />} />
-        <Route path="/social" element={<Social />} />
-        <Route path="/subscriptions" element={<SubscriptionFeed />} />
-        <Route path="/groups/new" element={<GroupCreate />} />
-        <Route path="/groups/:id" element={<GroupPage />} />
-        <Route path="/posts/new" element={<PostCreate />} />
-        <Route path="/posts/:id" element={<PostPage />} />
-        <Route path="/job-monitor-demo" element={<JobMonitorDemo />} />
-        <Route path="/data-collector" element={<DataCollector />} />
+        <Route path="/gazette" element={<Gazette />} />
+        <Route path="/gazette/:name" element={<Gazette />} />
         <Route path="/admin/data-review" element={<DataReview />} />
       </Routes>
     </>

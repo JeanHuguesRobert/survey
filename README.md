@@ -124,6 +124,17 @@ Un outil d'évaluation et de suivi de la transparence des institutions locales :
 - Comparaison entre territoires
 - Base de données publique des communes transparentes
 
+### 7. 📰 **La Gazette** - L'actualité locale
+
+Un journal numérique au style vintage (1820s) pour suivre l'actualité de la commune :
+
+- **Lecture immersive** : une mise en page "journal papier" avec colonnes et typographie d'époque
+- **Éditions hebdomadaires** : retrouvez les articles classés par semaine
+- **Rédacteurs citoyens** : les membres du groupe "La Gazette" deviennent automatiquement rédacteurs
+- **Intégration Facebook** : les rédacteurs peuvent intégrer directement des posts Facebook
+  interactifs dans leurs articles
+- **Éditions thématiques** : possibilité de créer des gazettes spécialisées (Sport, Culture, etc.)
+
 ---
 
 ## ✨ Fonctionnalités supplémentaires

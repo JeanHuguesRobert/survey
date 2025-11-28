@@ -15,6 +15,7 @@ export default function PostEditor({ post = null, currentUser }) {
   const groupIdFromUrl = searchParams.get("groupId");
   const linkedTypeFromUrl = searchParams.get("linkedType");
   const linkedIdFromUrl = searchParams.get("linkedId");
+  const gazetteFromUrl = searchParams.get("gazette");
 
   const [formData, setFormData] = useState({
     title: post?.metadata?.title || "",
@@ -24,6 +25,8 @@ export default function PostEditor({ post = null, currentUser }) {
     linkedType: post?.metadata?.linkedType || linkedTypeFromUrl || "",
     linkedId: post?.metadata?.linkedId || linkedIdFromUrl || "",
     tags: post?.metadata?.tags?.join(", ") || "",
+    gazette: post?.metadata?.gazette || gazetteFromUrl || "",
+    sourceUrl: post?.metadata?.sourceUrl || "",
     isPinned: post?.metadata?.isPinned || false,
     isLocked: post?.metadata?.isLocked || false,
   });
@@ -68,6 +71,8 @@ export default function PostEditor({ post = null, currentUser }) {
         isPinned: formData.isPinned,
         isLocked: formData.isLocked,
         tags: tagsArray,
+        gazette: formData.gazette || null,
+        sourceUrl: formData.sourceUrl || null,
       });
 
       if (isEditing) {
@@ -265,6 +270,42 @@ export default function PostEditor({ post = null, currentUser }) {
             </label>
           </div>
         )}
+
+        {/* Gazette Option */}
+        <div className="border-t pt-4">
+          <label className="block text-sm font-medium text-gray-200 mb-2">
+            Publication dans la Gazette (optionnel)
+          </label>
+          <input
+            type="text"
+            name="gazette"
+            value={formData.gazette}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            placeholder="Nom de la gazette (ex: global, sports, culture...)"
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            Laissez vide pour une publication standard. Mettez "global" pour la Gazette principale.
+          </p>
+        </div>
+
+        {/* Source URL (Facebook) */}
+        <div className="border-t pt-4">
+          <label className="block text-sm font-medium text-gray-200 mb-2">
+            Lien source (Facebook, etc.)
+          </label>
+          <input
+            type="url"
+            name="sourceUrl"
+            value={formData.sourceUrl}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            placeholder="https://www.facebook.com/..."
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            Si vous mettez un lien Facebook, le post sera intégré directement dans l'article.
+          </p>
+        </div>
 
         {/* Actions */}
         <div className="flex gap-3 pt-4">
