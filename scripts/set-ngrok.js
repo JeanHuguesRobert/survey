@@ -1,85 +1,124 @@
 #!/usr/bin/env node
-import fetch from "node-fetch";
-import { argv } from "process";
+// scripts/set-ngrok.js
+// Node >=16. Use: node scripts/set-ngrok.js --on [--port 5173] or --off
 
-function parseArgs() {
-  const out = {};
-  for (let i = 2; i < argv.length; i++) {
-    if (argv[i] === "--url") out.url = argv[++i];
-    if (argv[i] === "--on") out.on = true;
-    if (argv[i] === "--off") out.on = false;
-  }
-  return out;
+const fetch = require("node-fetch");
+const ngrok = require("ngrok");
+
+const argv = require("minimist")(process.argv.slice(2));
+const PORT = argv.port || process.env.PORT || 8888;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!SUPABASE_URL || !SERVICE_KEY) {
+  console.error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required in environment.");
+  process.exit(1);
 }
 
-(async () => {
-  const { url, on } = parseArgs();
-  if (typeof on === "undefined") {
-    console.error("Specify --on or --off");
-    process.exit(1);
-  }
+async function patchSiteConfig({ enabled, url }) {
+  // get first user id (assumes a users row exists)
+  const usersRes = await fetch(`${SUPABASE_URL}/rest/v1/users?select=id&limit=1`, {
+    headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
+  });
+  const users = await usersRes.json();
+  if (!users || users.length === 0) throw new Error("No users row found to patch.");
+  const id = users[0].id;
 
-  const SITE_URL = url || process.env.NGROK_URL;
-  if (on && !SITE_URL) {
-    console.error("No NGROK url supplied (use --url or set NGROK_URL in env)");
-    process.exit(1);
+  const body = {
+    metadata: { site_config: { redirect_enabled: enabled, redirect_url: url || null } },
+  };
+  const patchRes = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${id}`, {
+    method: "PATCH",
+    headers: {
+      apikey: SERVICE_KEY,
+      Authorization: `Bearer ${SERVICE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!patchRes.ok) {
+    const text = await patchRes.text();
+    throw new Error(`Patch failed: ${patchRes.status} ${text}`);
   }
+  console.log(`site_config updated: enabled=${enabled} url=${url}`);
+}
 
-  const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!SUPABASE_URL || !SUPABASE_KEY) {
-    console.error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY required in env");
-    process.exit(1);
+async function notifyDeployedControl() {
+  const controlUrl =
+    process.env.DEPLOYED_CONTROL_URL ||
+    ((process.env.APP_BASE_URL || process.env.DEPLOY_URL) &&
+      `${(process.env.APP_BASE_URL || process.env.DEPLOY_URL).replace(/\/$/, "")}/.netlify/functions/ngrok-control`);
+  const secret = process.env.NGROK_CONTROL_SECRET;
+  if (!controlUrl || !secret) {
+    console.log("No deployed control URL or NGROK_CONTROL_SECRET set; skipping deployed notify.");
+    return;
   }
-
   try {
-    const q = `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/users?select=id,metadata&order=created_at.asc&limit=1`;
-    const res = await fetch(q, {
-      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+    console.log("Notifying deployed control endpoint:", controlUrl);
+    const res = await fetch(controlUrl, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "refresh" }),
     });
     if (!res.ok) {
       const txt = await res.text();
-      console.error("Failed to fetch first user:", res.status, txt);
-      process.exit(1);
+      console.warn("Deployed notify returned non-OK:", res.status, txt);
+    } else {
+      console.log("Deployed instance notified successfully.");
     }
-    const arr = await res.json();
-    if (!Array.isArray(arr) || arr.length === 0) {
-      console.error("No users found");
-      process.exit(1);
-    }
-    const user = arr[0];
-    const metadata = user.metadata || {};
-    metadata.site_config = metadata.site_config || {};
-    metadata.site_config.redirect_enabled = !!on;
-    if (on) metadata.site_config.redirect_url = SITE_URL.replace(/\/$/, "");
-
-    const patchUrl = `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/users?id=eq.${encodeURIComponent(
-      user.id
-    )}`;
-    const patch = await fetch(patchUrl, {
-      method: "PATCH",
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${SUPABASE_KEY}`,
-        "Content-Type": "application/json",
-        Prefer: "return=representation",
-      },
-      body: JSON.stringify({ metadata }),
-    });
-    if (!patch.ok) {
-      console.error("Patch failed", await patch.text());
-      process.exit(1);
-    }
-    console.log(
-      "Updated site_config for user",
-      user.id,
-      "redirect_on=",
-      !!on,
-      "url=",
-      metadata.site_config.redirect_url
-    );
   } catch (err) {
-    console.error("Error:", err);
+    console.warn("Failed to call deployed control endpoint:", err.message);
+  }
+}
+
+async function startAndNotify() {
+  console.log(`Starting ngrok tunnel for port ${PORT}...`);
+  const url = await ngrok.connect({ addr: Number(PORT) });
+  console.log("ngrok url:", url);
+  await patchSiteConfig({ enabled: true, url });
+  return url;
+}
+
+async function stopAndNotify() {
+  try {
+    await patchSiteConfig({ enabled: false, url: null });
+  } catch (e) {
+    console.error("Failed to patch site_config off:", e.message);
+  }
+  try {
+    await ngrok.disconnect();
+    await ngrok.kill();
+  } catch (e) {
+    // ignore
+  }
+}
+
+(async () => {
+  try {
+    if (argv.off) {
+      await stopAndNotify();
+      // also tell deployed instance to refresh
+      await notifyDeployedControl();
+      console.log("Disabled redirect and stopped ngrok (if running).");
+      return;
+    }
+    const url = argv.url ? argv.url : await startAndNotify();
+
+    // cleanup on exit
+    const cleanup = async () => {
+      console.log("Cleaning up: disabling redirect and stopping ngrok...");
+      await stopAndNotify();
+      process.exit(0);
+    };
+    process.on("SIGINT", cleanup);
+    process.on("SIGTERM", cleanup);
+
+    console.log("Tunnel running — press Ctrl+C to stop and disable remote redirect.");
+    // keep process alive
+    /* eslint-disable no-constant-condition */
+    while (true) await new Promise((r) => setTimeout(r, 60_000));
+  } catch (err) {
+    console.error(err);
     process.exit(1);
   }
 })();

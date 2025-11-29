@@ -1,8 +1,9 @@
 // Returns Facebook oEmbed for a given post URL using App access token
 // Expects FACEBOOK_APP_ID and FACEBOOK_CLIENT_SECRET in environment (Netlify env)
-const fetch = global.fetch || require("node-fetch");
+const fetch =
+  globalThis.fetch || ((...args) => import("node-fetch").then((m) => m.default(...args)));
 
-exports.handler = async (event) => {
+export const handler = async (event) => {
   try {
     const url = event.queryStringParameters?.url;
     if (!url) {
