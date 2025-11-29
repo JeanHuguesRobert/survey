@@ -21,7 +21,10 @@
     "check:deno": "deno check netlify/edge-functions/**/*.js",
     "check:node": "node scripts/check_node_syntax.js",
     "check": "npm run check:deno && npm run check:node"
+    ,
+    "set-ngrok": "node scripts/set-ngrok.js"
   },
+
   "lint-staged": {
     "*.{js,jsx,css,md}": "prettier --write"
   },

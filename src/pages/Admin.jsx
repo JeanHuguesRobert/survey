@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import SiteFooter from "../components/layout/SiteFooter";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { getUserRole, ROLE_ADMIN } from "../lib/permissions";
+import SiteConfigEditor from "../components/admin/SiteConfigEditor";
 
 export default function Admin() {
   const { currentUser, loading } = useCurrentUser();
@@ -117,6 +118,7 @@ export default function Admin() {
               </li>
             ))}
           </ul>
+          <SiteConfigEditor />
         </section>
       )}
 

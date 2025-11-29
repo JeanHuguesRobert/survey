@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { APP_VERSION, DEPLOY_DATE, VOLUNTEER_URL } from "../../constants";
 import { supabase } from "../../lib/supabase";
 import { useCurrentUser } from "../../lib/useCurrentUser";
+import { getUserRole, ROLE_ADMIN } from "../../lib/permissions";
 import { getDisplayName } from "../../lib/userDisplay";
 import AuthModal from "../common/AuthModal";
 
@@ -382,7 +383,67 @@ export default function SiteFooter({
       textAlign: "center",
       display: "inline-block",
     },
+    localBadge: {
+      position: "absolute",
+      right: 12,
+      top: 6,
+      background: "#FF9800",
+      color: "white",
+      padding: "2px 6px",
+      borderRadius: 6,
+      fontSize: "0.65rem",
+      fontWeight: 700,
+      boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+      zIndex: 40,
+    },
   };
+
+  const [siteConfig, setSiteConfig] = React.useState(null);
+  const [siteConfigLoaded, setSiteConfigLoaded] = React.useState(false);
+
+  // Fetch site-config only on sign-in/sign-out to reduce backend requests
+  React.useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        if (!currentUser) {
+          // clear config on sign-out (no remote fetch)
+          if (mounted) {
+            setSiteConfig(null);
+            setSiteConfigLoaded(true);
+          }
+          return;
+        }
+
+        const res = await fetch("/.netlify/functions/site-config");
+        if (!res.ok) {
+          if (mounted) setSiteConfig(null);
+          return;
+        }
+        const json = await res.json();
+        if (!mounted) return;
+        setSiteConfig(json.site_config || null);
+      } catch (e) {
+        // ignore
+      } finally {
+        if (mounted) setSiteConfigLoaded(true);
+      }
+    })();
+    return () => (mounted = false);
+  }, [currentUser]);
+
+  const isLocal =
+    typeof window !== "undefined" &&
+    (function () {
+      const h = window.location.hostname || "";
+      return h === "localhost" || h === "127.0.0.1" || h.endsWith(".local");
+    })();
+
+  const originHostname = typeof window !== "undefined" ? window.location.origin || "" : "";
+  const isNgrokOrigin =
+    originHostname &&
+    (originHostname.includes("ngrok") || originHostname.includes("ngrok-free.app"));
+  const isAdmin = currentUser ? getUserRole(currentUser) === ROLE_ADMIN : false;
 
   return (
     <footer ref={footerRef} style={styles.footer}>
@@ -404,6 +465,27 @@ export default function SiteFooter({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
+
+      {/* Admin: if siteConfig.redirect_url is set, always show it (for debugging) */}
+      {isAdmin && siteConfig && siteConfig.redirect_url ? (
+        <div
+          style={{ ...styles.localBadge, background: "#7C4DFF" }}
+          title={`Dev redirect: ${siteConfig.redirect_url}`}
+        >
+          NGROK
+          <div style={{ fontSize: "0.6rem", fontWeight: 600, marginLeft: 6 }}>
+            {siteConfig.redirect_url.replace(/^https?:\/\//, "")}
+          </div>
+        </div>
+      ) : isLocal ? (
+        <div style={styles.localBadge} title="Local development build">
+          LOCAL
+        </div>
+      ) : isNgrokOrigin ? (
+        <div style={{ ...styles.localBadge, background: "#7C4DFF" }} title="Ngrok public URL">
+          NGROK
+        </div>
+      ) : null}
 
       {/* Collapsible panel */}
       <div style={styles.panel}>
