@@ -130,7 +130,7 @@ export async function updateEntity(type, id, patch) {
 
 // Fallback: call server-side admin endpoint to perform update using service role
 export async function updateEntityAsAdmin(type, id, patch) {
-  const adminUrl = import.meta.env.VITE_ADMIN_UPDATE_URL || "/.netlify/functions/admin-update";
+  const adminUrl = import.meta.env.VITE_ADMIN_UPDATE_URL || "/api/admin-update";
 
   // Always delegate to the backend. Provide the current authenticated user's UUID
   // as `requestorId` so the backend can validate the caller.

@@ -24,7 +24,7 @@ export default function UserProfile() {
 
   // Fetch enabled providers
   useEffect(() => {
-    fetch("/.netlify/functions/oauth-providers")
+    fetch("/api/oauth-providers")
       .then((res) => res.json())
       .then((data) => setEnabledProviders(data.providers || []))
       .catch((err) => console.error("Failed to fetch providers", err));

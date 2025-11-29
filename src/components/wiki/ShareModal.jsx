@@ -27,7 +27,7 @@ const ShareModal = ({ isOpen, onClose, pageTitle, pageUrl, pageContent }) => {
   const handleGenerateTextWithBob = async () => {
     setLoadingBob(true);
     try {
-      const response = await fetch("/.netlify/functions/generateShareText", {
+      const response = await fetch("/api/generateShareText", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

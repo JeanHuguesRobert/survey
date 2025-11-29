@@ -1159,7 +1159,7 @@ export default function useChatLogic(initial = {}) {
     try {
       let pageUrl = null;
       await publishWikiOp(async () => {
-        const optimizeResponse = await fetch("/.netlify/functions/optimize-wiki-title", {
+        const optimizeResponse = await fetch("/api/optimize-wiki-title", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ defaultTitle, pageContent: conversationContent }),
@@ -1186,7 +1186,7 @@ export default function useChatLogic(initial = {}) {
         // Try generate share text
         let shareText = "";
         try {
-          const shareRes = await fetch("/.netlify/functions/generateShareText", {
+          const shareRes = await fetch("/api/generateShareText", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

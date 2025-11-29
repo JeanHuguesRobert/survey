@@ -81,7 +81,7 @@ export function ArchiveButton({ pageId, slug }) {
 
       updateProgress(30, "Sending to GitHub...");
 
-      const response = await fetch("/.netlify/functions/sync-wiki", {
+      const response = await fetch("/api/sync-wiki", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

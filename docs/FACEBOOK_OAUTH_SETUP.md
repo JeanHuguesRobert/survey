@@ -139,7 +139,7 @@ suppression de données dans le tableau de bord de l'App (Data Deletion Request 
 1. Exemple d'URL à définir dans le champ de l'App (Facebook App Settings → Data Deletion Request
    Callback URL):
 
-https://lepp.fr/.netlify/functions/facebook-data-deletion
+https://lepp.fr/api/facebook-data-deletion
 
 2. Comportement attendu du callback:
 

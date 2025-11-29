@@ -415,7 +415,7 @@ export default function SiteFooter({
           return;
         }
 
-        const res = await fetch("/.netlify/functions/site-config");
+        const res = await fetch("/api/site-config");
         if (!res.ok) {
           if (mounted) setSiteConfig(null);
           return;

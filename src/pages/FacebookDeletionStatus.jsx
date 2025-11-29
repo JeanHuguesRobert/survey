@@ -17,7 +17,7 @@ export default function FacebookDeletionStatus() {
     if (!code) return;
     setLoading(true);
     setError(null);
-    fetch(`/.netlify/functions/facebook-deletion-status?code=${encodeURIComponent(code)}`)
+    fetch(`/api/facebook-deletion-status?code=${encodeURIComponent(code)}`)
       .then(async (res) => {
         if (!res.ok) {
           const txt = await res.text();

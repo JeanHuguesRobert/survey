@@ -9,7 +9,7 @@ export function useSocialAvatar(provider) {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/.netlify/functions/oauth-start?provider=${provider}`);
+      const response = await fetch(`/api/oauth-start?provider=${provider}`);
       if (!response.ok) throw new Error("Failed to start OAuth flow");
 
       const { authUrl } = await response.json();
@@ -35,7 +35,7 @@ export function useSocialAvatar(provider) {
     if (path === expectedPath && code) {
       setLoading(true);
       try {
-        const response = await fetch("/.netlify/functions/oauth-complete", {
+        const response = await fetch("/api/oauth-complete", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ provider, code, userId }),

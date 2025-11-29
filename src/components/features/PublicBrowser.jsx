@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 
-// PublicBrowser: parcourt public/docs via Netlify Function /.netlify/functions/public_browser
+// PublicBrowser: parcourt public/docs via Netlify Function /api/public_browser
 export default function PublicBrowser() {
   const baseRoot = "/public/docs";
   const location = useLocation();
@@ -45,7 +45,7 @@ export default function PublicBrowser() {
         let rel = fullPath.replace(/^\//, "");
         if (rel.startsWith("public/")) rel = rel.slice("public/".length);
         const apiPath = encodeURIComponent(rel);
-        const r = await fetch(`/.netlify/functions/public_browser?path=${apiPath}`);
+        const r = await fetch(`/api/public_browser?path=${apiPath}`);
         if (!r.ok) {
           const j = await r.json().catch(() => ({}));
           setItems([]);
@@ -89,7 +89,7 @@ export default function PublicBrowser() {
       let filePath = `${fullPath.replace(/^\//, "")}/${entry.name}`;
       if (filePath.startsWith("public/")) filePath = filePath.slice("public/".length);
       const apiPath = encodeURIComponent(filePath);
-      const r = await fetch(`/.netlify/functions/public_browser?path=${apiPath}`);
+      const r = await fetch(`/api/public_browser?path=${apiPath}`);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const j = await r.json();
       if (j?.file) {
@@ -115,7 +115,7 @@ export default function PublicBrowser() {
   function fileDownloadUrl(entry) {
     let filePath = `${fullPath.replace(/^\//, "")}/${entry.name}`;
     if (filePath.startsWith("public/")) filePath = filePath.slice("public/".length);
-    return `/.netlify/functions/public_browser?path=${encodeURIComponent(filePath)}&download=1`;
+    return `/api/public_browser?path=${encodeURIComponent(filePath)}&download=1`;
   }
 
   function renderFileContent(name, txt) {

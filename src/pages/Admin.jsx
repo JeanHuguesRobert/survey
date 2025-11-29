@@ -11,7 +11,7 @@ export default function Admin() {
   async function handleExportMyData() {
     if (!currentUser) return alert("Connectez-vous pour exporter vos données");
     try {
-      const res = await fetch("/.netlify/functions/export-user-data", {
+      const res = await fetch("/api/export-user-data", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: currentUser.id }),
