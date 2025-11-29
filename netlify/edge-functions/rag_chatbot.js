@@ -183,7 +183,7 @@ const TOOL_HANDLERS = {
       const queryEmbedding = embeddingResponse.data[0].embedding;
 
       // Fetch chunks (limit to 1000 for performance)
-      let qb = supabase.from("knowledge_chunks").select("id,text,embedding,meta");
+      let qb = supabase.from("knowledge_chunks").select("id,text,embedding,metadata");
       if (source_type) qb = qb.eq("source_type", source_type);
       if (domain) qb = qb.eq("domain", domain);
       const { data, error } = await qb.limit(1000);
@@ -219,7 +219,7 @@ const TOOL_HANDLERS = {
 
       let result = `📚 Résultats de la recherche locale pour "${query}":\n\n`;
       topResults.forEach((item, i) => {
-        const title = item.chunk.meta?.title || `Résultat ${i + 1}`;
+        const title = item.chunk.metadata?.title || `Résultat ${i + 1}`;
         result += `📄 **${title}**\n`;
         result += `${item.chunk.text.substring(0, 500)}...\n\n`;
       });
@@ -1155,7 +1155,7 @@ async function getSystemPrompt() {
 
 Utilise ces tables/colonnes quand tu construis des requêtes SELECT. Rappelle-toi : uniquement SELECT, pas de modifications.
 
-- **knowledge_chunks** (id, source_id, text, text_hash, type, status, source_type, domain, territory, info_date, layer, meta, created_at)
+- **knowledge_chunks** (id, source_id, text, text_hash, type, status, source_type, domain, territory, info_date, layer, metadata, created_at)
 - **document_sources** (id, filename, content_hash, public_url, domain, source_type, metadata, created_at)
 - **cortideri_items** (id, post_id, title, content_text, content_html, url, tags, scraped_at)
 - **municipal_transparency** (id, commune_name, insee_code, population, agenda_mentions_location, livestreamed, minutes_published_under_week, deliberations_open_data, annual_calendar_published)

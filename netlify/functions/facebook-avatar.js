@@ -1,4 +1,4 @@
-exports.handler = async function (event) {
+export const handler = async function (event) {
   const params = event.queryStringParameters || {};
   const facebookId = params.facebookId || params.id;
 

@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS public.knowledge_chunks (
     CHECK (layer IN ('hot', 'summary', 'archive')),
 
   -- Flexible metadata (JSON)
-  meta jsonb DEFAULT '{}'::jsonb,
+  metadata jsonb DEFAULT '{}'::jsonb,
 
   -- Timestamps
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -97,7 +97,7 @@ COMMENT ON COLUMN public.knowledge_chunks.status IS
 COMMENT ON COLUMN public.knowledge_chunks.layer IS
 'Visibility layer: hot (active), summary (consolidated), archive (historical)';
 
-COMMENT ON COLUMN public.knowledge_chunks.meta IS
+COMMENT ON COLUMN public.knowledge_chunks.metadata IS
 'Flexible metadata: {topic, tags, actors, kind_of_content, legal_cues, etc.}';
 
 -- ============================================================================
@@ -207,7 +207,7 @@ INSERT INTO public.knowledge_chunks (
   territory,
   info_date,
   layer,
-  meta
+  metadata
 ) VALUES (
   E'TYPE: fact\nSTATUT: confirmed\nDATE: 2024-03-15\nSOURCE: Conseil Municipal de Corte\n\nDélibération 2024-03-15: Budget primitif 2024 adopté à l''unanimité.',
   encode(sha256('test-chunk-1'::bytea), 'hex'),

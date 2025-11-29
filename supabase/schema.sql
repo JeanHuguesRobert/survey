@@ -171,7 +171,7 @@ CREATE TABLE public.knowledge_chunks (
   territory text NOT NULL DEFAULT 'Corte'::text,
   info_date date,
   layer text NOT NULL DEFAULT 'hot'::text CHECK (layer = ANY (ARRAY['hot'::text, 'summary'::text, 'archive'::text])),
-  meta jsonb DEFAULT '{}'::jsonb,
+  metadata jsonb DEFAULT '{}'::jsonb,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT knowledge_chunks_pkey PRIMARY KEY (id),
