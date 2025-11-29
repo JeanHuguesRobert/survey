@@ -171,7 +171,7 @@ export default function Social() {
                   Voir tout →
                 </Link>
               </h2>
-              <PostList currentUserId={currentUser?.id} />
+              <PostList currentUserId={currentUser?.id} tag={searchParams.get("tag")} />
             </div>
           </div>
         )}
@@ -181,7 +181,11 @@ export default function Social() {
         )}
 
         {activeTab === "posts" && (
-          <PostList postType={filterType} currentUserId={currentUser?.id} />
+          <PostList
+            postType={filterType}
+            currentUserId={currentUser?.id}
+            tag={searchParams.get("tag")}
+          />
         )}
       </div>
 

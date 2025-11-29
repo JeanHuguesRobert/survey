@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { isDeleted, getMetadata } from "../../lib/metadata";
 import { getGroupType, isPrivateGroup, requiresApproval } from "../../lib/socialMetadata";
 import CommentSection from "../common/CommentSection";
+import SiteFooter from "../layout/SiteFooter";
 import { getDisplayName, getUserInitial } from "../../lib/userDisplay";
 
 /**
@@ -20,6 +21,7 @@ export default function GroupDetail({ currentUser }) {
   const [error, setError] = useState(null);
   const [isMember, setIsMember] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [gazetteNames, setGazetteNames] = useState([]);
 
   useEffect(() => {
     if (id) {
@@ -82,6 +84,32 @@ export default function GroupDetail({ currentUser }) {
 
       const activePosts = (postsData || []).filter((p) => !isDeleted(p));
       setPosts(activePosts);
+
+      // Detect if this group acts as a Gazette editor
+      try {
+        const foundGazettes = [];
+        const globalEditorName = import.meta.env.VITE_GLOBAL_GAZETTE_EDITOR_GROUP || "La Gazette";
+
+        if (groupData.name === globalEditorName) {
+          foundGazettes.push("global");
+        }
+
+        // If there are posts with metadata.gazette equal to the group name,
+        // then this group is the editor for that named gazette.
+        const { data: gposts } = await supabase
+          .from("posts")
+          .select("id")
+          .eq("metadata->>gazette", groupData.name)
+          .limit(1);
+
+        if (gposts && gposts.length > 0) {
+          foundGazettes.push(groupData.name);
+        }
+
+        setGazetteNames(foundGazettes);
+      } catch (err) {
+        console.error("Error detecting gazette membership:", err);
+      }
     } catch (err) {
       console.error("Error loading group:", err);
       setError(err.message);
@@ -202,6 +230,20 @@ export default function GroupDetail({ currentUser }) {
               </div>
             )}
 
+            {gazetteNames.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {gazetteNames.map((g) => (
+                  <Link
+                    key={g}
+                    to={g === "global" ? "/gazette" : `/gazette/${g}`}
+                    className="inline-block text-sm bg-primary-600 text-bauhaus-white px-3 py-1 rounded hover:opacity-90"
+                  >
+                    {g === "global" ? "Consulter la Gazette" : `Gazette: ${g}`}
+                  </Link>
+                ))}
+              </div>
+            )}
+
             <p className="text-gray-300 mb-4">{group.description}</p>
 
             <div className="flex items-center gap-4">
@@ -277,8 +319,17 @@ export default function GroupDetail({ currentUser }) {
                     </h3>
                     <p className="text-gray-300 text-sm line-clamp-2 mb-2">{post.content}</p>
                     <div className="text-xs text-gray-400">
-                      Par {getDisplayName(post.users)} •{" "}
-                      {new Date(post.created_at).toLocaleDateString("fr-FR")}
+                      Par{" "}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/users/${post.users?.id}`);
+                        }}
+                        className="font-medium text-gray-200 hover:underline"
+                      >
+                        {getDisplayName(post.users)}
+                      </button>{" "}
+                      • {new Date(post.created_at).toLocaleDateString("fr-FR")}
                     </div>
                   </div>
                 ))}
@@ -299,7 +350,9 @@ export default function GroupDetail({ currentUser }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-50 truncate">
-                      {getDisplayName(member.users)}
+                      <Link to={`/users/${member.users?.id}`} className="hover:underline">
+                        {getDisplayName(member.users)}
+                      </Link>
                     </p>
                     <p className="text-xs text-gray-400">
                       Depuis {new Date(member.created_at).toLocaleDateString("fr-FR")}
@@ -320,6 +373,10 @@ export default function GroupDetail({ currentUser }) {
           currentUser={currentUser}
           defaultExpanded={false}
         />
+      </div>
+
+      <div className="mt-8">
+        <SiteFooter />
       </div>
     </div>
   );

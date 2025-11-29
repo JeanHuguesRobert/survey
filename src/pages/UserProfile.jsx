@@ -4,7 +4,7 @@
 import { useState, useEffect, useContext } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { CurrentUserContext } from "../contexts/CurrentUserContext";
-import { canWrite } from "../lib/permissions";
+import { canWrite, getUserRole, ROLE_ADMIN } from "../lib/permissions";
 import SiteFooter from "../components/layout/SiteFooter";
 import SocialAvatarButton from "../components/SocialAvatarButton";
 
@@ -151,20 +151,30 @@ export default function UserProfile() {
         <div className=" rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold text-gray-50">Votre profil</h1>
-            <Link
-              to="/user-dashboard"
-              className="bg-blue-600 text-bauhaus-white px-4 py-2 rounded-md hover:bg-blue-700 font-semibold flex items-center gap-2"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
+            <div className="flex items-center gap-3">
+              <Link
+                to="/user-dashboard"
+                className="bg-blue-600 text-bauhaus-white px-4 py-2 rounded-md hover:bg-blue-700 font-semibold flex items-center gap-2"
               >
-                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
-              </svg>
-              Votre tableau de bord
-            </Link>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+                </svg>
+                Votre tableau de bord
+              </Link>
+              {currentUser && getUserRole(currentUser) === ROLE_ADMIN && (
+                <Link
+                  to="/admin"
+                  className="px-3 py-1 border rounded text-sm bg-primary-600 text-bauhaus-white"
+                >
+                  Admin
+                </Link>
+              )}
+            </div>
           </div>
           {/* Avatar utilisateur */}
           <div className="flex items-center gap-4 mb-6">

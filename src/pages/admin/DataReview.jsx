@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { useSupabase } from "../../contexts/SupabaseContext";
+import { getUserRole, ROLE_ADMIN } from "../../lib/permissions";
 
 const DATA_TYPES = ["Titre", "Description", "Date", "Lieu", "Personne", "Organisation", "Autre"];
 const STATUSES = ["draft", "reviewed", "published", "archived"];
@@ -51,14 +52,8 @@ export function DataReview() {
       }
 
       try {
-        const { data: userData, error } = await supabase
-          .from("users")
-          .select("role")
-          .eq("id", user.id)
-          .single();
-
-        if (error) throw error;
-        setIsAdmin(userData?.role === "admin");
+        const role = getUserRole(user);
+        setIsAdmin(role === ROLE_ADMIN);
       } catch (error) {
         console.error("Erreur lors de la vérification admin:", error);
         setIsAdmin(false);

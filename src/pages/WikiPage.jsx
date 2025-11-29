@@ -42,7 +42,9 @@ function PageMetadata({ page, syncHistory }) {
         {page.author && (
           <div className="wiki-metadata-item">
             <span className="wiki-metadata-label">✍️ Auteur :</span>
-            <span>{getDisplayName(page.author)}</span>
+            <Link to={`/users/${page.author?.id}`} className="hover:underline">
+              {getDisplayName(page.author)}
+            </Link>
           </div>
         )}
 

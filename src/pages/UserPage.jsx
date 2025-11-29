@@ -1,0 +1,183 @@
+import { useState, useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
+import { supabase } from "../lib/supabase";
+import { isDeleted } from "../lib/metadata";
+import { getDisplayName, getUserInitial } from "../lib/userDisplay";
+import { getUserRole, ROLE_ADMIN } from "../lib/permissions";
+import { useCurrentUser } from "../lib/useCurrentUser";
+import SubscribeButton from "../components/common/SubscribeButton";
+import SiteFooter from "../components/layout/SiteFooter";
+import { useSubscription } from "../lib/useSubscription";
+
+export default function UserPage() {
+  const { id } = useParams();
+  const { currentUser } = useCurrentUser();
+  const [user, setUser] = useState(null);
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [counts, setCounts] = useState({ posts: 0, followers: 0, following: 0 });
+  const [isFollowingYou, setIsFollowingYou] = useState(false);
+
+  const {
+    isSubscribed: isYouSubscribedToProfile,
+    loading: subscriptionLoading,
+    subscribe,
+    unsubscribe,
+  } = useSubscription("user", id, currentUser);
+
+  useEffect(() => {
+    if (id) loadUser();
+  }, [id]);
+
+  async function loadUser() {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.from("users").select("*").eq("id", id).single();
+      if (error) throw error;
+      setUser(data);
+
+      const { data: postsData, error: postsError } = await supabase
+        .from("posts")
+        .select("id, content, created_at, metadata")
+        .eq("user_id", id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (postsError) throw postsError;
+      setPosts((postsData || []).filter((p) => !isDeleted(p)));
+
+      // Counts: posts total, followers (content_subscriptions where content_type='user'), following (subscriptions by this user to other users)
+      const [{ count: postsCount }, { count: followersCount }, { count: followingCount }] =
+        await Promise.all([
+          supabase.from("posts").select("id", { count: "exact", head: true }).eq("user_id", id),
+          supabase
+            .from("content_subscriptions")
+            .select("id", { count: "exact", head: true })
+            .eq("content_type", "user")
+            .eq("content_id", id),
+          supabase
+            .from("content_subscriptions")
+            .select("id", { count: "exact", head: true })
+            .eq("content_type", "user")
+            .eq("user_id", id),
+        ]);
+
+      setCounts({
+        posts: postsCount || 0,
+        followers: followersCount || 0,
+        following: followingCount || 0,
+      });
+      // Check reciprocity: does the profile follow the current user?
+      if (currentUser?.id) {
+        const { data: followerEntry } = await supabase
+          .from("content_subscriptions")
+          .select("id")
+          .eq("content_type", "user")
+          .eq("content_id", currentUser.id)
+          .eq("user_id", id)
+          .maybeSingle();
+
+        setIsFollowingYou(!!followerEntry);
+      }
+    } catch (err) {
+      console.error("Error loading user page:", err);
+      setUser(null);
+      setPosts([]);
+      setCounts({ posts: 0, followers: 0, following: 0 });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) return <div className="py-8 text-center">Chargement...</div>;
+  if (!user) return <div className="py-8 text-center">Utilisateur introuvable</div>;
+
+  const metadata = user?.metadata || {};
+  let avatarSrc = "";
+  if (metadata.avatarUrl) {
+    if (metadata.avatarUrl.startsWith("http://") || metadata.avatarUrl.startsWith("https://")) {
+      avatarSrc = metadata.avatarUrl;
+    } else if (metadata.avatarUrl.startsWith("supabase://")) {
+      avatarSrc = ""; // TODO: construct public Supabase URL if available
+    }
+  }
+
+  const bio = metadata.bio || user.interests || metadata.about || "";
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="rounded-lg shadow-sm p-6 mb-6 flex items-center gap-6">
+        <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center text-3xl overflow-hidden">
+          {avatarSrc ? (
+            <img
+              src={avatarSrc}
+              alt={getDisplayName(user)}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span>{getUserInitial(user)}</span>
+          )}
+        </div>
+
+        <div className="flex-1">
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold">{getDisplayName(user)}</h1>
+            <SubscribeButton contentType="user" contentId={id} currentUser={currentUser} />
+            {/* If this profile is the contact/admin account, show link to Admin landing only to admin viewers */}
+            {user?.email &&
+              import.meta.env.VITE_CONTACT_EMAIL &&
+              currentUser &&
+              getUserRole(currentUser) === ROLE_ADMIN &&
+              String(user.email).toLowerCase() ===
+                String(import.meta.env.VITE_CONTACT_EMAIL).toLowerCase() && (
+                <Link
+                  to="/admin"
+                  className="ml-3 px-3 py-1 border rounded text-sm bg-primary-600 text-bauhaus-white"
+                >
+                  Admin
+                </Link>
+              )}
+          </div>
+          <p className="text-sm text-gray-400 mt-2">
+            Membre depuis:{" "}
+            {user?.created_at ? new Date(user.created_at).toLocaleDateString("fr-FR") : "N/A"}
+          </p>
+          {bio && <p className="mt-3 text-gray-300">{bio}</p>}
+
+          <div className="mt-4 flex items-center gap-4 text-sm text-gray-400">
+            <div>
+              {counts.posts} publication{counts.posts !== 1 ? "s" : ""}
+            </div>
+            <div>
+              {counts.followers} abonné{counts.followers !== 1 ? "s" : ""}
+            </div>
+            <div>
+              {counts.following} suivant{counts.following !== 1 ? "s" : ""}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-lg shadow-sm p-6">
+        <h2 className="text-xl font-semibold mb-4">Publications récentes</h2>
+        {posts.length === 0 ? (
+          <p className="text-gray-400">Aucune publication publique.</p>
+        ) : (
+          <ul className="space-y-3">
+            {posts.map((p) => (
+              <li key={p.id} className="border p-3 rounded">
+                <Link to={`/posts/${p.id}`} className="font-medium hover:underline">
+                  {p.metadata?.title || (p.content || "(sans titre)").slice(0, 80)}
+                </Link>
+                <div className="text-xs text-gray-400">
+                  {new Date(p.created_at).toLocaleDateString("fr-FR")}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <SiteFooter />
+    </div>
+  );
+}

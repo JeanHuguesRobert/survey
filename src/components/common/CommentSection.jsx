@@ -5,6 +5,7 @@ import { getParentCommentId, isReply, isEdited } from "../../lib/socialMetadata"
 import CommentForm from "../social/CommentForm";
 import ReactionPicker from "../social/ReactionPicker";
 import { getDisplayName, getUserInitial } from "../../lib/userDisplay";
+import { Link } from "react-router-dom";
 import { useDataLoader, useDataSaver, useFormSubmitter } from "../../lib/useStatusOperations";
 import { canComment } from "../../lib/permissions";
 
@@ -250,9 +251,12 @@ export default function CommentSection({
                 {getUserInitial(comment.users)}
               </div>
               <div>
-                <span className="text-sm font-medium text-gray-50">
+                <Link
+                  to={`/users/${comment.users?.id}`}
+                  className="text-sm font-medium text-gray-50 hover:underline"
+                >
                   {getDisplayName(comment.users)}
-                </span>
+                </Link>
                 <div className="text-xs text-gray-400">
                   {new Date(comment.created_at).toLocaleDateString("fr-FR", {
                     day: "numeric",

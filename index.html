@@ -16,6 +16,9 @@
   <meta property="og:description" id="og-description"
     content="Participez à la démocratie locale avec notre plateforme de consultation citoyenne.">
   <meta property="og:type" content="website">
+  <!-- Explicit og:image required by Facebook Debugger; replace with your public image URL -->
+  <meta property="og:image" id="og-image" content="https://lepp.fr/images/og-image.png">
+  <meta name="twitter:image" id="twitter-image" content="https://lepp.fr/images/og-image.png">
   <meta name="twitter:card" content="summary_large_image">
 
   <!-- Police Google Fonts -->
@@ -34,6 +37,7 @@
     // Récupération des constantes depuis les variables d'environnement
     const CITY_NAME = import.meta.env.VITE_CITY_NAME || 'Corte';
     const PARTY_NAME = import.meta.env.VITE_PARTY_NAME || 'Petit Parti';
+    const SITE_URL = import.meta.env.VITE_PUBLIC_URL || import.meta.env.VITE_BASE_URL || 'https://lepp.fr';
 
     // Mise à jour dynamique des métadonnées
     document.getElementById('page-title').textContent = `Consultation Citoyenne - ${PARTY_NAME}`;
@@ -42,6 +46,12 @@
     document.getElementById('og-title').setAttribute('content', `Consultation Citoyenne - ${PARTY_NAME}`);
     document.getElementById('og-description').setAttribute('content',
       `Participez à la démocratie locale de ${CITY_NAME} avec notre plateforme de consultation citoyenne.`);
+    // Ensure an explicit og:image is set (Facebook requires explicit image meta)
+    const ogImageUrl = `${SITE_URL.replace(/\/$/, '')}/images/og-image.png`;
+    const ogEl = document.getElementById('og-image');
+    const twEl = document.getElementById('twitter-image');
+    if (ogEl) ogEl.setAttribute('content', ogImageUrl);
+    if (twEl) twEl.setAttribute('content', ogImageUrl);
   </script>
 </body>
 

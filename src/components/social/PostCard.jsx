@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { getMetadata } from "../../lib/metadata";
 import {
   getPostTitle,
@@ -13,6 +13,7 @@ import { getDisplayName, getUserInitial } from "../../lib/userDisplay";
  * Carte d'affichage d'un post
  */
 export default function PostCard({ post, currentUserId }) {
+  const navigate = useNavigate();
   const title = getPostTitle(post);
   const postType = getPostType(post);
   const pinned = isPinned(post);
@@ -48,7 +49,15 @@ export default function PostCard({ post, currentUserId }) {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm font-bold text-gray-800">{getDisplayName(post.users)}</span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/users/${post.users?.id}`);
+              }}
+              className="text-sm font-bold text-gray-800 hover:underline"
+            >
+              {getDisplayName(post.users)}
+            </button>
             <span className="text-xs text-gray-400">•</span>
             <span className="text-xs text-gray-500">
               {new Date(post.created_at).toLocaleDateString("fr-FR", {
@@ -124,9 +133,13 @@ export default function PostCard({ post, currentUserId }) {
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-3">
           {tags.slice(0, 5).map((tag, idx) => (
-            <span key={idx} className="filter-chip text-xs py-0 px-2 cursor-default">
+            <Link
+              key={idx}
+              to={`/social?tab=posts&tag=${encodeURIComponent(tag)}`}
+              className="filter-chip text-xs py-0 px-2"
+            >
               #{tag}
-            </span>
+            </Link>
           ))}
           {tags.length > 5 && (
             <span className="text-xs text-gray-400 font-bold">+{tags.length - 5}</span>

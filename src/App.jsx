@@ -50,7 +50,9 @@ import GroupPage from "./pages/GroupPage";
 import GroupCreate from "./pages/GroupCreate";
 import PostPage from "./pages/PostPage";
 import PostCreate from "./pages/PostCreate";
+import PostEdit from "./pages/PostEdit";
 import UserProfile from "./pages/UserProfile";
+import UserPage from "./pages/UserPage";
 import VotingDashboard from "./pages/VotingDashboard";
 import UserDashboard from "./pages/UserDashboard";
 import GlobalDashboard from "./pages/GlobalDashboard";
@@ -68,6 +70,8 @@ import FacebookDeletionInstructions from "./pages/FacebookDeletionInstructions";
 import FacebookDeletionStatus from "./pages/FacebookDeletionStatus";
 import DataCollector from "./pages/DataCollector";
 import DataReview from "./pages/admin/DataReview";
+import Entities from "./pages/admin/Entities";
+import Admin from "./pages/Admin";
 import Gazette from "./pages/Gazette";
 import NotFound from "./pages/NotFound";
 
@@ -437,7 +441,9 @@ export default function Consultation() {
                       <div className="px-3 py-2">
                         <div className="text-xs text-gray-400 mb-2">👤 Connecté en tant que:</div>
                         <div className="text-sm font-medium text-light mb-3">
-                          {getDisplayName(currentUser)}
+                          <Link to={`/users/${currentUser.id}`} className="hover:underline">
+                            {getDisplayName(currentUser)}
+                          </Link>
                         </div>
                         <Link
                           to="/user-dashboard"
@@ -1267,7 +1273,19 @@ export function App() {
         <Route path="/gazette" element={<Gazette />} />
         <Route path="/gazette/:name" element={<Gazette />} />
         <Route path="/social" element={<Social />} />
+        <Route path="/users/:id" element={<UserPage />} />
+        <Route path="/user-dashboard" element={<UserDashboard />} />
+        <Route path="/user-profile" element={<UserProfile />} />
+        <Route path="/profile" element={<UserProfile />} />
         <Route path="/admin/data-review" element={<DataReview />} />
+        <Route path="/admin" element={<Admin />} />
+        <Route path="/admin/entities" element={<Entities />} />
+        <Route path="/subscriptions" element={<SubscriptionFeed />} />
+        <Route path="/groups/new" element={<GroupCreate />} />
+        <Route path="/groups/:id" element={<GroupPage />} />
+        <Route path="/posts/new" element={<PostCreate />} />
+        <Route path="/posts/:id" element={<PostPage />} />
+        <Route path="/posts/:id/edit" element={<PostEdit />} />
         <Route
           path="/oauth/facebook/deletion-instructions"
           element={<FacebookDeletionInstructions />}

@@ -17,6 +17,8 @@ import {
   POST_TYPES,
 } from "../../lib/socialMetadata";
 import CommentThread from "./CommentThread";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { getDisplayName, getUserInitial } from "../../lib/userDisplay";
 import SubscribeButton from "../common/SubscribeButton";
 import EventInfo from "./EventInfo";
@@ -236,7 +238,12 @@ export default function PostView({ currentUser }) {
 
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <span className="font-medium text-gray-50">{getDisplayName(post.users)}</span>
+                <Link
+                  to={`/users/${post.users?.id}`}
+                  className="font-medium text-gray-50 hover:underline"
+                >
+                  {getDisplayName(post.users)}
+                </Link>
                 <span className="text-gray-400">•</span>
                 <span className="text-sm text-gray-400">
                   {new Date(post.created_at).toLocaleDateString("fr-FR", {
@@ -320,18 +327,22 @@ export default function PostView({ currentUser }) {
           </div>
         )}
 
-        {/* Contenu */}
+        {/* Contenu (Markdown rendu) */}
         <div className="prose max-w-none mb-6">
-          <p className="whitespace-pre-wrap text-gray-200">{post.content}</p>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.content || ""}</ReactMarkdown>
         </div>
 
         {/* Tags */}
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-4">
             {tags.map((tag, idx) => (
-              <span key={idx} className="text-sm bg-blue-50 text-blue-700 px-3 py-1 rounded">
+              <Link
+                key={idx}
+                to={`/social?tab=posts&tag=${encodeURIComponent(tag)}`}
+                className="text-sm bg-blue-50 text-blue-700 px-3 py-1 rounded"
+              >
                 #{tag}
-              </span>
+              </Link>
             ))}
           </div>
         )}

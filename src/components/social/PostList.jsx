@@ -11,6 +11,7 @@ export default function PostList({
   linkedType = null,
   linkedId = null,
   postType = null,
+  tag = null,
   currentUserId = null,
 }) {
   const [posts, setPosts] = useState([]);
@@ -40,6 +41,11 @@ export default function PostList({
       }
       if (postType) {
         query = query.eq("metadata->>postType", postType);
+      }
+      if (tag) {
+        // Filter posts whose metadata.tags array contains the tag
+        // Use Supabase 'contains' on the JSON column
+        query = query.contains("metadata", { tags: [tag] });
       }
 
       // Tri: épinglés en premier, puis par date
