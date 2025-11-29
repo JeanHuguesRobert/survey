@@ -1,5 +1,6 @@
 import { PROVIDERS } from "../lib/oauthProviders.js";
 import fetch from "node-fetch"; // Netlify Functions environment usually has node-fetch or global fetch in Node 18+
+import { createClient } from "@supabase/supabase-js";
 
 // Helper to exchange code for token
 async function exchangeCodeForToken(providerConf, code, redirectUri) {
@@ -51,13 +52,46 @@ async function fetchProfile(providerConf, tokenData) {
 
 // Mock function for storing avatar
 async function storeAvatarForUser(userId, normalizedAvatarUrl, provider, sourceValue) {
-  // TODO: Download image from normalizedAvatarUrl
-  // TODO: Resize to 128x128
-  // TODO: Upload to Supabase Storage / S3
-  // TODO: Update user profile in DB with new internal URL
+  // Minimal implementation: persist avatarUrl and provider identifier into user's metadata
+  try {
+    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!SUPABASE_URL || !SUPABASE_KEY) {
+      console.warn("Supabase service role key not configured; cannot persist avatar");
+      return normalizedAvatarUrl;
+    }
 
-  console.log(`[TODO] Store avatar for user ${userId}: ${normalizedAvatarUrl}`);
-  return normalizedAvatarUrl;
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
+
+    // Read existing metadata
+    const { data: existing, error: fetchErr } = await supabase
+      .from("users")
+      .select("metadata")
+      .eq("id", userId)
+      .maybeSingle();
+    let metadata = (existing && existing.metadata) || {};
+    // Set facebook id (sourceValue) for provider 'facebook'
+    if (provider === "facebook") {
+      metadata.facebookId = sourceValue;
+    }
+    // Update avatar URL
+    metadata.avatarUrl = normalizedAvatarUrl;
+
+    const { data, error } = await supabase
+      .from("users")
+      .update({ metadata })
+      .eq("id", userId)
+      .select()
+      .single();
+    if (error) {
+      console.error("Failed to persist avatar metadata:", error);
+      return normalizedAvatarUrl;
+    }
+    return normalizedAvatarUrl;
+  } catch (err) {
+    console.error("storeAvatarForUser error", err);
+    return normalizedAvatarUrl;
+  }
 }
 
 export const handler = async (event) => {

@@ -65,10 +65,23 @@ in Supabase settings.
 - For the _server or deployment settings_ (if you run any backend auth route), store the secret
   securely in your host's environment variables or a `.env` used by the backend:
 
-  FACEBOOK_APP_ID=your_facebook_app_id FACEBOOK_CLIENT_SECRET=your_facebook_client_secret
-  APP_BASE_URL=https://your-site.netlify.app # used by Netlify functions to build redirect URIs
+  FACEBOOK_APP_ID=your_facebook_app_id APP_BASE_URL=https://your-site.netlify.app
+
+  Note: this repo prefers using a server-side `FACEBOOK_TOKEN` (app access token or long-lived
+  token) for server operations. If you do still have an app secret available you can set
+  `FACEBOOK_CLIENT_SECRET` as a fallback for some server flows, but `FACEBOOK_TOKEN` is the
+  recommended and safer choice for server-to-Facebook calls.
 
   (Exact names depend on your backend code; use the names your backend expects.)
+
+  Additional server env vars used by the repo:
+  - `FACEBOOK_TOKEN` (recommended): an app access token or long-lived token used by server functions
+    to fetch Facebook profile pictures and oEmbed content without exposing the app secret to
+    clients. Server functions prefer `FACEBOOK_TOKEN`. If you do not provide `FACEBOOK_TOKEN` the
+    code may fall back to combining `FACEBOOK_APP_ID|FACEBOOK_CLIENT_SECRET`.
+  - `SUPABASE_SERVICE_ROLE_KEY` (required for server-side writes): used by Netlify Functions to
+    persist provider metadata (for example `metadata.facebookId` and `metadata.avatarUrl`) into the
+    `users` table. Keep this value secret; do not expose it to the browser.
 
 6. Redirect URLs and production
 
@@ -84,48 +97,53 @@ in Supabase settings.
 - Open the auth modal — the Facebook button appears only when `VITE_FACEBOOK_APP_ID` is present.
 - Click the button: you should be redirected to Facebook and then back via Supabase's callback URL.
 
+Server-side avatar & fallback (new)
+
+- This repository includes server endpoints that simplify safe access to Facebook profile pictures
+  and oEmbed HTML without exposing secrets to the client. In particular:
+  - `/api/facebook-avatar` — returns a non-redirecting picture URL for a given Facebook user id
+    (`facebookId`) using `FACEBOOK_TOKEN` (preferred) or `FACEBOOK_APP_ID|FACEBOOK_CLIENT_SECRET`.
+  - `/api/facebook-oembed` — proxies Facebook oEmbed requests server-side (already present in the
+    project) and should be used by client components instead of calling Facebook directly.
+
+- OAuth completion (`/api/oauth-complete`) has been updated so that when a user completes the
+  Facebook OAuth avatar flow, the server will persist `metadata.facebookId` and `metadata.avatarUrl`
+  into the `users` table using the `SUPABASE_SERVICE_ROLE_KEY`. This lets the frontend display an
+  HTTP avatar image directly from user metadata without calling Facebook from the browser.
+
+- Local testing tips:
+  - Ensure you set `FACEBOOK_TOKEN` (or `FACEBOOK_APP_ID` + `FACEBOOK_CLIENT_SECRET`) in your local
+    environment when running Netlify Dev so the server endpoints work. Example (PowerShell):
+
+    ```powershell
+    $env:FACEBOOK_TOKEN='EAF...'
+    $env:SUPABASE_URL='https://your.supabase.co'
+    $env:SUPABASE_SERVICE_ROLE_KEY='eyJ...'
+    npm run dev
+    ```
+
+  - For testing the fallback manually, call:
+
+    ```bash
+    curl "http://localhost:8888/api/facebook-avatar?facebookId=<facebookId>"
+    ```
+
+Security reminders
+
+- Do not commit `FACEBOOK_CLIENT_SECRET`, `FACEBOOK_TOKEN`, or `SUPABASE_SERVICE_ROLE_KEY` to the
+  repository. Rotate any secrets that were previously committed or leaked.
+- Add local `.env` files to `.gitignore` and prefer setting environment variables in your deployment
+  provider (Netlify, Vercel, etc.).
+
 Notes
 
 - For security, do not commit secrets to the repo. Use deployment provider env vars for production.
 - Supabase acts as the OAuth intermediary; you must set the App ID/Secret in Supabase's provider
   settings (step 4).
 
-If you want, I can also:
-
-- Add example `.env.example` values to the repo.
-- Update any backend auth route to read `FACEBOOK_APP_ID` / `FACEBOOK_APP_SECRET` explicitly.
-- Help set Netlify/Vercel environment variables with exact names used by your backend.
-
----
-
-**Client-side Facebook SDK (optional)**
-
-- Purpose: load the Facebook JS SDK only when you need client-side Facebook features (Share dialogs,
-  FB.api, social plugins). This is independent from OAuth authentication handled by Supabase or your
-  backend.
-- Show the button / load the SDK only when `VITE_FACEBOOK_APP_ID` is set in your frontend env.
-- Minimal conditional injection (place in `src/main.jsx` or after app mount):
-
-```javascript
-const FB_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID;
-if (FB_APP_ID) {
-  window.fbAsyncInit = function () {
-    FB.init({ appId: FB_APP_ID, cookie: true, xfbml: true, version: "v16.0" });
-    FB.AppEvents.logPageView();
-  };
-  (function (d, s, id) {
-    if (d.getElementById(id)) return;
-    const js = d.createElement(s);
-    js.id = id;
-    js.src = "https://connect.facebook.net/en_US/sdk.js";
-    d.getElementsByTagName(s)[0].parentNode.insertBefore(js, d.getElementsByTagName(s)[0]);
-  })(document, "script", "facebook-jssdk");
-}
-```
-
 - CSP: ensure `connect.facebook.net` (and `www.facebook.com` if using widgets) are allowed in your
-  Content-Security-Policy. Your `netlify.toml` already allows `*.facebook.com` but confirm
-  `connect.facebook.net` is covered.
+  Content-Security-Policy. Your `netlify.toml` should allow `*.facebook.com` and
+  `connect.facebook.net`.
 - Security: never expose your App Secret to the client. The SDK uses the App ID only.
 
 ---
@@ -144,7 +162,9 @@ https://lepp.fr/api/facebook-data-deletion
 2. Comportement attendu du callback:
 
 - Recevoir une requête POST contenant `signed_request` (x-www-form-urlencoded).
-- Valider la signature avec votre `FACEBOOK_CLIENT_SECRET`.
+- Valider la signature with your `FACEBOOK_CLIENT_SECRET` (this callback requires the app secret to
+  validate the signed_request; keep it safe). If you have removed `FACEBOOK_CLIENT_SECRET` from your
+  environment, re-add it if you plan to support Facebook's data-deletion callback.
 - Lancer la suppression des données liées à `user_id` (ou planifier la suppression) côté serveur.
 - Répondre immédiatement avec un JSON contenant `url` et `confirmation_code` comme ci‑dessous:
 
@@ -170,7 +190,6 @@ https://lepp.fr/api/facebook-data-deletion
 
 5. Variables d'environnement à définir (Netlify ou autre environnement de fonctions):
 
-- `FACEBOOK_CLIENT_SECRET` : utilisé pour vérifier `signed_request`.
 - `APP_BASE_URL` : utilisé pour construire `url` de statut (ex: `https://lepp.fr`).
 
 Notes
