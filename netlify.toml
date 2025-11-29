@@ -13,6 +13,10 @@
   included_files = ["public/**"]
 
 [[edge_functions]]
+path = "/*"
+function = "root-redirect"
+
+[[edge_functions]]
   path = "/api/chat-stream"
   function = "rag_chatbot"
 
@@ -43,11 +47,6 @@
 [[redirects]]
   from = "/public/*"
   to = "/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
   status = 200
 
 [[headers]]
