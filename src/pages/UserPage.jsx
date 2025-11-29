@@ -93,14 +93,50 @@ export default function UserPage() {
   if (!user) return <div className="py-8 text-center">Utilisateur introuvable</div>;
 
   const metadata = user?.metadata || {};
-  let avatarSrc = "";
-  if (metadata.avatarUrl) {
-    if (metadata.avatarUrl.startsWith("http://") || metadata.avatarUrl.startsWith("https://")) {
-      avatarSrc = metadata.avatarUrl;
-    } else if (metadata.avatarUrl.startsWith("supabase://")) {
-      avatarSrc = ""; // TODO: construct public Supabase URL if available
-    }
-  }
+  const [avatarSrc, setAvatarSrc] = useState("");
+
+  useEffect(() => {
+    // Resolve avatar source from metadata.avatarUrl or fallback to Facebook
+    let cancelled = false;
+    (async function resolveAvatar() {
+      try {
+        if (metadata.avatarUrl) {
+          if (
+            metadata.avatarUrl.startsWith("http://") ||
+            metadata.avatarUrl.startsWith("https://")
+          ) {
+            if (!cancelled) setAvatarSrc(metadata.avatarUrl);
+            return;
+          }
+          if (metadata.avatarUrl.startsWith("supabase://")) {
+            // TODO: construct public Supabase URL if available
+            if (!cancelled) setAvatarSrc("");
+            return;
+          }
+        }
+
+        // Fallback: if there's a facebookId, call server endpoint to get picture url
+        if (metadata.facebookId) {
+          const res = await fetch(
+            `/api/facebook-avatar?facebookId=${encodeURIComponent(metadata.facebookId)}`
+          );
+          if (res.ok) {
+            const j = await res.json();
+            if (!cancelled && j?.url) setAvatarSrc(j.url);
+            return;
+          }
+        }
+
+        if (!cancelled) setAvatarSrc("");
+      } catch (err) {
+        console.error("Error resolving avatar:", err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [metadata?.avatarUrl, metadata?.facebookId]);
 
   const bio = metadata.bio || user.interests || metadata.about || "";
 

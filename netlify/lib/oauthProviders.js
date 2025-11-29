@@ -43,7 +43,7 @@ export const PROVIDERS = {
     authorizeUrl: "https://www.facebook.com/v16.0/dialog/oauth",
     tokenUrl: "https://graph.facebook.com/v16.0/oauth/access_token",
     profileUrl: "https://graph.facebook.com/me?fields=id,name,picture{url}",
-    clientIdEnv: "FACEBOOK_CLIENT_ID",
+    clientIdEnv: "FACEBOOK_APP_ID",
     clientSecretEnv: "FACEBOOK_CLIENT_SECRET",
     redirectPath: "/oauth/facebook/callback",
     scopes: ["public_profile", "email"],

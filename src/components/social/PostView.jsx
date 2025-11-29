@@ -19,6 +19,7 @@ import {
 import CommentThread from "./CommentThread";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import FacebookEmbed from "../FacebookEmbed";
 import { getDisplayName, getUserInitial } from "../../lib/userDisplay";
 import SubscribeButton from "../common/SubscribeButton";
 import EventInfo from "./EventInfo";
@@ -331,6 +332,13 @@ export default function PostView({ currentUser }) {
         <div className="prose max-w-none mb-6">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.content || ""}</ReactMarkdown>
         </div>
+
+        {/* Facebook embed if post.metadata.sourceUrl is a Facebook URL */}
+        {post.metadata?.sourceUrl && post.metadata.sourceUrl.includes("facebook.com") && (
+          <div className="mb-6 flex justify-center">
+            <FacebookEmbed url={post.metadata.sourceUrl} className="w-full" />
+          </div>
+        )}
 
         {/* Tags */}
         {tags.length > 0 && (

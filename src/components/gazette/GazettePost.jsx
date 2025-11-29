@@ -1,6 +1,7 @@
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import { Link } from "react-router-dom";
+import FacebookEmbed from "../FacebookEmbed";
 import { supabase } from "../../lib/supabase";
 
 export default function GazettePost({ post, isEditor = false }) {
@@ -147,16 +148,7 @@ export default function GazettePost({ post, isEditor = false }) {
       </div>
       {isFacebook && (
         <div className="mt-6 mb-4 flex justify-center">
-          <iframe
-            src={`https://www.facebook.com/plugins/post.php?href=${encodeURIComponent(sourceUrl)}&width=500&show_text=true&height=500&appId=`}
-            width="500"
-            height="500"
-            style={{ border: "none", overflow: "hidden", maxWidth: "100%" }}
-            scrolling="no"
-            frameBorder="0"
-            allowFullScreen={true}
-            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-          />
+          <FacebookEmbed url={sourceUrl} className="w-full max-w-2xl" />
         </div>
       )}
     </article>

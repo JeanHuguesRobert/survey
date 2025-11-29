@@ -65,7 +65,7 @@ in Supabase settings.
 - For the _server or deployment settings_ (if you run any backend auth route), store the secret
   securely in your host's environment variables or a `.env` used by the backend:
 
-  FACEBOOK_CLIENT_ID=your_facebook_client_id FACEBOOK_CLIENT_SECRET=your_facebook_client_secret
+  FACEBOOK_APP_ID=your_facebook_app_id FACEBOOK_CLIENT_SECRET=your_facebook_client_secret
   APP_BASE_URL=https://your-site.netlify.app # used by Netlify functions to build redirect URIs
 
   (Exact names depend on your backend code; use the names your backend expects.)
