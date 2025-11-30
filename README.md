@@ -1,8 +1,8 @@
-# 📊 Survey - Plateforme de Consultation Citoyenne
+# 📊 Kudocracy.Survey - Plateforme de Consultation Citoyenne
 
-Survey is a generic open-source platform for citizen consultation and participatory democracy,
-reusable by any municipality or collective worldwide. It belongs to the Kudocracy family of
-projects.
+Kudocracy.Survey is a generic open-source platform for citizen consultation and participatory
+democracy, reusable by any municipality or collective worldwide. It belongs to the Kudocracy family
+of projects.
 
 The Corte (Corsica) deployment is the first real-world pilot.
 
@@ -22,15 +22,15 @@ It provides digital tools that may be used by any citizen, collective or institu
 
 ## Pilote à Corte
 
-A l'occasion des futures élections municipales, Survey sera utilisé pour la première fois en
+A l'occasion des futures élections municipales, la plateforme sera utilisé pour la première fois en
 production. L'agent IA Ophélia est utilisé pour répondre aux questions des citoyens en faisant
 figure de candidate citoyenne virtuelle.
 
 > Prototype disponible sur [LePP.fr](https://lepp.fr/)
 
-**Survey** est une plateforme numérique conçue pour renforcer la démocratie participative locale.
-Elle permet aux citoyens de donner leur avis, de proposer des idées et de participer activement à la
-vie de leur commune ou communauté.
+Kudocracy.Survey est une plateforme numérique conçue pour renforcer la démocratie participative
+locale. Elle permet aux citoyens de donner leur avis, de proposer des idées et de participer
+activement à la vie de leur commune ou communauté.
 
 ---
 
@@ -350,7 +350,7 @@ traçable et indépendante** via **Open Collective**.
 - Aucune action partisane
 - Aucun mouvement ou front
 
-Survey est une **infrastructure open source neutre**, réutilisable par :
+Kudocracy.Survey est une **infrastructure open source neutre**, réutilisable par :
 
 - les citoyens,
 - les communes,
@@ -380,7 +380,7 @@ Survey est une **infrastructure open source neutre**, réutilisable par :
 - Testez la plateforme et signalez les bugs
 - Proposez des améliorations via GitHub Issues
 - Partagez la plateforme dans votre commune
-- Contactez-nous pour adapter Survey à votre territoire
+- Contactez-nous pour adapter Kudocracy.Survey à votre territoire
 
 ---
 

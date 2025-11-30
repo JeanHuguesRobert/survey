@@ -320,4 +320,4 @@ Le composant s'adapte automatiquement aux petits écrans :
 ---
 
 **Dernière mise à jour :** 20 novembre 2025 **Version :** 1.0 **Auteur :** GitHub Copilot pour
-Tweesic Survey
+Kudocracy.Survey

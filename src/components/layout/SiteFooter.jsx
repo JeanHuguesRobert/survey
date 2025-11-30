@@ -563,7 +563,7 @@ export default function SiteFooter({
               Accueil
             </Link>
             <Link to="/survey" style={styles.link}>
-              Présentation Survey
+              Présentation
             </Link>
             <Link to="/transparence" style={styles.link}>
               Enquête Transparence

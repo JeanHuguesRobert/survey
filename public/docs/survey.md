@@ -1,13 +1,13 @@
-# Survey : la consultation citoyenne ouverte de Corte
+# Kudocray/Survey : la consultation citoyenne ouverte de Corte
 
 Une plateforme participative, libre et transparente pour débattre, proposer et suivre la vie
 démocratique. Tout est publié sous licence MIT et co-construit avec les usagers.
 
 ## À propos du projet
 
-Survey est une initiative bénévole portée par le mouvement citoyen Pertitellu à Corte. L'outil
-combine plusieurs espaces complémentaires pour renforcer la participation citoyenne et enrichir la
-démocratie locale.
+Kudocracy.Survey est une initiative bénévole portée par le mouvement citoyen Pertitellu à Corte.
+L'outil combine plusieurs espaces complémentaires pour renforcer la participation citoyenne et
+enrichir la démocratie locale.
 
 L'objectif : faciliter la participation, documenter les débats, créer du lien entre citoyens et
 publier des résultats auditables en temps réel.
@@ -134,7 +134,8 @@ Votre vie privée est notre priorité :
 
 ## Une initiative citoyenne collaborative
 
-Survey est un projet bénévole porté par des citoyens pour les citoyens. Chacun peut contribuer :
+Kudocracy.Survey est un projet bénévole porté par des citoyens pour les citoyens. Chacun peut
+contribuer :
 
 - **Utilisateurs** : participez, proposez, débattez, documentez
 - **Développeurs** : le code est open source (licence MIT), vous pouvez l'améliorer
