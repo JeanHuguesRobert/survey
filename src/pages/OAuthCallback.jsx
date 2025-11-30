@@ -14,6 +14,7 @@ export default function OAuthCallback() {
     let isMounted = true;
     async function handle() {
       setState({ loading: true, error: null });
+      console.log("[OAuthCallback] URL", window.location.href);
       try {
         // attempt to complete the OAuth flow; completeIfCallback expects a userId only
         // when a user is logged in. If not logged-in, the hook will throw an error.

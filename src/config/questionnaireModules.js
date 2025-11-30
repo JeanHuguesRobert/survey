@@ -12,15 +12,15 @@ export const QUESTIONNAIRE_MODULES = {
             id: "connaissanceEnjeuxLocaux",
             label: "Connaissez-vous les principaux enjeux de votre commune ?",
             type: "radio",
-            options: ["Très bien", "Assez bien", "Peu", "Pas du tout"]
+            options: ["Très bien", "Assez bien", "Peu", "Pas du tout"],
           },
           {
             id: "participationConseil",
             label: "Avez-vous déjà assisté à une séance du conseil municipal ?",
             type: "radio",
-            options: ["Oui, régulièrement", "Oui, occasionnellement", "Une fois", "Jamais"]
-          }
-        ]
+            options: ["Oui, régulièrement", "Oui, occasionnellement", "Une fois", "Jamais"],
+          },
+        ],
       },
       {
         id: "transparency",
@@ -32,9 +32,9 @@ export const QUESTIONNAIRE_MODULES = {
             type: "scale",
             min: 1,
             max: 5,
-            labels: ["Très mauvaise", "Mauvaise", "Correcte", "Bonne", "Excellente"]
-          }
-        ]
+            labels: ["Très mauvaise", "Mauvaise", "Correcte", "Bonne", "Excellente"],
+          },
+        ],
       },
       {
         id: "democracy_satisfaction",
@@ -42,15 +42,16 @@ export const QUESTIONNAIRE_MODULES = {
         questions: [
           {
             id: "satisfactionDemocratie",
-            label: "Sur une échelle de 1 à 5, comment évaluez-vous le fonctionnement démocratique de votre commune ?",
+            label:
+              "Sur une échelle de 1 à 5, comment évaluez-vous le fonctionnement démocratique de votre commune ?",
             type: "scale",
             min: 1,
             max: 5,
-            labels: ["Très insatisfait", "Insatisfait", "Neutre", "Satisfait", "Très satisfait"]
-          }
-        ]
-      }
-    ]
+            labels: ["Très insatisfait", "Insatisfait", "Neutre", "Satisfait", "Très satisfait"],
+          },
+        ],
+      },
+    ],
   },
 
   association: {
@@ -64,15 +65,15 @@ export const QUESTIONNAIRE_MODULES = {
             id: "connaissanceStatuts",
             label: "Connaissez-vous les statuts de votre association ?",
             type: "radio",
-            options: ["Très bien", "Assez bien", "Peu", "Pas du tout"]
+            options: ["Très bien", "Assez bien", "Peu", "Pas du tout"],
           },
           {
             id: "participationAG",
             label: "Participez-vous aux assemblées générales ?",
             type: "radio",
-            options: ["Toujours", "Souvent", "Parfois", "Jamais"]
-          }
-        ]
+            options: ["Toujours", "Souvent", "Parfois", "Jamais"],
+          },
+        ],
       },
       {
         id: "transparency",
@@ -84,9 +85,9 @@ export const QUESTIONNAIRE_MODULES = {
             type: "scale",
             min: 1,
             max: 5,
-            labels: ["Très mauvaise", "Mauvaise", "Correcte", "Bonne", "Excellente"]
-          }
-        ]
+            labels: ["Très mauvaise", "Mauvaise", "Correcte", "Bonne", "Excellente"],
+          },
+        ],
       },
       {
         id: "democracy_satisfaction",
@@ -94,15 +95,16 @@ export const QUESTIONNAIRE_MODULES = {
         questions: [
           {
             id: "satisfactionDemocratie",
-            label: "Sur une échelle de 1 à 5, comment évaluez-vous le fonctionnement démocratique de votre association ?",
+            label:
+              "Sur une échelle de 1 à 5, comment évaluez-vous le fonctionnement démocratique de votre association ?",
             type: "scale",
             min: 1,
             max: 5,
-            labels: ["Très insatisfait", "Insatisfait", "Neutre", "Satisfait", "Très satisfait"]
-          }
-        ]
-      }
-    ]
+            labels: ["Très insatisfait", "Insatisfait", "Neutre", "Satisfait", "Très satisfait"],
+          },
+        ],
+      },
+    ],
   },
 
   school: {
@@ -116,15 +118,15 @@ export const QUESTIONNAIRE_MODULES = {
             id: "connaissanceProjetEcole",
             label: "Connaissez-vous le projet d'établissement ?",
             type: "radio",
-            options: ["Très bien", "Assez bien", "Peu", "Pas du tout"]
+            options: ["Très bien", "Assez bien", "Peu", "Pas du tout"],
           },
           {
             id: "participationConseil",
             label: "Participez-vous aux conseils d'école/établissement ?",
             type: "radio",
-            options: ["Toujours", "Souvent", "Parfois", "Jamais"]
-          }
-        ]
+            options: ["Toujours", "Souvent", "Parfois", "Jamais"],
+          },
+        ],
       },
       {
         id: "transparency",
@@ -136,9 +138,9 @@ export const QUESTIONNAIRE_MODULES = {
             type: "scale",
             min: 1,
             max: 5,
-            labels: ["Très mauvaise", "Mauvaise", "Correcte", "Bonne", "Excellente"]
-          }
-        ]
+            labels: ["Très mauvaise", "Mauvaise", "Correcte", "Bonne", "Excellente"],
+          },
+        ],
       },
       {
         id: "democracy_satisfaction",
@@ -146,15 +148,16 @@ export const QUESTIONNAIRE_MODULES = {
         questions: [
           {
             id: "satisfactionDemocratie",
-            label: "Sur une échelle de 1 à 5, comment évaluez-vous le fonctionnement démocratique de votre établissement ?",
+            label:
+              "Sur une échelle de 1 à 5, comment évaluez-vous le fonctionnement démocratique de votre établissement ?",
             type: "scale",
             min: 1,
             max: 5,
-            labels: ["Très insatisfait", "Insatisfait", "Neutre", "Satisfait", "Très satisfait"]
-          }
-        ]
-      }
-    ]
+            labels: ["Très insatisfait", "Insatisfait", "Neutre", "Satisfait", "Très satisfait"],
+          },
+        ],
+      },
+    ],
   },
 
   company: {
@@ -168,15 +171,15 @@ export const QUESTIONNAIRE_MODULES = {
             id: "connaissanceValeurs",
             label: "Connaissez-vous les valeurs et la mission de votre entreprise ?",
             type: "radio",
-            options: ["Très bien", "Assez bien", "Peu", "Pas du tout"]
+            options: ["Très bien", "Assez bien", "Peu", "Pas du tout"],
           },
           {
             id: "participationDecisions",
             label: "Êtes-vous consulté sur les décisions qui vous concernent ?",
             type: "radio",
-            options: ["Toujours", "Souvent", "Parfois", "Jamais"]
-          }
-        ]
+            options: ["Toujours", "Souvent", "Parfois", "Jamais"],
+          },
+        ],
       },
       {
         id: "transparency",
@@ -188,9 +191,9 @@ export const QUESTIONNAIRE_MODULES = {
             type: "scale",
             min: 1,
             max: 5,
-            labels: ["Très mauvaise", "Mauvaise", "Correcte", "Bonne", "Excellente"]
-          }
-        ]
+            labels: ["Très mauvaise", "Mauvaise", "Correcte", "Bonne", "Excellente"],
+          },
+        ],
       },
       {
         id: "democracy_satisfaction",
@@ -198,15 +201,16 @@ export const QUESTIONNAIRE_MODULES = {
         questions: [
           {
             id: "satisfactionDemocratie",
-            label: "Sur une échelle de 1 à 5, comment évaluez-vous le fonctionnement démocratique de votre entreprise ?",
+            label:
+              "Sur une échelle de 1 à 5, comment évaluez-vous le fonctionnement démocratique de votre entreprise ?",
             type: "scale",
             min: 1,
             max: 5,
-            labels: ["Très insatisfait", "Insatisfait", "Neutre", "Satisfait", "Très satisfait"]
-          }
-        ]
-      }
-    ]
+            labels: ["Très insatisfait", "Insatisfait", "Neutre", "Satisfait", "Très satisfait"],
+          },
+        ],
+      },
+    ],
   },
 
   online_community: {
@@ -220,15 +224,15 @@ export const QUESTIONNAIRE_MODULES = {
             id: "connaissanceRegles",
             label: "Connaissez-vous les règles de votre communauté ?",
             type: "radio",
-            options: ["Très bien", "Assez bien", "Peu", "Pas du tout"]
+            options: ["Très bien", "Assez bien", "Peu", "Pas du tout"],
           },
           {
             id: "participationDecisions",
             label: "Participez-vous aux décisions communautaires ?",
             type: "radio",
-            options: ["Toujours", "Souvent", "Parfois", "Jamais"]
-          }
-        ]
+            options: ["Toujours", "Souvent", "Parfois", "Jamais"],
+          },
+        ],
       },
       {
         id: "transparency",
@@ -240,9 +244,9 @@ export const QUESTIONNAIRE_MODULES = {
             type: "scale",
             min: 1,
             max: 5,
-            labels: ["Très mauvaise", "Mauvaise", "Correcte", "Bonne", "Excellente"]
-          }
-        ]
+            labels: ["Très mauvaise", "Mauvaise", "Correcte", "Bonne", "Excellente"],
+          },
+        ],
       },
       {
         id: "democracy_satisfaction",
@@ -250,16 +254,17 @@ export const QUESTIONNAIRE_MODULES = {
         questions: [
           {
             id: "satisfactionDemocratie",
-            label: "Sur une échelle de 1 à 5, comment évaluez-vous le fonctionnement démocratique de votre communauté ?",
+            label:
+              "Sur une échelle de 1 à 5, comment évaluez-vous le fonctionnement démocratique de votre communauté ?",
             type: "scale",
             min: 1,
             max: 5,
-            labels: ["Très insatisfait", "Insatisfait", "Neutre", "Satisfait", "Très satisfait"]
-          }
-        ]
-      }
-    ]
-  }
+            labels: ["Très insatisfait", "Insatisfait", "Neutre", "Satisfait", "Très satisfait"],
+          },
+        ],
+      },
+    ],
+  },
 };
 
 // Fonction pour obtenir les modules de questionnaire de la communauté actuelle
@@ -271,16 +276,16 @@ export const getCommunityQuestionnaireModules = (communityType) => {
 export const generateInitialFormState = (communityType) => {
   const modules = getCommunityQuestionnaireModules(communityType);
   const initialState = {};
-  
-  modules.modules.forEach(module => {
-    module.questions.forEach(question => {
-      if (question.type === 'scale') {
+
+  modules.modules.forEach((module) => {
+    module.questions.forEach((question) => {
+      if (question.type === "scale") {
         initialState[question.id] = 3; // Valeur par défaut au milieu de l'échelle
-      } else if (question.type === 'radio') {
-        initialState[question.id] = '';
+      } else if (question.type === "radio") {
+        initialState[question.id] = "";
       }
     });
   });
-  
+
   return initialState;
 };

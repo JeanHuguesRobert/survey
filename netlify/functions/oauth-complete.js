@@ -8,6 +8,7 @@ async function exchangeCodeForToken(providerConf, code, redirectUri) {
     client_id: process.env[providerConf.clientIdEnv],
     client_secret: process.env[providerConf.clientSecretEnv],
     code,
+    redirect_uri: redirectUri,
   });
 
   if (providerConf.name === "Google") {
@@ -26,6 +27,14 @@ async function exchangeCodeForToken(providerConf, code, redirectUri) {
 
   if (!response.ok) {
     const text = await response.text();
+    console.error(
+      "[oauth-complete] token exchange failed for provider",
+      providerConf.name,
+      "redirectUri:",
+      redirectUri,
+      "response:",
+      text
+    );
     throw new Error(`Failed to exchange token: ${text}`);
   }
 
@@ -69,7 +78,9 @@ export const handler = async (event) => {
     }
 
     const appBaseUrl = process.env.APP_BASE_URL || "http://localhost:8888";
-    const redirectUri = `${appBaseUrl}${conf.redirectPath}`;
+    // Prefer the redirectUri stored in user metadata at oauth-start, if present. This ensures
+    // the token exchange uses the exact same redirect_uri used in the authorize request.
+    let redirectUri = `${appBaseUrl}${conf.redirectPath}`;
 
     // 0. Parse Authorization header and validate Supabase session token
     const authHeader =
@@ -126,12 +137,29 @@ export const handler = async (event) => {
       if (!oauthMeta.expiresAt || new Date(oauthMeta.expiresAt) < new Date()) {
         return { statusCode: 400, body: JSON.stringify({ error: "State expired" }) };
       }
+      // If a redirectUri was saved at start time, use it for token exchange. This avoids
+      // mismatches caused by APP_BASE_URL differences or different runtime environments.
+      if (oauthMeta && oauthMeta.redirectUri) {
+        if (oauthMeta.redirectUri !== `${appBaseUrl}${conf.redirectPath}`) {
+          console.warn(
+            "[oauth-complete] Using saved redirectUri from metadata differs from constructed appBaseUrl redirect; saved:",
+            oauthMeta.redirectUri,
+            "constructed:",
+            `${appBaseUrl}${conf.redirectPath}`
+          );
+        }
+        redirectUri = oauthMeta.redirectUri;
+      }
     } catch (err) {
       console.error("Error validating state", err);
       return { statusCode: 500, body: JSON.stringify({ error: "Error validating state" }) };
     }
 
+    // Debug: show state + userId + provider
+    console.log("[oauth-complete] provider:", provider, "userId:", userId, "state:", state);
+
     // 2. Exchange code for token
+    console.log("[oauth-complete] provider:", provider, "code:", code, "redirectUri:", redirectUri);
     const tokenData = await exchangeCodeForToken(conf, code, redirectUri);
 
     // 2. Fetch profile

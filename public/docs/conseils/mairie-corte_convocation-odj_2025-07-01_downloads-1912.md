@@ -44,7 +44,7 @@ Tel : 04.95.45.23.00 / Fax : 04.95.46.30.83
 
 www. mairie-corte. fr
 
-ORDRE DU JOUR
+ORDRE DU JOUR
 
 DU CONSEIL MUNICIPAL
 
@@ -60,9 +60,8 @@ C — Attribution de subventions aux Associations
 
 D — Adoption de plans de financement :
 
-Ÿ Transition numérique Ville de Corte
-v Acquisition des parcelles AD 106/107/108 et 109
-v OPAH : Individualisations de crédits pour Travaux Lourds au profit de :
+Ÿ Transition numérique Ville de Corte v Acquisition des parcelles AD 106/107/108 et 109 v OPAH :
+Individualisations de crédits pour Travaux Lourds au profit de :
 
 - Madame Stéphanie VALENTINI
 
@@ -82,19 +81,21 @@ B — Adoption du R. P. Q. S. 2024
 
 3 - Marchés publics :
 
-A — Autorisation à donner au Maire de signer le marché de maitrise d’œuvre Espace Chabriéres
-B — Autorisation à donner au Maire de signer le marché de « Débroussaillage » - 4 lots (CAO du
+A — Autorisation à donner au Maire de signer le marché de maitrise d’œuvre Espace Chabriéres B —
+Autorisation à donner au Maire de signer le marché de « Débroussaillage » - 4 lots (CAO du
 
 03 juin 2025)
 
 4 — Gestion des Ressources Humaines :
 
-A — Création d’un poste de catégorie B — Auxiliaire de puéricultrice de classe supérieure (avancement de
+A — Création d’un poste de catégorie B — Auxiliaire de puéricultrice de classe supérieure
+(avancement de
 
 grade)
 
-B — Modification de la délibération n° 2010-88 du 22 décembre 2010 créant un poste d’Ingénieur Territorial
-C — Adoption d’un plan de formation des agents publics de la ville de Corte pour la période 2025-2027
+B — Modification de la délibération n° 2010-88 du 22 décembre 2010 créant un poste d’Ingénieur
+Territorial C — Adoption d’un plan de formation des agents publics de la ville de Corte pour la
+période 2025-2027
 
 5 — Gestion du Domaine Communal :
 
@@ -102,12 +103,13 @@ A — Approbation du nouveau tableau de classement de la voirie communale
 
 B — Acquisition des parcelles Section AD n° 106/107/108/109
 
-C — Autorisation à donner au Maire d’acquérir un Kiosque au prix de 10 000 € et de verser 1428 € de frais au
+C — Autorisation à donner au Maire d’acquérir un Kiosque au prix de 10 000 € et de verser 1428 € de
+frais au
 
 liquidateur
 
-D — Ratification de la convention cadre 2025/2027 entre la Ville de Corte et ?OEC relative a la mise en
-œuvre d’un programme d’étude et de gestion de la fréquentation du site classée de la Vallée de la
+D — Ratification de la convention cadre 2025/2027 entre la Ville de Corte et ?OEC relative a la mise
+en œuvre d’un programme d’étude et de gestion de la fréquentation du site classée de la Vallée de la
 Restonica ; labellisation en « Opération Grand Site »
 
 E — Désinscription d’un chemin de randonnée du PTIPR de la CdC : « Chemin Mare a Mare Nord étape
@@ -116,11 +118,11 @@ refuge de la Sega-Albertaccia »
 
 F — Inscription d’Itinéraires de randonnée au PTIPR de la CdC :
 
-1) « Chemin Mare a Mare Nord étape refuge de la Sega-Albertaccia »
-2) « Tavignano — Refuge de la Sega » - « Restonica — Refuge de la Sega » - « Lac du Melu »
+1. « Chemin Mare a Mare Nord étape refuge de la Sega-Albertaccia »
+2. « Tavignano — Refuge de la Sega » - « Restonica — Refuge de la Sega » - « Lac du Melu »
 
-G — Installation de pièges photographiques pour lutter contre l’incivisme
-H — Modification des tarifications des installations sportives et de la Maison du Temps Libre
+G — Installation de pièges photographiques pour lutter contre l’incivisme H — Modification des
+tarifications des installations sportives et de la Maison du Temps Libre
 
 6 — Divers :
 
@@ -130,7 +132,8 @@ B — Adoption du Projet Educatif Territorial
 
 C — Modification de la Régie de Recettes de la Cantine Scolaire
 
-D — Rapport de suivi de recommandations de la CRC sur la gestion de la commune, de son Service de l’Eau
+D — Rapport de suivi de recommandations de la CRC sur la gestion de la commune, de son Service de
+l’Eau
 
 et de sa Caisse des Ecoles
 
@@ -140,8 +143,7 @@ En Communication pour information des élus du Conseil Municipal :
 
 > Commune :
 
-v Compte-rendu de la réunion du Conseil Municipal du 8 avril 2025
-Vv Liste des marchés et avenants ratifiés entre le 18 mars 2025 et le 30 juin 2025
+v Compte-rendu de la réunion du Conseil Municipal du 8 avril 2025 Vv Liste des marchés et avenants
+ratifiés entre le 18 mars 2025 et le 30 juin 2025
 
 > Communauté de Communes du Centre Corse : Liste des marchés et avenants ratifiés en 2024
-

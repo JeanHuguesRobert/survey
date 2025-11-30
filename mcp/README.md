@@ -2,7 +2,8 @@
 
 # Prototype serveur MCP pour Ophélia
 
-Ce serveur expose les ressources, outils et prompts d’Ophélia selon le Model Context Protocol (MCP), et permet d’interroger le moteur via `/ask`.
+Ce serveur expose les ressources, outils et prompts d’Ophélia selon le Model Context Protocol (MCP),
+et permet d’interroger le moteur via `/ask`.
 
 ## Lancer le serveur
 

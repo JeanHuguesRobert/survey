@@ -10,6 +10,7 @@ Dans le tableau de bord Supabase (SQL Editor) :
 ```
 
 Ou via CLI :
+
 ```bash
 supabase db push
 ```
@@ -17,12 +18,14 @@ supabase db push
 ## Étape 2 : Vérifier les tables
 
 Dans l'onglet "Table Editor" de Supabase, vous devriez voir :
+
 - ✅ `reactions`
 - ✅ `group_roles`
 - ✅ `read_tracking`
 - ✅ `activity_log`
 
 Et les tables existantes avec colonnes `metadata` et timestamps :
+
 - ✅ `groups` (metadata, created_at, updated_at)
 - ✅ `posts` (metadata, created_at, updated_at)
 - ✅ `comments` (metadata, created_at, updated_at)
@@ -30,11 +33,13 @@ Et les tables existantes avec colonnes `metadata` et timestamps :
 ## Étape 3 : Tester dans l'interface
 
 ### Accéder à la page Social
+
 ```
 http://localhost:5173/social
 ```
 
 ### Créer un groupe
+
 1. Cliquer sur "+ Créer un groupe"
 2. Remplir le formulaire :
    - Nom : "Quartier Centre-ville"
@@ -45,6 +50,7 @@ http://localhost:5173/social
 4. Vérifier dans `groups` table
 
 ### Créer un post dans le groupe
+
 1. Sur la page du groupe, cliquer "+ Nouvelle publication"
 2. Type : Discussion (Forum)
 3. Titre : "Test de discussion"
@@ -53,17 +59,20 @@ http://localhost:5173/social
 6. Vérifier dans `posts` table avec `metadata->>'groupId'`
 
 ### Commenter
+
 1. Sur la page du post, écrire un commentaire
 2. Soumettre
 3. Répondre au commentaire (bouton "Répondre")
 4. Vérifier dans `comments` table avec `metadata->>'parentCommentId'`
 
 ### Réagir avec emoji
+
 1. Sur un post ou commentaire, cliquer sur l'emoji picker (😀)
 2. Choisir un emoji
 3. Vérifier dans `reactions` table
 
 ### Créer un post lié à une page Wiki
+
 1. Aller sur une page Wiki existante
 2. Cliquer sur "💬 Discuter"
 3. Cela ouvre l'éditeur avec `linkedType=wiki_page` et `linkedId=...`
@@ -73,6 +82,7 @@ http://localhost:5173/social
 ## Étape 4 : Vérifier les permissions (RLS)
 
 ### Test en mode non-connecté
+
 1. Se déconnecter de Supabase Auth
 2. Aller sur `/social`
 3. ✅ Devrait voir les groupes publics
@@ -80,6 +90,7 @@ http://localhost:5173/social
 5. ❌ Ne devrait PAS voir "+ Créer un groupe" ou "+ Nouvelle publication"
 
 ### Test soft delete
+
 1. Connecté, créer un post
 2. Le supprimer (bouton "Supprimer")
 3. Vérifier dans `posts` : `metadata->>'isDeleted'` = `true`
@@ -89,15 +100,18 @@ http://localhost:5173/social
 ## Étape 5 : Vérifier les intégrations
 
 ### Menu principal
+
 1. Vérifier le lien "Social (Forums & Blogs)" dans le menu burger
 2. Cliquer dessus → Devrait aller sur `/social`
 
 ### Pages Wiki
+
 1. Aller sur `/wiki/[une-page]`
 2. Vérifier le bouton "💬 Discuter" à côté de "Partager"
 3. Cliquer → Devrait ouvrir éditeur de post avec lien pré-rempli
 
 ### Pages Proposition
+
 1. Aller sur `/propositions/[une-id]`
 2. Vérifier le bouton "💬 Discuter" en haut à droite
 3. Cliquer → Devrait ouvrir éditeur de post avec lien pré-rempli
@@ -105,14 +119,16 @@ http://localhost:5173/social
 ## Requêtes SQL utiles pour debug
 
 ### Voir tous les groupes avec metadata
+
 ```sql
-SELECT id, name, created_at, metadata 
-FROM groups 
+SELECT id, name, created_at, metadata
+FROM groups
 WHERE metadata->>'isDeleted' IS NULL OR metadata->>'isDeleted' = 'false'
 ORDER BY created_at DESC;
 ```
 
 ### Voir posts d'un groupe
+
 ```sql
 SELECT p.id, p.metadata->>'title' as title, p.created_at, u.email
 FROM posts p
@@ -123,10 +139,11 @@ ORDER BY p.created_at DESC;
 ```
 
 ### Voir commentaires d'un post avec threads
+
 ```sql
-SELECT 
-  c.id, 
-  c.content, 
+SELECT
+  c.id,
+  c.content,
   c.metadata->>'parentCommentId' as parent_id,
   c.created_at,
   u.email
@@ -138,6 +155,7 @@ ORDER BY c.created_at ASC;
 ```
 
 ### Voir réactions sur un post
+
 ```sql
 SELECT emoji, COUNT(*) as count
 FROM reactions
@@ -147,6 +165,7 @@ ORDER BY count DESC;
 ```
 
 ### Voir membres d'un groupe
+
 ```sql
 SELECT u.email, gm.created_at, gr.role
 FROM group_members gm
@@ -159,25 +178,31 @@ ORDER BY gm.created_at ASC;
 ## Troubleshooting
 
 ### Erreur "relation does not exist"
+
 → La migration n'a pas été exécutée. Retour à Étape 1.
 
 ### Erreur "permission denied for table"
+
 → RLS policies pas créées. Vérifier que toute la migration a été exécutée.
 
 ### Posts ne s'affichent pas
-→ Vérifier `metadata->>'isDeleted'` n'est pas `true`
-→ Vérifier RLS policies avec `SELECT * FROM posts` en mode admin
+
+→ Vérifier `metadata->>'isDeleted'` n'est pas `true` → Vérifier RLS policies avec
+`SELECT * FROM posts` en mode admin
 
 ### useAuth hook erreur
+
 → Vérifier que `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY` sont dans `.env`
 
 ### Commentaires imbriqués ne s'affichent pas
-→ Vérifier que `metadata->>'parentCommentId'` est bien un UUID valide
-→ Vérifier la fonction `buildCommentTree()` dans `CommentThread.jsx`
+
+→ Vérifier que `metadata->>'parentCommentId'` est bien un UUID valide → Vérifier la fonction
+`buildCommentTree()` dans `CommentThread.jsx`
 
 ### Réactions ne se mettent pas à jour
-→ Vérifier la souscription real-time dans `ReactionPicker.jsx`
-→ Vérifier que le channel Supabase est bien actif (onglet Realtime dans dashboard)
+
+→ Vérifier la souscription real-time dans `ReactionPicker.jsx` → Vérifier que le channel Supabase
+est bien actif (onglet Realtime dans dashboard)
 
 ## Prochaines étapes
 

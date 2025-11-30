@@ -26,6 +26,9 @@ Un lieu de discussion convivial où les Cortenais se rencontrent, échangent et 
 Le Café est votre agora numérique où les idées germent avant de devenir des propositions, où
 l'information circule librement et où les initiatives locales prennent racine.
 
+Si vous lisez un article dans la Gazette, cliquez sur "Discuter au Café" pour ouvrir le Café avec
+les publications et discussions liées à cette Gazette ou à l'article en question.
+
 ### 📚 Wiki collaboratif
 
 Un espace de connaissance partagée alimenté par les citoyens :

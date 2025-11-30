@@ -4,12 +4,17 @@ import { Link } from "react-router-dom";
 import FacebookEmbed from "../FacebookEmbed";
 import { supabase } from "../../lib/supabase";
 
-export default function GazettePost({ post, isEditor = false }) {
+export default function GazettePost({ post, isEditor = false, gazetteName = null }) {
   const { id, title, content, created_at, users } = post;
   const subtitle = post.metadata?.subtitle || "";
   const authorName = users?.display_name || "Anonyme";
   const sourceUrl = post.metadata?.sourceUrl;
   const isFacebook = sourceUrl && sourceUrl.includes("facebook.com");
+  const cafeHref = `/social?tab=posts&linkedType=post&linkedId=${id}${
+    post.metadata?.gazette || gazetteName
+      ? "&gazette=" + encodeURIComponent(post.metadata?.gazette || gazetteName)
+      : ""
+  }`;
   // normalize problematic non-breaking spaces Supabase AI may insert
   const sanitizedContent = content ? content.replace(/\u202F|\u00A0/g, " ") : content;
 
@@ -78,6 +83,17 @@ export default function GazettePost({ post, isEditor = false }) {
       )}
       <div className="font-['EB_Garamond'] text-sm italic mb-4 text-gray-700 flex justify-between items-center">
         <span>Par {authorName}</span>
+        <div className="flex items-center gap-3">
+          <Link className="text-sm text-primary hover:underline" to={cafeHref}>
+            ☕ Discuter cet article
+          </Link>
+          <Link
+            className="text-sm bg-primary-600 text-bauhaus-white px-3 py-1 rounded hover:opacity-90"
+            to={`/posts/new?linkedType=post&linkedId=${encodeURIComponent(id)}${post.metadata?.gazette || gazetteName ? `&gazette=${encodeURIComponent(post.metadata?.gazette || gazetteName)}` : ""}${post.metadata?.groupId ? `&groupId=${encodeURIComponent(post.metadata?.groupId)}` : ""}`}
+          >
+            ✍️ Démarrer une discussion
+          </Link>
+        </div>
         {isEditor && (
           <div className="flex gap-2 text-xs font-sans not-italic">
             <Link to={`/posts/${id}/edit`} className="text-blue-800 hover:underline">

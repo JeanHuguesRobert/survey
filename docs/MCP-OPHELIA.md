@@ -2,11 +2,14 @@
 
 ## Qu’est-ce que MCP ?
 
-Le Model Context Protocol (MCP) est un standard d’interopérabilité pour exposer des modèles, des outils et des ressources contextuelles à des IDE, assistants IA, et applications LLM modernes (Claude Desktop, Cursor, Continue, etc.).
+Le Model Context Protocol (MCP) est un standard d’interopérabilité pour exposer des modèles, des
+outils et des ressources contextuelles à des IDE, assistants IA, et applications LLM modernes
+(Claude Desktop, Cursor, Continue, etc.).
 
 ## Objectifs pour Ophélia
 
-- Permettre à Ophélia d’être accessible depuis des outils compatibles MCP (ex : Claude Desktop, Continue, Cursor…)
+- Permettre à Ophélia d’être accessible depuis des outils compatibles MCP (ex : Claude Desktop,
+  Continue, Cursor…)
 - Exposer :
   - Les ressources : wiki, documents, Q&A, etc.
   - Les outils : recherche wiki, recherche web, etc.

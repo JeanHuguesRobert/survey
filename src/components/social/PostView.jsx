@@ -217,14 +217,32 @@ export default function PostView({ currentUser }) {
               <p className="font-serif text-sm italic">Cet article est publié dans la Gazette.</p>
             </div>
           </div>
-          <Link
-            to={
-              post.metadata.gazette === "global" ? "/gazette" : `/gazette/${post.metadata.gazette}`
-            }
-            className="px-4 py-2 bg-[#2c241b] text-[#f4e4bc] font-serif font-bold rounded hover:bg-opacity-90 transition-colors"
-          >
-            Lire dans la Gazette
-          </Link>
+          <div className="flex items-center gap-3">
+            <div className="flex gap-3 items-center">
+              <Link
+                to={
+                  post.metadata.gazette === "global"
+                    ? "/gazette"
+                    : `/gazette/${post.metadata.gazette}`
+                }
+                className="px-4 py-2 bg-[#2c241b] text-[#f4e4bc] font-serif font-bold rounded hover:bg-opacity-90 transition-colors"
+              >
+                Lire dans la Gazette
+              </Link>
+              <Link
+                to={`/posts/new?linkedType=post&linkedId=${encodeURIComponent(post.id)}${post.metadata.gazette ? `&gazette=${encodeURIComponent(post.metadata.gazette)}` : ""}${post.metadata.groupId ? `&groupId=${encodeURIComponent(post.metadata.groupId)}` : ""}`}
+                className="px-4 py-2 bg-primary-600 text-bauhaus-white rounded hover:opacity-90 text-sm"
+              >
+                ✍️ Démarrer une discussion
+              </Link>
+            </div>
+            <Link
+              to={`/social?tab=posts&gazette=${encodeURIComponent(post.metadata.gazette)}&linkedType=post&linkedId=${post.id}${post.metadata.groupId ? `&groupId=${post.metadata.groupId}` : ``}`}
+              className="px-4 py-2 bg-[#f4e4bc] text-[#2c241b] font-serif font-bold rounded border border-[#d4c49c] hover:bg-gray-100 transition-colors"
+            >
+              ☕ Discuter au Café
+            </Link>
+          </div>
         </div>
       )}
 

@@ -6,8 +6,8 @@ Lundi 28 Octobre 2024 à 17h30
 
 1-— Finances Communales :
 
-A — Budget Annexe « Restonica-Grotelle » : Délibération Modificative n° 1
-B — Autorisation à donner au Maire de signer l’avenant à la convention de partenariat et de financement
+A — Budget Annexe « Restonica-Grotelle » : Délibération Modificative n° 1 B — Autorisation à donner
+au Maire de signer l’avenant à la convention de partenariat et de financement
 
 passée avec le Conservatoire Henri Tomasi
 
@@ -19,7 +19,8 @@ D — Autorisation à donner au Maire de céder un bien mobilier.
 
 2— Marchés Publics :
 
-A — Autorisation donnée au Maire de signer le marché de « Fournitures et gestion de Titres Restaurant
+A — Autorisation donnée au Maire de signer le marché de « Fournitures et gestion de Titres
+Restaurant
 
 pour le personnel de la ville de Corte »
 
@@ -29,8 +30,8 @@ l’aménagement de l’espace Logirem-Restonica
 
 3— Gestion des Ressources Humaines :
 
-A — Création d’un poste d’Informaticien de la Ville de CORTE, Catégorie « A »
-B— Adoption du R. S. U. 2023
+A — Création d’un poste d’Informaticien de la Ville de CORTE, Catégorie « A » B— Adoption du R. S.
+U. 2023
 
 4— Gestion du Domaine Communal :
 
@@ -44,6 +45,5 @@ En Communication pour information des élus du Conseil Municipal :
 
 # Commune :
 
-v Compte-rendu de la réunion du Conseil Municipal du 23 septembre 2024
-v Liste des marchés et avenants notifiés depuis fin juillet
-
+v Compte-rendu de la réunion du Conseil Municipal du 23 septembre 2024 v Liste des marchés et
+avenants notifiés depuis fin juillet

@@ -10,14 +10,14 @@ Le Maire
 
 U Merre
 
-Nos réf. : XP/EB n° 146
-P.-J. : 1 dossier
+Nos réf. : XP/EB n° 146 P.-J. : 1 dossier
 
 Objet : Convocation du Conseil Municipal
 
 Cher(e) Collègue,
 
-Jai l’honneur de vous inviter à assister à la réunion du Conseil Municipal qui se tiendra le Mardi 28
+Jai l’honneur de vous inviter à assister à la réunion du Conseil Municipal qui se tiendra le Mardi
+28
 
 octobre 2025 à 17h00 à la Maison du Temps Libre, afin de délibérer sur l’ordre du jour joint à la
 
@@ -29,9 +29,11 @@ Centre Ancien », et « Espace Logirem » seront précédés par une présentati
 
 projets.
 
-Enfin, le point concernant « l’Autorisation à donner au Maire de signer le marché de maitrise d’œuvre
+Enfin, le point concernant « l’Autorisation à donner au Maire de signer le marché de maitrise
+d’œuvre
 
-pour la construction d’une passerelle piétons et cycles » sera précédé d’une présentation du projet par
+pour la construction d’une passerelle piétons et cycles » sera précédé d’une présentation du projet
+par
 
 l’équipe de maitrise d’œuvre lauréate du concours.
 
@@ -51,7 +53,7 @@ Tel : 04.95.45.23.00
 
 Www.mairie-corte.fr
 
-ORDRE DU JOUR
+ORDRE DU JOUR
 
 DU CONSEIL MUNICIPAL
 
@@ -61,29 +63,27 @@ Mardi 28 octobre 2025 à 17h00
 
 Plan de financement Requalification du Centre Ancien
 
-A — Adoption de plans de financement :
-N
-A
-A
-S
+A — Adoption de plans de financement : N A A S
 
 Plan de financement Espace Logirem
 
-Modification du plan de financement Acquisition des parcelles AD 106/107/108 et 109
-OPAH: Individualisations de crédits pour Travaux Lourds au profit de :
+Modification du plan de financement Acquisition des parcelles AD 106/107/108 et 109 OPAH:
+Individualisations de crédits pour Travaux Lourds au profit de :
+
 - Madame Lucienne POZZO DI BORGO
 - Madame Marie BARTOLOZZI
 
 - Monsieur Francois ROCCHI
 
-B-DM 2 Budget général
-C — Autorisation à donner au Maire de ratifier la convention ORT — Aménagement de la Route du Calvaire —
+B-DM 2 Budget général C — Autorisation à donner au Maire de ratifier la convention ORT — Aménagement
+de la Route du Calvaire —
 
 avec le Président du Conseil Exécutif de Corse
 
 D — Renouvellement de l’opération « Bons pour Noël 2025 »
 
-E — Autorisation à donner au maire à engager, liquider et mandater les dépenses d'investissement entre le 01°
+E — Autorisation à donner au maire à engager, liquider et mandater les dépenses d'investissement
+entre le 01°
 
 janvier 2026 et le vote du budget 2026
 
@@ -91,11 +91,13 @@ F — Création d’un Pôle régional Rugby dans le pare d’attractivité de C
 
 G —Création AP/CP n°2025.01 : Aménagement Espace Logirem
 
-H — Modification AP/CP n°2023-02 Requalification Centre Ancien, Cours Paoli, avenues XLuciani, Pierucci
+H — Modification AP/CP n°2023-02 Requalification Centre Ancien, Cours Paoli, avenues XLuciani,
+Pierucci
 
 et Fontanarosa
 
-I— Autorisation à donner au Maire de signer une convention de délégation de maitrise d’ ouvrage avec Monsieur
+I— Autorisation à donner au Maire de signer une convention de délégation de maitrise d’ ouvrage avec
+Monsieur
 
 le Président du Conseil Exécutif de Corse dans le cadre du projet Citadella XXI
 
@@ -107,35 +109,42 @@ B— Admission de créances éteintes en non-valeur
 
 3- Marchés publics :
 
-A — Autorisation à donner au maire de signer le marché de Maitrise d’Œuvre pour la construction d’une
+A — Autorisation à donner au maire de signer le marché de Maitrise d’Œuvre pour la construction
+d’une
 
 passerelle piétons et cycles
 
-B- Autorisation 4 donner au Maire de lancer et d’attribuer par anticipation les marchés de travaux pour la
+B- Autorisation 4 donner au Maire de lancer et d’attribuer par anticipation les marchés de travaux
+pour la
 
 requalification du Centre Ancien
 
-C- Autorisation à donner à donner au Maire de lancer et d’attribuer par anticipation le marché de fournitures
+C- Autorisation à donner à donner au Maire de lancer et d’attribuer par anticipation le marché de
+fournitures
 
 des pierres et des bordures pour la requalification urbaine du Centre Ancien
 
-D- Autorisation 4 donner au Maire de signer et d’exécuter les marchés relatifs aux prestations d’ Assurances
+D- Autorisation 4 donner au Maire de signer et d’exécuter les marchés relatifs aux prestations d’
+Assurances
 
 pour la période 2026-2030
 
 E - Autorisation 4 donner au Maire de signer et d’exécuter le marché de Video Protection
 
-F- Autorisation à donner au Maire de signer l’avenant n°2 au marché de maitrise d’œuvre Requalification du
+F- Autorisation à donner au Maire de signer l’avenant n°2 au marché de maitrise d’œuvre
+Requalification du
 
 Centre Ancien
 
-G - Autorisation à donner au Maire de signer l’avenant n°1 au marché de maitrise d’œuvre Création Espace
+G - Autorisation à donner au Maire de signer l’avenant n°1 au marché de maitrise d’œuvre Création
+Espace
 
 Chabriéres
 
 4 — Gestion des Ressources Humaines :
 
-A — Encadrement et paiement des heures supplémentaires (IHTS) la Ville de Corte — Budgets « principal » et
+A — Encadrement et paiement des heures supplémentaires (IHTS) la Ville de Corte — Budgets «
+principal » et
 
 « annexes »
 
@@ -153,12 +162,12 @@ A — Dérogation a la régle du repos dominical pour l’année 2026
 
 B — Adhésion et intégration au Conservatoire Henri Tomasi
 
-C — Clôture de la Régie de Recettes d'encaissement des droits de transport dans la Vallée de la Restonica
+C — Clôture de la Régie de Recettes d'encaissement des droits de transport dans la Vallée de la
+Restonica
 
-En Communication pour information des élus du Conseil Municipal :
+En Communication pour information des élus du Conseil Municipal :
 
 > Commune :
 
-¥ Compte-rendu de la réunion du Conseil Municipal du 01* juillet 2025
-Ÿ Liste des marchés et avenants ratifiés entre le 30 juin 2025 et le 28 octobre 2025
-
+¥ Compte-rendu de la réunion du Conseil Municipal du 01\* juillet 2025 Ÿ Liste des marchés et
+avenants ratifiés entre le 30 juin 2025 et le 28 octobre 2025

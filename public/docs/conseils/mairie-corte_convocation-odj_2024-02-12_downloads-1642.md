@@ -42,7 +42,7 @@ Tel : 04.95.45.23.00 / Fax : 04.95.46.30.83
 
 www.mairie-corte.fr
 
-ORDRE DU JOUR
+ORDRE DU JOUR
 
 DU CONSEIL MUNICIPAL
 
@@ -52,8 +52,7 @@ Lundi 12 février à 17 h 00
 
 A — Admission en non-valeurs
 
-B — Rapport des Orientations Budgétaires 2024
-C— Adoption de plans de financement :
+B — Rapport des Orientations Budgétaires 2024 C— Adoption de plans de financement :
 
 a) Sentiers Vallée de la Restonica
 
@@ -65,31 +64,29 @@ d) Travaux Créche 2024
 
 e) Financement « Chargé de Mission Ingénierie »
 
-D — Individualisation de crédits OPAH - Propriétaires Occupants (4)
-E — Ratification de la convention ANTAI
+D — Individualisation de crédits OPAH - Propriétaires Occupants (4) E — Ratification de la
+convention ANTAI
 
-F — Ratification de la convention de partenariat pour la Flamme Olympique « Olymp’in Corti »
-G — Ratification de la convention OPH 2C — Réservation de logements et de gestion en flux
+F — Ratification de la convention de partenariat pour la Flamme Olympique « Olymp’in Corti » G —
+Ratification de la convention OPH 2C — Réservation de logements et de gestion en flux
 
 H — Ratification de la convention EDF — Transition Energétique
 
 I — Ratification de la convention EDF — Concession pour le Service Public du Développement et de
-l’exploitation du réseau de distribution d’électricité et de la fourniture d’énergie électrique aux tarifs
-réglementés de vente
+l’exploitation du réseau de distribution d’électricité et de la fourniture d’énergie électrique aux
+tarifs réglementés de vente
 
 2 — Régie de l’Eau :
 
 A — Rapport des Orientations Budgétaires 2024
 
-3 — Régie du Parking Municipal « Tuffelli » :
-A — Rapport des Orientations Budgétaires 2024
+3 — Régie du Parking Municipal « Tuffelli » : A — Rapport des Orientations Budgétaires 2024
 
-4 — Régie du Parking « Restonica-Grotelle » :
-A — Rapport des Orientations Budgétaires 2024
+4 — Régie du Parking « Restonica-Grotelle » : A — Rapport des Orientations Budgétaires 2024
 
-5— Marchés Publics :
-A — Autorisation à donner au Maire en vue de ratifier l’avenant n° 1 du marché de maîtrise d’œuvre
-B — Autorisation à donner au Maire en vue de ratifier l’avenant n° 1 du marché de maîtrise d’œuvre
+5— Marchés Publics : A — Autorisation à donner au Maire en vue de ratifier l’avenant n° 1 du marché
+de maîtrise d’œuvre B — Autorisation à donner au Maire en vue de ratifier l’avenant n° 1 du marché
+de maîtrise d’œuvre
 
 6 — Gestion du Personnel :
 
@@ -99,15 +96,14 @@ B — Renouvellement de la délibération n° 21-10/112 du 04/10/2021 portant cr
 
 vacataires
 
-C — Création d’un poste de vacataire « Maître-nageur-sauveteur » à la piscine municipale
-D — Remboursement des frais de déplacement dans la Fonction Publique Territoriale
+C — Création d’un poste de vacataire « Maître-nageur-sauveteur » à la piscine municipale D —
+Remboursement des frais de déplacement dans la Fonction Publique Territoriale
 
-7 — Gestion du Patrimoine :
-A — Autorisation à donner au Maire en vue d’acquérir la parcelle Section AI n° 308 appartenant au PNRC
+7 — Gestion du Patrimoine : A — Autorisation à donner au Maire en vue d’acquérir la parcelle Section
+AI n° 308 appartenant au PNRC
 
-8 — Divers :
-A — Renouvellement de la délibération autorisant la mise a disposition des véhicules communaux
-B — Approbation du Règlement de Fonctionnement de la Crèche « A Casuccia »
+8 — Divers : A — Renouvellement de la délibération autorisant la mise a disposition des véhicules
+communaux B — Approbation du Règlement de Fonctionnement de la Crèche « A Casuccia »
 
 En Communication, pour information des élus du Conseil Municipal :
 
@@ -122,4 +118,3 @@ v Liste des marchés et avenants notifiés du 01/01/2023 au 31/01/2024 dans le c
 L.2122-22 du CGCT.
 
 y Compte-rendu de la réunion du Conseil Municipal du 20 novembre 2023.
-

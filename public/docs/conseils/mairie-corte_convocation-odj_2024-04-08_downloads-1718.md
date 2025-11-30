@@ -20,8 +20,8 @@ Primitif de la Commune 2024
 
 F — Adoption de plans de financement :
 
-v Restauration du patrimoine mobilier des Eglises de CORTE
-v Rééquipement des sites d’escalade de la Vallée de la Restonica
+v Restauration du patrimoine mobilier des Eglises de CORTE v Rééquipement des sites d’escalade de la
+Vallée de la Restonica
 
 2— Régie de ’ Eau « Cort’ Acqua » :
 
@@ -54,4 +54,3 @@ En Communication pour information des élus du Conseil Municipal :
 & Commune :
 
 v Compte-rendu de la réunion du Conseil Municipal du 25 mars 2024.
-

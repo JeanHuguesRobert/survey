@@ -243,6 +243,14 @@ export default function GroupDetail({ currentUser }) {
                 ))}
               </div>
             )}
+            <div className="mb-3">
+              <Link
+                to={`/social?tab=posts&groupId=${id}`}
+                className="text-sm underline hover:no-underline"
+              >
+                ☕ Discuter ce groupe au Café
+              </Link>
+            </div>
 
             <p className="text-gray-300 mb-4">{group.description}</p>
 

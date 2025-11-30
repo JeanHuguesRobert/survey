@@ -3,12 +3,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import { InferenceClient } from "@huggingface/inference";
 import fs from "fs";
 import path from "path";
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
 
@@ -72,15 +69,17 @@ async function runOpenAIAgent({ prompt }) {
 
 export const handler = async (event) => {
   console.log("Received event:", event); // Log de l'événement entrant
-  if (event.httpMethod !== 'POST') {
+  if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
-      body: 'Method Not Allowed',
+      body: "Method Not Allowed",
     };
   }
 
   try {
-    const { pageTitle, pageUrl, pageContent, selectedDestinations, currentShareText } = JSON.parse(event.body);
+    const { pageTitle, pageUrl, pageContent, selectedDestinations, currentShareText } = JSON.parse(
+      event.body
+    );
 
     let userPrompt = `Génère un texte de partage pour la page Wiki "${pageTitle}" (${pageUrl}).\n\nContenu de la page:\n${pageContent}\n\nPlateforme de destination: ${selectedDestinations}. Le texte doit être raisonnablement concis, engageant et adapté spécifiquement à cette plateforme (par exemple, pour Twitter, utiliser des hashtags pertinents et être bref; pour Facebook, un ton plus descriptif est possible). Si la plateforme de destination n'est pas Twitter, génère un résumé du contenu de la page. Pour Twitter, respecte la taille limite. Pas de Markdown.\n\nTexte actuel (si applicable): ${currentShareText}.`;
 
@@ -90,14 +89,14 @@ export const handler = async (event) => {
 
     return {
       statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ generatedText }),
     };
   } catch (error) {
-    console.error('Error in handler generating share text:', error); // Log d'erreur plus spécifique
+    console.error("Error in handler generating share text:", error); // Log d'erreur plus spécifique
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Failed to generate share text' }),
+      body: JSON.stringify({ error: "Failed to generate share text" }),
     };
   }
 };

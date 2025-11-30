@@ -6,19 +6,19 @@ import { DocumentSearchConfig } from "./config.js";
  * Utilise la clé SERVICE_ROLE pour avoir les droits d'admin (nécessaire pour le cache et les sources).
  */
 export function getSupabaseClient() {
-    if (!DocumentSearchConfig.SUPABASE_URL || !DocumentSearchConfig.SUPABASE_SERVICE_ROLE_KEY) {
-        throw new Error("Supabase URL or Service Role Key is missing in configuration.");
-    }
+  if (!DocumentSearchConfig.SUPABASE_URL || !DocumentSearchConfig.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("Supabase URL or Service Role Key is missing in configuration.");
+  }
 
-    return createClient(
-        DocumentSearchConfig.SUPABASE_URL,
-        DocumentSearchConfig.SUPABASE_SERVICE_ROLE_KEY,
-        {
-            auth: {
-                persistSession: false,
-                autoRefreshToken: false,
-                detectSessionInUrl: false,
-            },
-        }
-    );
+  return createClient(
+    DocumentSearchConfig.SUPABASE_URL,
+    DocumentSearchConfig.SUPABASE_SERVICE_ROLE_KEY,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    }
+  );
 }

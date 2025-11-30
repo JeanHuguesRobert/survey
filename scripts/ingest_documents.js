@@ -6,85 +6,92 @@
  * Supports deduplication via content hashing
  */
 
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
-import crypto from 'crypto';
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
+import { createClient } from "@supabase/supabase-js";
+import dotenv from "dotenv";
+import crypto from "crypto";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Load environment variables
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
+dotenv.config({ path: path.join(__dirname, "..", ".env") });
 
 // Supabase client
-const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-const STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || 'public-documents';
-const SUPPORTED_EXTENSIONS = ['.txt', '.md', '.csv', '.json', '.png', '.jpg', '.jpeg', '.webp', '.svg'];
+const STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || "public-documents";
+const SUPPORTED_EXTENSIONS = [
+  ".txt",
+  ".md",
+  ".csv",
+  ".json",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".webp",
+  ".svg",
+];
 
 // Parse command line arguments
 function parseArgs() {
-    const args = process.argv.slice(2);
-    const options = {
-        dir: null,
-        file: null,
-        type: null,
-        date: null,
-        sourceUrl: null,
-        recursive: false,
-        skipDuplicates: true,
-        dryRun: false
-    };
+  const args = process.argv.slice(2);
+  const options = {
+    dir: null,
+    file: null,
+    type: null,
+    date: null,
+    sourceUrl: null,
+    recursive: false,
+    skipDuplicates: true,
+    dryRun: false,
+  };
 
-    for (let i = 0; i < args.length; i++) {
-        const arg = args[i];
-        switch (arg) {
-            case '--dir':
-                options.dir = args[++i];
-                break;
-            case '--file':
-                options.file = args[++i];
-                break;
-            case '--type':
-                options.type = args[++i];
-                break;
-            case '--date':
-                options.date = args[++i];
-                break;
-            case '--source-url':
-                options.sourceUrl = args[++i];
-                break;
-            case '--recursive':
-                options.recursive = true;
-                break;
-            case '--skip-duplicates':
-                options.skipDuplicates = true;
-                break;
-            case '--dry-run':
-                options.dryRun = true;
-                break;
-            case '--help':
-            case '-h':
-                printHelp();
-                process.exit(0);
-            default:
-                console.error(`Unknown option: ${arg}`);
-                printHelp();
-                process.exit(1);
-        }
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    switch (arg) {
+      case "--dir":
+        options.dir = args[++i];
+        break;
+      case "--file":
+        options.file = args[++i];
+        break;
+      case "--type":
+        options.type = args[++i];
+        break;
+      case "--date":
+        options.date = args[++i];
+        break;
+      case "--source-url":
+        options.sourceUrl = args[++i];
+        break;
+      case "--recursive":
+        options.recursive = true;
+        break;
+      case "--skip-duplicates":
+        options.skipDuplicates = true;
+        break;
+      case "--dry-run":
+        options.dryRun = true;
+        break;
+      case "--help":
+      case "-h":
+        printHelp();
+        process.exit(0);
+      default:
+        console.error(`Unknown option: ${arg}`);
+        printHelp();
+        process.exit(1);
     }
+  }
 
-    return options;
+  return options;
 }
 
 function printHelp() {
-    console.log(`
+  console.log(`
 ╭─────────────────────────────────────────────────────╮
 │  Ophélia - Bulk Document Ingestion Script          │
 ╰─────────────────────────────────────────────────────╯
@@ -113,255 +120,252 @@ Examples:
   # Dry run to see what would be uploaded
   node scripts/ingest_documents.js --dir ./archives --recursive --dry-run
 
-Supported file types: ${SUPPORTED_EXTENSIONS.join(', ')}
+Supported file types: ${SUPPORTED_EXTENSIONS.join(", ")}
 `);
 }
 
 // Calculate SHA-256 hash of file content
 async function calculateHash(filePath) {
-    const buffer = await fs.readFile(filePath);
-    const hash = crypto.createHash('sha256');
-    hash.update(buffer);
-    return hash.digest('hex');
+  const buffer = await fs.readFile(filePath);
+  const hash = crypto.createHash("sha256");
+  hash.update(buffer);
+  return hash.digest("hex");
 }
 
 // Sanitize filename
 function sanitizeFilename(filename) {
-    return filename
-        .replace(/[^a-zA-Z0-9._-]/g, '_')
-        .replace(/_{2,}/g, '_')
-        .toLowerCase();
+  return filename
+    .replace(/[^a-zA-Z0-9._-]/g, "_")
+    .replace(/_{2,}/g, "_")
+    .toLowerCase();
 }
 
 // Extract metadata from filename (simple pattern matching)
 function extractMetadataFromFilename(filename) {
-    const metadata = {};
+  const metadata = {};
 
-    // Try to extract date (YYYY-MM-DD or YYYY_MM_DD or YYYYMMDD)
-    const dateMatch = filename.match(/(\d{4})[-_]?(\d{2})[-_]?(\d{2})/);
-    if (dateMatch) {
-        metadata.date = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
-    }
+  // Try to extract date (YYYY-MM-DD or YYYY_MM_DD or YYYYMMDD)
+  const dateMatch = filename.match(/(\d{4})[-_]?(\d{2})[-_]?(\d{2})/);
+  if (dateMatch) {
+    metadata.date = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
+  }
 
-    // Try to extract type from filename
-    const lowerName = filename.toLowerCase();
-    if (lowerName.includes('pv') || lowerName.includes('proces')) {
-        metadata.type = 'pv';
-    } else if (lowerName.includes('rapport') || lowerName.includes('report')) {
-        metadata.type = 'rapport';
-    } else if (lowerName.includes('deliberation') || lowerName.includes('delib')) {
-        metadata.type = 'deliberation';
-    } else if (lowerName.includes('convocation')) {
-        metadata.type = 'convocation';
-    }
+  // Try to extract type from filename
+  const lowerName = filename.toLowerCase();
+  if (lowerName.includes("pv") || lowerName.includes("proces")) {
+    metadata.type = "pv";
+  } else if (lowerName.includes("rapport") || lowerName.includes("report")) {
+    metadata.type = "rapport";
+  } else if (lowerName.includes("deliberation") || lowerName.includes("delib")) {
+    metadata.type = "deliberation";
+  } else if (lowerName.includes("convocation")) {
+    metadata.type = "convocation";
+  }
 
-    return metadata;
+  return metadata;
 }
 
 // Check if document exists by hash
 async function checkDuplicate(contentHash) {
-    const { data, error } = await supabase
-        .from('document_sources')
-        .select('*')
-        .eq('content_hash', contentHash)
-        .eq('status', 'active')
-        .single();
+  const { data, error } = await supabase
+    .from("document_sources")
+    .select("*")
+    .eq("content_hash", contentHash)
+    .eq("status", "active")
+    .single();
 
-    return data;
+  return data;
 }
 
 // Upload single document
 async function uploadDocument(filePath, options) {
-    const filename = path.basename(filePath);
-    const stats = await fs.stat(filePath);
+  const filename = path.basename(filePath);
+  const stats = await fs.stat(filePath);
 
-    console.log(`\n📄 Processing: ${filename}`);
+  console.log(`\n📄 Processing: ${filename}`);
 
-    // 1. Calculate hash
-    const contentHash = await calculateHash(filePath);
-    console.log(`   Hash: ${contentHash.substring(0, 16)}...`);
+  // 1. Calculate hash
+  const contentHash = await calculateHash(filePath);
+  console.log(`   Hash: ${contentHash.substring(0, 16)}...`);
 
-    // 2. Check for duplicates
-    if (options.skipDuplicates) {
-        const existing = await checkDuplicate(contentHash);
-        if (existing) {
-            console.log(`   ⚠️  Already exists: ${existing.filename} (skipping)`);
-            return { skipped: true, reason: 'duplicate' };
-        }
+  // 2. Check for duplicates
+  if (options.skipDuplicates) {
+    const existing = await checkDuplicate(contentHash);
+    if (existing) {
+      console.log(`   ⚠️  Already exists: ${existing.filename} (skipping)`);
+      return { skipped: true, reason: "duplicate" };
     }
+  }
 
-    if (options.dryRun) {
-        console.log(`   🔍 [DRY RUN] Would upload this file`);
-        return { dryRun: true };
-    }
+  if (options.dryRun) {
+    console.log(`   🔍 [DRY RUN] Would upload this file`);
+    return { dryRun: true };
+  }
 
-    // 3. Prepare metadata
-    const extractedMeta = extractMetadataFromFilename(filename);
-    const metadata = {
-        ...extractedMeta,
-        ...(options.type && { type: options.type }),
-        ...(options.date && { date: options.date }),
-        ...(options.sourceUrl && { source_url: options.sourceUrl })
-    };
+  // 3. Prepare metadata
+  const extractedMeta = extractMetadataFromFilename(filename);
+  const metadata = {
+    ...extractedMeta,
+    ...(options.type && { type: options.type }),
+    ...(options.date && { date: options.date }),
+    ...(options.sourceUrl && { source_url: options.sourceUrl }),
+  };
 
-    console.log(`   📋 Metadata:`, JSON.stringify(metadata, null, 2));
+  console.log(`   📋 Metadata:`, JSON.stringify(metadata, null, 2));
 
-    // 4. Upload to storage
-    const timestamp = Date.now();
-    const sanitized = sanitizeFilename(filename);
-    const storagePath = `${timestamp}_${sanitized}`;
+  // 4. Upload to storage
+  const timestamp = Date.now();
+  const sanitized = sanitizeFilename(filename);
+  const storagePath = `${timestamp}_${sanitized}`;
 
-    const fileBuffer = await fs.readFile(filePath);
-    const { data: uploadData, error: uploadError } = await supabase.storage
-        .from(STORAGE_BUCKET)
-        .upload(storagePath, fileBuffer, {
-            contentType: getMimeType(filename),
-            upsert: false
-        });
+  const fileBuffer = await fs.readFile(filePath);
+  const { data: uploadData, error: uploadError } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .upload(storagePath, fileBuffer, {
+      contentType: getMimeType(filename),
+      upsert: false,
+    });
 
-    if (uploadError) {
-        console.error(`   ❌ Upload failed:`, uploadError.message);
-        return { error: uploadError.message };
-    }
+  if (uploadError) {
+    console.error(`   ❌ Upload failed:`, uploadError.message);
+    return { error: uploadError.message };
+  }
 
-    // 5. Get public URL
-    const { data: urlData } = supabase.storage
-        .from(STORAGE_BUCKET)
-        .getPublicUrl(storagePath);
+  // 5. Get public URL
+  const { data: urlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(storagePath);
 
-    // 6. Insert into database
-    const { data: dbData, error: dbError } = await supabase
-        .from('document_sources')
-        .insert({
-            filename: sanitized,
-            content_hash: contentHash,
-            public_url: urlData.publicUrl,
-            file_size_bytes: stats.size,
-            mime_type: getMimeType(filename),
-            metadata: metadata,
-            ingestion_method: 'cli_bulk',
-            status: 'active'
-        })
-        .select()
-        .single();
+  // 6. Insert into database
+  const { data: dbData, error: dbError } = await supabase
+    .from("document_sources")
+    .insert({
+      filename: sanitized,
+      content_hash: contentHash,
+      public_url: urlData.publicUrl,
+      file_size_bytes: stats.size,
+      mime_type: getMimeType(filename),
+      metadata: metadata,
+      ingestion_method: "cli_bulk",
+      status: "active",
+    })
+    .select()
+    .single();
 
-    if (dbError) {
-        console.error(`   ❌ Database error:`, dbError.message);
-        // Try to clean up storage
-        await supabase.storage.from(STORAGE_BUCKET).remove([storagePath]);
-        return { error: dbError.message };
-    }
+  if (dbError) {
+    console.error(`   ❌ Database error:`, dbError.message);
+    // Try to clean up storage
+    await supabase.storage.from(STORAGE_BUCKET).remove([storagePath]);
+    return { error: dbError.message };
+  }
 
-    console.log(`   ✅ Uploaded successfully! ID: ${dbData.id}`);
-    console.log(`   🔗 URL: ${urlData.publicUrl}`);
+  console.log(`   ✅ Uploaded successfully! ID: ${dbData.id}`);
+  console.log(`   🔗 URL: ${urlData.publicUrl}`);
 
-    return { success: true, documentId: dbData.id };
+  return { success: true, documentId: dbData.id };
 }
 
 // Get MIME type from filename
 function getMimeType(filename) {
-    const ext = path.extname(filename).toLowerCase();
-    const mimeTypes = {
-        '.txt': 'text/plain',
-        '.md': 'text/markdown',
-        '.csv': 'text/csv',
-        '.json': 'application/json',
-        '.png': 'image/png',
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.webp': 'image/webp',
-        '.svg': 'image/svg+xml'
-    };
-    return mimeTypes[ext] || 'text/plain';
+  const ext = path.extname(filename).toLowerCase();
+  const mimeTypes = {
+    ".txt": "text/plain",
+    ".md": "text/markdown",
+    ".csv": "text/csv",
+    ".json": "application/json",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+    ".svg": "image/svg+xml",
+  };
+  return mimeTypes[ext] || "text/plain";
 }
 
 // Scan directory for supported files
 async function scanDirectory(dirPath, recursive = false) {
-    const files = [];
-    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+  const files = [];
+  const entries = await fs.readdir(dirPath, { withFileTypes: true });
 
-    for (const entry of entries) {
-        const fullPath = path.join(dirPath, entry.name);
+  for (const entry of entries) {
+    const fullPath = path.join(dirPath, entry.name);
 
-        if (entry.isDirectory() && recursive) {
-            const subFiles = await scanDirectory(fullPath, recursive);
-            files.push(...subFiles);
-        } else if (entry.isFile()) {
-            const ext = path.extname(entry.name).toLowerCase();
-            if (SUPPORTED_EXTENSIONS.includes(ext)) {
-                files.push(fullPath);
-            }
-        }
+    if (entry.isDirectory() && recursive) {
+      const subFiles = await scanDirectory(fullPath, recursive);
+      files.push(...subFiles);
+    } else if (entry.isFile()) {
+      const ext = path.extname(entry.name).toLowerCase();
+      if (SUPPORTED_EXTENSIONS.includes(ext)) {
+        files.push(fullPath);
+      }
     }
+  }
 
-    return files;
+  return files;
 }
 
 // Main function
 async function main() {
-    const options = parseArgs();
+  const options = parseArgs();
 
-    console.log(`
+  console.log(`
 ╭─────────────────────────────────────────────────────╮
 │  Starting Bulk Document Ingestion                  │
 ╰─────────────────────────────────────────────────────╯
 `);
 
-    if (options.dryRun) {
-        console.log('🔍 DRY RUN MODE - No files will be uploaded\n');
+  if (options.dryRun) {
+    console.log("🔍 DRY RUN MODE - No files will be uploaded\n");
+  }
+
+  let filesToProcess = [];
+
+  // Determine files to process
+  if (options.file) {
+    // Single file mode
+    filesToProcess = [options.file];
+  } else if (options.dir) {
+    // Directory scan mode
+    console.log(`📂 Scanning directory: ${options.dir}`);
+    if (options.recursive) {
+      console.log("   (Recursive mode enabled)");
     }
+    filesToProcess = await scanDirectory(options.dir, options.recursive);
+    console.log(`   Found ${filesToProcess.length} supported files\n`);
+  } else {
+    console.error("❌ Error: You must specify either --file or --dir");
+    printHelp();
+    process.exit(1);
+  }
 
-    let filesToProcess = [];
+  if (filesToProcess.length === 0) {
+    console.log("No files to process.");
+    return;
+  }
 
-    // Determine files to process
-    if (options.file) {
-        // Single file mode
-        filesToProcess = [options.file];
-    } else if (options.dir) {
-        // Directory scan mode
-        console.log(`📂 Scanning directory: ${options.dir}`);
-        if (options.recursive) {
-            console.log('   (Recursive mode enabled)');
-        }
-        filesToProcess = await scanDirectory(options.dir, options.recursive);
-        console.log(`   Found ${filesToProcess.length} supported files\n`);
-    } else {
-        console.error('❌ Error: You must specify either --file or --dir');
-        printHelp();
-        process.exit(1);
+  // Process files
+  const results = {
+    total: filesToProcess.length,
+    success: 0,
+    skipped: 0,
+    failed: 0,
+    dryRun: 0,
+  };
+
+  for (const filePath of filesToProcess) {
+    try {
+      const result = await uploadDocument(filePath, options);
+
+      if (result.success) results.success++;
+      else if (result.skipped) results.skipped++;
+      else if (result.dryRun) results.dryRun++;
+      else if (result.error) results.failed++;
+    } catch (error) {
+      console.error(`\n❌ Unexpected error processing ${path.basename(filePath)}:`, error.message);
+      results.failed++;
     }
+  }
 
-    if (filesToProcess.length === 0) {
-        console.log('No files to process.');
-        return;
-    }
-
-    // Process files
-    const results = {
-        total: filesToProcess.length,
-        success: 0,
-        skipped: 0,
-        failed: 0,
-        dryRun: 0
-    };
-
-    for (const filePath of filesToProcess) {
-        try {
-            const result = await uploadDocument(filePath, options);
-
-            if (result.success) results.success++;
-            else if (result.skipped) results.skipped++;
-            else if (result.dryRun) results.dryRun++;
-            else if (result.error) results.failed++;
-
-        } catch (error) {
-            console.error(`\n❌ Unexpected error processing ${path.basename(filePath)}:`, error.message);
-            results.failed++;
-        }
-    }
-
-    // Print summary
-    console.log(`
+  // Print summary
+  console.log(`
 ╭─────────────────────────────────────────────────────╮
 │  Ingestion Summary                                  │
 ╰─────────────────────────────────────────────────────╯
@@ -370,16 +374,16 @@ Total files processed:  ${results.total}
 ✅ Successfully uploaded: ${results.success}
 ⏭️  Skipped (duplicates):  ${results.skipped}
 ❌ Failed:                ${results.failed}
-${options.dryRun ? `🔍 Dry run (not uploaded): ${results.dryRun}` : ''}
+${options.dryRun ? `🔍 Dry run (not uploaded): ${results.dryRun}` : ""}
 
-${results.success > 0 ? '✨ Documents ready for cache rebuild! Run:\n   node scripts/create_cache.js\n' : ''}
+${results.success > 0 ? "✨ Documents ready for cache rebuild! Run:\n   node scripts/create_cache.js\n" : ""}
 `);
 
-    process.exit(results.failed > 0 ? 1 : 0);
+  process.exit(results.failed > 0 ? 1 : 0);
 }
 
 // Run main function
-main().catch(error => {
-    console.error('\n💥 Fatal error:', error);
-    process.exit(1);
+main().catch((error) => {
+  console.error("\n💥 Fatal error:", error);
+  process.exit(1);
 });

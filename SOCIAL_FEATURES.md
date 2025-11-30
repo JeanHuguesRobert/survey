@@ -3,6 +3,7 @@
 ## Vue d'ensemble
 
 Système social complet pour Pertitellu permettant :
+
 - **Forums de discussion** : Threads de discussion publics ou dans des groupes
 - **Blogs** : Articles longs avec commentaires
 - **Communautés** : Quartiers, associations, forums thématiques
@@ -14,7 +15,9 @@ Système social complet pour Pertitellu permettant :
 ### Tables principales
 
 #### `groups` (existante, étendue)
+
 Groupes/communautés de différents types :
+
 - `groupType` : `neighborhood`, `association`, `community`, `forum`
 - `location` : Localisation géographique
 - `isPrivate` : Visible uniquement aux membres
@@ -22,7 +25,9 @@ Groupes/communautés de différents types :
 - `avatarUrl`, `tags` : Métadonnées visuelles
 
 #### `posts` (existante, étendue)
+
 Publications dans groupes ou standalone :
+
 - `postType` : `blog`, `forum`, `announcement`
 - `title` : Titre obligatoire
 - `groupId` : Groupe d'appartenance (optionnel)
@@ -31,32 +36,41 @@ Publications dans groupes ou standalone :
 - `viewCount` : Compteur de vues
 
 #### `comments` (existante, étendue)
+
 Commentaires imbriqués sur posts :
+
 - `parentCommentId` : Pour réponses imbriquées
 - `isEdited`, `editedAt` : Historique d'édition
 
 #### `reactions` (nouvelle)
+
 Réactions emoji sur posts/comments :
+
 - `emoji` : Emoji Unicode
 - `target_type` : `post` ou `comment`
 - `target_id` : ID de la cible
 - Unique constraint : 1 réaction par user/emoji/target
 
 #### `group_members` (existante)
+
 Adhésions aux groupes
 
 #### `group_roles` (nouvelle)
+
 Rôles dans les groupes (`admin`, `member`)
 
 #### `read_tracking` (nouvelle)
+
 Suivi de lecture par utilisateur (pour notifications futures)
 
 #### `activity_log` (nouvelle)
+
 Audit trail des actions importantes
 
 ### Pattern Metadata JSONB
 
 Toutes les tables utilisent un champ `metadata jsonb` avec :
+
 ```javascript
 {
   schemaVersion: 1,  // Version du schéma metadata
@@ -65,6 +79,7 @@ Toutes les tables utilisent un champ `metadata jsonb` avec :
 ```
 
 **Avantages** :
+
 - Extensibilité sans migration SQL
 - Versionning du schéma
 - Flexibilité pour évolution
@@ -72,12 +87,14 @@ Toutes les tables utilisent un champ `metadata jsonb` avec :
 ### RLS (Row Level Security)
 
 **Politique générale** :
+
 - **Public read** : Transparence démocratique
 - **Authenticated write** : Création réservée aux connectés
 - **Owner edit/delete** : Chacun gère son contenu
 - **Soft delete** : via `metadata.isDeleted`
 
 **Exceptions** :
+
 - Admins de groupes peuvent gérer membres
 - Posts verrouillés (`isLocked`) bloquent nouveaux commentaires
 
@@ -127,12 +144,15 @@ supabase/migrations/
 ## Intégrations
 
 ### Menu principal (App.jsx)
+
 ```jsx
 <Link to="/social">Social (Forums & Blogs)</Link>
 ```
 
 ### Pages Wiki/Proposition
+
 Bouton "💬 Discuter" pour créer un post lié :
+
 ```jsx
 <button onClick={() => navigate(`/posts/new?linkedType=wiki_page&linkedId=${page.id}`)}>
   💬 Discuter
@@ -142,79 +162,85 @@ Bouton "💬 Discuter" pour créer un post lié :
 ## Workflow typique
 
 ### 1. Créer un groupe (quartier, association)
+
 ```javascript
-const metadata = createGroupMetadata('neighborhood', {
-  location: 'Centre-ville',
-  tags: ['urbanisme', 'culture'],
-  requireApproval: true
+const metadata = createGroupMetadata("neighborhood", {
+  location: "Centre-ville",
+  tags: ["urbanisme", "culture"],
+  requireApproval: true,
 });
 
-await supabase.from('groups').insert({
-  name: 'Quartier Saint-Joseph',
-  description: 'Groupe des habitants du quartier',
+await supabase.from("groups").insert({
+  name: "Quartier Saint-Joseph",
+  description: "Groupe des habitants du quartier",
   created_by: userId,
-  metadata
+  metadata,
 });
 ```
 
 ### 2. Publier dans le groupe
+
 ```javascript
-const metadata = createPostMetadata('forum', 'Nouvel aménagement place', {
+const metadata = createPostMetadata("forum", "Nouvel aménagement place", {
   groupId: groupId,
-  tags: ['urbanisme']
+  tags: ["urbanisme"],
 });
 
-await supabase.from('posts').insert({
+await supabase.from("posts").insert({
   user_id: userId,
-  content: 'Que pensez-vous du nouvel aménagement ?',
-  metadata
+  content: "Que pensez-vous du nouvel aménagement ?",
+  metadata,
 });
 ```
 
 ### 3. Commenter avec réponse imbriquée
+
 ```javascript
 // Commentaire principal
-const mainComment = await supabase.from('comments').insert({
+const mainComment = await supabase.from("comments").insert({
   post_id: postId,
   user_id: userId,
-  content: 'Je trouve ça bien !',
-  metadata: { schemaVersion: 1, parentCommentId: null }
+  content: "Je trouve ça bien !",
+  metadata: { schemaVersion: 1, parentCommentId: null },
 });
 
 // Réponse au commentaire
-await supabase.from('comments').insert({
+await supabase.from("comments").insert({
   post_id: postId,
   user_id: userId2,
-  content: '@user1 Moi aussi !',
-  metadata: { schemaVersion: 1, parentCommentId: mainComment.id }
+  content: "@user1 Moi aussi !",
+  metadata: { schemaVersion: 1, parentCommentId: mainComment.id },
 });
 ```
 
 ### 4. Réagir avec emoji
+
 ```javascript
-await supabase.from('reactions').insert({
+await supabase.from("reactions").insert({
   user_id: userId,
-  target_type: 'post',
+  target_type: "post",
   target_id: postId,
-  emoji: '❤️',
-  metadata: { schemaVersion: 1 }
+  emoji: "❤️",
+  metadata: { schemaVersion: 1 },
 });
 ```
 
 ## Helpers principaux
 
 ### `src/lib/metadata.js`
+
 ```javascript
-initMetadata(data)              // Initialise avec schemaVersion
-getMetadata(entity, field)      // Récupère champ metadata
-setMetadata(entity, updates)    // Met à jour metadata
-isDeleted(entity)               // Vérifie soft delete
-softDelete(entity, userId)      // Marque comme supprimé
-restore(entity)                 // Restaure
-migrateMetadata(entity, v)      // Migration schéma
+initMetadata(data); // Initialise avec schemaVersion
+getMetadata(entity, field); // Récupère champ metadata
+setMetadata(entity, updates); // Met à jour metadata
+isDeleted(entity); // Vérifie soft delete
+softDelete(entity, userId); // Marque comme supprimé
+restore(entity); // Restaure
+migrateMetadata(entity, v); // Migration schéma
 ```
 
 ### `src/lib/socialMetadata.js`
+
 ```javascript
 // Groups
 createGroupMetadata(type, opts)
@@ -245,12 +271,11 @@ REACTION_EMOJIS = { THUMBS_UP, HEART, LAUGH, ... }
 ## Real-time
 
 Les composants `CommentThread` et `ReactionPicker` s'abonnent aux changements Supabase :
+
 ```javascript
 const channel = supabase
   .channel(`comments:${postId}`)
-  .on('postgres_changes', { event: '*', table: 'comments' }, 
-    () => loadComments()
-  )
+  .on("postgres_changes", { event: "*", table: "comments" }, () => loadComments())
   .subscribe();
 ```
 
@@ -264,6 +289,7 @@ const channel = supabase
 ## Migration
 
 Pour déployer :
+
 ```bash
 # Exécuter la migration dans Supabase
 psql -h your-db -U postgres -d postgres -f supabase/migrations/20251119_create_social_tables.sql

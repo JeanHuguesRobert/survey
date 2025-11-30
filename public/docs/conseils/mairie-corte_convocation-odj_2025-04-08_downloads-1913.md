@@ -1,7 +1,6 @@
 Corte, le 26 mars 2025
 
-Mesdames et Messieurs
-les Membres du Conseil Municipal
+Mesdames et Messieurs les Membres du Conseil Municipal
 
 Vulle de Corte
 
@@ -19,9 +18,9 @@ Objet : Convocation du Conseil Municipal
 
 Cher(e) Collégue,
 
-J’ai Phonneur de vous inviter à assister à la réunion du Conseil Municipal qui se tiendra le
-Mardi 08 avril 2025 à 17h30 à la Maison du Temps Libre, afin de délibérer sur l’ordre du jour
-joint à la présente.
+J’ai Phonneur de vous inviter à assister à la réunion du Conseil Municipal qui se tiendra le Mardi
+08 avril 2025 à 17h30 à la Maison du Temps Libre, afin de délibérer sur l’ordre du jour joint à la
+présente.
 
 Comptant sur votre présence, je vous prie d’agréer, Cher(e) Collégue, l’expression de mes sentiments
 les meilleurs.
@@ -40,7 +39,7 @@ Tel : 04.95.45.23.00 / Fax : 04.95.46.30.83
 
 www.mairie-corte.fr
 
-ORDRE DU JOUR
+ORDRE DU JOUR
 
 DU CONSEIL MUNICIPAL
 
@@ -56,7 +55,8 @@ C — Adoption des AP/CP pour les exercices 2025 et suivants
 
 D — Adoption du Budget Primitif 2025
 
-E — Attribution de subventions aux Associations (liste pages 22 à 24 de la présentation du Budget Primitif
+E — Attribution de subventions aux Associations (liste pages 22 à 24 de la présentation du Budget
+Primitif
 
 de la Commune 2025)
 
@@ -87,4 +87,3 @@ En Communication pour information des élus du Conseil Municipal :
 e Commune :
 
 y Compte-rendu de la réunion du Conseil Municipal du 18 mars 2025.
-

@@ -28,4 +28,4 @@
  * @property {SearchFilters} filters - Les filtres extraits de la question
  */
 
-export { };
+export {};

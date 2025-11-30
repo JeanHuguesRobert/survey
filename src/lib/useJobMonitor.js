@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useSupabase } from '../contexts/SupabaseContext';
+import { useState, useEffect, useCallback } from "react";
+import { useSupabase } from "../contexts/SupabaseContext";
 
 /**
  * Hook for monitoring job progress with realtime updates
@@ -21,14 +21,10 @@ export function useJobMonitor(jobId, onProgress, onComplete, onError) {
     if (!jobId || !supabase) return;
 
     try {
-      const { data, error } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('id', jobId)
-        .single();
+      const { data, error } = await supabase.from("jobs").select("*").eq("id", jobId).single();
 
       if (error) {
-        console.error('useJobMonitor: Error fetching job:', error);
+        console.error("useJobMonitor: Error fetching job:", error);
         setError(error);
         return;
       }
@@ -42,14 +38,13 @@ export function useJobMonitor(jobId, onProgress, onComplete, onError) {
       }
 
       // Call completion callbacks
-      if (data.status === 'completed' && onComplete) {
+      if (data.status === "completed" && onComplete) {
         onComplete(data);
-      } else if (data.status === 'failed' && onError) {
+      } else if (data.status === "failed" && onError) {
         onError(data);
       }
-
     } catch (err) {
-      console.error('useJobMonitor: Exception fetching job:', err);
+      console.error("useJobMonitor: Exception fetching job:", err);
       setError(err);
     }
   }, [jobId, supabase, onProgress, onComplete, onError]);
@@ -59,18 +54,18 @@ export function useJobMonitor(jobId, onProgress, onComplete, onError) {
     if (!jobId || !supabase) return;
 
     const topic = `job:${jobId}`;
-    console.log('useJobMonitor: Subscribing to job channel:', topic);
+    console.log("useJobMonitor: Subscribing to job channel:", topic);
 
     const newChannel = supabase.channel(topic, {
       config: {
         broadcast: { self: true },
-        presence: { key: supabase.auth.getUser()?.id }
-      }
+        presence: { key: supabase.auth.getUser()?.id },
+      },
     });
 
     // Listen for broadcast events (from DB triggers)
-    newChannel.on('broadcast', { event: '*' }, (payload) => {
-      console.log('useJobMonitor: Received broadcast:', payload);
+    newChannel.on("broadcast", { event: "*" }, (payload) => {
+      console.log("useJobMonitor: Received broadcast:", payload);
 
       if (payload.new) {
         const updatedJob = payload.new;
@@ -81,9 +76,9 @@ export function useJobMonitor(jobId, onProgress, onComplete, onError) {
           onProgress(updatedJob);
         }
 
-        if (updatedJob.status === 'completed' && onComplete) {
+        if (updatedJob.status === "completed" && onComplete) {
           onComplete(updatedJob);
-        } else if (updatedJob.status === 'failed' && onError) {
+        } else if (updatedJob.status === "failed" && onError) {
           onError(updatedJob);
         }
       }
@@ -91,17 +86,17 @@ export function useJobMonitor(jobId, onProgress, onComplete, onError) {
 
     // Monitor subscription status
     newChannel.subscribe((status, err) => {
-      console.log('useJobMonitor: Channel status:', status, err);
-      setIsSubscribed(status === 'SUBSCRIBED');
+      console.log("useJobMonitor: Channel status:", status, err);
+      setIsSubscribed(status === "SUBSCRIBED");
 
       if (err) {
-        console.error('useJobMonitor: Channel error:', err);
+        console.error("useJobMonitor: Channel error:", err);
         setError(err);
       }
 
       // Re-sync data when reconnected
-      if (status === 'SUBSCRIBED') {
-        console.log('useJobMonitor: Reconnected, re-syncing job data');
+      if (status === "SUBSCRIBED") {
+        console.log("useJobMonitor: Reconnected, re-syncing job data");
         fetchJob();
       }
     });
@@ -113,7 +108,7 @@ export function useJobMonitor(jobId, onProgress, onComplete, onError) {
   // Cleanup subscription
   const unsubscribe = useCallback(() => {
     if (channel) {
-      console.log('useJobMonitor: Unsubscribing from job channel');
+      console.log("useJobMonitor: Unsubscribing from job channel");
       supabase.removeChannel(channel);
       setChannel(null);
       setIsSubscribed(false);
@@ -146,7 +141,7 @@ export function useJobMonitor(jobId, onProgress, onComplete, onError) {
     isSubscribed,
     error,
     refetch: fetchJob,
-    unsubscribe
+    unsubscribe,
   };
 }
 
@@ -166,17 +161,17 @@ export function useJobCreator(jobType, payload = {}, onProgress, onComplete, onE
 
   const createJob = useCallback(async () => {
     if (!supabase) {
-      throw new Error('Supabase client not available');
+      throw new Error("Supabase client not available");
     }
 
     setIsCreating(true);
     try {
       const { data, error } = await supabase
-        .from('jobs')
+        .from("jobs")
         .insert({
           type: jobType,
           payload: payload,
-          status: 'pending'
+          status: "pending",
         })
         .select()
         .single();
@@ -185,12 +180,11 @@ export function useJobCreator(jobType, payload = {}, onProgress, onComplete, onE
         throw error;
       }
 
-      console.log('useJobCreator: Created job:', data.id);
+      console.log("useJobCreator: Created job:", data.id);
       setCreatedJobId(data.id);
       return data;
-
     } catch (err) {
-      console.error('useJobCreator: Error creating job:', err);
+      console.error("useJobCreator: Error creating job:", err);
       if (onError) {
         onError(err);
       }
@@ -210,6 +204,6 @@ export function useJobCreator(jobType, payload = {}, onProgress, onComplete, onE
     job: jobMonitor.job,
     isSubscribed: jobMonitor.isSubscribed,
     error: jobMonitor.error,
-    refetch: jobMonitor.refetch
+    refetch: jobMonitor.refetch,
   };
 }

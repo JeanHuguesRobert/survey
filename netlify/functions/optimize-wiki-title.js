@@ -50,7 +50,10 @@ export const handler = async (event) => {
       // Fallback si l'IA ne renvoie pas un JSON valide
       optimizedData = {
         optimizedTitle: defaultTitle,
-        optimizedSlug: defaultTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+        optimizedSlug: defaultTitle
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, ""),
       };
     }
 

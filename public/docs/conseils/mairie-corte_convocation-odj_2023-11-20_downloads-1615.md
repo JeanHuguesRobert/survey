@@ -1,4 +1,4 @@
-+de *
++de \*
 
 Le Maire
 
@@ -22,7 +22,6 @@ Mairie de Corte — Meria di Corti
 
 Tel : 04.95.45.23.00
 
-www _mairie-corte.fr
+www \_mairie-corte.fr
 
 Adresse mail : dgs@ville-corte.fr
-

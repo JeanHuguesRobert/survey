@@ -42,7 +42,7 @@ Tel : 04.95.45.23.00/ Fax : 04.95.46.30.83
 
 www. mairie-corte. fr
 
-ORDRE DU JOUR.
+ORDRE DU JOUR.
 
 DU CONSEIL MUNICIPAL
 
@@ -54,8 +54,8 @@ A — Adoption du Compte Financier Unique (C.F.U.) 2024 (CA + CG)
 
 B — ROB 2025
 
-C — Adoption du Plan Pluriannuel d’Investissement 2025-2031 (P. P. I.)
-D — Individualisation de crédits O.P.A.H. :
+C — Adoption du Plan Pluriannuel d’Investissement 2025-2031 (P. P. I.) D — Individualisation de
+crédits O.P.A.H. :
 
 - Madame MELA Serena — Propriétaire Occupant - Travaux lourds
 
@@ -99,10 +99,11 @@ B — Clôture de la Régie du Parking « Restonica-Grotelle »
 
 5— Gestion des Ressources Humaines :
 
-A — Mise en place d’une part supplémentaire « I.F.S.E. Régie » dans le cadre du R.I.F.S.E.E.P.
-B — Création d’emplois saisonniers
+A — Mise en place d’une part supplémentaire « I.F.S.E. Régie » dans le cadre du R.I.F.S.E.E.P. B —
+Création d’emplois saisonniers
 
-C - Délibération portant rémunération des heures de surveillance effectuées par des enseignants dans le
+C - Délibération portant rémunération des heures de surveillance effectuées par des enseignants dans
+le
 
 cadre des activités périscolaires.
 
@@ -130,10 +131,8 @@ D — Renouvellement de la délibération autorisant la mise a disposition des v
 
 En Communication pour information des élus du Conseil Municipal :
 
-Commune :
-y Compte-rendu des réunions du Conseil Municipal des 16 et 23 décembre 2024
+Commune : y Compte-rendu des réunions du Conseil Municipal des 16 et 23 décembre 2024
 
 v Liste des marchés et avenants notifiés depuis le 09 décembre 2024
 
 v Indemnités du Maire et des Adjoints, année 2024
-

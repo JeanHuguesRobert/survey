@@ -1,10 +1,11 @@
 # Rapport d'audit éthique - Consultation citoyenne {{MOVEMENT_NAME}}
 
-*Généré automatiquement le 24/10/2025*
+_Généré automatiquement le 24/10/2025_
 
 ## Synthèse
 
-La consultation citoyenne {{MOVEMENT_NAME}} respecte globalement les standards éthiques des enquêtes d'opinion publique, avec quelques points d'attention.
+La consultation citoyenne {{MOVEMENT_NAME}} respecte globalement les standards éthiques des enquêtes
+d'opinion publique, avec quelques points d'attention.
 
 ## Finalités de la consultation
 
@@ -26,6 +27,7 @@ Cette consultation poursuit trois objectifs qu'il convient d'expliciter par souc
    - Documenter le niveau de satisfaction avec la gouvernance actuelle
 
 La consultation n'a pas vocation à :
+
 - Se substituer à un sondage représentatif
 - Constituer une base de données électorale
 - Remplacer les dispositifs officiels de concertation
@@ -88,32 +90,37 @@ La consultation n'a pas vocation à :
 
 - **Infrastructure** : Application hébergée sur Netlify
 - **Disponibilité** : Service accessible 24/7 avec monitoring automatique
-- **Sécurité** : 
+- **Sécurité** :
   - Certificat SSL/TLS automatiquement géré
   - Protection DDoS incluse
   - Pas de base de données exposée
-- **Mise à jour** : 
+- **Mise à jour** :
   - Déploiement continu depuis GitHub
   - Prévisualisation des modifications avant mise en production
   - Historique des versions conservé
-- **Durabilité** : 
+- **Durabilité** :
   - Export régulier des données sur GitHub
   - Conservation des anciennes versions
   - Documentation publique du processus
 
 ## Conclusion
 
-Le dispositif est conforme aux standards éthiques minimaux pour une consultation citoyenne locale. Les points d'attention identifiés ne remettent pas en cause la validité de la démarche mais appellent à une interprétation prudente des résultats.
+Le dispositif est conforme aux standards éthiques minimaux pour une consultation citoyenne locale.
+Les points d'attention identifiés ne remettent pas en cause la validité de la démarche mais
+appellent à une interprétation prudente des résultats.
 
 ## À propos de ce rapport
 
-Ce rapport d'audit éthique a été généré automatiquement lors du déploiement de l'application. Il fait partie intégrante de notre démarche de transparence.
+Ce rapport d'audit éthique a été généré automatiquement lors du déploiement de l'application. Il
+fait partie intégrante de notre démarche de transparence.
 
 **Auteur :** Initiative {{MOVEMENT_NAME}}  
 **Date de génération :** 24/10/2025  
 **Version de l'application :** 1.0.4  
 **Standards appliqués :** ESOMAR/WAPOR pour les sondages d'opinion publique  
-**Source :** Le code source de ce rapport est disponible sur [GitHub](https://github.com/jeanhuguesrobert/survey/blob/main/docs/audit-ethique.md)
+**Source :** Le code source de ce rapport est disponible sur
+[GitHub](https://github.com/jeanhuguesrobert/survey/blob/main/docs/audit-ethique.md)
 
 ---
-*Document public - Reproduction et partage encouragés avec mention de la source*
+
+_Document public - Reproduction et partage encouragés avec mention de la source_

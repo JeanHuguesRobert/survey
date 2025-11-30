@@ -2,7 +2,8 @@
 
 ## Objectif
 
-Permettre l’intégration d’Ophélia dans toute application Node.js/JavaScript via un package npm simple, typé, et documenté.
+Permettre l’intégration d’Ophélia dans toute application Node.js/JavaScript via un package npm
+simple, typé, et documenté.
 
 ## Structure prévue
 
@@ -17,15 +18,16 @@ Permettre l’intégration d’Ophélia dans toute application Node.js/JavaScrip
 ## Exemple d’utilisation
 
 ```js
-import { ask } from 'ophelia';
+import { ask } from "ophelia";
 
-const answer = await ask('Quelle est la capitale de la Corse ?');
+const answer = await ask("Quelle est la capitale de la Corse ?");
 console.log(answer);
 ```
 
 ## API
 
 ### `ask(question, options)`
+
 - `question` (string, requis)
 - `options` (object, optionnel) :
   - `history` (array)
@@ -34,10 +36,12 @@ console.log(answer);
 - Retourne : `{ answer, metadata, sources }`
 
 ### `stream(question, cb, options)`
+
 - `cb` : callback appelée à chaque chunk de texte
 - Retourne : rien (asynchrone)
 
 ### `getSources()`
+
 - Retourne : tableau des sources documentaires
 
 ## Installation

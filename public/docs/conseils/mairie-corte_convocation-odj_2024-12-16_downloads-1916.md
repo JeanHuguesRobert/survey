@@ -22,9 +22,9 @@ Lundi 16 décembre 2024 à 17h30 à la Maison du Temps Libre, aux fins de prendr
 
 débattre sur les rapports de la Chambre Régionale des Comptes relatifs :
 
-1) ala gestion de la Commune de Corte pour les exercices 2018 et suivants,
+1. ala gestion de la Commune de Corte pour les exercices 2018 et suivants,
 
-2) ala gestion de la Commune de Corte et de la Caisse des Ecoles pour les exercices 2019 et
+2. ala gestion de la Commune de Corte et de la Caisse des Ecoles pour les exercices 2019 et
 
 suivants.
 
@@ -47,4 +47,3 @@ Tel : 04.95.45.23.00 / Fax : 04.95.46.30.83
 20250 Corte — 20250 Corti
 
 www. mairie-corte. fr
-

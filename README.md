@@ -134,6 +134,8 @@ Un journal numérique au style vintage (1820s) pour suivre l'actualité de la co
 - **Intégration Facebook** : les rédacteurs peuvent intégrer directement des posts Facebook
   interactifs dans leurs articles
 - **Éditions thématiques** : possibilité de créer des gazettes spécialisées (Sport, Culture, etc.)
+- **Discussion** : chaque gazette et article propose un lien "Discuter au Café" pour ouvrir le Café
+  filtré sur la gazette (et sur l'article si souhaité) pour faciliter les échanges entre citoyens
 
 ---
 

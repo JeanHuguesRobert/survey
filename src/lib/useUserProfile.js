@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { supabase } from './supabase';
+import { useState, useEffect } from "react";
+import { supabase } from "./supabase";
 
 /**
  * Hook pour récupérer et gérer le profil utilisateur complet
@@ -23,16 +23,12 @@ export function useUserProfile(userId) {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      const { data, error } = await supabase.from("users").select("*").eq("id", userId).single();
 
       if (error) throw error;
       setProfile(data);
     } catch (err) {
-      console.error('Error fetching profile:', err);
+      console.error("Error fetching profile:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -43,12 +39,12 @@ export function useUserProfile(userId) {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('users')
+        .from("users")
         .update({
           ...updates,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
-        .eq('id', userId)
+        .eq("id", userId)
         .select()
         .single();
 
@@ -56,7 +52,7 @@ export function useUserProfile(userId) {
       setProfile(data);
       return { success: true, data };
     } catch (err) {
-      console.error('Error updating profile:', err);
+      console.error("Error updating profile:", err);
       setError(err.message);
       return { success: false, error: err.message };
     } finally {

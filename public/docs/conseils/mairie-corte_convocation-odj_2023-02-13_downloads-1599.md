@@ -57,4 +57,3 @@ B — Communauté de Communes du Centre Corse :
 v Relevé de décisions du Conseil Communautaire du 20 décembre 2022
 
 v Liste des marchés passés en 2022
-

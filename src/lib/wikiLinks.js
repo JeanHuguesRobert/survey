@@ -3,18 +3,19 @@
 // - Ignore les blocs de code ```...``` et le code inline `...`
 
 export function normalizeSlug(str) {
-  if (!str) return '';
+  if (!str) return "";
   return String(str)
-    .normalize('NFD').replace(/\p{Diacritic}+/gu, '')
-    .replace(/[^a-zA-Z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .replace(/-{2,}/g, '-');
+    .normalize("NFD")
+    .replace(/\p{Diacritic}+/gu, "")
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-");
 }
 
 export function linkifyWardWiki(text) {
-  if (!text || typeof text !== 'string') return '';
+  if (!text || typeof text !== "string") return "";
   const parts = text.split(/(```[\s\S]*?```|`[^`]*`)/g);
-  const processed = parts.map(part => {
+  const processed = parts.map((part) => {
     if (/^```[\s\S]*```$/.test(part) || /^`[^`]*`$/.test(part)) {
       return part;
     }
@@ -23,5 +24,5 @@ export function linkifyWardWiki(text) {
       return `[${word}](${word})`;
     });
   });
-  return processed.join('');
+  return processed.join("");
 }

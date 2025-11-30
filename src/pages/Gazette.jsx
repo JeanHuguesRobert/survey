@@ -34,6 +34,7 @@ export default function Gazette() {
   const gazetteName = name || "global";
   const { currentUser } = useCurrentUser();
   const [isEditor, setIsEditor] = useState(false);
+  const [editorGroupId, setEditorGroupId] = useState(null);
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,6 +76,7 @@ export default function Gazette() {
           .single();
 
         if (member) setIsEditor(true);
+        setEditorGroupId(group.id);
       }
     } catch (err) {
       console.error("Error checking editor status:", err);
@@ -158,6 +160,8 @@ export default function Gazette() {
   return (
     <GazetteLayout
       title={gazetteName === "global" ? "LA GAZETTE" : `GAZETTE: ${gazetteName.toUpperCase()}`}
+      gazetteName={gazetteName}
+      editorGroupId={editorGroupId}
       weeks={weeks}
       selectedWeek={selectedWeek}
       onWeekChange={handleWeekChange}
@@ -185,7 +189,12 @@ export default function Gazette() {
             </div>
           ) : (
             currentWeekPosts.map((post) => (
-              <GazettePost key={post.id} post={post} isEditor={isEditor} />
+              <GazettePost
+                key={post.id}
+                post={post}
+                isEditor={isEditor}
+                gazetteName={gazetteName}
+              />
             ))
           )}
         </>

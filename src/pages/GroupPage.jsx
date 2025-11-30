@@ -1,5 +1,5 @@
-import { useCurrentUser } from '../lib/useCurrentUser';
-import GroupDetail from '../components/social/GroupDetail';
+import { useCurrentUser } from "../lib/useCurrentUser";
+import GroupDetail from "../components/social/GroupDetail";
 
 /**
  * Page détail d'un groupe

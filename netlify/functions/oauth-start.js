@@ -69,7 +69,7 @@ export const handler = async (event) => {
     }
     const metadata = (existingUser && existingUser.metadata) || {};
     metadata.oauth = metadata.oauth || {};
-    metadata.oauth[provider] = { state, createdAt: now.toISOString(), expiresAt };
+    metadata.oauth[provider] = { state, createdAt: now.toISOString(), expiresAt, redirectUri };
     // Log the user consent request for this provider (last consent request timestamp and scopes)
     const providerScopes = conf.scopes || [];
     metadata[`${provider}_consent`] = {
@@ -105,6 +105,15 @@ export const handler = async (event) => {
   }
 
   const authUrl = `${conf.authorizeUrl}?${params.toString()}`;
+  // Debug logging to help diagnose redirect_uri mismatches between start and complete
+  console.log(
+    "[oauth-start] provider:",
+    provider,
+    "redirectUri:",
+    redirectUri,
+    "authUrl:",
+    authUrl
+  );
 
   return {
     statusCode: 200,

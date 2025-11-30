@@ -2,7 +2,7 @@
 // Widget web minimaliste pour intégrer Ophélia sur d'autres sites
 
 (function () {
-  const style = document.createElement('style');
+  const style = document.createElement("style");
   style.textContent = `
     #ophelia-widget {
       position: fixed;
@@ -57,8 +57,8 @@
   `;
   document.head.appendChild(style);
 
-  const widget = document.createElement('div');
-  widget.id = 'ophelia-widget';
+  const widget = document.createElement("div");
+  widget.id = "ophelia-widget";
   widget.innerHTML = `
     <div id="ophelia-widget-header">Ophélia</div>
     <div id="ophelia-widget-messages"></div>
@@ -69,41 +69,41 @@
   `;
   document.body.appendChild(widget);
 
-  const messages = widget.querySelector('#ophelia-widget-messages');
-  const form = widget.querySelector('#ophelia-widget-input');
-  const input = form.querySelector('input');
+  const messages = widget.querySelector("#ophelia-widget-messages");
+  const form = widget.querySelector("#ophelia-widget-input");
+  const input = form.querySelector("input");
 
   function addMessage(text, from) {
-    const msg = document.createElement('div');
+    const msg = document.createElement("div");
     msg.textContent = text;
-    msg.style.margin = '8px 0';
-    msg.style.textAlign = from === 'user' ? 'right' : 'left';
-    msg.style.color = from === 'user' ? '#3182ce' : '#222';
+    msg.style.margin = "8px 0";
+    msg.style.textAlign = from === "user" ? "right" : "left";
+    msg.style.color = from === "user" ? "#3182ce" : "#222";
     messages.appendChild(msg);
     messages.scrollTop = messages.scrollHeight;
   }
 
   async function sendQuestion(q) {
-    addMessage(q, 'user');
-    input.value = '';
-    addMessage('…', 'bot');
+    addMessage(q, "user");
+    input.value = "";
+    addMessage("…", "bot");
     try {
-      const res = await fetch('https://lepp.fr/api/ophelia', {
-        method: 'POST',
+      const res = await fetch("https://lepp.fr/api/ophelia", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': 'dev-demo-key'
+          "Content-Type": "application/json",
+          "x-api-key": "dev-demo-key",
         },
-        body: JSON.stringify({ question: q })
+        body: JSON.stringify({ question: q }),
       });
       const data = await res.json();
-      messages.lastChild.textContent = data.answer || '[Pas de réponse]';
+      messages.lastChild.textContent = data.answer || "[Pas de réponse]";
     } catch (e) {
-      messages.lastChild.textContent = '[Erreur de connexion]';
+      messages.lastChild.textContent = "[Erreur de connexion]";
     }
   }
 
-  form.onsubmit = e => {
+  form.onsubmit = (e) => {
     e.preventDefault();
     const q = input.value.trim();
     if (q) sendQuestion(q);

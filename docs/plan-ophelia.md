@@ -4,7 +4,8 @@
 
 ### Où est stocké ce plan ?
 
-Le plan est stocké dans un fichier persistant dans le dossier `docs/` de votre projet, nommé `plan-ophelia.md`.  
+Le plan est stocké dans un fichier persistant dans le dossier `docs/` de votre projet, nommé
+`plan-ophelia.md`.  
 Vous pouvez le versionner ou le partager selon vos besoins.
 
 ---
@@ -57,7 +58,8 @@ Vous pouvez le versionner ou le partager selon vos besoins.
 ### 4. Dataset open data
 
 - **Dossier** : `datasets/` ou dépôt HF Datasets
-- **Fonction** : Valoriser la connaissance locale, permettre le fine-tuning, la recherche, la transparence
+- **Fonction** : Valoriser la connaissance locale, permettre le fine-tuning, la recherche, la
+  transparence
 - **Détails** :
   - Export des données (wiki, Q&A, docs municipaux) en JSONL
   - Structuration : `wiki_pages.jsonl`, `qa_pairs.jsonl`, `council_docs.jsonl`
@@ -83,7 +85,8 @@ Vous pouvez le versionner ou le partager selon vos besoins.
 ### 6. Interopérabilité et standardisation (MCP)
 
 - **Dossier** : `mcp/` ou dépôt séparé
-- **Fonction** : Préparer l’intégration avec les outils LLM modernes (Claude Desktop, Cursor, Continue…)
+- **Fonction** : Préparer l’intégration avec les outils LLM modernes (Claude Desktop, Cursor,
+  Continue…)
 - **Détails** :
   - Prototyper un serveur MCP (Model Context Protocol)
   - Exposer les ressources (wiki, docs, Q&A) via MCP
@@ -135,4 +138,5 @@ Vous pouvez le versionner ou le partager selon vos besoins.
 
 ---
 
-**Ce plan est stocké dans un fichier persistant. Vous pouvez le déplacer dans `docs/` ou un dépôt dédié pour le versionner et le partager.**
+**Ce plan est stocké dans un fichier persistant. Vous pouvez le déplacer dans `docs/` ou un dépôt
+dédié pour le versionner et le partager.**

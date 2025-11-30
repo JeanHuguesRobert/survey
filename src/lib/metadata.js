@@ -13,7 +13,7 @@ export const SCHEMA_VERSION = 1;
 export function initMetadata(data = {}) {
   return {
     schemaVersion: SCHEMA_VERSION,
-    ...data
+    ...data,
   };
 }
 
@@ -39,8 +39,8 @@ export function setMetadata(entity, updates) {
     ...entity,
     metadata: {
       ...entity.metadata,
-      ...updates
-    }
+      ...updates,
+    },
   };
 }
 
@@ -50,7 +50,7 @@ export function setMetadata(entity, updates) {
  * @returns {boolean} true si supprimée (soft delete)
  */
 export function isDeleted(entity) {
-  return getMetadata(entity, 'isDeleted', false) === true;
+  return getMetadata(entity, "isDeleted", false) === true;
 }
 
 /**
@@ -64,13 +64,13 @@ export function softDelete(entity, userId, reason = null) {
   const updates = {
     isDeleted: true,
     deletedAt: new Date().toISOString(),
-    deletedBy: userId
+    deletedBy: userId,
   };
-  
+
   if (reason) {
     updates.deletionReason = reason;
   }
-  
+
   return setMetadata(entity, updates);
 }
 
@@ -84,7 +84,7 @@ export function restore(entity) {
     isDeleted: false,
     deletedAt: null,
     deletedBy: null,
-    deletionReason: null
+    deletionReason: null,
   });
 }
 
@@ -94,15 +94,15 @@ export function restore(entity) {
  * @returns {boolean} true si valide
  */
 export function validateMetadata(metadata) {
-  if (!metadata || typeof metadata !== 'object') {
+  if (!metadata || typeof metadata !== "object") {
     return false;
   }
-  
+
   // schemaVersion est requis
-  if (!metadata.schemaVersion || typeof metadata.schemaVersion !== 'number') {
+  if (!metadata.schemaVersion || typeof metadata.schemaVersion !== "number") {
     return false;
   }
-  
+
   return true;
 }
 
@@ -113,22 +113,22 @@ export function validateMetadata(metadata) {
  * @returns {Object} Entité avec metadata migré
  */
 export function migrateMetadata(entity, targetVersion = SCHEMA_VERSION) {
-  const currentVersion = getMetadata(entity, 'schemaVersion', 0);
-  
+  const currentVersion = getMetadata(entity, "schemaVersion", 0);
+
   if (currentVersion >= targetVersion) {
     return entity; // Déjà à jour
   }
-  
+
   // Migrations incrémentales
   let migrated = { ...entity };
-  
+
   // Migration v0 -> v1 (ajouter schemaVersion si manquant)
   if (currentVersion < 1) {
     migrated = setMetadata(migrated, { schemaVersion: 1 });
   }
-  
+
   // Futures migrations ici
   // if (currentVersion < 2) { ... }
-  
+
   return migrated;
 }

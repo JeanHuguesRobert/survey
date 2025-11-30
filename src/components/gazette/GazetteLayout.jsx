@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 /**
  * GazetteLayout - A layout component for an 1820s French newspaper style.
@@ -16,6 +17,8 @@ export default function GazetteLayout({
   weeks = [],
   selectedWeek = null,
   onWeekChange = () => {},
+  gazetteName = null,
+  editorGroupId = null,
 }) {
   return (
     <div className="min-h-screen bg-[#f4e4bc] text-[#2c241b] font-serif p-4 md:p-8 overflow-x-hidden">
@@ -140,6 +143,30 @@ export default function GazetteLayout({
             </div>
             <span>N° {Math.floor(Math.random() * 10000)}</span>
             <span>Prix: 5 Sous</span>
+            {gazetteName && (
+              <Link
+                className="ml-4 text-sm underline hover:no-underline"
+                to={`/social?tab=posts&gazette=${encodeURIComponent(gazetteName)}`}
+              >
+                ☕ Discuter au Café
+              </Link>
+            )}
+            {gazetteName && (
+              <Link
+                className="ml-4 text-sm bg-primary-600 text-bauhaus-white px-3 py-1 rounded hover:opacity-90"
+                to={`/posts/new?gazette=${encodeURIComponent(gazetteName)}${editorGroupId ? `&groupId=${editorGroupId}` : ""}`}
+              >
+                ✍️ Démarrer une discussion
+              </Link>
+            )}
+            {editorGroupId && (
+              <Link
+                className="ml-4 text-sm underline hover:no-underline"
+                to={`/social?tab=posts&groupId=${editorGroupId}`}
+              >
+                🏘️ Discuter dans le groupe éditeur
+              </Link>
+            )}
           </div>
         </header>
 

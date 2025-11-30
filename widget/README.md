@@ -1,4 +1,5 @@
 <!-- widget/README.md -->
+
 # Widget Ophélia (embeddable)
 
 Widget web minimaliste pour intégrer Ophélia sur n’importe quel site.
@@ -14,17 +15,20 @@ Ajoutez ce script dans votre page HTML :
 Ou servez-le depuis votre domaine principal.
 
 ## Fonctionnalités
+
 - Chatbox flottante en bas à droite
 - Posez une question, réponse instantanée via l’API REST centrale
 - Branding Ophélia
 - Aucune dépendance externe
 
 ## Personnalisation (à venir)
+
 - Couleurs, logo, position
 - Clé API personnalisée
 - Historique conversationnel
 
 ## Sécurité
+
 - CORS à configurer côté API
 - Rate limiting recommandé
 

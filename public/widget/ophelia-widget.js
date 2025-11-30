@@ -1,8 +1,8 @@
 // Widget web minimaliste pour intégrer Ophélia sur d'autres sites
 
 (function () {
-	const style = document.createElement('style');
-	style.textContent = `
+  const style = document.createElement("style");
+  style.textContent = `
 		#ophelia-widget {
 			position: fixed;
 			bottom: 24px;
@@ -54,11 +54,11 @@
 			border-radius: 0 0 12px 0;
 		}
 	`;
-	document.head.appendChild(style);
+  document.head.appendChild(style);
 
-	const widget = document.createElement('div');
-	widget.id = 'ophelia-widget';
-	widget.innerHTML = `
+  const widget = document.createElement("div");
+  widget.id = "ophelia-widget";
+  widget.innerHTML = `
 		<div id="ophelia-widget-header">Ophélia</div>
 		<div id="ophelia-widget-messages"></div>
 		<form id="ophelia-widget-input">
@@ -66,45 +66,45 @@
 			<button type="submit">Envoyer</button>
 		</form>
 	`;
-	document.body.appendChild(widget);
+  document.body.appendChild(widget);
 
-	const messages = widget.querySelector('#ophelia-widget-messages');
-	const form = widget.querySelector('#ophelia-widget-input');
-	const input = form.querySelector('input');
+  const messages = widget.querySelector("#ophelia-widget-messages");
+  const form = widget.querySelector("#ophelia-widget-input");
+  const input = form.querySelector("input");
 
-	function addMessage(text, from) {
-		const msg = document.createElement('div');
-		msg.textContent = text;
-		msg.style.margin = '8px 0';
-		msg.style.textAlign = from === 'user' ? 'right' : 'left';
-		msg.style.color = from === 'user' ? '#3182ce' : '#222';
-		messages.appendChild(msg);
-		messages.scrollTop = messages.scrollHeight;
-	}
+  function addMessage(text, from) {
+    const msg = document.createElement("div");
+    msg.textContent = text;
+    msg.style.margin = "8px 0";
+    msg.style.textAlign = from === "user" ? "right" : "left";
+    msg.style.color = from === "user" ? "#3182ce" : "#222";
+    messages.appendChild(msg);
+    messages.scrollTop = messages.scrollHeight;
+  }
 
-	async function sendQuestion(q) {
-		addMessage(q, 'user');
-		input.value = '';
-		addMessage('…', 'bot');
-		try {
-			const res = await fetch('https://lepp.fr/api/ophelia', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'x-api-key': 'dev-demo-key'
-				},
-				body: JSON.stringify({ question: q })
-			});
-			const data = await res.json();
-			messages.lastChild.textContent = data.answer || '[Pas de réponse]';
-		} catch (e) {
-			messages.lastChild.textContent = '[Erreur de connexion]';
-		}
-	}
+  async function sendQuestion(q) {
+    addMessage(q, "user");
+    input.value = "";
+    addMessage("…", "bot");
+    try {
+      const res = await fetch("https://lepp.fr/api/ophelia", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": "dev-demo-key",
+        },
+        body: JSON.stringify({ question: q }),
+      });
+      const data = await res.json();
+      messages.lastChild.textContent = data.answer || "[Pas de réponse]";
+    } catch (e) {
+      messages.lastChild.textContent = "[Erreur de connexion]";
+    }
+  }
 
-	form.onsubmit = e => {
-		e.preventDefault();
-		const q = input.value.trim();
-		if (q) sendQuestion(q);
-	};
+  form.onsubmit = (e) => {
+    e.preventDefault();
+    const q = input.value.trim();
+    if (q) sendQuestion(q);
+  };
 })();

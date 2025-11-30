@@ -13,10 +13,10 @@ npm install ./packages/ophelia
 ## Utilisation
 
 ```js
-const { ask } = require('ophelia');
+const { ask } = require("ophelia");
 
 (async () => {
-  const res = await ask('Quelle est la capitale de la Corse ?');
+  const res = await ask("Quelle est la capitale de la Corse ?");
   console.log(res.answer);
 })();
 ```

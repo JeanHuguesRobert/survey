@@ -12,6 +12,7 @@ export default function PostList({
   linkedId = null,
   postType = null,
   tag = null,
+  gazette = null,
   currentUserId = null,
 }) {
   const [posts, setPosts] = useState([]);
@@ -20,7 +21,7 @@ export default function PostList({
 
   useEffect(() => {
     loadPosts();
-  }, [groupId, linkedType, linkedId, postType]);
+  }, [groupId, linkedType, linkedId, postType, tag, gazette]);
 
   async function loadPosts() {
     try {
@@ -46,6 +47,9 @@ export default function PostList({
         // Filter posts whose metadata.tags array contains the tag
         // Use Supabase 'contains' on the JSON column
         query = query.contains("metadata", { tags: [tag] });
+      }
+      if (gazette) {
+        query = query.eq("metadata->>gazette", gazette);
       }
 
       // Tri: épinglés en premier, puis par date

@@ -28,13 +28,11 @@ de la Commune 2023
 
 3 — Régie du Parking Municipal « Tuffelli » :
 
-4 Affectation du Résultat 2022
-#% Adoption du Budget Primitif 2023
+4 Affectation du Résultat 2022 #% Adoption du Budget Primitif 2023
 
 4 — Régie du Parking « Restonica-Grotelle » :
 
-4 Affectation du Résultat 2022
-4 Adoption du Budget Primitif 2023
+4 Affectation du Résultat 2022 4 Adoption du Budget Primitif 2023
 
 5 — Régie du Lotissement « Furnaccia » :
 
@@ -62,12 +60,10 @@ v Les droits de stationnement,
 
 v Les activités périscolaires : Caisse des Ecoles,
 
-Y Les droits de place sur les foires et marchés,
-Y La Piscine Municipale.
+Y Les droits de place sur les foires et marchés, Y La Piscine Municipale.
 
 8 — En Communication :
 
 # Commune :
 
 y Compte-rendu de la réunion du Conseil Municipal 20 mars 2023
-

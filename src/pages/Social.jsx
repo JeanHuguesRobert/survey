@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import GroupList from "../components/social/GroupList";
 import PostList from "../components/social/PostList";
+import { supabase } from "../lib/supabase";
 import { GROUP_TYPES, POST_TYPES } from "../lib/socialMetadata";
 import { canWrite } from "../lib/permissions";
 import SiteFooter from "../components/layout/SiteFooter";
@@ -17,6 +18,83 @@ export default function Social() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "all"); // all | groups | posts
   const [filterType, setFilterType] = useState(null);
+  const gazetteParam = searchParams.get("gazette");
+  const [gazettes, setGazettes] = useState([]);
+  const [selectedGazette, setSelectedGazette] = useState(gazetteParam || "");
+  const linkedTypeParam = searchParams.get("linkedType");
+  const linkedIdParam = searchParams.get("linkedId");
+  const groupIdParam = searchParams.get("groupId");
+  const [contextTitle, setContextTitle] = useState(null);
+  const [contextGroup, setContextGroup] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadContext() {
+      try {
+        if (linkedTypeParam === "post" && linkedIdParam) {
+          const { data } = await supabase
+            .from("posts")
+            .select("id,title,metadata")
+            .eq("id", linkedIdParam)
+            .single();
+          if (mounted && data) {
+            setContextTitle(data.title || `Post ${data.id}`);
+          }
+        } else if (gazetteParam) {
+          setContextTitle(`Gazette: ${gazetteParam}`);
+        } else if (groupIdParam) {
+          // Fetch group name
+          const { data: group } = await supabase
+            .from("groups")
+            .select("id,name")
+            .eq("id", groupIdParam)
+            .single();
+          setContextGroup(group);
+        } else {
+          setContextTitle(null);
+        }
+      } catch (err) {
+        console.error("Error loading social context:", err);
+        setContextTitle(null);
+      }
+    }
+    loadContext();
+    return () => {
+      mounted = false;
+    };
+  }, [linkedTypeParam, linkedIdParam, gazetteParam, groupIdParam]);
+
+  useEffect(() => {
+    async function loadGazettes() {
+      try {
+        // Load gazette names from posts metadata
+        const { data, error } = await supabase
+          .from("posts")
+          .select("metadata->>gazette as gazette")
+          .not("metadata->>gazette", "is", null)
+          .limit(1000);
+        if (error) throw error;
+        const names = Array.from(new Set((data || []).map((d) => d.gazette).filter(Boolean)));
+        // Ensure 'global' is present if not already
+        if (!names.includes("global")) names.unshift("global");
+        setGazettes(names);
+        // sensible default: if no gazette param and 'global' exists, select it by default
+        if (!gazetteParam && names.includes("global")) {
+          setSelectedGazette("global");
+          const params = new URLSearchParams(searchParams);
+          params.set("gazette", "global");
+          setSearchParams(params);
+        }
+      } catch (err) {
+        console.error("Error loading gazette names:", err);
+      }
+    }
+    loadGazettes();
+  }, []);
+
+  useEffect(() => {
+    setSelectedGazette(gazetteParam || "");
+  }, [gazetteParam]);
 
   // Keep activeTab in sync with URL query param `tab`
   useEffect(() => {
@@ -59,6 +137,45 @@ export default function Social() {
           </button>
         </div>
       )}
+
+      {/* Gazette quick link (always visible) */}
+      <div className="mb-6">
+        <Link
+          to={
+            gazetteParam
+              ? gazetteParam === "global"
+                ? "/gazette"
+                : `/gazette/${gazetteParam}`
+              : "/gazette"
+          }
+          className="inline-block btn btn-ghost text-sm"
+        >
+          📰 La Gazette
+        </Link>
+        <select
+          value={selectedGazette}
+          onChange={(e) => {
+            const value = e.target.value;
+            setSelectedGazette(value);
+            const params = new URLSearchParams(searchParams);
+            if (!value) {
+              params.delete("gazette");
+            } else {
+              params.set("gazette", value);
+            }
+            setSearchParams(params);
+            if (value) setTab("posts");
+          }}
+          className="ml-3 inline-block border rounded px-2 py-1"
+        >
+          <option value="">Toutes</option>
+          {gazettes.map((g) => (
+            <option key={g} value={g}>
+              {g === "global" ? "LA GAZETTE (global)" : g}
+            </option>
+          ))}
+        </select>
+      </div>
 
       {/* Tabs */}
       <nav className="tabs-nav">
@@ -146,6 +263,30 @@ export default function Social() {
       )}
 
       {/* Content */}
+      {contextTitle && (
+        <div className="mb-6 theme-card p-4 text-sm">
+          <strong>Contexte: </strong>{" "}
+          {contextTitle || (contextGroup ? `Groupe: ${contextGroup.name}` : null)}
+          {linkedTypeParam === "post" && linkedIdParam && (
+            <Link className="ml-3 text-primary hover:underline" to={`/posts/${linkedIdParam}`}>
+              Voir l'article
+            </Link>
+          )}
+          {gazetteParam && (
+            <Link
+              className="ml-3 text-primary hover:underline"
+              to={gazetteParam === "global" ? "/gazette" : `/gazette/${gazetteParam}`}
+            >
+              Voir la Gazette
+            </Link>
+          )}
+          {groupIdParam && contextGroup && (
+            <Link className="ml-3 text-primary hover:underline" to={`/groups/${groupIdParam}`}>
+              Voir le groupe
+            </Link>
+          )}
+        </div>
+      )}
       <div>
         {activeTab === "all" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -171,7 +312,14 @@ export default function Social() {
                   Voir tout →
                 </Link>
               </h2>
-              <PostList currentUserId={currentUser?.id} tag={searchParams.get("tag")} />
+              <PostList
+                currentUserId={currentUser?.id}
+                tag={searchParams.get("tag")}
+                gazette={gazetteParam}
+                linkedType={linkedTypeParam}
+                linkedId={linkedIdParam}
+                groupId={groupIdParam}
+              />
             </div>
           </div>
         )}
@@ -185,6 +333,10 @@ export default function Social() {
             postType={filterType}
             currentUserId={currentUser?.id}
             tag={searchParams.get("tag")}
+            gazette={gazetteParam}
+            linkedType={linkedTypeParam}
+            linkedId={linkedIdParam}
+            groupId={groupIdParam}
           />
         )}
       </div>

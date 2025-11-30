@@ -6,9 +6,11 @@ Du Conseil Municipal du 23 décembre 2024
 
 23 Conseillers étaient Présents et Représentés: (05 Procurations: Marie-Luce CASTELLI,
 
-Fabien LUCIANI, Ange-Julien NICOLINI, Blandine-Françoise RUGGERI et Marie-Cécile RUIZ) et 06 Conseillers
+Fabien LUCIANI, Ange-Julien NICOLINI, Blandine-Françoise RUGGERI et Marie-Cécile RUIZ) et 06
+Conseillers
 
-étaient Absents : Jean-Toussaint ALBERTINI, Elodie BAGHIONI, Martine BARRIELE, Vanina BORROMEÏ, Nathalie
+étaient Absents : Jean-Toussaint ALBERTINI, Elodie BAGHIONI, Martine BARRIELE, Vanina BORROMEÏ,
+Nathalie
 
 PULICANI et Marcel SIMEONI.
 
@@ -24,7 +26,8 @@ Point n° 1 : Régie du Parking « Restonica-Grotelle »
 
 représentés, Après en avoir délibéré, Approuve la proposition de son Maire, Adopte la Décision
 
-Modificative n° 2 du Budget Annexe du Parking « Restonica-Grotelle » telle que présentée et annexée à
+Modificative n° 2 du Budget Annexe du Parking « Restonica-Grotelle » telle que présentée et annexée
+à
 
 la délibération.
 
@@ -36,7 +39,7 @@ Point n° 2 : Régie de l’Eau « Cort’ Acqua »
 
 représentés, après en avoir délibéré, Fait Sienne la proposition de son Maire, Adopte à compter du
 
-01* janvier 2025, en application de l’article L.213-10-4 du Code de l’Environnement, les nouvelles
+01\* janvier 2025, en application de l’article L.213-10-4 du Code de l’Environnement, les nouvelles
 
 redevances de l’Agence de l’Eau comme définies ci-dessous :
 
@@ -46,7 +49,7 @@ redevances de l’Agence de l’Eau comme définies ci-dessous :
 
 v Prélévement sur la ressource en eau,
 
-Dont les taux ont été adoptés par le Conseil d’Administration du 04 octobre 2024, après avis conforme
+Dont les taux ont été adoptés par le Conseil d’Administration du 04 octobre 2024, après avis
+conforme
 
 des Comités de Bassin et publiés au Journal Officiel n° 0253 du 24 octobre 2024.
-
