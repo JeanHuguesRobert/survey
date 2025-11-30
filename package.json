@@ -48,8 +48,10 @@
     "supabase": "^2.63.1"
   },
   "devDependencies": {
+
     "@vitejs/plugin-react": "^4.0.0",
     "autoprefixer": "^10.4.22",
+    "chromatic": "^13.3.4",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "husky": "^9.1.7",
