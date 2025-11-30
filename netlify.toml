@@ -10,6 +10,8 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+
+[functions.public_browser]
   included_files = ["public/**"]
 
 [[edge_functions]]
