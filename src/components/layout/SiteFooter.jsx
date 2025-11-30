@@ -41,6 +41,9 @@ export default function SiteFooter({
   const touchAttempts = useRef(0);
   const touchTimeoutRef = useRef(null);
   const touchTotalDistance = useRef(0);
+  // Suppress immediate auto-close after an auto-open (wheel or touch)
+  const suppressAutoCloseRef = useRef(false);
+  const suppressAutoCloseTimeoutRef = useRef(null);
 
   // Touch drag handlers for mobile
   // Improved mobile drag logic
@@ -72,6 +75,14 @@ export default function SiteFooter({
           // If single long drag (>100px), open immediately
           if (touchTotalDistance.current > 100) {
             setIsExpanded(true);
+            // Prevent immediate auto-close after this auto-open
+            suppressAutoCloseRef.current = true;
+            if (suppressAutoCloseTimeoutRef.current) {
+              clearTimeout(suppressAutoCloseTimeoutRef.current);
+            }
+            suppressAutoCloseTimeoutRef.current = setTimeout(() => {
+              suppressAutoCloseRef.current = false;
+            }, 1500);
             touchAttempts.current = 0;
             touchTotalDistance.current = 0;
             return;
@@ -81,6 +92,14 @@ export default function SiteFooter({
             touchAttempts.current += 1;
             if (touchAttempts.current >= 3) {
               setIsExpanded(true);
+              // Prevent immediate auto-close after this auto-open
+              suppressAutoCloseRef.current = true;
+              if (suppressAutoCloseTimeoutRef.current) {
+                clearTimeout(suppressAutoCloseTimeoutRef.current);
+              }
+              suppressAutoCloseTimeoutRef.current = setTimeout(() => {
+                suppressAutoCloseRef.current = false;
+              }, 1500);
               touchAttempts.current = 0;
               touchTotalDistance.current = 0;
               return;
@@ -140,6 +159,8 @@ export default function SiteFooter({
     if (!hasBeenSeenExpanded) return;
 
     const handleScroll = () => {
+      // Skip auto-close if we recently auto-opened
+      if (suppressAutoCloseRef.current) return;
       if (isExpanded && !isManualControl) {
         // Fermer le footer au scroll
         if (scrollTimeoutRef.current) {
@@ -166,6 +187,14 @@ export default function SiteFooter({
           if (wheelAttempts.current >= 3) {
             setIsExpanded(true);
             wheelAttempts.current = 0;
+            // Suppress immediate auto-close after auto-open by wheel
+            suppressAutoCloseRef.current = true;
+            if (suppressAutoCloseTimeoutRef.current) {
+              clearTimeout(suppressAutoCloseTimeoutRef.current);
+            }
+            suppressAutoCloseTimeoutRef.current = setTimeout(() => {
+              suppressAutoCloseRef.current = false;
+            }, 1500);
           }
 
           // Reset après 800ms d'inactivité
@@ -199,6 +228,9 @@ export default function SiteFooter({
       }
       if (touchTimeoutRef.current) {
         clearTimeout(touchTimeoutRef.current);
+      }
+      if (suppressAutoCloseTimeoutRef.current) {
+        clearTimeout(suppressAutoCloseTimeoutRef.current);
       }
     };
   }, [isExpanded, hasBeenSeenExpanded, isManualControl]);
