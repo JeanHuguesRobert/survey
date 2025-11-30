@@ -60,6 +60,40 @@
     const ogUrlEl = document.getElementById('og-url');
     if (ogUrlEl) ogUrlEl.setAttribute('content', SITE_URL.replace(/\/$/, ''));
   </script>
+
+  <!-- Facebook SDK -->
+  <script>
+    window.fbAsyncInit = function() {
+      FB.init({
+        appId      : '%VITE_FACEBOOK_APP_ID%',
+        cookie     : true,
+        xfbml      : true,
+        version    : 'v21.0'
+      });
+
+      FB.AppEvents.logPageView();
+
+      // Check login status
+      FB.getLoginStatus(function(response) {
+        console.log('Facebook login status:', response);
+        if (response.status === 'connected') {
+          console.log('User is logged in to Facebook and your app');
+        } else if (response.status === 'not_authorized') {
+          console.log('User is logged in to Facebook but not your app');
+        } else {
+          console.log('User is not logged in to Facebook');
+        }
+      });
+    };
+
+    (function(d, s, id){
+       var js, fjs = d.getElementsByTagName(s)[0];
+       if (d.getElementById(id)) {return;}
+       js = d.createElement(s); js.id = id;
+       js.src = "https://connect.facebook.net/en_US/sdk.js";
+       fjs.parentNode.insertBefore(js, fjs);
+     }(document, 'script', 'facebook-jssdk'));
+  </script>
 </body>
 
 </html>
