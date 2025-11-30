@@ -113,39 +113,42 @@ export const handler = async (event) => {
 
         if (foundUser) {
           const existingMetadata = foundUser.metadata || {};
-          // Remove facebook fields and add revokedAt timestamp
-          const newMetadata = { ...existingMetadata };
-          delete newMetadata.facebookId;
-          delete newMetadata.facebook_id;
-          delete newMetadata.fb_id;
-          delete newMetadata.facebook_user_id;
-          delete newMetadata.avatarUrl;
-          delete newMetadata.avatar_url;
-          // keep history and set revokedAt
-          const consent =
-            newMetadata.facebook_consent && typeof newMetadata.facebook_consent === "object"
-              ? newMetadata.facebook_consent
-              : {};
-          consent.revokedAt = new Date().toISOString();
-          newMetadata.facebook_consent = consent;
-
-          const patchUrl = `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/users?id=eq.${encodeURIComponent(foundUser.id)}`;
-          const patchRes = await fetch(patchUrl, {
-            method: "PATCH",
-            headers: {
-              apikey: SUPABASE_SERVICE_ROLE_KEY,
-              Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-              "Content-Type": "application/json",
-              Prefer: "return=representation",
-            },
-            body: JSON.stringify({ metadata: newMetadata }),
-          });
-
-          if (!patchRes.ok) {
-            const txt = await patchRes.text();
-            console.error("Failed to update user metadata on deauthorize:", txt);
+          const existingConsent = existingMetadata.facebook_consent || {};
+          if (existingConsent.revokedAt) {
+            console.log("User already revoked Facebook consent at", existingConsent.revokedAt);
           } else {
-            console.log("Cleared Facebook metadata for user id", foundUser.id);
+            const newMetadata = { ...existingMetadata };
+            delete newMetadata.facebookId;
+            delete newMetadata.facebook_id;
+            delete newMetadata.fb_id;
+            delete newMetadata.facebook_user_id;
+            delete newMetadata.avatarUrl;
+            delete newMetadata.avatar_url;
+            const consent =
+              newMetadata.facebook_consent && typeof newMetadata.facebook_consent === "object"
+                ? newMetadata.facebook_consent
+                : {};
+            consent.revokedAt = new Date().toISOString();
+            newMetadata.facebook_consent = consent;
+
+            const patchUrl = `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/users?id=eq.${encodeURIComponent(foundUser.id)}`;
+            const patchRes = await fetch(patchUrl, {
+              method: "PATCH",
+              headers: {
+                apikey: SUPABASE_SERVICE_ROLE_KEY,
+                Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                "Content-Type": "application/json",
+                Prefer: "return=representation",
+              },
+              body: JSON.stringify({ metadata: newMetadata }),
+            });
+
+            if (!patchRes.ok) {
+              const txt = await patchRes.text();
+              console.error("Failed to update user metadata on deauthorize:", txt);
+            } else {
+              console.log("Cleared Facebook metadata for user id", foundUser.id);
+            }
           }
         } else {
           console.log("No matching Supabase user found for facebook id", userId);
@@ -157,7 +160,6 @@ export const handler = async (event) => {
       console.warn("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set, skipping metadata update");
     }
 
-    // Facebook deauthorize callback does not require any specific response body, 200 is fine.
     return { statusCode: 200, body: JSON.stringify({ success: true }) };
   } catch (error) {
     console.error("facebook-deauthorize error", error);

@@ -74,9 +74,9 @@ export const handler = async (event) => {
 
     const userId = data.user_id || data.user?.id || null;
 
-    // Generate a confirmation code and status URL
+    // Generate a confirmation code (we may reuse an existing one for idempotency)
     const confirmationCode = crypto.randomBytes(12).toString("hex");
-    const statusUrl = `${APP_BASE_URL.replace(/\/$/, "")}/oauth/facebook/deletion-status?code=${confirmationCode}`;
+    let confirmationToReturn = confirmationCode;
 
     console.log("Facebook data deletion request for user:", userId, "payload:", data);
 
@@ -126,36 +126,50 @@ export const handler = async (event) => {
         }
 
         if (foundUser) {
-          // Merge deletion status into metadata
+          // Merge deletion status into metadata (idempotent): if there's already an entry
+          // with a confirmation_code, reuse it instead of creating a new one.
           const existingMetadata = foundUser.metadata || {};
-          const deletionEntry = {
-            facebook_data_deletion: {
-              status: "requested",
-              confirmation_code: confirmationCode,
-              requested_at: new Date().toISOString(),
-              facebook_user_id: userId,
-            },
-          };
-
-          const newMetadata = { ...existingMetadata, ...deletionEntry };
-
-          const patchUrl = `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/users?id=eq.${encodeURIComponent(foundUser.id)}`;
-          const patchRes = await fetch(patchUrl, {
-            method: "PATCH",
-            headers: {
-              apikey: SUPABASE_SERVICE_ROLE_KEY,
-              Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-              "Content-Type": "application/json",
-              Prefer: "return=representation",
-            },
-            body: JSON.stringify({ metadata: newMetadata }),
-          });
-
-          if (!patchRes.ok) {
-            const txt = await patchRes.text();
-            console.error("Failed to update user metadata:", txt);
+          if (
+            existingMetadata.facebook_data_deletion &&
+            existingMetadata.facebook_data_deletion.confirmation_code
+          ) {
+            // Reuse existing confirmation code and requested_at, keep it idempotent
+            confirmationToReturn = existingMetadata.facebook_data_deletion.confirmation_code;
+            console.log(
+              "Reusing existing facebook_data_deletion confirmation code",
+              confirmationToReturn
+            );
           } else {
-            console.log("Updated user metadata for user id", foundUser.id);
+            const deletionEntry = {
+              facebook_data_deletion: {
+                status: "requested",
+                confirmation_code: confirmationToReturn,
+                requested_at: new Date().toISOString(),
+                facebook_user_id: userId,
+              },
+            };
+            Object.assign(existingMetadata, deletionEntry);
+
+            const patchUrl = `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/users?id=eq.${encodeURIComponent(
+              foundUser.id
+            )}`;
+            const patchRes = await fetch(patchUrl, {
+              method: "PATCH",
+              headers: {
+                apikey: SUPABASE_SERVICE_ROLE_KEY,
+                Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                "Content-Type": "application/json",
+                Prefer: "return=representation",
+              },
+              body: JSON.stringify({ metadata: existingMetadata }),
+            });
+
+            if (!patchRes.ok) {
+              const txt = await patchRes.text();
+              console.error("Failed to update user metadata:", txt);
+            } else {
+              console.log("Updated user metadata for user id", foundUser.id);
+            }
           }
         } else {
           console.log("No matching user found for facebook id", userId);
@@ -167,10 +181,12 @@ export const handler = async (event) => {
       console.warn("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set, skipping metadata update");
     }
 
+    // Build the status url based on what confirmation code we're returning
+    const statusUrl = `${APP_BASE_URL.replace(/\/$/, "")}/oauth/facebook/deletion-status?code=${confirmationToReturn}`;
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: statusUrl, confirmation_code: confirmationCode }),
+      body: JSON.stringify({ url: statusUrl, confirmation_code: confirmationToReturn }),
     };
   } catch (error) {
     console.error("facebook-data-deletion error", error);

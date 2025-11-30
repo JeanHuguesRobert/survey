@@ -220,6 +220,21 @@ Notes
   données si vous avez une table dédiée et des règles claires. Le code de la fonction contient un
   TODO pour intégrer la logique de suppression.
 
+## Improvements & Hardening
+
+- IDempotency: The repo now implements idempotency for the data deletion and deauthorize callbacks.
+  The deletion callback reuses an existing `confirmation_code` when present; the deauthorize
+  callback keeps a `facebook_consent.revokedAt` field and will not recreate/overwrite it if already
+  set.
+- Signature validation: We validate `signed_request` with HMAC-SHA256 (`FACEBOOK_CLIENT_SECRET`). We
+  recommend additionally checking `payload.algorithm` equals `HMAC-SHA256` and that the `issued_at`
+  timestamp is not too old (e.g. 15–60 minutes maximum allowed age) to prevent replay attacks.
+- Deletion workflow: The function returns a `confirmation_code` and the status URL. Implement a
+  deletion worker (or manual approval process) to complete the deletion and set
+  `status: "completed"`.
+- Testing: Add a small developer script to craft signed_request for local testing (using the app
+  secret) and test deauthorize / deletion handlers via ngrok.
+
 ### Deauthorize callback (revocation of app permissions)
 
 Facebook also sends a deauthorization callback when a user removes your app via their Facebook
