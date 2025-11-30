@@ -831,6 +831,55 @@ export default function useChatLogic(initial = {}) {
     }
   }, []);
 
+  // Sync local history to Supabase for logged users and load history
+  const fetchChatHistory = useCallback(async () => {
+    if (!user || !canWrite(user)) return;
+    let data = [];
+    try {
+      const resp = await supabase
+        .from("chat_interactions")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      data = resp.data;
+      if (data && data.length > 0) {
+        const formatted = data.flatMap((item) => {
+          const entries = [
+            {
+              id: `history-user-${item.id}`,
+              text: item.question,
+              sender: "user",
+              timestamp: item.created_at,
+              related: { answer: item.answer, sources: item.sources, feedback: item.feedback },
+            },
+          ];
+          if (item.answer)
+            entries.push({
+              id: `history-bot-${item.id}`,
+              text: item.answer,
+              sender: "bot",
+              sources: item.sources,
+              feedback: item.feedback,
+              timestamp: item.created_at,
+            });
+          return entries;
+        });
+        setMessages((prev) => {
+          const withoutHistory = prev.filter(
+            (msg) => !(typeof msg.id === "string" && msg.id.startsWith("history-"))
+          );
+          return [...formatted.reverse(), ...withoutHistory];
+        });
+        setChatHistory(formatted.reverse());
+      }
+    } catch (e) {
+      // ignore for now
+      return [];
+    }
+    return data || [];
+  }, [user]);
+
   const handleClearHistory = useCallback(async () => {
     // Ask for confirmation only when more than one message exists
     if (messages.length > 1) {
@@ -931,55 +980,6 @@ export default function useChatLogic(initial = {}) {
       });
     })();
   }, []);
-
-  // Sync local history to Supabase for logged users and load history
-  const fetchChatHistory = useCallback(async () => {
-    if (!user || !canWrite(user)) return;
-    let data = [];
-    try {
-      const resp = await supabase
-        .from("chat_interactions")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(50);
-      data = resp.data;
-      if (data && data.length > 0) {
-        const formatted = data.flatMap((item) => {
-          const entries = [
-            {
-              id: `history-user-${item.id}`,
-              text: item.question,
-              sender: "user",
-              timestamp: item.created_at,
-              related: { answer: item.answer, sources: item.sources, feedback: item.feedback },
-            },
-          ];
-          if (item.answer)
-            entries.push({
-              id: `history-bot-${item.id}`,
-              text: item.answer,
-              sender: "bot",
-              sources: item.sources,
-              feedback: item.feedback,
-              timestamp: item.created_at,
-            });
-          return entries;
-        });
-        setMessages((prev) => {
-          const withoutHistory = prev.filter(
-            (msg) => !(typeof msg.id === "string" && msg.id.startsWith("history-"))
-          );
-          return [...formatted.reverse(), ...withoutHistory];
-        });
-        setChatHistory(formatted.reverse());
-      }
-    } catch (e) {
-      // ignore for now
-      return [];
-    }
-    return data || [];
-  }, [user]);
 
   useEffect(() => {
     const syncLocalHistory = async () => {
