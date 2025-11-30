@@ -46,6 +46,19 @@ in Supabase settings.
 - Also add your local dev URL if you want Facebook to accept it for testing (optional):
   - `http://localhost:5173/` (or your dev origin)
 
+  Note: Your hosting provider must be configured to return `index.html` for all non-API requests so
+  that SPA routes like `/oauth/facebook/callback` are handled client-side. On Netlify, add the
+  following in `netlify.toml` or in your redirects config to avoid 404s when Facebook redirects back
+  to your site:
+
+  ```
+  [[redirects]]
+    from = "/*"
+    to = "/index.html"
+    status = 200
+    force = true
+  ```
+
 4. Configure Supabase
 
 - Open your Supabase project dashboard → Authentication → Settings → External OAuth Providers.
