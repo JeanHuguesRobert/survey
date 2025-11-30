@@ -84,6 +84,21 @@ export const handler = async (event) => {
       console.error("Failed to persist oauth state", updateErr);
       return { statusCode: 500, body: JSON.stringify({ error: "Failed to persist oauth state" }) };
     }
+    // Debug: log saved state for easier troubleshooting when callback occurs
+    try {
+      console.log(
+        "[oauth-start] saved oauth state for provider:",
+        provider,
+        "userId:",
+        sessionUserId,
+        "state:",
+        state,
+        "redirectUri:",
+        redirectUri
+      );
+    } catch (e) {
+      // ignore any error logging
+    }
   } catch (err) {
     console.error("Failed to persist oauth state", err);
     return { statusCode: 500, body: JSON.stringify({ error: "Failed to persist oauth state" }) };

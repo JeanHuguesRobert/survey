@@ -176,7 +176,9 @@ Notes
 
 - CSP: ensure `connect.facebook.net` (and `www.facebook.com` if using widgets) are allowed in your
   Content-Security-Policy. Your `netlify.toml` should allow `*.facebook.com` and
-  `connect.facebook.net`.
+  `connect.facebook.net`. Also add `https://platform-lookaside.fbsbx.com` to `img-src` or
+  `default-src` as Facebook avatar images are served from `platform-lookaside.fbsbx.com` (a
+  `fbx.com` subdomain), not `facebook.com`.
 - Security: never expose your App Secret to the client. The SDK uses the App ID only.
 
 ---

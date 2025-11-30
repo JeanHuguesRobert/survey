@@ -131,11 +131,30 @@ export const handler = async (event) => {
       }
       const metadata = (existingUser && existingUser.metadata) || {};
       const oauthMeta = metadata.oauth && metadata.oauth[provider];
+      console.log("[oauth-complete] oauthMeta for provider:", provider, oauthMeta);
       if (!oauthMeta || oauthMeta.state !== state) {
-        return { statusCode: 400, body: JSON.stringify({ error: "Invalid or missing state" }) };
+        // Log more context to help debug mismatch without exposing to client
+        console.warn(
+          "[oauth-complete] Invalid or missing state; provided:",
+          state,
+          "stored:",
+          oauthMeta && oauthMeta.state,
+          "for userId:",
+          userId
+        );
+        return {
+          statusCode: 400,
+          body: JSON.stringify({
+            error:
+              "Invalid or missing state - ensure you started the OAuth flow while signed-in in the same tab/session",
+          }),
+        };
       }
       if (!oauthMeta.expiresAt || new Date(oauthMeta.expiresAt) < new Date()) {
-        return { statusCode: 400, body: JSON.stringify({ error: "State expired" }) };
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: "State expired - please start the OAuth process again" }),
+        };
       }
       // If a redirectUri was saved at start time, use it for token exchange. This avoids
       // mismatches caused by APP_BASE_URL differences or different runtime environments.

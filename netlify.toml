@@ -61,4 +61,4 @@ function = "root-redirect"
   [headers.values]
     X-Frame-Options = "DENY"
     X-XSS-Protection = "1; mode=block"
-    Content-Security-Policy = "default-src 'self' 'unsafe-inline' 'unsafe-eval' *.netlify.app *.google.com *.googleusercontent.com *.facebook.com https://cdn.tailwindcss.com fonts.googleapis.com fonts.gstatic.com *.w3.org data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' *.facebook.com connect.facebook.net; connect-src 'self' *.google.com *.googleusercontent.com *.supabase.co wss://*.supabase.co *.facebook.com"
+    Content-Security-Policy = "default-src 'self' 'unsafe-inline' 'unsafe-eval' *.netlify.app *.google.com *.googleusercontent.com *.facebook.com https://cdn.tailwindcss.com fonts.googleapis.com fonts.gstatic.com *.w3.org data:; img-src 'self' data: https://platform-lookaside.fbsbx.com https://*.fbx.com https://*.facebook.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' *.facebook.com connect.facebook.net; connect-src 'self' *.google.com *.googleusercontent.com *.supabase.co wss://*.supabase.co *.facebook.com"

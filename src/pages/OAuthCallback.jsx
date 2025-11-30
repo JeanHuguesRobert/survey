@@ -25,7 +25,12 @@ export default function OAuthCallback() {
       } catch (err) {
         console.error("OAuth callback error", err);
         if (!isMounted) return;
-        setState({ loading: false, error: err?.message || "Failed to complete OAuth" });
+        // Provide a user-friendly message for common state mismatch
+        const msg =
+          err?.message && err.message.toLowerCase().includes("state")
+            ? "L'autorisation a échoué — assurez-vous d'avoir démarré la connexion depuis votre profil et réessayez."
+            : err?.message || "Failed to complete OAuth";
+        setState({ loading: false, error: msg });
         // Give user a moment, then route back to profile
         setTimeout(() => navigate("/profile"), 2000);
       }
