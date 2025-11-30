@@ -70,6 +70,12 @@ export const handler = async (event) => {
     const metadata = (existingUser && existingUser.metadata) || {};
     metadata.oauth = metadata.oauth || {};
     metadata.oauth[provider] = { state, createdAt: now.toISOString(), expiresAt };
+    // Log the user consent request for this provider (last consent request timestamp and scopes)
+    const providerScopes = conf.scopes || [];
+    metadata[`${provider}_consent`] = {
+      scopes: providerScopes,
+      requestedAt: now.toISOString(),
+    };
     const { error: updateErr } = await supabaseAdmin
       .from("users")
       .update({ metadata })

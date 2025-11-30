@@ -209,6 +209,34 @@ export default function UserProfile() {
                 );
               })()}
             </div>
+            <div className="flex flex-col gap-2">
+              {canWrite(currentUser) && enabledProviders.find((p) => p.id === "facebook") && (
+                <Link
+                  to="/oauth/consent?provider=facebook"
+                  className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+                >
+                  {currentUser?.metadata?.facebookId
+                    ? "Re-importer depuis Facebook"
+                    : "Importer depuis Facebook"}
+                </Link>
+              )}
+              {currentUser?.metadata?.facebook_consent?.requestedAt && (
+                <div className="text-xs text-gray-400">
+                  Dernier consentement demandé:{" "}
+                  {new Date(currentUser.metadata.facebook_consent.requestedAt).toLocaleString(
+                    "fr-FR"
+                  )}
+                </div>
+              )}
+              {currentUser?.metadata?.facebook_consent?.grantedAt && (
+                <div className="text-xs text-gray-400">
+                  Dernier consentement validé:{" "}
+                  {new Date(currentUser.metadata.facebook_consent.grantedAt).toLocaleString(
+                    "fr-FR"
+                  )}
+                </div>
+              )}
+            </div>
             <div className="flex flex-col">
               <span className="text-gray-300 text-xs">Avatar</span>
               <span className="text-gray-400 text-xs">

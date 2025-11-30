@@ -161,6 +161,9 @@ export const handler = async (event) => {
       }
       metadata.avatarUrl = normalizedAvatarUrl;
       metadata.facebookId = username || providerUserId;
+      // mark consent grantedAt
+      metadata.facebook_consent = metadata.facebook_consent || {};
+      metadata.facebook_consent.grantedAt = new Date().toISOString();
       const { data: upd, error: updErr } = await supabaseWrite
         .from("users")
         .update({ metadata })
