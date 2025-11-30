@@ -39,7 +39,7 @@ export default function UserPage() {
       const { data: postsData, error: postsError } = await supabase
         .from("posts")
         .select("id, content, created_at, metadata")
-        .eq("user_id", id)
+        .eq("author_id", id)
         .order("created_at", { ascending: false })
         .limit(20);
 
@@ -49,7 +49,7 @@ export default function UserPage() {
       // Counts: posts total, followers (content_subscriptions where content_type='user'), following (subscriptions by this user to other users)
       const [{ count: postsCount }, { count: followersCount }, { count: followingCount }] =
         await Promise.all([
-          supabase.from("posts").select("id", { count: "exact", head: true }).eq("user_id", id),
+          supabase.from("posts").select("id", { count: "exact", head: true }).eq("author_id", id),
           supabase
             .from("content_subscriptions")
             .select("id", { count: "exact", head: true })

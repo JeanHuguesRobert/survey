@@ -40,7 +40,7 @@ export default function PostEdit() {
         }
 
         // Vérifier que l'utilisateur est l'auteur
-        if (postData.user_id !== currentUser.id) {
+        if (postData.author_id !== currentUser.id) {
           throw new Error("Vous n'êtes pas autorisé à modifier ce post");
         }
 

@@ -180,7 +180,7 @@ export default function PostView({ currentUser }) {
   const event = getPostEvent(post);
   const tags = getMetadata(post, "tags", []);
   const viewCount = getMetadata(post, "viewCount", 0);
-  const isAuthor = currentUser?.id === post.user_id;
+  const isAuthor = currentUser?.id === post.author_id;
 
   const typeIcons = {
     [POST_TYPES.BLOG]: "📝",

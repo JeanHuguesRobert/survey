@@ -68,7 +68,7 @@ export default function GlobalDashboard() {
         supabase.from("votes").select("id", { count: "exact" }).eq("user_id", userId),
         supabase.from("delegations").select("id", { count: "exact" }).eq("delegator_id", userId),
         supabase.from("wiki_pages").select("id", { count: "exact" }).eq("author_id", userId),
-        supabase.from("posts").select("id", { count: "exact" }).eq("user_id", userId),
+        supabase.from("posts").select("id", { count: "exact" }).eq("author_id", userId),
         supabase.from("comments").select("id", { count: "exact" }).eq("user_id", userId),
         supabase.from("chat_interactions").select("id", { count: "exact" }).eq("user_id", userId),
       ]);
@@ -153,7 +153,7 @@ export default function GlobalDashboard() {
         supabase
           .from("posts")
           .select("id, content, created_at")
-          .eq("user_id", userId)
+          .eq("author_id", userId)
           .order("created_at", { ascending: false })
           .limit(5),
         supabase

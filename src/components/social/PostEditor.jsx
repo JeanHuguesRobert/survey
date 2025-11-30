@@ -114,7 +114,7 @@ export default function PostEditor({ post = null, currentUser }) {
         const { data: newPost, error: insertError } = await supabase
           .from("posts")
           .insert({
-            user_id: currentUser.id,
+            author_id: currentUser.id,
             content: formData.content,
             metadata,
           })
