@@ -265,7 +265,7 @@ export default function Social() {
       {/* Content */}
       {contextTitle && (
         <div className="mb-6 theme-card p-4 text-sm">
-          <strong>Contexte: </strong>{" "}
+          <strong>Contexte : </strong>{" "}
           {contextTitle || (contextGroup ? `Groupe: ${contextGroup.name}` : null)}
           {linkedTypeParam === "post" && linkedIdParam && (
             <Link className="ml-3 text-primary hover:underline" to={`/posts/${linkedIdParam}`}>

@@ -1,4 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { getMetadata } from "../../lib/metadata";
 import {
   getPostTitle,
@@ -12,7 +14,8 @@ import { getDisplayName, getUserInitial } from "../../lib/userDisplay";
 /**
  * Carte d'affichage d'un post
  */
-export default function PostCard({ post, currentUserId }) {
+export default function PostCard({ post, currentUserId, gazette = null, showMarkdown = false }) {
+  const [expanded, setExpanded] = useState(false);
   const navigate = useNavigate();
   const title = getPostTitle(post);
   const postType = getPostType(post);
@@ -127,7 +130,27 @@ export default function PostCard({ post, currentUserId }) {
       )}
 
       {/* Extrait du contenu */}
-      <p className="text-gray-600 text-sm mb-3 line-clamp-3">{post.content}</p>
+      {showMarkdown || post.metadata?.gazette ? (
+        <div className={`text-gray-600 text-sm mb-3 ${expanded ? "" : "line-clamp-3"}`}>
+          <ReactMarkdown>
+            {expanded ? post.content || "" : (post.content || "").slice(0, 600)}
+          </ReactMarkdown>
+          {(post.content || "").length > 600 && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setExpanded(!expanded);
+              }}
+              className="ml-0 mt-2 text-sm text-primary hover:underline"
+            >
+              {expanded ? "Voir moins" : "Voir plus"}
+            </button>
+          )}
+        </div>
+      ) : (
+        <p className="text-gray-600 text-sm mb-3 line-clamp-3">{post.content}</p>
+      )}
 
       {/* Tags */}
       {tags.length > 0 && (
@@ -164,6 +187,23 @@ export default function PostCard({ post, currentUserId }) {
             <circle cx="12" cy="12" r="3" />
           </svg>{" "}
           {viewCount} vue{viewCount !== 1 ? "s" : ""}
+        </span>
+        <span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const params = new URLSearchParams();
+              params.set("linkedType", "post");
+              params.set("linkedId", post.id);
+              if (gazette || post.metadata?.gazette)
+                params.set("gazette", gazette || post.metadata?.gazette);
+              if (post.metadata?.groupId) params.set("groupId", post.metadata?.groupId);
+              navigate(`/posts/new?${params.toString()}`);
+            }}
+            className="ml-2 text-xs bg-primary-600 text-bauhaus-white px-2 py-0.5 rounded hover:opacity-90"
+          >
+            ✍️ Démarrer une discussion
+          </button>
         </span>
         <span className="flex items-center gap-1">
           <svg

@@ -112,7 +112,13 @@ export default function PostList({
   return (
     <div className="space-y-4">
       {posts.map((post) => (
-        <PostCard key={post.id} post={post} currentUserId={currentUserId} />
+        <PostCard
+          key={post.id}
+          post={post}
+          currentUserId={currentUserId}
+          gazette={gazette}
+          showMarkdown={Boolean(gazette)}
+        />
       ))}
     </div>
   );
