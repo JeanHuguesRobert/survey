@@ -12,7 +12,7 @@ CREATE TABLE public.chat_interactions (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT chat_interactions_pkey PRIMARY KEY (id),
-  CONSTRAINT chat_interactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+  CONSTRAINT chat_interactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.chatbot_settings (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
@@ -37,7 +37,7 @@ CREATE TABLE public.collected_data (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT collected_data_pkey PRIMARY KEY (id),
-  CONSTRAINT collected_data_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+  CONSTRAINT collected_data_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.comments (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -110,7 +110,7 @@ CREATE TABLE public.document_sources (
   source_type text,
   external_id text,
   CONSTRAINT document_sources_pkey PRIMARY KEY (id),
-  CONSTRAINT document_sources_ingested_by_fkey FOREIGN KEY (ingested_by) REFERENCES auth.users(id)
+  CONSTRAINT document_sources_ingested_by_fkey FOREIGN KEY (ingested_by) REFERENCES public.users(id)
 );
 CREATE TABLE public.git_sync_log (
   page_id uuid NOT NULL,
@@ -156,7 +156,7 @@ CREATE TABLE public.jobs (
   started_at timestamp with time zone,
   completed_at timestamp with time zone,
   CONSTRAINT jobs_pkey PRIMARY KEY (id),
-  CONSTRAINT jobs_owner_fkey FOREIGN KEY (owner) REFERENCES auth.users(id)
+  CONSTRAINT jobs_owner_fkey FOREIGN KEY (owner) REFERENCES public.users(id)
 );
 CREATE TABLE public.knowledge_chunks (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -197,13 +197,13 @@ CREATE TABLE public.municipal_transparency (
 );
 CREATE TABLE public.posts (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  user_id uuid NOT NULL,
+  author_id uuid NOT NULL,
   content text NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
   CONSTRAINT posts_pkey PRIMARY KEY (id),
-  CONSTRAINT posts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+  CONSTRAINT posts_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.proposition_tags (
   proposition_id uuid NOT NULL,
@@ -279,6 +279,6 @@ CREATE TABLE public.wiki_pages (
   summary text,
   metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
   CONSTRAINT wiki_pages_pkey PRIMARY KEY (id),
-  CONSTRAINT wiki_pages_author_id_fkey FOREIGN KEY (author_id) REFERENCES auth.users(id)
+  CONSTRAINT wiki_pages_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.users(id)
 );
 

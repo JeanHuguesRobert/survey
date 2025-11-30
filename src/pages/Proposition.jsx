@@ -8,6 +8,7 @@ import CommentSection from "../components/common/CommentSection";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import VoteButton from "../components/kudocracy/VoteButton";
 import SubscribeButton from "../components/common/SubscribeButton";
+import FacebookShareButton from "../components/common/FacebookShareButton";
 
 export default function Proposition() {
   // const { supabase } = useSupabase();
@@ -124,6 +125,7 @@ export default function Proposition() {
               {new Date(proposition.created_at).toLocaleDateString("fr-FR")}
             </p>
           </div>
+          <FacebookShareButton url={window.location.href} quote={proposition.title} />
         </div>
 
         <div className="markdown-content mb-6">

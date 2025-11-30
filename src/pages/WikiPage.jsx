@@ -8,6 +8,7 @@ import { linkifyWardWiki } from "../lib/wikiLinks";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import ShareModal from "../components/wiki/ShareModal";
+import FacebookShareButton from "../components/common/FacebookShareButton";
 import { formatDate, formatRelativeDate } from "../lib/formatDate";
 import CommentSection from "../components/common/CommentSection";
 import { useCurrentUser } from "../lib/useCurrentUser";
@@ -282,6 +283,7 @@ const WikiPage = () => {
             <button onClick={handleShare} className="btn btn-secondary-action  text-sm">
               Partager
             </button>
+            <FacebookShareButton url={window.location.href} quote={page.title} className="btn-sm" />
 
             {currentUser && canWrite(currentUser) && (
               <>

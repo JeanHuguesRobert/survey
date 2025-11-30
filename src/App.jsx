@@ -64,6 +64,7 @@ import { useCurrentUser } from "./lib/useCurrentUser";
 import { getDisplayName } from "./lib/userDisplay";
 import AuthModal from "./components/common/AuthModal";
 import GlobalStatusIndicator from "./components/common/GlobalStatusIndicator";
+import FacebookPagePlugin from "./components/common/FacebookPagePlugin";
 import JobMonitorDemo from "./components/examples/JobMonitorDemo";
 import Contact from "./pages/Contact";
 import FacebookDeletionInstructions from "./pages/FacebookDeletionInstructions";
@@ -478,6 +479,9 @@ export default function Consultation() {
                   </div>
                   <div className="mt-6 text-xs text-gray-400">
                     {PARTY_NAME} — {MOVEMENT_NAME} {CITY_NAME} © {new Date().getFullYear()}
+                  </div>
+                  <div className="mt-4">
+                    <FacebookPagePlugin />
                   </div>
                 </nav>
               </div>
