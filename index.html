@@ -18,7 +18,7 @@
   <meta property="og:type" content="website">
   <!-- Explicit og:url and fb:app_id required for Facebook sharing/debugger -->
   <meta property="og:url" id="og-url" content="https://lepp.fr">
-  <meta property="fb:app_id" id="fb-app-id" content="">
+  <meta property="fb:app_id" id="fb-app-id" content="%VITE_FACEBOOK_APP_ID%">
   <!-- Explicit og:image required by Facebook Debugger; replace with your public image URL -->
   <meta property="og:image" id="og-image" content="https://lepp.fr/images/og-image.png">
   <meta name="twitter:image" id="twitter-image" content="https://lepp.fr/images/og-image.png">
@@ -59,11 +59,6 @@
     // Set og:url explicitly for Facebook debugger
     const ogUrlEl = document.getElementById('og-url');
     if (ogUrlEl) ogUrlEl.setAttribute('content', SITE_URL.replace(/\/$/, ''));
-
-    // Set fb:app_id from env (Vite build-time) when provided
-    const fbAppId = import.meta.env.VITE_FACEBOOK_APP_ID || import.meta.env.FACEBOOK_APP_ID || '';
-    const fbEl = document.getElementById('fb-app-id');
-    if (fbEl && fbAppId) fbEl.setAttribute('content', fbAppId);
   </script>
 </body>
 

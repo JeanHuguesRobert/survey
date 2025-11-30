@@ -2,10 +2,11 @@
 // scripts/set-ngrok.js
 // Node >=16. Use: node scripts/set-ngrok.js --on [--port 5173] or --off
 
-const fetch = require("node-fetch");
-const ngrok = require("ngrok");
+import ngrok from "ngrok";
+import minimist from "minimist";
+import "dotenv/config";
 
-const argv = require("minimist")(process.argv.slice(2));
+const argv = minimist(process.argv.slice(2));
 const PORT = argv.port || process.env.PORT || 8888;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
