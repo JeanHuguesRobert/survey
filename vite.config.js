@@ -7,7 +7,8 @@ const htmlInjectionPlugin = () => {
     name: "html-injection",
     transformIndexHtml(html) {
       // Access process.env directly during transform (for Netlify builds)
-      const appId = process.env.VITE_FACEBOOK_APP_ID || "";
+      // Fallback to hardcoded value if env var is not available during build
+      const appId = process.env.VITE_FACEBOOK_APP_ID || "25050036138014406";
       return html.replace(/%VITE_FACEBOOK_APP_ID%/g, appId);
     },
   };
