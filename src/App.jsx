@@ -67,6 +67,7 @@ import GlobalStatusIndicator from "./components/common/GlobalStatusIndicator";
 import JobMonitorDemo from "./components/examples/JobMonitorDemo";
 import Contact from "./pages/Contact";
 import FacebookDeletionInstructions from "./pages/FacebookDeletionInstructions";
+import OAuthCallback from "./pages/OAuthCallback";
 import FacebookDeletionStatus from "./pages/FacebookDeletionStatus";
 import OAuthConsent from "./pages/OAuthConsent";
 import DataCollector from "./pages/DataCollector";
@@ -1292,6 +1293,7 @@ export function App() {
           element={<FacebookDeletionInstructions />}
         />
         <Route path="/oauth/facebook/deletion-status" element={<FacebookDeletionStatus />} />
+        <Route path="/oauth/:provider/callback" element={<OAuthCallback />} />
         <Route path="/oauth/consent" element={<OAuthConsent />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

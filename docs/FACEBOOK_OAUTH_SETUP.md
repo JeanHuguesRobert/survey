@@ -168,7 +168,7 @@ Notes
 
 ---
 
-**Data deletion callback (obligation de la plateforme Meta)**
+## Data deletion callback (obligation de la plateforme Meta)
 
 Meta exige que votre application implémente un "data deletion callback" pour permettre aux
 utilisateurs de demander la suppression de leurs données via Facebook. Configurez l'URL de rappel de
@@ -219,3 +219,31 @@ Notes
 - Vous pouvez utiliser `SUPABASE_SERVICE_ROLE_KEY` pour effectuer des suppressions côté base de
   données si vous avez une table dédiée et des règles claires. Le code de la fonction contient un
   TODO pour intégrer la logique de suppression.
+
+### Deauthorize callback (revocation of app permissions)
+
+Facebook also sends a deauthorization callback when a user removes your app via their Facebook
+settings. Implementing the Deauthorize Callback allows you to detect when the user revokes
+permissions and to clear any associated identifiers or tokens.
+
+1. Example URL to configure in the Facebook App dashboard (App Settings → Advanced → Deauthorize
+   callback URL):
+
+```text
+https://lepp.fr/api/facebook-deauthorize
+```
+
+1. Expected behavior of the callback handler:
+
+- Receive a `signed_request` as `application/x-www-form-urlencoded` (or JSON). Validate the
+  `signed_request` using your `FACEBOOK_CLIENT_SECRET`.
+- Locate the user in your backend (for example by matching `metadata.facebookId`) and remove
+  provider identifiers or rotate tokens.
+- Optionally set a `facebook_consent.revokedAt` timestamp in the user's metadata and delete
+  `facebookId`/`avatarUrl` fields.
+- Return 200 (empty or small JSON body is fine).
+
+1. Example: We added a sample Netlify function: `netlify/functions/facebook-deauthorize.js`.
+
+2. Add the callback URL in Facebook Developer console and make sure `FACEBOOK_CLIENT_SECRET` is set
+   server-side for signature validation.
