@@ -68,6 +68,7 @@ import JobMonitorDemo from "./components/examples/JobMonitorDemo";
 import Contact from "./pages/Contact";
 import FacebookDeletionInstructions from "./pages/FacebookDeletionInstructions";
 import FacebookDeletionStatus from "./pages/FacebookDeletionStatus";
+import OAuthConsent from "./pages/OAuthConsent";
 import DataCollector from "./pages/DataCollector";
 import DataReview from "./pages/admin/DataReview";
 import Entities from "./pages/admin/Entities";
@@ -1291,6 +1292,7 @@ export function App() {
           element={<FacebookDeletionInstructions />}
         />
         <Route path="/oauth/facebook/deletion-status" element={<FacebookDeletionStatus />} />
+        <Route path="/oauth/consent" element={<OAuthConsent />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>

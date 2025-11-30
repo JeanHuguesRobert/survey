@@ -144,6 +144,9 @@ Metadata-based CSRF protection for custom OAuth flows
 - This flow requires that both `/api/oauth-start` and `/api/oauth-complete` are called while
   authenticated; the repo forbids unauthenticated server-side flows — for signups use
   `supabase.auth.signInWithOAuth` instead.
+  - Authorization/consent path: this repo implements a simple consent page at `/oauth/consent`. The
+    page explains the provider access and lets a logged-in user initiate the OAuth flow. Example
+    preview URL: `http://lepp.fr/oauth/consent`.
 
 Security reminders
 
