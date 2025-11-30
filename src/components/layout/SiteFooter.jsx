@@ -599,8 +599,8 @@ export default function SiteFooter({
                 Wiki
               </Link>
             )}
-            <Link to="/social" style={styles.link}>
-              Café
+            <Link to="/gazette" style={styles.link}>
+              Gazette
             </Link>
             <Link to="/bob" style={styles.link}>
               IA

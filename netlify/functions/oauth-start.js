@@ -84,21 +84,7 @@ export const handler = async (event) => {
       console.error("Failed to persist oauth state", updateErr);
       return { statusCode: 500, body: JSON.stringify({ error: "Failed to persist oauth state" }) };
     }
-    // Debug: log saved state for easier troubleshooting when callback occurs
-    try {
-      console.log(
-        "[oauth-start] saved oauth state for provider:",
-        provider,
-        "userId:",
-        sessionUserId,
-        "state:",
-        state,
-        "redirectUri:",
-        redirectUri
-      );
-    } catch (e) {
-      // ignore any error logging
-    }
+    // Debug logging removed in production; saving state persisted to user metadata
   } catch (err) {
     console.error("Failed to persist oauth state", err);
     return { statusCode: 500, body: JSON.stringify({ error: "Failed to persist oauth state" }) };
@@ -120,15 +106,7 @@ export const handler = async (event) => {
   }
 
   const authUrl = `${conf.authorizeUrl}?${params.toString()}`;
-  // Debug logging to help diagnose redirect_uri mismatches between start and complete
-  console.log(
-    "[oauth-start] provider:",
-    provider,
-    "redirectUri:",
-    redirectUri,
-    "authUrl:",
-    authUrl
-  );
+  // Removed debug logs; authUrl is returned to client in response
 
   return {
     statusCode: 200,

@@ -7,9 +7,10 @@
     "build": "vite build",
     "lint:css": "stylelint \"src/**/*.css\" --allow-empty-input",
     "preview": "vite preview",
-    "extract:tw": "node scripts/extract-tailwind.js",
+    "extract:tw": "node scripts/extract-classes.js --tailwind",
     "count:loc": "node scripts/count-loc.js",
     "generate-tailwind-dump": "node scripts/generate-tailwind-dump.js",
+    "generate-tailwind-dump:win": "node scripts/generate-tailwind-dump-win.js",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css,scss,md,json,html}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,css,scss,md,json,html}\"",
     "prepare": "husky",
@@ -48,7 +49,6 @@
     "supabase": "^2.63.1"
   },
   "devDependencies": {
-
     "@vitejs/plugin-react": "^4.0.0",
     "autoprefixer": "^10.4.22",
     "chromatic": "^13.3.4",

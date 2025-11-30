@@ -19,6 +19,7 @@ export default function GazetteLayout({
   onWeekChange = () => {},
   gazetteName = null,
   editorGroupId = null,
+  isEditor = false,
 }) {
   return (
     <div className="min-h-screen bg-[#f4e4bc] text-[#2c241b] font-serif p-4 md:p-8 overflow-x-hidden">
@@ -151,12 +152,12 @@ export default function GazetteLayout({
                 ☕ Discuter au Café
               </Link>
             )}
-            {gazetteName && (
+            {gazetteName && isEditor && (
               <Link
                 className="ml-4 text-sm bg-primary-600 text-bauhaus-white px-3 py-1 rounded hover:opacity-90"
                 to={`/posts/new?gazette=${encodeURIComponent(gazetteName)}${editorGroupId ? `&groupId=${editorGroupId}` : ""}`}
               >
-                ✍️ Démarrer une discussion
+                ✍️ Rédiger un article
               </Link>
             )}
             {editorGroupId && (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { createPostMetadata, POST_TYPES, LINKED_TYPES } from "../../lib/socialMetadata";
@@ -38,6 +38,20 @@ export default function PostEditor({ post = null, currentUser }) {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isEditor, setIsEditor] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    async function check() {
+      if (!currentUser) return setIsEditor(false);
+      const gaz = formData.gazette || gazetteFromUrl;
+      if (!gaz) return setIsEditor(false);
+      const res = await checkEditorForGazette(gaz, currentUser.id);
+      if (mounted) setIsEditor(res);
+    }
+    check();
+    return () => (mounted = false);
+  }, [currentUser, formData.gazette, gazetteFromUrl]);
 
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
@@ -118,8 +132,20 @@ export default function PostEditor({ post = null, currentUser }) {
 
         alert("Post créé !");
 
-        // Rediriger vers le groupe si c'est un post de groupe
-        if (formData.groupId) {
+        // Recompute editor status in case it wasn't available at mount
+        let finalIsEditor = isEditor;
+        try {
+          finalIsEditor =
+            finalIsEditor || (await checkEditorForGazette(formData.gazette, currentUser?.id));
+        } catch (err) {
+          // ignore, default to false
+        }
+
+        // Prefer editor redirect if it's a gazette and creator is an editor
+        if (formData.gazette && finalIsEditor) {
+          navigate(`/posts/${newPost.id}/edit`);
+        } else if (formData.groupId) {
+          // Otherwise, redirect to the group if it was a group post
           navigate(`/groups/${formData.groupId}`);
         } else {
           navigate(`/posts/${newPost.id}`);
@@ -403,4 +429,33 @@ export default function PostEditor({ post = null, currentUser }) {
       </form>
     </div>
   );
+}
+
+// Helper to check if the current user is an editor for a given gazette
+async function checkEditorForGazette(gazetteName, userId) {
+  if (!gazetteName) return false;
+  // Use the same mapping as Gazette.jsx for global
+  let targetGroupName = gazetteName;
+  if (gazetteName === "global") {
+    targetGroupName = import.meta.env.VITE_GLOBAL_GAZETTE_EDITOR_GROUP || "La Gazette";
+  }
+  try {
+    const { data: group } = await supabase
+      .from("groups")
+      .select("id")
+      .eq("name", targetGroupName)
+      .single();
+    if (!group) return false;
+    // Check membership for current user (must be passed by callers who have currentUser in scope)
+    if (!userId) return false;
+    const { data: member } = await supabase
+      .from("group_members")
+      .select("id")
+      .eq("group_id", group.id)
+      .eq("user_id", userId)
+      .single();
+    return !!member;
+  } catch (err) {
+    return false;
+  }
 }

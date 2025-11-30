@@ -131,17 +131,8 @@ export const handler = async (event) => {
       }
       const metadata = (existingUser && existingUser.metadata) || {};
       const oauthMeta = metadata.oauth && metadata.oauth[provider];
-      console.log("[oauth-complete] oauthMeta for provider:", provider, oauthMeta);
       if (!oauthMeta || oauthMeta.state !== state) {
-        // Log more context to help debug mismatch without exposing to client
-        console.warn(
-          "[oauth-complete] Invalid or missing state; provided:",
-          state,
-          "stored:",
-          oauthMeta && oauthMeta.state,
-          "for userId:",
-          userId
-        );
+        // Invalid/missing state: do not expose metadata details to clients
         return {
           statusCode: 400,
           body: JSON.stringify({
@@ -174,11 +165,7 @@ export const handler = async (event) => {
       return { statusCode: 500, body: JSON.stringify({ error: "Error validating state" }) };
     }
 
-    // Debug: show state + userId + provider
-    console.log("[oauth-complete] provider:", provider, "userId:", userId, "state:", state);
-
     // 2. Exchange code for token
-    console.log("[oauth-complete] provider:", provider, "code:", code, "redirectUri:", redirectUri);
     const tokenData = await exchangeCodeForToken(conf, code, redirectUri);
 
     // 2. Fetch profile

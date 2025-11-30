@@ -27,4 +27,16 @@
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"  // Auto-fix ESLint issues on save
   }
+  // Tailwind CSS IntelliSense (project aware)
+  ,
+  "tailwindCSS.includeLanguages": {
+    "javascript": "javascript",
+    "javascriptreact": "javascriptreact",
+    "typescript": "typescript",
+    "typescriptreact": "typescriptreact"
+  },
+  "tailwindCSS.experimental.classRegex": [
+    "className\\s*=\\s*\"([^\"]+)\"",
+    "className\\s*=\\s*\\{`([^`]+)`\\}"
+  ]
 }

@@ -160,6 +160,7 @@ export default function Gazette() {
   return (
     <GazetteLayout
       title={gazetteName === "global" ? "LA GAZETTE" : `GAZETTE: ${gazetteName.toUpperCase()}`}
+      isEditor={isEditor}
       gazetteName={gazetteName}
       editorGroupId={editorGroupId}
       weeks={weeks}
