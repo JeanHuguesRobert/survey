@@ -24,8 +24,9 @@ function parseSignedRequest(signedRequest) {
   }
 
   if (!APP_SECRET) {
-    console.warn("FACEBOOK_CLIENT_SECRET not set; skipping signature verification");
-    return data;
+    // Do not accept unsigned requests; require secret for verification
+    console.error("FACEBOOK_CLIENT_SECRET not set; rejecting data deletion requests");
+    return null;
   }
 
   const expected = crypto.createHmac("sha256", APP_SECRET).update(payload).digest();
@@ -40,6 +41,13 @@ function parseSignedRequest(signedRequest) {
 export const handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
+  }
+
+  if (!APP_SECRET) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Server misconfigured: FACEBOOK_CLIENT_SECRET missing" }),
+    };
   }
 
   try {

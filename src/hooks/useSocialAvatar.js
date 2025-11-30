@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from "../lib/supabase";
 
 export function useSocialAvatar(provider) {
   const [avatarUrl, setAvatarUrl] = useState(null);
@@ -9,7 +10,15 @@ export function useSocialAvatar(provider) {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/oauth-start?provider=${provider}`);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Not authenticated");
+
+      const response = await fetch(`/api/oauth-start?provider=${provider}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!response.ok) throw new Error("Failed to start OAuth flow");
 
       const { authUrl } = await response.json();
@@ -32,13 +41,20 @@ export function useSocialAvatar(provider) {
     // Note: This path check must match the redirectPath in oauthProviders.js
     const expectedPath = `/oauth/${provider}/callback`;
 
-    if (path === expectedPath && code) {
+    const state = params.get("state");
+    if (path === expectedPath && code && state) {
       setLoading(true);
       try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        if (!token) throw new Error("Not authenticated");
+
         const response = await fetch("/api/oauth-complete", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ provider, code, userId }),
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ provider, code, state, userId }),
         });
 
         if (!response.ok) {
@@ -49,9 +65,8 @@ export function useSocialAvatar(provider) {
         const data = await response.json();
         setAvatarUrl(data.avatarUrl);
 
-        // TODO: Send this info to backend to update persistent user profile if not already done by the function
-        // In our current design, the function "storeAvatarForUser" is a mock, so we might need to do something here
-        // or just rely on the returned URL to update the local form state.
+        // The server persists `metadata.facebookId` and `metadata.avatarUrl` on success.
+        // We simply use the returned avatar URL to update local state.
 
         return data.avatarUrl;
       } catch (err) {

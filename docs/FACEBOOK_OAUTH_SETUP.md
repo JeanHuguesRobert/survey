@@ -128,6 +128,23 @@ Server-side avatar & fallback (new)
     curl "http://localhost:8888/api/facebook-avatar?facebookId=<facebookId>"
     ```
 
+Metadata-based CSRF protection for custom OAuth flows
+
+- This repo stores a short-lived `state` token in a user's `metadata.oauth.facebook` entry when a
+  logged-in user starts the OAuth flow using `/api/oauth-start`.
+- The `/api/oauth-start` endpoint requires an Authorization header (Supabase session) and returns an
+  `authUrl` that includes the `state` query param. The client should redirect the user to this URL
+  for Facebook's OAuth flow.
+- When Facebook redirects back to the site, the client must POST `{ provider, code, state }` to
+  `/api/oauth-complete` and include the Authorization header (Supabase session). The server
+  validates the token, confirms the `state` matches the `metadata.oauth.facebook` value, and checks
+  the `expiresAt` (1 hour window). If valid, the server exchanges the `code`, fetches the profile,
+  and persists `metadata.facebookId` and `metadata.avatarUrl` on the user record, then removes the
+  `oauth` state.
+- This flow requires that both `/api/oauth-start` and `/api/oauth-complete` are called while
+  authenticated; the repo forbids unauthenticated server-side flows — for signups use
+  `supabase.auth.signInWithOAuth` instead.
+
 Security reminders
 
 - Do not commit `FACEBOOK_CLIENT_SECRET`, `FACEBOOK_TOKEN`, or `SUPABASE_SERVICE_ROLE_KEY` to the

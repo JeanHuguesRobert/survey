@@ -50,49 +50,7 @@ async function fetchProfile(providerConf, tokenData) {
   return response.json();
 }
 
-// Mock function for storing avatar
-async function storeAvatarForUser(userId, normalizedAvatarUrl, provider, sourceValue) {
-  // Minimal implementation: persist avatarUrl and provider identifier into user's metadata
-  try {
-    const SUPABASE_URL = process.env.SUPABASE_URL;
-    const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!SUPABASE_URL || !SUPABASE_KEY) {
-      console.warn("Supabase service role key not configured; cannot persist avatar");
-      return normalizedAvatarUrl;
-    }
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
-
-    // Read existing metadata
-    const { data: existing, error: fetchErr } = await supabase
-      .from("users")
-      .select("metadata")
-      .eq("id", userId)
-      .maybeSingle();
-    let metadata = (existing && existing.metadata) || {};
-    // Set facebook id (sourceValue) for provider 'facebook'
-    if (provider === "facebook") {
-      metadata.facebookId = sourceValue;
-    }
-    // Update avatar URL
-    metadata.avatarUrl = normalizedAvatarUrl;
-
-    const { data, error } = await supabase
-      .from("users")
-      .update({ metadata })
-      .eq("id", userId)
-      .select()
-      .single();
-    if (error) {
-      console.error("Failed to persist avatar metadata:", error);
-      return normalizedAvatarUrl;
-    }
-    return normalizedAvatarUrl;
-  } catch (err) {
-    console.error("storeAvatarForUser error", err);
-    return normalizedAvatarUrl;
-  }
-}
+// (previous storeAvatarForUser implementation removed - logic moved inline to use SUPABASE_SERVICE_ROLE_KEY to update metadata)
 
 export const handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -100,7 +58,7 @@ export const handler = async (event) => {
   }
 
   try {
-    const { provider, code, userId } = JSON.parse(event.body);
+    const { provider, code, userId: postedUserId, state } = JSON.parse(event.body);
     const conf = PROVIDERS[provider];
 
     if (!conf) {
@@ -113,7 +71,67 @@ export const handler = async (event) => {
     const appBaseUrl = process.env.APP_BASE_URL || "http://localhost:8888";
     const redirectUri = `${appBaseUrl}${conf.redirectPath}`;
 
-    // 1. Exchange code for token
+    // 0. Parse Authorization header and validate Supabase session token
+    const authHeader =
+      (event.headers && (event.headers.authorization || event.headers.Authorization)) || "";
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return { statusCode: 401, body: JSON.stringify({ error: "Authorization header required" }) };
+    }
+    const accessToken = authHeader.split(" ")[1];
+
+    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          error: "Server misconfigured: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing",
+        }),
+      };
+    }
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false },
+    });
+    const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(accessToken);
+    if (userErr || !userData?.user) {
+      return { statusCode: 401, body: JSON.stringify({ error: "Invalid Supabase session" }) };
+    }
+    const userId = userData.user.id; // canonical user id
+    if (postedUserId && postedUserId !== userId) {
+      return {
+        statusCode: 403,
+        body: JSON.stringify({ error: "userId does not match authenticated session" }),
+      };
+    }
+
+    // 1. Validate state stored in user metadata
+    try {
+      const { data: existingUser, error: getErr } = await supabaseAdmin
+        .from("users")
+        .select("metadata")
+        .eq("id", userId)
+        .maybeSingle();
+      if (getErr) {
+        console.error("Failed to fetch user metadata", getErr);
+        return {
+          statusCode: 500,
+          body: JSON.stringify({ error: "Failed to fetch user metadata" }),
+        };
+      }
+      const metadata = (existingUser && existingUser.metadata) || {};
+      const oauthMeta = metadata.oauth && metadata.oauth[provider];
+      if (!oauthMeta || oauthMeta.state !== state) {
+        return { statusCode: 400, body: JSON.stringify({ error: "Invalid or missing state" }) };
+      }
+      if (!oauthMeta.expiresAt || new Date(oauthMeta.expiresAt) < new Date()) {
+        return { statusCode: 400, body: JSON.stringify({ error: "State expired" }) };
+      }
+    } catch (err) {
+      console.error("Error validating state", err);
+      return { statusCode: 500, body: JSON.stringify({ error: "Error validating state" }) };
+    }
+
+    // 2. Exchange code for token
     const tokenData = await exchangeCodeForToken(conf, code, redirectUri);
 
     // 2. Fetch profile
@@ -123,18 +141,43 @@ export const handler = async (event) => {
     const { providerUserId, username, rawAvatarUrl } = conf.mapProfile(profile);
     const normalizedAvatarUrl = conf.normalizeAvatarUrl(rawAvatarUrl);
 
-    // 4. Store/Update (Mock)
-    const finalAvatarUrl = await storeAvatarForUser(
-      userId,
-      normalizedAvatarUrl,
-      provider,
-      username || providerUserId
-    );
+    // 4. Store/Update metadata: facebookId + avatarUrl; remove oauth state
+    const supabaseWrite = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false },
+    });
+    try {
+      const { data: existingUser, error: getErr } = await supabaseWrite
+        .from("users")
+        .select("metadata")
+        .eq("id", userId)
+        .maybeSingle();
+      if (getErr) {
+        console.error("Failed to fetch user metadata for update", getErr);
+      }
+      const metadata = (existingUser && existingUser.metadata) || {};
+      // Remove oauth state for provider
+      if (metadata.oauth) {
+        delete metadata.oauth[provider];
+      }
+      metadata.avatarUrl = normalizedAvatarUrl;
+      metadata.facebookId = username || providerUserId;
+      const { data: upd, error: updErr } = await supabaseWrite
+        .from("users")
+        .update({ metadata })
+        .eq("id", userId)
+        .select()
+        .maybeSingle();
+      if (updErr) {
+        console.error("Failed to persist avatar metadata:", updErr);
+      }
+    } catch (err) {
+      console.error("Error persisting metadata:", err);
+    }
 
     return {
       statusCode: 200,
       body: JSON.stringify({
-        avatarUrl: finalAvatarUrl,
+        avatarUrl: normalizedAvatarUrl,
         sourceType: provider,
         sourceValue: username || providerUserId,
       }),
