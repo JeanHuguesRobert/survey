@@ -1,7 +1,7 @@
 export default async (request, context) => {
-  const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-  const CACHE_TTL = Number(process.env.SITE_CONFIG_CACHE_TTL || 5); // seconds
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+  const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
+  const CACHE_TTL = Number(Deno.env.get("SITE_CONFIG_CACHE_TTL") || 5); // seconds
 
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     return context.next();
