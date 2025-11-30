@@ -839,23 +839,53 @@ export default function useChatLogic(initial = {}) {
     try {
       await clearHistoryOp(async () => {
         if (user) {
-          await supabase
+          const { error } = await supabase
             .from("chat_interactions")
             .delete()
-            .eq("user_id", user.id)
-            .catch(() => {});
-        } else {
+            .eq("user_id", user.id);
+          if (error) throw error;
+        }
+        // Always remove anonymous local history to avoid re-synchronization later
+        try {
           localStorage.removeItem("anonymous_chat_history");
+        } catch (e) {
+          // ignore
         }
       });
+      // After successful deletion, refresh state from backend to avoid ghost entries
+      const remaining = await fetchChatHistory();
+      if (Array.isArray(remaining) && remaining.length > 0) {
+        console.error("Chat interactions deletion did not remove all entries", { remaining });
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `sys-${Date.now()}`,
+            sender: "system",
+            isNotification: true,
+            text: "⚠️ Échec partiel de la suppression : certaines conversations existent toujours.",
+          },
+        ]);
+        return;
+      }
     } catch (e) {
-      // ignore
+      console.error("Failed to clear chat history:", e);
+      // notify user of error (keep existing messages until we can refresh)
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `sys-${Date.now()}`,
+          sender: "system",
+          isNotification: true,
+          text: "⚠️ Impossible d'effacer l'historique. Réessayez plus tard.",
+        },
+      ]);
+      return;
     }
     setMessages([]);
     setInput("");
     setRelatedPropositions([]);
     setChatHistory([]);
-  }, [user]);
+  }, [user, fetchChatHistory, messages]);
 
   // Consent management
   useEffect(() => {
@@ -903,6 +933,54 @@ export default function useChatLogic(initial = {}) {
   }, []);
 
   // Sync local history to Supabase for logged users and load history
+  const fetchChatHistory = useCallback(async () => {
+    if (!user || !canWrite(user)) return;
+    let data = [];
+    try {
+      const resp = await supabase
+        .from("chat_interactions")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      data = resp.data;
+      if (data && data.length > 0) {
+        const formatted = data.flatMap((item) => {
+          const entries = [
+            {
+              id: `history-user-${item.id}`,
+              text: item.question,
+              sender: "user",
+              timestamp: item.created_at,
+              related: { answer: item.answer, sources: item.sources, feedback: item.feedback },
+            },
+          ];
+          if (item.answer)
+            entries.push({
+              id: `history-bot-${item.id}`,
+              text: item.answer,
+              sender: "bot",
+              sources: item.sources,
+              feedback: item.feedback,
+              timestamp: item.created_at,
+            });
+          return entries;
+        });
+        setMessages((prev) => {
+          const withoutHistory = prev.filter(
+            (msg) => !(typeof msg.id === "string" && msg.id.startsWith("history-"))
+          );
+          return [...formatted.reverse(), ...withoutHistory];
+        });
+        setChatHistory(formatted.reverse());
+      }
+    } catch (e) {
+      // ignore for now
+      return [];
+    }
+    return data || [];
+  }, [user]);
+
   useEffect(() => {
     const syncLocalHistory = async () => {
       const localHistory = localStorage.getItem("anonymous_chat_history");
@@ -968,55 +1046,11 @@ export default function useChatLogic(initial = {}) {
       }
     };
 
-    const fetchChatHistory = async () => {
-      if (!user || !canWrite(user)) return;
-      try {
-        const { data } = await supabase
-          .from("chat_interactions")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(50);
-        if (data && data.length > 0) {
-          const formatted = data.flatMap((item) => {
-            const entries = [
-              {
-                id: `history-user-${item.id}`,
-                text: item.question,
-                sender: "user",
-                timestamp: item.created_at,
-                related: { answer: item.answer, sources: item.sources, feedback: item.feedback },
-              },
-            ];
-            if (item.answer)
-              entries.push({
-                id: `history-bot-${item.id}`,
-                text: item.answer,
-                sender: "bot",
-                sources: item.sources,
-                feedback: item.feedback,
-                timestamp: item.created_at,
-              });
-            return entries;
-          });
-          setMessages((prev) => {
-            const withoutHistory = prev.filter(
-              (msg) => !(typeof msg.id === "string" && msg.id.startsWith("history-"))
-            );
-            return [...formatted.reverse(), ...withoutHistory];
-          });
-          setChatHistory(formatted.reverse());
-        }
-      } catch (e) {
-        // ignore
-      }
-    };
-
     // Use the status operation wrappers for sync/load
     syncHistoryOp(async () => syncLocalHistory()).then(() => {
       loadChatHistoryOp(async () => fetchChatHistory());
     });
-  }, [user]);
+  }, [user, loadChatHistoryOp, syncHistoryOp, fetchChatHistory]);
 
   // Persist anonymous history locally
   useEffect(() => {
