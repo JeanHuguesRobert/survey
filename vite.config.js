@@ -1,47 +1,41 @@
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-const htmlInjectionPlugin = (env) => {
+const htmlInjectionPlugin = () => {
   return {
     name: "html-injection",
     transformIndexHtml(html) {
-      const appId = env.VITE_FACEBOOK_APP_ID || process.env.VITE_FACEBOOK_APP_ID;
-      return html.replace(/%VITE_FACEBOOK_APP_ID%/g, appId || "");
+      // Access process.env directly during transform (for Netlify builds)
+      const appId = process.env.VITE_FACEBOOK_APP_ID || "";
+      return html.replace(/%VITE_FACEBOOK_APP_ID%/g, appId);
     },
   };
 };
 
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), "");
-  return {
-    plugins: [
-      react(),
-      tailwindcss(), // ← Add this
-      htmlInjectionPlugin(env),
-    ],
-    optimizeDeps: {
-      include: ["remark-gfm"],
+export default defineConfig({
+  plugins: [react(), tailwindcss(), htmlInjectionPlugin()],
+  optimizeDeps: {
+    include: ["remark-gfm"],
+  },
+  build: {
+    sourcemap: true,
+    minify: false,
+  },
+  server: {
+    watch: {
+      usePolling: false,
+      interval: 500,
     },
-    build: {
-      sourcemap: true,
-      minify: false,
+    hmr: {
+      overlay: true,
     },
-    server: {
-      watch: {
-        usePolling: false,
-        interval: 500,
-      },
-      hmr: {
-        overlay: true,
-      },
-    },
-    css: {
-      preprocessorOptions: {
-        css: {
-          charset: false,
-        },
+  },
+  css: {
+    preprocessorOptions: {
+      css: {
+        charset: false,
       },
     },
-  };
+  },
 });
