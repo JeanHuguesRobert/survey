@@ -99,14 +99,6 @@ export default function GroupForm({ group = null, currentUser }) {
           metadata: { schemaVersion: 1 },
         });
 
-        // Add creator as admin
-        await supabase.from("group_roles").insert({
-          group_id: newGroup.id,
-          user_id: currentUser.id,
-          role: "admin",
-          metadata: { schemaVersion: 1 },
-        });
-
         alert("Groupe créé !");
         navigate(`/groups/${newGroup.id}`);
       }

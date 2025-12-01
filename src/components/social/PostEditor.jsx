@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { createPostMetadata, POST_TYPES, LINKED_TYPES } from "../../lib/socialMetadata";
+import { isAnonymous } from "../../lib/permissions";
 
 /**
  * Éditeur de post (nouveau ou édition)
@@ -69,6 +70,11 @@ export default function PostEditor({ post = null, currentUser }) {
       return;
     }
 
+    if (isAnonymous(currentUser)) {
+      setError("Bloqué. Contactez un administrateur");
+      return;
+    }
+
     if (!formData.title.trim() || !formData.content.trim()) {
       setError("Le titre et le contenu sont requis");
       return;
@@ -77,14 +83,25 @@ export default function PostEditor({ post = null, currentUser }) {
     try {
       setLoading(true);
       setError(null);
-
       const tagsArray = formData.tags
         .split(",")
         .map((t) => t.trim())
         .filter((t) => t.length > 0);
 
+      // Construct event object if subtype is 'event'
+      const eventData =
+        formData.subtype === "event"
+          ? {
+              date: formData.eventDate || null,
+              location: formData.eventLocation || null,
+              duration: formData.eventDuration || null,
+            }
+          : null;
+
       const metadata = createPostMetadata(formData.postType, formData.title, {
         subtitle: formData.subtitle || null,
+        subtype: formData.subtype || null,
+        event: eventData,
         groupId: formData.groupId || null,
         linkedType: formData.linkedType || null,
         linkedId: formData.linkedId || null,
@@ -97,17 +114,39 @@ export default function PostEditor({ post = null, currentUser }) {
 
       if (isEditing) {
         // Update existing post
-        const { error: updateError } = await supabase
+        // Check what is sourceUrl, did it change, if so log it
+        if (post.metadata?.sourceUrl !== formData.sourceUrl) {
+          console.log(
+            `Post ${post.id} sourceUrl changed from ${post.metadata?.sourceUrl} to ${formData.sourceUrl}`
+          );
+          // Check that metadata.sourceUrl is what formData.sourceUrl is
+          if (metadata.sourceUrl !== formData.sourceUrl) {
+            console.error("Metadata sourceUrl does not match formData sourceUrl");
+          }
+        }
+        if (!post?.id) {
+          throw new Error("Impossible de mettre à jour : 'post.id' manquant");
+        }
+
+        const { data: updatedPost, error: updateError } = await supabase
           .from("posts")
           .update({
             content: formData.content,
             metadata,
           })
-          .eq("id", post.id);
+          .eq("id", post.id)
+          .select()
+          .single();
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error("Supabase update error:", updateError);
+          throw updateError;
+        }
 
-        alert("Post mis à jour !");
+        if (!updatedPost) {
+          throw new Error("Mise à jour échouée : aucun enregistrement retourné");
+        }
+
         navigate(`/posts/${post.id}`);
       } else {
         // Create new post
@@ -129,8 +168,6 @@ export default function PostEditor({ post = null, currentUser }) {
           content_type: "post",
           content_id: newPost.id,
         });
-
-        alert("Post créé !");
 
         // Recompute editor status in case it wasn't available at mount
         let finalIsEditor = isEditor;
@@ -162,7 +199,7 @@ export default function PostEditor({ post = null, currentUser }) {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">
-        {isEditing ? "Modifier le post" : "Nouvelle publication"}
+        {isEditing ? "Modifier l'article" : "Nouvel article"}
       </h1>
 
       {error && (
@@ -347,7 +384,8 @@ export default function PostEditor({ post = null, currentUser }) {
           <div className="border-t pt-4 space-y-3">
             <h3 className="text-sm font-medium text-gray-200">Options</h3>
 
-            <label className="flex items-center gap-2">
+            <label>
+              <span className="text-sm text-gray-200">📌 Épingler ce post (en haut de liste)</span>
               <input
                 type="checkbox"
                 name="isPinned"
@@ -355,10 +393,12 @@ export default function PostEditor({ post = null, currentUser }) {
                 onChange={handleChange}
                 className="w-4 h-4 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
               />
-              <span className="text-sm text-gray-200">📌 Épingler ce post (en haut de liste)</span>
             </label>
 
-            <label className="flex items-center gap-2">
+            <label>
+              <span className="text-sm text-gray-200">
+                🔒 Verrouiller (empêcher nouveaux commentaires)
+              </span>
               <input
                 type="checkbox"
                 name="isLocked"
@@ -366,9 +406,6 @@ export default function PostEditor({ post = null, currentUser }) {
                 onChange={handleChange}
                 className="w-4 h-4 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
               />
-              <span className="text-sm text-gray-200">
-                🔒 Verrouiller (empêcher nouveaux commentaires)
-              </span>
             </label>
           </div>
         )}
@@ -376,7 +413,7 @@ export default function PostEditor({ post = null, currentUser }) {
         {/* Gazette Option */}
         <div className="border-t pt-4">
           <label className="block text-sm font-medium text-gray-200 mb-2">
-            Publication dans la Gazette (optionnel)
+            Publication dans une Gazette (optionnel)
           </label>
           <input
             type="text"
@@ -384,7 +421,7 @@ export default function PostEditor({ post = null, currentUser }) {
             value={formData.gazette}
             onChange={handleChange}
             className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            placeholder="Nom de la gazette (ex: global, sports, culture...)"
+            placeholder="Nom de la gazette, cad nom du groupe des éditeurs"
           />
           <p className="text-xs text-gray-400 mt-1">
             Laissez vide pour une publication standard. Mettez "global" pour la Gazette principale.
@@ -421,7 +458,7 @@ export default function PostEditor({ post = null, currentUser }) {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="px-4 py-2 bg-gray-200 text-gray-200 rounded hover:bg-gray-300"
+            className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
           >
             Annuler
           </button>

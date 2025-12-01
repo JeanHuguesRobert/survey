@@ -92,7 +92,7 @@ Un outil de suivi de la démocratie locale :
 
 ### Pour proposer et voter
 
-- [Déposez ou soutenez une proposition](/kudocracy) via la Kudocratie
+- [Formulez ou soutenez une proposition](/kudocracy) via la Kudocratie
 - Votez sur les idées qui vous tiennent à cœur
 - Déléguez votre vote à des personnes de confiance
 

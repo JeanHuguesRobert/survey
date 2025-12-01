@@ -11,7 +11,7 @@ Un composant universel qui permet d'ajouter des commentaires à n'importe quel t
 **Fonctionnalités :**
 
 - ✅ Interface pliable/dépliable (collapsed par défaut)
-- ✅ Création automatique d'un post de discussion invisible
+- ✅ Création automatique d'un article de discussion invisible
 - ✅ Commentaires imbriqués (réponses)
 - ✅ Modification et suppression par l'auteur
 - ✅ Réactions emoji
@@ -230,7 +230,7 @@ Le composant s'adapte automatiquement aux petits écrans :
 
 ### Bouton "💬 Discuter" (existant)
 
-- Redirige vers la création d'un post social complet
+- Redirige vers la création d'un article social complet
 - Le post apparaît dans le feed social public
 - Pour des discussions générales et visibles
 

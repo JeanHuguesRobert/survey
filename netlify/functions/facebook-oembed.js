@@ -6,46 +6,67 @@ const fetch =
 export const handler = async (event) => {
   try {
     const url = event.queryStringParameters?.url;
-    if (!url) {
-      return { statusCode: 400, body: JSON.stringify({ error: "Missing url parameter" }) };
-    }
+    if (!url) return { statusCode: 400, body: JSON.stringify({ error: "Missing url parameter" }) };
 
-    // Prefer an explicit long-lived token if provided; otherwise build an app access token from
-    // FACEBOOK_APP_ID and FACEBOOK_CLIENT_SECRET. Tokens/Secrets must remain server-side.
     const explicitToken = process.env.FACEBOOK_TOKEN;
-    let access_token;
-    if (explicitToken) {
-      access_token = explicitToken;
-    } else {
-      const appId = process.env.FACEBOOK_APP_ID;
-      const appSecret = process.env.FACEBOOK_CLIENT_SECRET;
-      if (!appId || !appSecret) {
-        return {
-          statusCode: 500,
-          body: JSON.stringify({ error: "Facebook app credentials not configured" }),
-        };
-      }
-      access_token = `${appId}|${appSecret}`;
+    const access_token =
+      explicitToken ||
+      (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_CLIENT_SECRET
+        ? `${process.env.FACEBOOK_APP_ID}|${process.env.FACEBOOK_CLIENT_SECRET}`
+        : null);
+    if (!access_token)
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "Facebook app credentials not configured" }),
+      };
+
+    const oembedUrl = `https://graph.facebook.com/v17.0/oembed_post?url=${encodeURIComponent(url)}&access_token=${encodeURIComponent(access_token)}&omitscript=true`;
+    const resp = await fetch(oembedUrl, { method: "GET" });
+
+    const text = await resp.text();
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = text;
     }
 
-    // Use omitscript=true to avoid returning the FB JS SDK tag; the client should load FB SDK once if needed
-    const oembedUrl = `https://graph.facebook.com/v17.0/oembed_post?url=${encodeURIComponent(url)}&access_token=${encodeURIComponent(access_token)}&omitscript=true`;
+    // diagnostic log for function logs
+    console.log("facebook-oembed:", { url, fb_status: resp.status, fb_body: parsed });
 
-    const resp = await fetch(oembedUrl, { method: "GET" });
-    const data = await resp.json();
+    // Success: return oEmbed payload
+    if (resp.ok) {
+      return {
+        statusCode: 200,
+        headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" },
+        body: typeof parsed === "string" ? parsed : JSON.stringify(parsed),
+      };
+    }
 
-    const statusCode = resp.ok ? 200 : 502;
-
-    // Recommend clients cache this response for some time — set Cache-Control on success
-    const headers = { "Content-Type": "application/json" };
-    if (resp.ok) headers["Cache-Control"] = "public, max-age=3600";
-
+    // FB returned an error (expired token, not embeddable, etc.)
+    // Return 200 so the frontend can show a normal link; include fb error for console/logging.
     return {
-      statusCode,
-      headers,
-      body: JSON.stringify(data),
+      statusCode: 200,
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+      body: JSON.stringify({
+        embed_available: false,
+        url,
+        fb_status: resp.status,
+        fb_body: parsed,
+        message: "oEmbed unavailable; show link fallback",
+      }),
     };
   } catch (err) {
-    return { statusCode: 502, body: JSON.stringify({ error: err.message }) };
+    console.error("facebook-oembed handler error", err);
+    return {
+      statusCode: 200,
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+      body: JSON.stringify({
+        embed_available: false,
+        url: event.queryStringParameters?.url || null,
+        error: err.message,
+        message: "Handler error; show link fallback",
+      }),
+    };
   }
 };

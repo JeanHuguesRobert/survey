@@ -25,7 +25,7 @@ import SubscribeButton from "../common/SubscribeButton";
 import EventInfo from "./EventInfo";
 
 /**
- * Vue détaillée d'un post avec commentaires
+ * Vue détaillée d'un article avec commentaires
  */
 export default function PostView({ currentUser }) {
   const { id } = useParams();

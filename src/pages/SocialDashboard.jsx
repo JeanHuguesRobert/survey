@@ -191,7 +191,11 @@ export default function SocialDashboard() {
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <StatCard title="Posts publiés" value={stats?.totalPosts || 0} color="bg-bauhaus-blue" />
+          <StatCard
+            title="Articles publiés"
+            value={stats?.totalPosts || 0}
+            color="bg-bauhaus-blue"
+          />
           <StatCard
             title="Commentaires"
             value={stats?.totalComments || 0}
@@ -203,7 +207,7 @@ export default function SocialDashboard() {
             color="bg-bauhaus-red"
           />
           <StatCard
-            title="Posts commentés"
+            title="Articles commentés"
             value={stats?.uniquePostsCommented || 0}
             color="bg-bauhaus-yellow"
             textColor="text-bauhaus-black"
@@ -235,7 +239,7 @@ export default function SocialDashboard() {
           </div>
           <div className="bg-bauhaus-black border-2 border-bauhaus-white shadow-[4px_4px_0px_0px_#F0F0F0] p-6">
             <h2 className="text-xl font-bold text-bauhaus-white mb-4 uppercase">
-              Posts les plus appréciés
+              Articles les plus appréciés
             </h2>
             {stats?.mostLikedPosts?.length > 0 ? (
               <div className="space-y-3">
@@ -272,7 +276,7 @@ export default function SocialDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-bauhaus-black border-2 border-bauhaus-white shadow-[4px_4px_0px_0px_#F0F0F0] p-6">
             <h2 className="text-xl font-bold text-bauhaus-white mb-4 uppercase">
-              Vos posts récents
+              Vos articles récents
             </h2>
             {recentPosts.length > 0 ? (
               <div className="space-y-4">
@@ -294,10 +298,10 @@ export default function SocialDashboard() {
               </div>
             ) : (
               <p className="text-gray-400 text-center py-8">
-                Vous n'avez pas encore publié de post.
+                Vous n'avez pas encore publié d'article.
                 <br />
                 <Link to="/social" className="text-bauhaus-blue hover:underline">
-                  Créer votre premier post
+                  Créer votre premier article
                 </Link>
               </p>
             )}
@@ -344,7 +348,7 @@ export default function SocialDashboard() {
               className="bg-bauhaus-blue text-bauhaus-white p-4 border-2 border-bauhaus-white shadow-[4px_4px_0px_0px_#F0F0F0] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-center font-bold uppercase"
             >
               <div className="text-2xl mb-2">📝</div>
-              <div>Créer un post</div>
+              <div>Créer un article</div>
             </Link>
             <Link
               to="/social?tab=comments"

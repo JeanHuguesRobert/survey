@@ -12,7 +12,7 @@ import {
 import { getDisplayName, getUserInitial } from "../../lib/userDisplay";
 
 /**
- * Carte d'affichage d'un post
+ * Carte d'affichage d'un article
  */
 export default function PostCard({ post, currentUserId, gazette = null, showMarkdown = false }) {
   const [expanded, setExpanded] = useState(false);

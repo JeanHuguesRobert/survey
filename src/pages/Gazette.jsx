@@ -6,6 +6,52 @@ import { useCurrentUser } from "../lib/useCurrentUser";
 import GazetteLayout from "../components/gazette/GazetteLayout";
 import GazettePost from "../components/gazette/GazettePost";
 
+// Collapsible help banner for editors
+function CollapsibleHelpBanner({ gazetteName }) {
+  const [isOpen, setIsOpen] = useState(() => {
+    // Check localStorage to see if banner was previously closed
+    const stored = localStorage.getItem(`gazette-help-${gazetteName}`);
+    return stored !== "closed";
+  });
+
+  const handleClose = () => {
+    setIsOpen(false);
+    localStorage.setItem(`gazette-help-${gazetteName}`, "closed");
+  };
+
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        className="mb-4 text-sm text-[#2c241b] underline hover:no-underline font-sans break-inside-avoid-column"
+      >
+        💡 Afficher l'aide éditeur
+      </button>
+    );
+  }
+
+  return (
+    <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded font-sans text-sm break-inside-avoid-column">
+      <div className="flex justify-between items-start gap-2 mb-2">
+        <h3 className="font-bold text-blue-900">💡 Guide de l'éditeur</h3>
+        <button
+          onClick={handleClose}
+          className="text-blue-600 hover:text-blue-800 font-bold text-lg leading-none"
+          aria-label="Fermer"
+        >
+          ×
+        </button>
+      </div>
+      <ul className="text-blue-800 space-y-1 text-xs sm:text-sm">
+        <li>✍️ Cliquez sur "Rédiger un article" en haut pour créer un article</li>
+        <li>📝 Utilisez le format Markdown pour formater votre texte</li>
+        <li>✏️ Cliquez sur [Modifier] sur vos articles pour les éditer</li>
+        <li>🗑️ Cliquez sur [Supprimer] pour retirer un article de la Gazette</li>
+      </ul>
+    </div>
+  );
+}
+
 // Helper to get the Monday of the week for a given date
 function getMonday(d) {
   d = new Date(d);
@@ -102,7 +148,7 @@ export default function Gazette() {
         .from("posts")
         .select("*, users(id, display_name)")
         .eq("metadata->>gazette", gazetteName)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: true });
 
       if (error) throw error;
 
@@ -167,16 +213,7 @@ export default function Gazette() {
       selectedWeek={selectedWeek}
       onWeekChange={handleWeekChange}
     >
-      {isEditor && (
-        <div className="mb-8 text-center break-inside-avoid-column">
-          <Link
-            to={`/posts/new?gazette=${gazetteName}`}
-            className="inline-block px-6 py-3 bg-[#2c241b] text-[#f4e4bc] font-serif font-bold text-lg border-2 border-[#2c241b] hover:bg-transparent hover:text-[#2c241b] transition-colors"
-          >
-            ✍️ Rédiger un article
-          </Link>
-        </div>
-      )}
+      {isEditor && <CollapsibleHelpBanner gazetteName={gazetteName} />}
 
       {weeks.length === 0 ? (
         <div className="text-center italic mt-8">

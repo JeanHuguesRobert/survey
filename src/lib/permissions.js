@@ -1,10 +1,11 @@
 import { CONTACT_EMAIL } from "../constants";
 
-export const ROLE_GUEST = "guest";
 export const ROLE_USER = "user";
 export const ROLE_ADMIN = "admin";
 export const ROLE_ANONYMOUS = "anonymous";
 
+// If the email of an user becomes anonymous@lepp.com, they are considered anonymous
+// Administrator can "silence" an user by setting their email to this value
 export const ANONYMOUS_EMAIL = "anonymous@lepp.com";
 
 /**
@@ -14,7 +15,7 @@ export const ANONYMOUS_EMAIL = "anonymous@lepp.com";
  */
 export function getUserRole(user) {
   if (!user) {
-    return ROLE_GUEST;
+    return ROLE_ANONYMOUS;
   }
 
   const email = user.email || user.profile?.email;
@@ -35,6 +36,7 @@ export function getUserRole(user) {
  */
 export function canComment(user) {
   const role = getUserRole(user);
+  // TODO: for now everybody can comment, this may change
   return [ROLE_USER, ROLE_ADMIN, ROLE_ANONYMOUS].includes(role);
 }
 
@@ -45,5 +47,19 @@ export function canComment(user) {
  */
 export function canWrite(user) {
   const role = getUserRole(user);
+  // Anonymouse visitor cannot write, they can only read and comment
   return [ROLE_USER, ROLE_ADMIN].includes(role);
+}
+
+/**
+ *  Check if a user is an admin
+ */
+export function isAdmin(user) {
+  const role = getUserRole(user);
+  return role === ROLE_ADMIN;
+}
+
+export function isAnonymous(user) {
+  const role = getUserRole(user);
+  return role === ROLE_ANONYMOUS;
 }

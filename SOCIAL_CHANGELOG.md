@@ -23,8 +23,8 @@
 
 - ✅ `src/components/social/PostEditor.jsx` - Éditeur de post (nouveau/édition)
 - ✅ `src/components/social/PostList.jsx` - Liste de posts avec filtres
-- ✅ `src/components/social/PostCard.jsx` - Carte d'affichage d'un post
-- ✅ `src/components/social/PostView.jsx` - Vue détaillée d'un post avec commentaires
+- ✅ `src/components/social/PostCard.jsx` - Carte d'affichage d'un article
+- ✅ `src/components/social/PostView.jsx` - Vue détaillée d'un article avec commentaires
 
 ### Components - Comments & Reactions
 
@@ -73,7 +73,6 @@
 ### Nouvelles tables
 
 - ✅ `reactions` - Réactions emoji sur posts/comments
-- ✅ `group_roles` - Rôles dans groupes (admin/member)
 - ✅ `read_tracking` - Suivi de lecture (pour futures notifications)
 - ✅ `activity_log` - Audit trail des actions
 
@@ -100,12 +99,6 @@
 - ✅ SELECT public (anyone_select_reactions)
 - ✅ INSERT authenticated (authenticated_insert_reactions)
 - ✅ DELETE own (users_delete_own_reactions)
-
-### `group_roles`
-
-- ✅ SELECT public (anyone_select_group_roles)
-- ✅ INSERT admins (group_admins_manage_roles)
-- ✅ DELETE admins (group_admins_manage_roles_delete)
 
 ### `read_tracking`
 

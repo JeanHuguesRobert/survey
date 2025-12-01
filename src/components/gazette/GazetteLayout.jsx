@@ -114,7 +114,22 @@ export default function GazetteLayout({
 
       <div className="gazette-container">
         <header className="gazette-header">
-          <h1 className="gazette-title">{title}</h1>
+          <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-4">
+            <h1 className="gazette-title flex-1">{title}</h1>
+            {isEditor && (
+              <div className="flex flex-col items-center md:items-end gap-2">
+                <span className="inline-block px-3 py-1 bg-green-700 text-white text-xs rounded-full font-sans">
+                  ✓ Mode Éditeur
+                </span>
+                <Link
+                  to={`/posts/new?gazette=${encodeURIComponent(gazetteName)}&postType=blog${editorGroupId ? `&groupId=${editorGroupId}` : ""}`}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-[#2c241b] text-[#f4e4bc] font-serif font-bold text-lg border-2 border-[#2c241b] hover:bg-[#f4e4bc] hover:text-[#2c241b] transition-colors shadow-md whitespace-nowrap"
+                >
+                  ✍️ Rédiger un article
+                </Link>
+              </div>
+            )}
+          </div>
           <div className="gazette-subtitle">{subtitle}</div>
           <div className="gazette-date-line">
             <div className="flex items-center gap-2">
@@ -150,14 +165,6 @@ export default function GazetteLayout({
                 to={`/social?tab=posts&gazette=${encodeURIComponent(gazetteName)}`}
               >
                 ☕ Discuter au Café
-              </Link>
-            )}
-            {gazetteName && isEditor && (
-              <Link
-                className="ml-4 text-sm bg-primary-600 text-bauhaus-white px-3 py-1 rounded hover:opacity-90"
-                to={`/posts/new?gazette=${encodeURIComponent(gazetteName)}${editorGroupId ? `&groupId=${editorGroupId}` : ""}`}
-              >
-                ✍️ Rédiger un article
               </Link>
             )}
             {editorGroupId && (

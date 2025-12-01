@@ -420,7 +420,6 @@ Si `OPENAI_API_KEY` est défini, OpenAI est utilisé en priorité.
 - `comments` : commentaires sur les publications
 - `reactions` : réactions (👍 ❤️ etc.) sur posts et commentaires
 - `group_members` : membres des groupes
-- `group_roles` : rôles dans les groupes (owner, moderator, member)
 - `read_tracking` : suivi de lecture des posts
 - `activity_log` : journal d'activité
 - `wiki_pages` : pages du wiki

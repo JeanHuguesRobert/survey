@@ -389,7 +389,7 @@ export default function SiteFooter({
       textAlign: "center", // center text
     },
     version: {
-      fontSize: "0.40rem", // smaller
+      fontSize: "0.50rem", // smaller
       color: "var(--color-content-secondary)",
       padding: "2px", // minimal
       borderRadius: "var(--radius-sm)",
@@ -575,6 +575,20 @@ export default function SiteFooter({
 
           <p style={styles.metaLabel}>Autres services (proto)</p>
           <div style={styles.links}>
+            <Link to="/bob" style={styles.link}>
+              IA
+            </Link>
+            <Link to="/gazette" style={styles.link}>
+              Gazette
+            </Link>
+            <Link to="/kudocracy" style={styles.link}>
+              Propositions
+            </Link>
+            {showWiki && (
+              <Link to="/wiki" style={styles.link}>
+                Wiki
+              </Link>
+            )}
             <a
               href="https://app.tooljet.ai/applications/133a5d8d-9268-4813-8a46-0126a309b52a"
               target="_blank"
@@ -591,20 +605,6 @@ export default function SiteFooter({
             >
               Agenda
             </a>
-            <Link to="/kudocracy" style={styles.link}>
-              Propositions
-            </Link>
-            {showWiki && (
-              <Link to="/wiki" style={styles.link}>
-                Wiki
-              </Link>
-            )}
-            <Link to="/gazette" style={styles.link}>
-              Gazette
-            </Link>
-            <Link to="/bob" style={styles.link}>
-              IA
-            </Link>
             <a href={VOLUNTEER_URL} target="_blank" rel="noopener noreferrer" style={styles.link}>
               Bénévolat
             </a>
@@ -614,7 +614,7 @@ export default function SiteFooter({
               rel="noopener noreferrer"
               style={styles.link}
             >
-              Réseaux sociaux
+              Pertitellu
             </a>
           </div>
 

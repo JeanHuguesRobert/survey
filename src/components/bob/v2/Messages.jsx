@@ -206,7 +206,7 @@ export default function Messages({
                             onClick={() => onCreateProposition && onCreateProposition(msg)}
                             className="btn btn-secondary"
                           >
-                            💡 Créer une proposition
+                            💡 Formuler une proposition
                           </button>
                         )}
                         <button

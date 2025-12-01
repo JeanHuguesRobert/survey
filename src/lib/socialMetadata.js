@@ -61,7 +61,7 @@ export function requiresApproval(group) {
  * Types de posts supportés
  */
 export const POST_TYPES = {
-  BLOG: "blog", // Article de blog
+  BLOG: "blog", // Article de blog or gazette
   FORUM: "forum", // Thread de forum
   ANNOUNCEMENT: "announcement", // Annonce
 };
@@ -95,6 +95,8 @@ export function createPostMetadata(postType, title, options = {}) {
     isPinned: options.isPinned || false,
     isLocked: options.isLocked || false,
     tags: options.tags || [],
+    gazette: options.gazette || null,
+    sourceUrl: options.sourceUrl || null,
     viewCount: 0,
   };
 
@@ -102,21 +104,21 @@ export function createPostMetadata(postType, title, options = {}) {
 }
 
 /**
- * Récupère le type d'un post
+ * Récupère le type d'un article
  */
 export function getPostType(post) {
   return getMetadata(post, "postType", POST_TYPES.FORUM);
 }
 
 /**
- * Récupère le titre d'un post
+ * Récupère le titre d'un article
  */
 export function getPostTitle(post) {
   return getMetadata(post, "title", "");
 }
 
 /**
- * Récupère le sous-titre d'un post
+ * Récupère le sous-titre d'un article
  */
 export function getPostSubtitle(post) {
   return getMetadata(post, "subtitle", "");
@@ -137,14 +139,14 @@ export function getPostEvent(post) {
 }
 
 /**
- * Récupère le groupId d'un post (null si pas dans un groupe)
+ * Récupère le groupId d'un article (null si pas dans un groupe)
  */
 export function getPostGroupId(post) {
   return getMetadata(post, "groupId", null);
 }
 
 /**
- * Vérifie si un post est lié à une autre entité (wiki, proposition)
+ * Vérifie si un article est lié à une autre entité (wiki, proposition)
  */
 export function hasLinkedEntity(post) {
   const linkedType = getMetadata(post, "linkedType", null);
@@ -153,7 +155,7 @@ export function hasLinkedEntity(post) {
 }
 
 /**
- * Récupère l'entité liée d'un post
+ * Récupère l'entité liée d'un article
  */
 export function getLinkedEntity(post) {
   return {
@@ -163,21 +165,21 @@ export function getLinkedEntity(post) {
 }
 
 /**
- * Vérifie si un post est épinglé
+ * Vérifie si un article est épinglé
  */
 export function isPinned(post) {
   return getMetadata(post, "isPinned", false) === true;
 }
 
 /**
- * Vérifie si un post est verrouillé (pas de nouveaux comments)
+ * Vérifie si un article est verrouillé (pas de nouveaux comments)
  */
 export function isLocked(post) {
   return getMetadata(post, "isLocked", false) === true;
 }
 
 /**
- * Incrémente le compteur de vues d'un post
+ * Incrémente le compteur de vues d'un article
  */
 export function incrementViewCount(post) {
   const currentCount = getMetadata(post, "viewCount", 0);

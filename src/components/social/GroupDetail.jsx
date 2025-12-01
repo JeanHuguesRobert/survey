@@ -1,3 +1,5 @@
+// src/components/social/GroupDetail.jsx
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
@@ -6,6 +8,7 @@ import { getGroupType, isPrivateGroup, requiresApproval } from "../../lib/social
 import CommentSection from "../common/CommentSection";
 import SiteFooter from "../layout/SiteFooter";
 import { getDisplayName, getUserInitial } from "../../lib/userDisplay";
+import { isAdmin, isAnonymous } from "../../lib/permissions";
 
 /**
  * Page détail d'un groupe avec membres et posts
@@ -20,7 +23,7 @@ export default function GroupDetail({ currentUser }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isMember, setIsMember] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isGroupAdmin, setIsGroupAdmin] = useState(false);
   const [gazetteNames, setGazetteNames] = useState([]);
 
   useEffect(() => {
@@ -61,15 +64,8 @@ export default function GroupDetail({ currentUser }) {
       if (currentUser) {
         const membership = membersData?.find((m) => m.user_id === currentUser.id);
         setIsMember(!!membership);
-
-        const { data: roleData } = await supabase
-          .from("group_roles")
-          .select("role")
-          .eq("group_id", id)
-          .eq("user_id", currentUser.id)
-          .single();
-
-        setIsAdmin(roleData?.role === "admin");
+        // Members are admins by default
+        setIsGroupAdmin(!!membership);
       }
 
       // Charger les posts du groupe
@@ -119,8 +115,12 @@ export default function GroupDetail({ currentUser }) {
   }
 
   async function handleJoinGroup() {
-    if (!currentUser) {
-      alert("Vous devez être connecté pour rejoindre un groupe");
+    if (!currentUser || isAnonymous(currentUser)) {
+      if (!currentUser) {
+        alert("Vous devez être connecté pour rejoindre un groupe");
+      } else {
+        alert("Bloqué, contactez un administrateur");
+      }
       return;
     }
 
@@ -238,7 +238,7 @@ export default function GroupDetail({ currentUser }) {
                     to={g === "global" ? "/gazette" : `/gazette/${g}`}
                     className="inline-block text-sm bg-primary-600 text-bauhaus-white px-3 py-1 rounded hover:opacity-90"
                   >
-                    {g === "global" ? "Consulter la Gazette" : `Gazette: ${g}`}
+                    {g === "global" ? "Consulter la Gazette" : `Gazette : ${g}`}
                   </Link>
                 ))}
               </div>
@@ -276,7 +276,7 @@ export default function GroupDetail({ currentUser }) {
                 Rejoindre
               </button>
             )}
-            {isMember && !isAdmin && (
+            {isMember && !isGroupAdmin && (
               <button
                 onClick={handleLeaveGroup}
                 className="px-4 py-2 bg-gray-200 text-gray-200 rounded hover:bg-gray-300"
@@ -284,7 +284,7 @@ export default function GroupDetail({ currentUser }) {
                 Quitter
               </button>
             )}
-            {isAdmin && (
+            {isGroupAdmin && (
               <button
                 onClick={() => navigate(`/groups/${id}/edit`)}
                 className="px-4 py-2 bg-primary-600 text-bauhaus-white rounded hover:bg-primary-700"

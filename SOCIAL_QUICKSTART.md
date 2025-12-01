@@ -20,7 +20,6 @@ supabase db push
 Dans l'onglet "Table Editor" de Supabase, vous devriez voir :
 
 - ✅ `reactions`
-- ✅ `group_roles`
 - ✅ `read_tracking`
 - ✅ `activity_log`
 
@@ -49,7 +48,7 @@ http://localhost:5173/social
 3. Soumettre
 4. Vérifier dans `groups` table
 
-### Créer un post dans le groupe
+### Créer un article dans le groupe
 
 1. Sur la page du groupe, cliquer "+ Nouvelle publication"
 2. Type : Discussion (Forum)
@@ -67,11 +66,11 @@ http://localhost:5173/social
 
 ### Réagir avec emoji
 
-1. Sur un post ou commentaire, cliquer sur l'emoji picker (😀)
+1. Sur un article ou commentaire, cliquer sur l'emoji picker (😀)
 2. Choisir un emoji
 3. Vérifier dans `reactions` table
 
-### Créer un post lié à une page Wiki
+### Créer un article lié à une page Wiki
 
 1. Aller sur une page Wiki existante
 2. Cliquer sur "💬 Discuter"
@@ -91,7 +90,7 @@ http://localhost:5173/social
 
 ### Test soft delete
 
-1. Connecté, créer un post
+1. Connecté, créer un article
 2. Le supprimer (bouton "Supprimer")
 3. Vérifier dans `posts` : `metadata->>'isDeleted'` = `true`
 4. ✅ Le post ne devrait plus apparaître dans la liste
@@ -138,7 +137,7 @@ WHERE p.metadata->>'groupId' = 'uuid-du-groupe'
 ORDER BY p.created_at DESC;
 ```
 
-### Voir commentaires d'un post avec threads
+### Voir commentaires d'un article avec threads
 
 ```sql
 SELECT
@@ -154,7 +153,7 @@ WHERE c.post_id = 'uuid-du-post'
 ORDER BY c.created_at ASC;
 ```
 
-### Voir réactions sur un post
+### Voir réactions sur un article
 
 ```sql
 SELECT emoji, COUNT(*) as count
@@ -170,7 +169,6 @@ ORDER BY count DESC;
 SELECT u.email, gm.created_at, gr.role
 FROM group_members gm
 LEFT JOIN users u ON gm.user_id = u.id
-LEFT JOIN group_roles gr ON gr.group_id = gm.group_id AND gr.user_id = gm.user_id
 WHERE gm.group_id = 'uuid-du-groupe'
 ORDER BY gm.created_at ASC;
 ```

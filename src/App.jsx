@@ -1281,6 +1281,11 @@ export function App() {
         <Route path="/social" element={<Social />} />
         <Route path="/users/:id" element={<UserPage />} />
         <Route path="/user-dashboard" element={<UserDashboard />} />
+        <Route path="/global-dashboard" element={<GlobalDashboard />} />
+        <Route path="/wiki-dashboard" element={<WikiDashboard />} />
+        <Route path="/social-dashboard" element={<SocialDashboard />} />
+        <Route path="/voting-dashboard" element={<VotingDashboard />} />
+        <Route path="/data-collector" element={<DataCollector />} />
         <Route path="/user-profile" element={<UserProfile />} />
         <Route path="/profile" element={<UserProfile />} />
         <Route path="/admin/data-review" element={<DataReview />} />

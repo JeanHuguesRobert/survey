@@ -5,7 +5,8 @@ import FacebookEmbed from "../FacebookEmbed";
 import { supabase } from "../../lib/supabase";
 
 export default function GazettePost({ post, isEditor = false, gazetteName = null }) {
-  const { id, title, content, created_at, users } = post;
+  const { id, content, created_at, users } = post;
+  const title = post.metadata?.title || "";
   const subtitle = post.metadata?.subtitle || "";
   const authorName = users?.display_name || "Anonyme";
   const sourceUrl = post.metadata?.sourceUrl;
@@ -28,12 +29,11 @@ export default function GazettePost({ post, isEditor = false, gazetteName = null
             ...post.metadata,
             isDeleted: true,
             deletedAt: new Date().toISOString(),
-            deletedBy: "gazette-editor", // could be current user id
+            deletedBy: "gazette-editor",
           },
         })
         .eq("id", id);
       if (error) throw error;
-      // simple refresh
       window.location.reload();
     } catch (err) {
       console.error("Error deleting post:", err);
@@ -45,13 +45,15 @@ export default function GazettePost({ post, isEditor = false, gazetteName = null
     <article className="mb-8 border-b border-[#d4c49c] pb-6 last:border-0">
       <h2
         style={{ color: "#2c241b" }}
-        className="font-['Playfair_Display'] font-bold text-2xl mb-2 leading-tight text-[#2c241b]"
+        className="font-['Playfair_Display'] font-bold text-2xl mb-2 leading-tight"
       >
         {title}
       </h2>
 
       {subtitle && (
-        <h3 className="font-['EB_Garamond'] text-lg italic mb-3 text-[#4b3c2f]">{subtitle}</h3>
+        <h3 style={{ color: "#4b3c2f" }} className="font-['EB_Garamond'] text-lg italic mb-3">
+          {subtitle}
+        </h3>
       )}
 
       {/* Event info */}
@@ -81,30 +83,26 @@ export default function GazettePost({ post, isEditor = false, gazetteName = null
           )}
         </div>
       )}
+
       <div className="font-['EB_Garamond'] text-sm italic mb-4 text-gray-700 flex justify-between items-center">
         <span>Par {authorName}</span>
         <div className="flex items-center gap-3">
-          <Link className="text-sm text-primary hover:underline" to={cafeHref}>
-            ☕ Discuter cet article
+          <Link className="text-sm text-[#2c241b] hover:underline" to={cafeHref}>
+            ☕ Discuter au Café
           </Link>
-          <Link
-            className="text-sm bg-primary-600 text-bauhaus-white px-3 py-1 rounded hover:opacity-90"
-            to={`/posts/new?linkedType=post&linkedId=${encodeURIComponent(id)}${post.metadata?.gazette || gazetteName ? `&gazette=${encodeURIComponent(post.metadata?.gazette || gazetteName)}` : ""}${post.metadata?.groupId ? `&groupId=${encodeURIComponent(post.metadata?.groupId)}` : ""}`}
-          >
-            ✍️ Démarrer une discussion
-          </Link>
+          {isEditor && (
+            <div className="flex gap-2 text-xs font-sans not-italic">
+              <Link to={`/posts/${id}/edit`} className="text-blue-800 hover:underline">
+                [Modifier]
+              </Link>
+              <button onClick={handleDelete} className="text-red-800 hover:underline">
+                [Supprimer]
+              </button>
+            </div>
+          )}
         </div>
-        {isEditor && (
-          <div className="flex gap-2 text-xs font-sans not-italic">
-            <Link to={`/posts/${id}/edit`} className="text-blue-800 hover:underline">
-              [Modifier]
-            </Link>
-            <button onClick={handleDelete} className="text-red-800 hover:underline">
-              [Supprimer]
-            </button>
-          </div>
-        )}
       </div>
+
       <div className="font-['EB_Garamond'] text-lg leading-snug text-justify gazette-article-content">
         <style>{`
           .gazette-article-content,

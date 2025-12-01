@@ -239,7 +239,11 @@ export default function UserDashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <StatCard title="Posts publiés" value={stats.postsCreated || 0} color="bg-orange-600" />
+          <StatCard
+            title="Articles publiés"
+            value={stats.postsCreated || 0}
+            color="bg-orange-600"
+          />
           <StatCard title="Commentaires" value={stats.commentsMade || 0} color="bg-purple-600" />
           <StatCard title="Pages Wiki créées" value={stats.wikiPages || 0} color="bg-teal-600" />
         </div>
@@ -309,7 +313,7 @@ export default function UserDashboard() {
               className="bg-blue-900 text-light p-4 rounded-md hover:bg-blue-800 transition-colors text-center"
             >
               <div className="text-2xl mb-2">💡</div>
-              <div className="font-semibold">Créer une proposition</div>
+              <div className="font-semibold">Formuler une proposition</div>
             </Link>
             <Link
               to="/kudocracy?tab=delegations"
@@ -323,7 +327,7 @@ export default function UserDashboard() {
               className="bg-orange-600 text-light p-4 rounded-md hover:bg-orange-700 transition-colors text-center"
             >
               <div className="text-2xl mb-2">💬</div>
-              <div className="font-semibold">Publier un post</div>
+              <div className="font-semibold">Publier un article</div>
             </Link>
             <Link
               to="/wiki/new"

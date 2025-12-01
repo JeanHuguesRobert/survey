@@ -72,7 +72,7 @@ export default function CommentSection({
 
   async function loadDiscussionPost() {
     await loadDiscussionPostOp(async () => {
-      // Cherche un post de discussion existant pour ce contenu
+      // Cherche un article de discussion existant pour ce contenu
       const { data: existingPosts, error: searchError } = await supabase
         .from("posts")
         .select("*")
@@ -86,7 +86,7 @@ export default function CommentSection({
       if (existingPosts && existingPosts.length > 0) {
         setDiscussionPost(existingPosts[0]);
       } else {
-        // Crée un post de discussion automatiquement si nécessaire
+        // Crée un article de discussion automatiquement si nécessaire
         // (uniquement si l'utilisateur est connecté et tente d'interagir)
         setDiscussionPost(null);
       }

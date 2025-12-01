@@ -90,7 +90,7 @@ export default function Kudocracy() {
         <nav className="tabs-nav">
           {[
             { id: "browse", label: "Propositions" },
-            { id: "create", label: "Créer une proposition" },
+            { id: "create", label: "Formuler une proposition" },
             { id: "delegations", label: "Vos délégations" },
             { id: "dashboard", label: "Votre activité" },
           ].map((tab) => (

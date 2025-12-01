@@ -1,3 +1,5 @@
+// src/pages/Social.jsx
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useCurrentUser } from "../lib/useCurrentUser";
@@ -5,7 +7,7 @@ import GroupList from "../components/social/GroupList";
 import PostList from "../components/social/PostList";
 import { supabase } from "../lib/supabase";
 import { GROUP_TYPES, POST_TYPES } from "../lib/socialMetadata";
-import { canWrite } from "../lib/permissions";
+import { canWrite, getUserRole, ROLE_ADMIN } from "../lib/permissions";
 import SiteFooter from "../components/layout/SiteFooter";
 import { MOVEMENT_NAME } from "../constants";
 
@@ -38,10 +40,10 @@ export default function Social() {
             .eq("id", linkedIdParam)
             .single();
           if (mounted && data) {
-            setContextTitle(data.title || `Post ${data.id}`);
+            setContextTitle(data.title || `Article ${data.id}`);
           }
         } else if (gazetteParam) {
-          setContextTitle(`Gazette: ${gazetteParam}`);
+          setContextTitle(`Gazette ${gazetteParam}`);
         } else if (groupIdParam) {
           // Fetch group name
           const { data: group } = await supabase
@@ -123,7 +125,7 @@ export default function Social() {
         <h1 className="text-5xl font-bold text-gray-100 mb-2 font-brand  tracking-tighter">
           Café {MOVEMENT_NAME}
         </h1>
-        <p className="text-gray-400">Forums, blogs, quartiers et associations de Corte</p>
+        <p className="text-gray-400">Forums, blogs, gazettes, quartiers, associations, etc.</p>
       </div>
 
       {/* Actions */}
@@ -263,10 +265,10 @@ export default function Social() {
       )}
 
       {/* Content */}
-      {contextTitle && (
+      {(contextTitle || contextGroup) && (
         <div className="mb-6 theme-card p-4 text-sm">
           <strong>Contexte : </strong>{" "}
-          {contextTitle || (contextGroup ? `Groupe: ${contextGroup.name}` : null)}
+          {contextTitle || (contextGroup ? `Groupe ${contextGroup.name}` : null)}
           {linkedTypeParam === "post" && linkedIdParam && (
             <Link className="ml-3 text-primary hover:underline" to={`/posts/${linkedIdParam}`}>
               Voir l'article

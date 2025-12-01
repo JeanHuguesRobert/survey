@@ -55,10 +55,6 @@ Réactions emoji sur posts/comments :
 
 Adhésions aux groupes
 
-#### `group_roles` (nouvelle)
-
-Rôles dans les groupes (`admin`, `member`)
-
 #### `read_tracking` (nouvelle)
 
 Suivi de lecture par utilisateur (pour notifications futures)
@@ -138,7 +134,7 @@ supabase/migrations/
 /posts/new               - Créer une publication
 /posts/new?groupId=...   - Créer dans un groupe spécifique
 /posts/new?linkedType=wiki_page&linkedId=...  - Lier à wiki/proposition
-/posts/:id               - Détail d'un post
+/posts/:id               - Détail d'un article
 ```
 
 ## Intégrations
@@ -151,7 +147,7 @@ supabase/migrations/
 
 ### Pages Wiki/Proposition
 
-Bouton "💬 Discuter" pour créer un post lié :
+Bouton "💬 Discuter" pour créer un article lié :
 
 ```jsx
 <button onClick={() => navigate(`/posts/new?linkedType=wiki_page&linkedId=${page.id}`)}>
@@ -301,9 +297,9 @@ supabase db push
 ## Tests recommandés
 
 1. ✅ Créer un groupe → Vérifier visibilité publique
-2. ✅ Rejoindre un groupe → Vérifier `group_members` + `group_roles`
-3. ✅ Créer un post dans groupe → Vérifier `metadata.groupId`
-4. ✅ Créer un post lié à wiki → Vérifier `linkedType`/`linkedId`
+2. ✅ Rejoindre un groupe → Vérifier `group_members`
+3. ✅ Créer un article dans groupe → Vérifier `metadata.groupId`
+4. ✅ Créer un article lié à wiki → Vérifier `linkedType`/`linkedId`
 5. ✅ Commenter → Vérifier commentaires imbriqués
 6. ✅ Réagir avec emoji → Vérifier unique constraint
 7. ✅ Soft delete post → Vérifier disparition de la liste
