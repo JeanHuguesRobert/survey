@@ -33,7 +33,7 @@ export default function EntityList({ type, onSelect }) {
       ) : (
         <div className="space-y-2">
           {items.map((it) => (
-            <div key={it.id} className="flex items-center justify-between p-2 border rounded">
+            <div key={it.id} className="flex items-center justify-between p-2 border ">
               <div className="truncate">
                 <div className="font-medium">{it.title || it.display_name || it.name || it.id}</div>
                 <div className="text-xs text-gray-400 truncate">{it.id}</div>
@@ -41,7 +41,7 @@ export default function EntityList({ type, onSelect }) {
               <div>
                 <button
                   onClick={() => onSelect(it.id)}
-                  className="px-3 py-1 bg-primary-600 text-bauhaus-white rounded"
+                  className="px-3 py-1 bg-primary-600 text-bauhaus-white "
                 >
                   Edit
                 </button>

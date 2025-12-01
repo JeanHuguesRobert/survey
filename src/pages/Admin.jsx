@@ -67,7 +67,7 @@ export default function Admin() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Rechercher outils, ex: profile, entities..."
-          className="w-full px-3 py-2 border rounded"
+          className="w-full px-3 py-2 border "
         />
       </div>
 
@@ -88,7 +88,7 @@ export default function Admin() {
             <div>
               <button
                 onClick={handleExportMyData}
-                className="px-3 py-1 border rounded bg-primary-600 text-bauhaus-white"
+                className="px-3 py-1 border bg-primary-600 text-bauhaus-white"
               >
                 Exporter mes données
               </button>

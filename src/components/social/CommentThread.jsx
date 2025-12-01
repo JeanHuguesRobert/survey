@@ -4,7 +4,8 @@ import { isDeleted } from "../../lib/metadata";
 import { getParentCommentId, isReply, isEdited } from "../../lib/socialMetadata";
 import CommentForm from "./CommentForm";
 import ReactionPicker from "./ReactionPicker";
-import { getDisplayName, getUserInitial } from "../../lib/userDisplay";
+import { getDisplayName, getUserInitials } from "../../lib/userDisplay";
+import { enrichUserMetadata } from "../../lib/userTransform";
 import { Link } from "react-router-dom";
 
 /**
@@ -54,8 +55,13 @@ export default function CommentThread({ postId, currentUser }) {
 
       if (fetchError) throw fetchError;
 
-      // Filtre soft delete
-      const activeComments = (data || []).filter((c) => !isDeleted(c));
+      // Filtre soft delete et enrichit metadata
+      const activeComments = (data || [])
+        .filter((c) => !isDeleted(c))
+        .map((comment) => ({
+          ...comment,
+          users: enrichUserMetadata(comment.users),
+        }));
       setComments(activeComments);
     } catch (err) {
       console.error("Error loading comments:", err);
@@ -172,12 +178,12 @@ export default function CommentThread({ postId, currentUser }) {
       <div
         className={`${depth > 0 ? "ml-8 mt-4" : "mt-4"} ${depth > 0 ? "border-l-2 border-gray-200 pl-4" : ""}`}
       >
-        <div className="rounded-lg p-4">
+        <div className="  p-4">
           {/* Header */}
           <div className="flex items-start justify-between mb-2">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-sm">
-                {getUserInitial(comment.users)}
+                {getUserInitials(comment.users)}
               </div>
               <div>
                 <Link
@@ -222,13 +228,13 @@ export default function CommentThread({ postId, currentUser }) {
               <textarea
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                className="w-full px-3 py-2 border border-gray-300 text-sm"
                 rows={3}
               />
               <div className="flex gap-2 mt-2">
                 <button
                   onClick={handleEdit}
-                  className="px-3 py-1 text-xs bg-primary-600 text-bauhaus-white rounded hover:bg-primary-700"
+                  className="px-3 py-1 text-xs bg-primary-600 text-bauhaus-white hover:bg-primary-700"
                 >
                   Enregistrer
                 </button>
@@ -237,7 +243,7 @@ export default function CommentThread({ postId, currentUser }) {
                     setIsEditing(false);
                     setEditContent(comment.content);
                   }}
-                  className="px-3 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300"
+                  className="px-3 py-1 text-xs bg-gray-200 hover:bg-gray-300"
                 >
                   Annuler
                 </button>
@@ -301,7 +307,7 @@ export default function CommentThread({ postId, currentUser }) {
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 ">
         Erreur : {error}
       </div>
     );
@@ -310,7 +316,7 @@ export default function CommentThread({ postId, currentUser }) {
   const commentTree = buildCommentTree(comments);
 
   return (
-    <div className=" rounded-lg shadow-sm p-6">
+    <div className="   shadow-sm p-6">
       <h2 className="text-xl font-semibold mb-4">
         {comments.length} commentaire{comments.length !== 1 ? "s" : ""}
       </h2>
@@ -324,9 +330,7 @@ export default function CommentThread({ postId, currentUser }) {
           />
         </div>
       ) : (
-        <div className="mb-6 p-4 rounded text-center text-gray-300">
-          Connectez-vous pour commenter
-        </div>
+        <div className="mb-6 p-4 text-center text-gray-300">Connectez-vous pour commenter</div>
       )}
 
       {/* Comments tree */}

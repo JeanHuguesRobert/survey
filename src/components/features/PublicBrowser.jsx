@@ -181,14 +181,14 @@ export default function PublicBrowser() {
             onClick={() => {
               setPath("/");
             }}
-            className="px-3 py-1 border border-gray-300 rounded-md  text-gray-200 hover:bg-gray-50 mr-2"
+            className="px-3 py-1 border border-gray-300  text-gray-200 hover:bg-gray-50 mr-2"
             aria-label="Aller à la racine"
           >
             Racine
           </button>
           <button
             onClick={goUp}
-            className="px-3 py-1 border border-gray-300 rounded-md  text-gray-200 hover:bg-gray-50"
+            className="px-3 py-1 border border-gray-300  text-gray-200 hover:bg-gray-50"
             aria-label="Remonter d'un niveau"
           >
             Remonter
@@ -202,7 +202,7 @@ export default function PublicBrowser() {
             <strong>Chemin :</strong> {path}
           </p>
           {backendMessage && (
-            <div className="mb-2 p-2 text-sm text-yellow-800 bg-yellow-50 border border-yellow-100 rounded">
+            <div className="mb-2 p-2 text-sm text-yellow-800 bg-yellow-50 border border-yellow-100 ">
               {backendMessage}
             </div>
           )}
@@ -218,7 +218,7 @@ export default function PublicBrowser() {
                   <li key={i} className="mb-2 flex items-center justify-between">
                     <button
                       onClick={() => openEntry(it)}
-                      className="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-slate-100 w-full text-left"
+                      className="flex items-center gap-2   px-3 py-2 hover:bg-slate-100 w-full text-left"
                     >
                       <span className="mr-2">{it.isDir ? "📁" : "📄"}</span>
                       <span className="inline-block break-words overflow-anywhere whitespace-normal leading-tight max-w-full">
@@ -230,7 +230,7 @@ export default function PublicBrowser() {
                         href={fileDownloadUrl(it)}
                         target="_blank"
                         rel="noreferrer"
-                        className="ml-3 inline-flex items-center gap-2 px-2 py-1 border border-gray-200 rounded-md  text-sm text-gray-200 hover:bg-gray-50"
+                        className="ml-3 inline-flex items-center gap-2 px-2 py-1 border border-gray-200  text-sm text-gray-200 hover:bg-gray-50"
                         title="Télécharger le fichier"
                       >
                         ⬇
@@ -252,7 +252,7 @@ export default function PublicBrowser() {
                   <a
                     href={fileDownloadUrl(viewFile)}
                     download
-                    className="px-3 py-1 rounded-md bg-accent-blue text-bauhaus-white no-underline"
+                    className="px-3 py-1 bg-accent-blue text-bauhaus-white no-underline"
                   >
                     Télécharger
                   </a>

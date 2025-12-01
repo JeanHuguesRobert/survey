@@ -31,7 +31,7 @@ export default function Contact() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-8">
-        <div className=" rounded-lg shadow-md p-8">
+        <div className="   shadow-md p-8">
           <h1 className="text-3xl font-bold text-gray-100 mb-6">Contact</h1>
 
           <div className="space-y-6">
@@ -72,7 +72,7 @@ export default function Contact() {
           <div className="mt-8 text-center">
             <Link
               to="/"
-              className="px-4 py-2 bg-gray-100 text-blue-900 font-semibold rounded-md hover:bg-gray-200"
+              className="px-4 py-2 bg-gray-100 text-blue-900 font-semibold hover:bg-gray-200"
             >
               Retour à la consultation
             </Link>

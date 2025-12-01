@@ -11,7 +11,6 @@ select {
   color: var(--color-content-primary);
   background: var(--color-bg-app);
   border: 2px solid var(--color-content-primary);
-  border-radius: var(--radius-sm);
   padding: 0.5rem 0.75rem;
   width: 100%;
   transition:
@@ -32,8 +31,6 @@ select:focus-visible {
   max-width: 520px;
   width: 100%;
   background: var(--color-bg-app);
-  border-radius: var(--radius-sm);
-  border: 3px solid var(--color-border-strong);
   box-shadow: 8px 8px 0 0 var(--color-border-strong);
   padding: 1.75rem 2rem;
   display: grid;
@@ -58,7 +55,6 @@ select:focus-visible {
 .proposition-form .form-textarea {
   width: 100%;
   border: 2px solid var(--color-content-primary);
-  border-radius: var(--radius-sm);
   padding: 0.75rem 1rem;
   font-size: 0.95rem;
   background: var(--color-bg-app);
@@ -102,7 +98,6 @@ select:focus-visible {
   gap: var(--space-2);
   cursor: pointer;
   padding: var(--space-2);
-  border-radius: var(--radius-sm);
   transition: background var(--duration-fast) ease;
 }
 

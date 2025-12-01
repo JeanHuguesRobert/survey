@@ -119,8 +119,8 @@ Votre vie privée est notre priorité :
   publication
 - **Données minimales** : nous collectons uniquement les informations nécessaires (email facultatif)
 - **Conformité RGPD stricte** : vos données personnelles sont protégées et ne seront jamais vendues
-- **Visibilité contrôlée** : seul votre nom d'affichage est visible publiquement dans vos
-  contributions
+- **Visibilité contrôlée** : Données publiques uniquement, tout ce qui est publié est visible
+  publiquement
 - **Transparence totale** : consultez nos [Conditions d'utilisation](/legal/terms) et
   [Politique de confidentialité](/legal/privacy)
 

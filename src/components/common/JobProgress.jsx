@@ -154,7 +154,7 @@ export default function JobProgress({ job, showDetails = true, onCancel, onRetry
   const statusText = getStatusText();
 
   return (
-    <div className={`bg-${statusColor}-50 border border-${statusColor}-200 rounded-lg p-4`}>
+    <div className={`bg-${statusColor}-50 border border-${statusColor}-200   p-4`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
           {getStatusIcon()}
@@ -175,7 +175,7 @@ export default function JobProgress({ job, showDetails = true, onCancel, onRetry
           {job.status === "running" && onCancel && (
             <button
               onClick={() => onCancel(job)}
-              className="px-3 py-1 text-xs bg-gray-100 text-gray-200 rounded hover:bg-gray-200"
+              className="px-3 py-1 text-xs bg-gray-100 text-gray-200 hover:bg-gray-200"
             >
               Annuler
             </button>
@@ -183,7 +183,7 @@ export default function JobProgress({ job, showDetails = true, onCancel, onRetry
           {(job.status === "failed" || job.status === "cancelled") && onRetry && (
             <button
               onClick={() => onRetry(job)}
-              className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+              className="px-3 py-1 text-xs bg-blue-100 text-blue-700 hover:bg-blue-200"
             >
               Réessayer
             </button>

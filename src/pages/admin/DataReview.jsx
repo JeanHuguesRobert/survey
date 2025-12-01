@@ -171,7 +171,7 @@ export function DataReview() {
   if (!user) {
     return (
       <div className="flex items-center justify-center h-screen ">
-        <div className="text-center max-w-md p-8 bg-white rounded-lg shadow-lg">
+        <div className="text-center max-w-md p-8 bg-white   shadow-lg">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">🔒 Accès restreint</h1>
           <p className="text-gray-600">Vous devez être connecté pour accéder à cette page.</p>
         </div>
@@ -190,7 +190,7 @@ export function DataReview() {
   if (!isAdmin) {
     return (
       <div className="flex items-center justify-center h-screen ">
-        <div className="text-center max-w-md p-8 bg-white rounded-lg shadow-lg">
+        <div className="text-center max-w-md p-8 bg-white   shadow-lg">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">🚫 Accès refusé</h1>
           <p className="text-gray-600">Cette page est réservée aux administrateurs.</p>
         </div>
@@ -210,7 +210,7 @@ export function DataReview() {
 
       {/* Filters */}
       <div className="container mx-auto px-4 py-6">
-        <div className="bg-white rounded-lg shadow p-4 mb-6">
+        <div className="bg-white   shadow p-4 mb-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Filtres</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Type filter */}
@@ -219,7 +219,7 @@ export function DataReview() {
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">Tous les types</option>
                 {DATA_TYPES.map((type) => (
@@ -236,7 +236,7 @@ export function DataReview() {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">Tous les statuts</option>
                 <option value="draft">Brouillon</option>
@@ -252,7 +252,7 @@ export function DataReview() {
               <select
                 value={filterUser}
                 onChange={(e) => setFilterUser(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">Tous les utilisateurs</option>
                 {users.map((u) => (
@@ -271,7 +271,7 @@ export function DataReview() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Rechercher..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -279,14 +279,14 @@ export function DataReview() {
           <div className="flex justify-between items-center mt-4">
             <button
               onClick={loadData}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
             >
               🔄 Rafraîchir
             </button>
             <button
               onClick={handleExport}
               disabled={data.length === 0}
-              className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:bg-gray-300"
+              className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-300"
             >
               📤 Exporter JSON ({data.length})
             </button>
@@ -296,12 +296,12 @@ export function DataReview() {
         {/* Data list */}
         <div className="space-y-4">
           {data.length === 0 ? (
-            <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
+            <div className="bg-white   shadow p-8 text-center text-gray-500">
               Aucune donnée correspondant aux filtres
             </div>
           ) : (
             data.map((item) => (
-              <div key={item.id} className="bg-white rounded-lg shadow p-4">
+              <div key={item.id} className="bg-white   shadow p-4">
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex gap-2">
                     <span
@@ -347,7 +347,7 @@ export function DataReview() {
                     <button
                       key={status}
                       onClick={() => handleChangeStatus(item.id, status)}
-                      className="px-3 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                      className="px-3 py-1 text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
                     >
                       → {status}
                     </button>

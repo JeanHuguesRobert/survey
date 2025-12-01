@@ -78,7 +78,6 @@ main {
   padding: var(--space-2) var(--space-4);
   z-index: var(--z-overlay);
   text-decoration: none;
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
   transition: top var(--duration-fast) var(--ease-smooth);
 }
 
@@ -169,7 +168,6 @@ main {
   padding: var(--space-3) var(--space-4);
   color: var(--color-content-secondary);
   text-decoration: none;
-  border-radius: var(--radius-md);
   transition: all var(--duration-fast) var(--ease-smooth);
   font-weight: 500;
 }

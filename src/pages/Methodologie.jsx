@@ -28,7 +28,7 @@ export default function Methodologie() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-8">
-        <div className=" rounded-lg shadow-md p-8">
+        <div className="   shadow-md p-8">
           <h1 className="text-3xl font-bold text-gray-100 mb-6">Méthodologie</h1>
 
           <div className="space-y-8">
@@ -79,7 +79,7 @@ export default function Methodologie() {
                 <p className="text-gray-300">
                   Les données brutes anonymisées peuvent être consultées sur demande.
                 </p>
-                <div className="mt-4 p-4 bg-gray-50 rounded-md">
+                <div className="mt-4 p-4 bg-gray-50 ">
                   <h3 className="font-semibold mb-2">Audit éthique</h3>
                   <p className="text-gray-300 mb-2">
                     Un rapport d'audit éthique complet est disponible :
@@ -121,7 +121,7 @@ export default function Methodologie() {
           <div className="mt-8 text-center">
             <Link
               to="/"
-              className="px-4 py-2 bg-gray-100 text-blue-900 font-semibold rounded-md hover:bg-gray-200"
+              className="px-4 py-2 bg-gray-100 text-blue-900 font-semibold hover:bg-gray-200"
             >
               Retour à la consultation
             </Link>

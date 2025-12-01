@@ -7,20 +7,30 @@ import {
   getPostType,
   getPostSubtitle,
   getPostSubtype,
-  getPostEvent,
-  getPostGroupId,
   getLinkedEntity,
   hasLinkedEntity,
-  isPinned,
-  isLocked,
   incrementViewCount,
   POST_TYPES,
 } from "../../lib/socialMetadata";
+import {
+  isPinnedPost,
+  isLockedPost,
+  getPostEvent,
+  getPostGroupId,
+  isGazettePost,
+  isAuthor,
+  canEditPost,
+  canDeletePost,
+  getPostGazette,
+  getPostSourceUrl,
+  isFacebookPost,
+} from "../../lib/postPredicates";
 import CommentThread from "./CommentThread";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import FacebookEmbed from "../FacebookEmbed";
-import { getDisplayName, getUserInitial } from "../../lib/userDisplay";
+import { getDisplayName, getUserInitials } from "../../lib/userDisplay";
+import { enrichUserMetadata } from "../../lib/userTransform";
 import SubscribeButton from "../common/SubscribeButton";
 import EventInfo from "./EventInfo";
 
@@ -59,6 +69,11 @@ export default function PostView({ currentUser }) {
       if (postError) throw postError;
       if (isDeleted(postData)) {
         throw new Error("Ce post a été supprimé");
+      }
+
+      // Enrich user metadata
+      if (postData.users) {
+        postData.users = enrichUserMetadata(postData.users);
       }
 
       setPost(postData);
@@ -140,7 +155,6 @@ export default function PostView({ currentUser }) {
 
       if (error) throw error;
 
-      alert("Post supprimé");
       navigate("/social");
     } catch (err) {
       console.error("Error deleting post:", err);
@@ -159,9 +173,7 @@ export default function PostView({ currentUser }) {
   if (error) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          {error}
-        </div>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 ">{error}</div>
         <button onClick={() => navigate(-1)} className="mt-4 text-primary-600 hover:underline">
           ← Retour
         </button>
@@ -173,14 +185,16 @@ export default function PostView({ currentUser }) {
 
   const title = getPostTitle(post);
   const postType = getPostType(post);
-  const pinned = isPinned(post);
-  const locked = isLocked(post);
+  const pinned = isPinnedPost(post);
+  const locked = isLockedPost(post);
   const subtitle = getPostSubtitle(post);
   const subtype = getPostSubtype(post);
   const event = getPostEvent(post);
   const tags = getMetadata(post, "tags", []);
   const viewCount = getMetadata(post, "viewCount", 0);
-  const isAuthor = currentUser?.id === post.author_id;
+  const isPostAuthor = isAuthor(post, currentUser);
+  const canEdit = canEditPost(post, currentUser);
+  const canDelete = canDeletePost(post, currentUser);
 
   const typeIcons = {
     [POST_TYPES.BLOG]: "📝",
@@ -208,12 +222,11 @@ export default function PostView({ currentUser }) {
       </div>
 
       {/* Gazette Banner */}
-      {post.metadata?.gazette && (
-        <div className="mb-6 p-4 bg-[#f4e4bc] text-[#2c241b] rounded border border-[#d4c49c] flex items-center justify-between shadow-sm">
+      {isGazettePost(post) && (
+        <div className="mb-6 p-4 bg-[#f4e4bc] text-[#2c241b] border border-[#d4c49c] flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-3">
             <span className="text-2xl">📰</span>
             <div>
-              <h3 className="font-serif font-bold text-lg leading-tight">Extra ! Extra !</h3>
               <p className="font-serif text-sm italic">Cet article est publié dans la Gazette.</p>
             </div>
           </div>
@@ -221,24 +234,24 @@ export default function PostView({ currentUser }) {
             <div className="flex gap-3 items-center">
               <Link
                 to={
-                  post.metadata.gazette === "global"
+                  getPostGazette(post) === "global"
                     ? "/gazette"
-                    : `/gazette/${post.metadata.gazette}`
+                    : `/gazette/${getPostGazette(post)}`
                 }
-                className="px-4 py-2 bg-[#2c241b] text-[#f4e4bc] font-serif font-bold rounded hover:bg-opacity-90 transition-colors"
+                className="px-4 py-2 font-serif hover:bg-opacity-90 transition-colors"
               >
                 Lire dans la Gazette
               </Link>
               <Link
-                to={`/posts/new?linkedType=post&linkedId=${encodeURIComponent(post.id)}${post.metadata.gazette ? `&gazette=${encodeURIComponent(post.metadata.gazette)}` : ""}${post.metadata.groupId ? `&groupId=${encodeURIComponent(post.metadata.groupId)}` : ""}`}
-                className="px-4 py-2 bg-primary-600 text-bauhaus-white rounded hover:opacity-90 text-sm"
+                to={`/posts/new?linkedType=post&linkedId=${encodeURIComponent(post.id)}${getPostGazette(post) ? `&gazette=${encodeURIComponent(getPostGazette(post))}` : ""}${getPostGroupId(post) ? `&groupId=${encodeURIComponent(getPostGroupId(post))}` : ""}`}
+                className="px-4 py-2 font-serif hover:bg-opacity-90 transition-colors"
               >
                 ✍️ Démarrer une discussion
               </Link>
             </div>
             <Link
-              to={`/social?tab=posts&gazette=${encodeURIComponent(post.metadata.gazette)}&linkedType=post&linkedId=${post.id}${post.metadata.groupId ? `&groupId=${post.metadata.groupId}` : ``}`}
-              className="px-4 py-2 bg-[#f4e4bc] text-[#2c241b] font-serif font-bold rounded border border-[#d4c49c] hover:bg-gray-100 transition-colors"
+              to={`/social?tab=posts&gazette=${encodeURIComponent(getPostGazette(post))}&linkedType=post&linkedId=${post.id}${getPostGroupId(post) ? `&groupId=${getPostGroupId(post)}` : ``}`}
+              className="px-4 py-2 font-serif hover:bg-opacity-90 transition-colors"
             >
               ☕ Discuter au Café
             </Link>
@@ -247,12 +260,12 @@ export default function PostView({ currentUser }) {
       )}
 
       {/* Post */}
-      <article className=" rounded-lg shadow-sm p-8 mb-6">
+      <article className="   shadow-sm p-8 mb-6">
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
           <div className="flex items-start gap-4 flex-1">
             <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
-              {getUserInitial(post.users)}
+              {getUserInitials(post.users)}
             </div>
 
             <div className="flex-1">
@@ -277,18 +290,16 @@ export default function PostView({ currentUser }) {
 
               {/* Badges */}
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs bg-gray-100 px-2 py-1 rounded flex items-center gap-1">
+                <span className="text-xs bg-gray-100 px-2 py-1 flex items-center gap-1">
                   {typeIcons[postType]} {postType}
                 </span>
                 {pinned && (
-                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 ">
                     📌 Épinglé
                   </span>
                 )}
                 {locked && (
-                  <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
-                    🔒 Verrouillé
-                  </span>
+                  <span className="text-xs bg-red-100 text-red-800 px-2 py-1 ">🔒 Verrouillé</span>
                 )}
               </div>
             </div>
@@ -299,20 +310,24 @@ export default function PostView({ currentUser }) {
             <SubscribeButton contentType="post" contentId={post.id} currentUser={currentUser} />
 
             {/* Actions */}
-            {isAuthor && (
+            {(canEdit || canDelete) && (
               <div className="flex gap-2">
-                <button
-                  onClick={() => navigate(`/posts/${id}/edit`)}
-                  className="text-sm px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded"
-                >
-                  Modifier
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="text-sm px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded"
-                >
-                  Supprimer
-                </button>
+                {canEdit && (
+                  <button
+                    onClick={() => navigate(`/posts/${id}/edit`)}
+                    className="text-sm px-3 py-1 bg-gray-100 hover:bg-gray-200 "
+                  >
+                    Modifier
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    onClick={handleDelete}
+                    className="text-sm px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 "
+                  >
+                    Supprimer
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -329,7 +344,7 @@ export default function PostView({ currentUser }) {
 
         {/* Entité liée */}
         {linkedEntity && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded">
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 ">
             <span className="text-sm text-blue-800">
               🔗 Lié à{" "}
               <Link
@@ -352,9 +367,9 @@ export default function PostView({ currentUser }) {
         </div>
 
         {/* Facebook embed if post.metadata.sourceUrl is a Facebook URL */}
-        {post.metadata?.sourceUrl && post.metadata.sourceUrl.includes("facebook.com") && (
+        {isFacebookPost(post) && (
           <div className="mb-6 flex justify-center">
-            <FacebookEmbed url={post.metadata.sourceUrl} className="w-full" />
+            <FacebookEmbed url={getPostSourceUrl(post)} className="w-full" />
           </div>
         )}
 
@@ -365,7 +380,7 @@ export default function PostView({ currentUser }) {
               <Link
                 key={idx}
                 to={`/social?tab=posts&tag=${encodeURIComponent(tag)}`}
-                className="text-sm bg-blue-50 text-blue-700 px-3 py-1 rounded"
+                className="text-sm bg-blue-50 text-blue-700 px-3 py-1 "
               >
                 #{tag}
               </Link>
@@ -385,7 +400,7 @@ export default function PostView({ currentUser }) {
       {!locked ? (
         <CommentThread postId={id} currentUser={currentUser} />
       ) : (
-        <div className="border border-gray-200 rounded p-4 text-center text-gray-400">
+        <div className="border border-gray-200 p-4 text-center text-gray-400">
           🔒 Les commentaires sont désactivés sur ce post
         </div>
       )}

@@ -33,7 +33,6 @@ export default function SiteConfigEditor() {
     try {
       // Fetch current user row to merge metadata safely
       await updateEntityAsAdmin("users", userId, { metadata: { site_config: cfg } });
-      alert("Saved");
     } catch (err) {
       console.error("Save failed", err);
       alert("Save failed: " + (err.message || String(err)));
@@ -41,7 +40,7 @@ export default function SiteConfigEditor() {
   }
 
   return (
-    <div className="mt-4 p-3 bg-white rounded shadow">
+    <div className="mt-4 p-3 bg-white shadow">
       <h3 className="font-semibold mb-2">Site redirect (dev tunnel)</h3>
       {loading ? (
         <div>Chargement...</div>
@@ -59,7 +58,7 @@ export default function SiteConfigEditor() {
           <div>
             <label className="block text-sm text-gray-600">Redirect URL</label>
             <input
-              className="w-full border rounded px-2 py-1"
+              className="w-full border px-2 py-1"
               value={cfg.redirect_url || ""}
               onChange={(e) => setCfg({ ...cfg, redirect_url: e.target.value })}
               placeholder="https://abcd.ngrok.io"
@@ -67,7 +66,7 @@ export default function SiteConfigEditor() {
           </div>
 
           <div className="flex gap-2">
-            <button onClick={save} className="px-3 py-1 bg-blue-600 text-white rounded">
+            <button onClick={save} className="px-3 py-1 bg-blue-600 text-white ">
               Save
             </button>
             <button
@@ -75,7 +74,7 @@ export default function SiteConfigEditor() {
                 sessionStorage.setItem("site_redirect_override", "deployed");
                 alert("Session will use deployed site");
               }}
-              className="px-3 py-1 border rounded"
+              className="px-3 py-1 border "
             >
               Use deployed this session
             </button>
@@ -84,7 +83,7 @@ export default function SiteConfigEditor() {
                 sessionStorage.setItem("site_redirect_override", "ngrok");
                 alert("Session will use ngrok URL");
               }}
-              className="px-3 py-1 border rounded"
+              className="px-3 py-1 border "
             >
               Use ngrok this session
             </button>

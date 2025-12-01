@@ -1,7 +1,7 @@
 -- ============================================================================
 -- MIGRATION: TABLES SOCIALES (Forum + Blogs + Communautés)
 -- Date: 2025-11-19
--- Description: Création des tables pour le système social (réactions, rôles, 
+-- Description: Création des tables pour le système social (réactions, rôles,
 --              tracking lecture, logs activité) avec RLS policies
 -- ============================================================================
 
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS public.activity_log (
 -- TRIGGERS updated_at
 -- ============================================================================
 
-CREATE TRIGGER set_updated_at_group_roles 
+CREATE TRIGGER set_updated_at_group_roles
   BEFORE UPDATE ON public.group_roles
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -89,97 +89,97 @@ ALTER TABLE public.read_tracking ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.activity_log ENABLE ROW LEVEL SECURITY;
 
 -- Reactions: lecture publique, création/suppression authentifiée
-CREATE POLICY "Anyone can read reactions" 
-  ON public.reactions FOR SELECT 
+CREATE POLICY "Anyone can read reactions"
+  ON public.reactions FOR SELECT
   USING (true);
 
-CREATE POLICY "Authenticated users can add reactions" 
-  ON public.reactions FOR INSERT 
-  TO authenticated 
+CREATE POLICY "Authenticated users can add reactions"
+  ON public.reactions FOR INSERT
+  TO authenticated
   WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can remove their own reactions" 
-  ON public.reactions FOR DELETE 
-  TO authenticated 
+CREATE POLICY "Users can remove their own reactions"
+  ON public.reactions FOR DELETE
+  TO authenticated
   USING (auth.uid() = user_id);
 
 -- Group roles: lecture publique, seuls admins et créateur peuvent modifier
-CREATE POLICY "Anyone can read group roles" 
-  ON public.group_roles FOR SELECT 
+CREATE POLICY "Anyone can read group roles"
+  ON public.group_roles FOR SELECT
   USING (true);
 
-CREATE POLICY "Group admins can add members" 
-  ON public.group_roles FOR INSERT 
-  TO authenticated 
+CREATE POLICY "Group admins can add members"
+  ON public.group_roles FOR INSERT
+  TO authenticated
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM public.groups g
-      WHERE g.id = group_id 
+      WHERE g.id = group_id
       AND (g.created_by = auth.uid() OR EXISTS (
         SELECT 1 FROM public.group_roles gr
-        WHERE gr.group_id = g.id 
-        AND gr.user_id = auth.uid() 
+        WHERE gr.group_id = g.id
+        AND gr.user_id = auth.uid()
         AND gr.role = 'admin'
       ))
     )
   );
 
-CREATE POLICY "Group admins can update roles" 
-  ON public.group_roles FOR UPDATE 
-  TO authenticated 
+CREATE POLICY "Group admins can update roles"
+  ON public.group_roles FOR UPDATE
+  TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM public.groups g
-      WHERE g.id = group_id 
+      WHERE g.id = group_id
       AND (g.created_by = auth.uid() OR EXISTS (
         SELECT 1 FROM public.group_roles gr
-        WHERE gr.group_id = g.id 
-        AND gr.user_id = auth.uid() 
+        WHERE gr.group_id = g.id
+        AND gr.user_id = auth.uid()
         AND gr.role = 'admin'
       ))
     )
   );
 
-CREATE POLICY "Group admins can remove members" 
-  ON public.group_roles FOR DELETE 
-  TO authenticated 
+CREATE POLICY "Group admins can remove members"
+  ON public.group_roles FOR DELETE
+  TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM public.groups g
-      WHERE g.id = group_id 
+      WHERE g.id = group_id
       AND (g.created_by = auth.uid() OR EXISTS (
         SELECT 1 FROM public.group_roles gr
-        WHERE gr.group_id = g.id 
-        AND gr.user_id = auth.uid() 
+        WHERE gr.group_id = g.id
+        AND gr.user_id = auth.uid()
         AND gr.role = 'admin'
       ))
     )
   );
 
 -- Read tracking: chaque utilisateur gère son propre tracking
-CREATE POLICY "Users can read their own tracking" 
-  ON public.read_tracking FOR SELECT 
-  TO authenticated 
+CREATE POLICY "Users can read their own tracking"
+  ON public.read_tracking FOR SELECT
+  TO authenticated
   USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can update their own tracking" 
-  ON public.read_tracking FOR INSERT 
-  TO authenticated 
+CREATE POLICY "Users can update their own tracking"
+  ON public.read_tracking FOR INSERT
+  TO authenticated
   WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can modify their own tracking" 
-  ON public.read_tracking FOR UPDATE 
-  TO authenticated 
+CREATE POLICY "Users can modify their own tracking"
+  ON public.read_tracking FOR UPDATE
+  TO authenticated
   USING (auth.uid() = user_id);
 
 -- Activity log: lecture publique (transparence), création par système
-CREATE POLICY "Anyone can read activity log" 
-  ON public.activity_log FOR SELECT 
+CREATE POLICY "Anyone can read activity log"
+  ON public.activity_log FOR SELECT
   USING (true);
 
-CREATE POLICY "Authenticated users can log actions" 
-  ON public.activity_log FOR INSERT 
-  TO authenticated 
+CREATE POLICY "Authenticated users can log actions"
+  ON public.activity_log FOR INSERT
+  TO authenticated
   WITH CHECK (true);
 
 -- ============================================================================
@@ -189,107 +189,76 @@ CREATE POLICY "Authenticated users can log actions"
 -- Groups: lecture publique, création authentifiée, modification par créateur
 ALTER TABLE public.groups ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Anyone can read groups" 
-  ON public.groups FOR SELECT 
+CREATE POLICY "Anyone can read groups"
+  ON public.groups FOR SELECT
   USING (
-    metadata->>'isDeleted' IS NULL 
+    metadata->>'isDeleted' IS NULL
     OR metadata->>'isDeleted' = 'false'
   );
 
-CREATE POLICY "Authenticated users can create groups" 
-  ON public.groups FOR INSERT 
-  TO authenticated 
+CREATE POLICY "Authenticated users can create groups"
+  ON public.groups FOR INSERT
+  TO authenticated
   WITH CHECK (auth.uid() = created_by);
 
-CREATE POLICY "Group creators can update their groups" 
-  ON public.groups FOR UPDATE 
-  TO authenticated 
+CREATE POLICY "Group creators can update their groups"
+  ON public.groups FOR UPDATE
+  TO authenticated
   USING (auth.uid() = created_by);
 
-CREATE POLICY "Group creators can delete their groups" 
-  ON public.groups FOR DELETE 
-  TO authenticated 
+CREATE POLICY "Group creators can delete their groups"
+  ON public.groups FOR DELETE
+  TO authenticated
   USING (auth.uid() = created_by);
 
 -- Posts: lecture publique (sauf supprimés), création authentifiée
 ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Anyone can read non-deleted posts" 
-  ON public.posts FOR SELECT 
+CREATE POLICY "Anyone can read non-deleted posts"
+  ON public.posts FOR SELECT
   USING (
-    metadata->>'isDeleted' IS NULL 
+    metadata->>'isDeleted' IS NULL
     OR metadata->>'isDeleted' = 'false'
   );
 
-CREATE POLICY "Authenticated users can create posts" 
-  ON public.posts FOR INSERT 
-  TO authenticated 
+CREATE POLICY "Authenticated users can create posts"
+  ON public.posts FOR INSERT
+  TO authenticated
   WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can update their own posts" 
-  ON public.posts FOR UPDATE 
-  TO authenticated 
+CREATE POLICY "Users can update their own posts"
+  ON public.posts FOR UPDATE
+  TO authenticated
   USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can delete their own posts" 
-  ON public.posts FOR DELETE 
-  TO authenticated 
+CREATE POLICY "Users can delete their own posts"
+  ON public.posts FOR DELETE
+  TO authenticated
   USING (auth.uid() = user_id);
 
 -- Comments: lecture publique (sauf supprimés), création authentifiée
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Anyone can read non-deleted comments" 
-  ON public.comments FOR SELECT 
+CREATE POLICY "Anyone can read non-deleted comments"
+  ON public.comments FOR SELECT
   USING (
-    metadata->>'isDeleted' IS NULL 
+    metadata->>'isDeleted' IS NULL
     OR metadata->>'isDeleted' = 'false'
   );
 
-CREATE POLICY "Authenticated users can create comments" 
-  ON public.comments FOR INSERT 
-  TO authenticated 
+CREATE POLICY "Authenticated users can create comments"
+  ON public.comments FOR INSERT
+  TO authenticated
   WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can update their own comments" 
-  ON public.comments FOR UPDATE 
-  TO authenticated 
+CREATE POLICY "Users can update their own comments"
+  ON public.comments FOR UPDATE
+  TO authenticated
   USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can delete their own comments" 
-  ON public.comments FOR DELETE 
-  TO authenticated 
+CREATE POLICY "Users can delete their own comments"
+  ON public.comments FOR DELETE
+  TO authenticated
   USING (auth.uid() = user_id);
 
--- Group members: lecture publique, utilisateurs peuvent se joindre
-ALTER TABLE public.group_members ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Anyone can read group members" 
-  ON public.group_members FOR SELECT 
-  USING (true);
-
-CREATE POLICY "Users can join public groups" 
-  ON public.group_members FOR INSERT 
-  TO authenticated 
-  WITH CHECK (
-    auth.uid() = user_id 
-    AND (
-      -- Groupe public (pas de requireApproval)
-      NOT EXISTS (
-        SELECT 1 FROM public.groups g
-        WHERE g.id = group_id 
-        AND g.metadata->>'requireApproval' = 'true'
-      )
-      -- OU utilisateur est admin du groupe
-      OR EXISTS (
-        SELECT 1 FROM public.groups g
-        WHERE g.id = group_id 
-        AND g.created_by = auth.uid()
-      )
-    )
-  );
-
-CREATE POLICY "Users can leave groups" 
-  ON public.group_members FOR DELETE 
-  TO authenticated 
-  USING (auth.uid() = user_id);

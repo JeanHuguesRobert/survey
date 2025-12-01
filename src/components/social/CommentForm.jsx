@@ -36,7 +36,7 @@ export default function CommentForm({
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+        className="w-full px-4 py-3 border border-gray-300   focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
         rows={3}
         disabled={submitting}
       />
@@ -45,7 +45,7 @@ export default function CommentForm({
         <button
           type="submit"
           disabled={submitting || !content.trim()}
-          className="px-4 py-2 bg-primary-600 text-bauhaus-white rounded hover:bg-primary-700 disabled:bg-gray-400 text-sm font-medium"
+          className="px-4 py-2 bg-primary-600 text-bauhaus-white hover:bg-primary-700 disabled:bg-gray-400 text-sm font-medium"
         >
           {submitting ? "Envoi..." : "Commenter"}
         </button>
@@ -54,7 +54,7 @@ export default function CommentForm({
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 bg-gray-200 text-gray-200 rounded hover:bg-gray-300 text-sm"
+            className="px-4 py-2 bg-gray-200 text-gray-200 hover:bg-gray-300 text-sm"
           >
             Annuler
           </button>

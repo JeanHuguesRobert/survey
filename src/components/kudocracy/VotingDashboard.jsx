@@ -149,7 +149,7 @@ export default function VotingDashboard() {
 
   if (!stats) {
     return (
-      <div className=" rounded-lg shadow-md p-12 text-center">
+      <div className="   shadow-md p-12 text-center">
         <p className="text-gray-300">Aucune donnée disponible</p>
       </div>
     );
@@ -168,7 +168,7 @@ export default function VotingDashboard() {
         <StatCard title="Utilisateurs" value={stats.totalUsers} color="bg-red-600" />
       </div>
 
-      <div className=" rounded-lg shadow-md p-6">
+      <div className="   shadow-md p-6">
         <h3 className="text-xl font-bold text-gray-50 mb-4">
           Top 10 propositions par nombre de votes
         </h3>
@@ -186,7 +186,7 @@ export default function VotingDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className=" rounded-lg shadow-md p-6">
+        <div className="   shadow-md p-6">
           <h3 className="text-xl font-bold text-gray-50 mb-4">Distribution globale des votes</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
@@ -209,7 +209,7 @@ export default function VotingDashboard() {
           </ResponsiveContainer>
         </div>
 
-        <div className=" rounded-lg shadow-md p-6">
+        <div className="   shadow-md p-6">
           <h3 className="text-xl font-bold text-gray-50 mb-4">Tags les plus actifs</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={stats.tagStats}>
@@ -224,7 +224,7 @@ export default function VotingDashboard() {
       </div>
 
       {stats.delegationStats.length > 0 && (
-        <div className=" rounded-lg shadow-md p-6">
+        <div className="   shadow-md p-6">
           <h3 className="text-xl font-bold text-gray-50 mb-4">Délégations par tag</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={stats.delegationStats}>
@@ -238,10 +238,10 @@ export default function VotingDashboard() {
         </div>
       )}
 
-      <div className=" rounded-lg shadow-md p-6">
+      <div className="   shadow-md p-6">
         <h3 className="text-xl font-bold text-gray-50 mb-4">Engagement</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-blue-50 p-4 rounded-md">
+          <div className="bg-blue-50 p-4 ">
             <p className="text-sm text-gray-300">Moyenne de votes par proposition</p>
             <p className="text-3xl font-bold text-blue-900">
               {stats.totalPropositions > 0
@@ -249,13 +249,13 @@ export default function VotingDashboard() {
                 : 0}
             </p>
           </div>
-          <div className="bg-green-50 p-4 rounded-md">
+          <div className="bg-green-50 p-4 ">
             <p className="text-sm text-gray-300">Moyenne de votes par utilisateur</p>
             <p className="text-3xl font-bold text-green-700">
               {stats.totalUsers > 0 ? (stats.totalVotes / stats.totalUsers).toFixed(1) : 0}
             </p>
           </div>
-          <div className="bg-yellow-50 p-4 rounded-md">
+          <div className="bg-yellow-50 p-4 ">
             <p className="text-sm text-gray-300">Taux de délégation</p>
             <p className="text-3xl font-bold text-yellow-700">
               {stats.totalUsers > 0
@@ -272,7 +272,7 @@ export default function VotingDashboard() {
 
 function StatCard({ title, value, color }) {
   return (
-    <div className={`${color} text-bauhaus-white rounded-lg shadow-md p-6`}>
+    <div className={`${color} text-bauhaus-white   shadow-md p-6`}>
       <p className="text-sm opacity-90">{title}</p>
       <p className="text-4xl font-bold mt-2">{value}</p>
     </div>

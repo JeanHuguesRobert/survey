@@ -153,11 +153,11 @@ export default function UserDashboard() {
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-dark flex items-center justify-center">
-        <div className=" rounded-lg shadow-md p-12 text-center">
+        <div className="   shadow-md p-12 text-center">
           <p className="text-gray-300">Vous devez être connecté pour accéder à cette page</p>
           <Link
             to="/kudocracy"
-            className="mt-4 inline-block px-6 py-3 bg-blue-900 text-light rounded-md hover:bg-blue-800"
+            className="mt-4 inline-block px-6 py-3 bg-blue-900 text-light hover:bg-blue-800"
           >
             Aller à Kudocracy
           </Link>
@@ -169,11 +169,11 @@ export default function UserDashboard() {
   if (dashboardError) {
     return (
       <div className="min-h-screen bg-dark flex items-center justify-center">
-        <div className="rounded-lg shadow-md p-12 text-center">
+        <div className="  shadow-md p-12 text-center">
           <p className="text-red-500 font-bold mb-4">{dashboardError}</p>
           <Link
             to="/profile"
-            className="mt-4 inline-block px-6 py-3 bg-orange-600 text-light rounded-md hover:bg-orange-700"
+            className="mt-4 inline-block px-6 py-3 bg-orange-600 text-light hover:bg-orange-700"
           >
             Vérifier ou compléter votre profil
           </Link>
@@ -192,25 +192,25 @@ export default function UserDashboard() {
             <div className="flex items-center gap-4">
               <Link
                 to="/voting-dashboard"
-                className="px-4 py-2 bg-blue-600 text-light rounded-md hover:bg-blue-700"
+                className="px-4 py-2 bg-blue-600 text-light hover:bg-blue-700"
               >
                 Activité votes
               </Link>
               <Link
                 to="/social-dashboard"
-                className="px-4 py-2 bg-orange-600 text-light rounded-md hover:bg-orange-700"
+                className="px-4 py-2 bg-orange-600 text-light hover:bg-orange-700"
               >
                 Activité sociale
               </Link>
               <Link
                 to="/wiki-dashboard"
-                className="px-4 py-2 bg-green-600 text-light rounded-md hover:bg-green-700"
+                className="px-4 py-2 bg-green-600 text-light hover:bg-green-700"
               >
                 Activité Wiki
               </Link>
               <Link
                 to="/subscriptions"
-                className="px-4 py-2 bg-indigo-600 text-light rounded-md hover:bg-indigo-700"
+                className="px-4 py-2 bg-indigo-600 text-light hover:bg-indigo-700"
               >
                 🔔 Abonnements
               </Link>
@@ -219,10 +219,7 @@ export default function UserDashboard() {
         </div>
       </header>
 
-      <div
-        className="max-w-7xl mx-auto px-4 py-8"
-        style={{ background: "var(--color-bg-app)", borderRadius: "var(--radius-md)" }}
-      >
+      <div className="max-w-7xl mx-auto px-4 py-8" style={{ background: "var(--color-bg-app)" }}>
         {/* Personal Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <StatCard
@@ -265,7 +262,7 @@ export default function UserDashboard() {
 
         {/* Charts */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div style={{ background: "var(--color-bg-app)" }} className="rounded-lg shadow-md p-6">
+          <div style={{ background: "var(--color-bg-app)" }} className="  shadow-md p-6">
             <h3 className="text-xl font-bold text-gray-50 mb-4">Distribution de vos votes</h3>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -288,7 +285,7 @@ export default function UserDashboard() {
             </ResponsiveContainer>
           </div>
 
-          <div style={{ background: "var(--color-bg-app)" }} className="rounded-lg shadow-md p-6">
+          <div style={{ background: "var(--color-bg-app)" }} className="  shadow-md p-6">
             <h3 className="text-xl font-bold text-gray-50 mb-4">
               Activité récente (30 derniers jours)
             </h3>
@@ -305,33 +302,33 @@ export default function UserDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div style={{ background: "var(--color-bg-app)" }} className="rounded-lg shadow-md p-6">
+        <div style={{ background: "var(--color-bg-app)" }} className="  shadow-md p-6">
           <h3 className="text-xl font-bold text-gray-50 mb-4">Actions rapides</h3>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Link
               to="/kudocracy?tab=create"
-              className="bg-blue-900 text-light p-4 rounded-md hover:bg-blue-800 transition-colors text-center"
+              className="bg-blue-900 text-light p-4 hover:bg-blue-800 transition-colors text-center"
             >
               <div className="text-2xl mb-2">💡</div>
               <div className="font-semibold">Formuler une proposition</div>
             </Link>
             <Link
               to="/kudocracy?tab=delegations"
-              className="bg-green-600 text-light p-4 rounded-md hover:bg-green-700 transition-colors text-center"
+              className="bg-green-600 text-light p-4 hover:bg-green-700 transition-colors text-center"
             >
               <div className="text-2xl mb-2">🤝</div>
               <div className="font-semibold">Gérer les délégations</div>
             </Link>
             <Link
               to="/social"
-              className="bg-orange-600 text-light p-4 rounded-md hover:bg-orange-700 transition-colors text-center"
+              className="bg-orange-600 text-light p-4 hover:bg-orange-700 transition-colors text-center"
             >
               <div className="text-2xl mb-2">💬</div>
               <div className="font-semibold">Publier un article</div>
             </Link>
             <Link
               to="/wiki/new"
-              className="bg-teal-600 text-light p-4 rounded-md hover:bg-teal-700 transition-colors text-center"
+              className="bg-teal-600 text-light p-4 hover:bg-teal-700 transition-colors text-center"
             >
               <div className="text-2xl mb-2">📝</div>
               <div className="font-semibold">Créer une page Wiki</div>
@@ -347,7 +344,7 @@ export default function UserDashboard() {
 function StatCard({ title, value, color }) {
   return (
     <div
-      className={`${color} text-light rounded-lg shadow-md p-6`}
+      className={`${color} text-light   shadow-md p-6`}
       style={{ background: "var(--color-bg-app)" }}
     >
       <p className="text-sm opacity-90">{title}</p>

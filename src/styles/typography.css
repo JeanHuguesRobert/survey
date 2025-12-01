@@ -59,7 +59,6 @@ code {
   font-size: 0.9em;
   background: var(--color-surface-secondary);
   padding: 0.2em 0.4em;
-  border-radius: var(--radius-sm);
   color: var(--color-action-highlight);
 }
 
@@ -104,7 +103,6 @@ code {
 .markdown-content pre {
   background: var(--color-surface-tertiary);
   padding: var(--space-4);
-  border-radius: var(--radius-md);
   overflow-x: auto;
   margin-bottom: var(--space-6);
   border: 1px solid var(--color-border-subtle);

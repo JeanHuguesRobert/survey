@@ -183,9 +183,7 @@ export default function AuthModal({ onClose, onSuccess }) {
           )}
 
           {error && (
-            <div className="bg-red-50 border border-bauhaus-white rounded-md p-3 text-red-700">
-              {error}
-            </div>
+            <div className="bg-red-50 border border-bauhaus-white p-3 text-red-700">{error}</div>
           )}
 
           {mode === "signin" ? (

@@ -63,7 +63,7 @@ export default function ReactionPicker({ targetType, targetId, currentUser }) {
   }
 
   async function toggleReaction(emoji) {
-    if (!currentUser) {
+    if (!currentUser || isAnonymous(currentUser)) {
       alert("Vous devez être connecté pour réagir");
       return;
     }
@@ -166,12 +166,12 @@ export default function ReactionPicker({ targetType, targetId, currentUser }) {
 
           {/* Emoji picker popup */}
           {showPicker && (
-            <div className="absolute bottom-full left-0 mb-2  border border-gray-200 rounded-lg shadow-lg p-2 flex gap-1 z-10">
+            <div className="absolute bottom-full left-0 mb-2  border border-gray-200   shadow-lg p-2 flex gap-1 z-10">
               {Object.values(REACTION_EMOJIS).map((emoji) => (
                 <button
                   key={emoji}
                   onClick={() => toggleReaction(emoji)}
-                  className={`w-8 h-8 rounded hover:bg-gray-100 flex items-center justify-center text-lg transition-colors ${
+                  className={`w-8 h-8 hover:bg-gray-100 flex items-center justify-center text-lg transition-colors ${
                     userReactions.includes(emoji) ? "bg-primary-50" : ""
                   }`}
                   title={emoji}

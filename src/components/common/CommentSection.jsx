@@ -4,7 +4,8 @@ import { isDeleted } from "../../lib/metadata";
 import { getParentCommentId, isReply, isEdited } from "../../lib/socialMetadata";
 import CommentForm from "../social/CommentForm";
 import ReactionPicker from "../social/ReactionPicker";
-import { getDisplayName, getUserInitial } from "../../lib/userDisplay";
+import { getDisplayName, getUserInitials } from "../../lib/userDisplay";
+import { enrichUserMetadata } from "../../lib/userTransform";
 import { Link } from "react-router-dom";
 import { useDataLoader, useDataSaver, useFormSubmitter } from "../../lib/useStatusOperations";
 import { canComment } from "../../lib/permissions";
@@ -127,13 +128,19 @@ export default function CommentSection({
     await loadCommentsOp(async () => {
       const { data, error: fetchError } = await supabase
         .from("comments")
-        .select("*, users(id, email, display_name, metadata)")
+        .select("*, users(id, display_name, metadata)")
         .eq("post_id", discussionPost.id)
         .order("created_at", { ascending: true });
 
       if (fetchError) throw fetchError;
 
-      const activeComments = (data || []).filter((c) => !isDeleted(c));
+      // Filter deleted and enrich user metadata
+      const activeComments = (data || [])
+        .filter((c) => !isDeleted(c))
+        .map((comment) => ({
+          ...comment,
+          users: enrichUserMetadata(comment.users),
+        }));
       setComments(activeComments);
     });
   }
@@ -243,12 +250,12 @@ export default function CommentSection({
       <div
         className={`${depth > 0 ? "ml-8 mt-4" : "mt-4"} ${depth > 0 ? "border-l-2 border-gray-200 pl-4" : ""}`}
       >
-        <div className="rounded-lg p-4">
+        <div className="  p-4">
           {/* Header */}
           <div className="flex items-start justify-between mb-2">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-sm">
-                {getUserInitial(comment.users)}
+                {getUserInitials(comment.users)}
               </div>
               <div>
                 <Link
@@ -293,13 +300,13 @@ export default function CommentSection({
               <textarea
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                className="w-full px-3 py-2 border border-gray-300 text-sm"
                 rows={3}
               />
               <div className="flex gap-2 mt-2">
                 <button
                   onClick={handleEdit}
-                  className="px-3 py-1 text-xs bg-blue-600 text-bauhaus-white rounded hover:bg-blue-700"
+                  className="px-3 py-1 text-xs bg-blue-600 text-bauhaus-white hover:bg-blue-700"
                 >
                   Enregistrer
                 </button>
@@ -308,7 +315,7 @@ export default function CommentSection({
                     setIsEditing(false);
                     setEditContent(comment.content);
                   }}
-                  className="px-3 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300"
+                  className="px-3 py-1 text-xs bg-gray-200 hover:bg-gray-300"
                 >
                   Annuler
                 </button>
@@ -366,7 +373,7 @@ export default function CommentSection({
   const commentCount = comments.length;
 
   return (
-    <div className="rounded-lg shadow-sm border border-gray-200 overflow-hidden mt-8">
+    <div className="  shadow-sm border border-gray-200 overflow-hidden mt-8">
       {/* Toggle Header */}
       <button
         onClick={() => setExpanded(!expanded)}
@@ -408,7 +415,7 @@ export default function CommentSection({
                 />
               </div>
             ) : (
-              <div className="mb-6 p-4 rounded text-center text-gray-300">
+              <div className="mb-6 p-4 text-center text-gray-300">
                 Connectez-vous pour commenter
               </div>
             )}

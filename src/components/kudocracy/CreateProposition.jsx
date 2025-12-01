@@ -95,11 +95,11 @@ export default function CreateProposition({ user }) {
   };
 
   return (
-    <div className=" rounded-lg shadow-md p-8">
+    <div className="   shadow-md p-8">
       <h2 className="text-2xl font-bold text-gray-50 mb-6">Créer une nouvelle proposition</h2>
 
       {success && (
-        <div className="bg-green-50 border border-green-200 rounded-md p-4 mb-6">
+        <div className="bg-green-50 border border-green-200 p-4 mb-6">
           <p className="text-green-800 font-semibold">Proposition créée avec succès !</p>
         </div>
       )}
@@ -111,7 +111,7 @@ export default function CreateProposition({ user }) {
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md"
+            className="w-full px-4 py-2 border border-gray-300 "
             placeholder="Ex: Créer un parc public dans le centre-ville"
             required
           />
@@ -123,7 +123,7 @@ export default function CreateProposition({ user }) {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows="6"
-            className="w-full px-4 py-2 border border-gray-300 rounded-md"
+            className="w-full px-4 py-2 border border-gray-300 "
             placeholder="Décrivez votre proposition en détail..."
             required
           />
@@ -156,13 +156,13 @@ export default function CreateProposition({ user }) {
               type="text"
               value={newTagName}
               onChange={(e) => setNewTagName(e.target.value)}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-md"
+              className="flex-1 px-4 py-2 border border-gray-300 "
               placeholder="Créer un nouveau tag..."
             />
             <button
               type="button"
               onClick={handleCreateTag}
-              className="px-4 py-2 bg-gray-600 text-bauhaus-white rounded-md hover:bg-gray-700"
+              className="px-4 py-2 bg-gray-600 text-bauhaus-white hover:bg-gray-700"
             >
               Créer
             </button>
@@ -172,7 +172,7 @@ export default function CreateProposition({ user }) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 bg-blue-900 text-bauhaus-white font-bold rounded-md hover:bg-blue-800 disabled:opacity-50"
+          className="w-full py-3 bg-blue-900 text-bauhaus-white font-bold hover:bg-blue-800 disabled:opacity-50"
         >
           {loading ? "Création en cours..." : "Créer la proposition"}
         </button>

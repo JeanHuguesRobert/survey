@@ -17,8 +17,6 @@ export default function GroupForm({ group = null, currentUser }) {
     location: group?.metadata?.location || "",
     avatarUrl: group?.metadata?.avatarUrl || "",
     tags: group?.metadata?.tags?.join(", ") || "",
-    isPrivate: group?.metadata?.isPrivate || false,
-    requireApproval: group?.metadata?.requireApproval || false,
   });
 
   const [loading, setLoading] = useState(false);
@@ -58,8 +56,6 @@ export default function GroupForm({ group = null, currentUser }) {
         location: formData.location || null,
         avatarUrl: formData.avatarUrl || null,
         tags: tagsArray,
-        isPrivate: formData.isPrivate,
-        requireApproval: formData.requireApproval,
       });
 
       if (isEditing) {
@@ -75,7 +71,6 @@ export default function GroupForm({ group = null, currentUser }) {
 
         if (updateError) throw updateError;
 
-        alert("Groupe mis à jour !");
         navigate(`/groups/${group.id}`);
       } else {
         // Create new group
@@ -99,7 +94,6 @@ export default function GroupForm({ group = null, currentUser }) {
           metadata: { schemaVersion: 1 },
         });
 
-        alert("Groupe créé !");
         navigate(`/groups/${newGroup.id}`);
       }
     } catch (err) {
@@ -117,12 +111,10 @@ export default function GroupForm({ group = null, currentUser }) {
       </h1>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 mb-4">{error}</div>
       )}
 
-      <form onSubmit={handleSubmit} className=" rounded-lg shadow-sm p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="   shadow-sm p-6 space-y-6">
         {/* Nom */}
         <div>
           <label className="block text-sm font-medium text-gray-200 mb-2">Nom du groupe *</label>
@@ -132,7 +124,7 @@ export default function GroupForm({ group = null, currentUser }) {
             value={formData.name}
             onChange={handleChange}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             placeholder="Ex: Quartier Saint-Joseph, Association Culturelle..."
           />
         </div>
@@ -145,7 +137,7 @@ export default function GroupForm({ group = null, currentUser }) {
             value={formData.description}
             onChange={handleChange}
             rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             placeholder="Décrivez votre groupe..."
           />
         </div>
@@ -157,7 +149,7 @@ export default function GroupForm({ group = null, currentUser }) {
             name="groupType"
             value={formData.groupType}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
             <option value={GROUP_TYPES.COMMUNITY}>Communauté générale</option>
             <option value={GROUP_TYPES.NEIGHBORHOOD}>Quartier</option>
@@ -174,7 +166,7 @@ export default function GroupForm({ group = null, currentUser }) {
             name="location"
             value={formData.location}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             placeholder="Ex: Centre-ville, Quartier Porette..."
           />
         </div>
@@ -189,7 +181,7 @@ export default function GroupForm({ group = null, currentUser }) {
             name="avatarUrl"
             value={formData.avatarUrl}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             placeholder="https://..."
           />
         </div>
@@ -204,34 +196,9 @@ export default function GroupForm({ group = null, currentUser }) {
             name="tags"
             value={formData.tags}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             placeholder="culture, sport, environnement..."
           />
-        </div>
-
-        {/* Options */}
-        <div className="space-y-3">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              name="isPrivate"
-              checked={formData.isPrivate}
-              onChange={handleChange}
-              className="w-4 h-4 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
-            />
-            <span className="text-sm text-gray-200">Groupe privé (non visible publiquement)</span>
-          </label>
-
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              name="requireApproval"
-              checked={formData.requireApproval}
-              onChange={handleChange}
-              className="w-4 h-4 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
-            />
-            <span className="text-sm text-gray-200">Nécessite approbation pour rejoindre</span>
-          </label>
         </div>
 
         {/* Actions */}
@@ -239,14 +206,14 @@ export default function GroupForm({ group = null, currentUser }) {
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 px-4 py-2 bg-primary-600 text-bauhaus-white rounded hover:bg-primary-700 disabled:bg-gray-400"
+            className="flex-1 px-4 py-2 bg-primary-600 text-bauhaus-white hover:bg-primary-700 disabled:bg-gray-400"
           >
             {loading ? "Enregistrement..." : isEditing ? "Mettre à jour" : "Créer le groupe"}
           </button>
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="px-4 py-2 bg-gray-200 text-gray-200 rounded hover:bg-gray-300"
+            className="px-4 py-2 bg-gray-200 text-gray-800  hover:bg-gray-400"
           >
             Annuler
           </button>

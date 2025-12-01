@@ -20,7 +20,7 @@ export default function SocialAvatarButton({ provider, label, userId, onAvatarSu
         type="button"
         onClick={start}
         disabled={loading}
-        className={`px-4 py-2 rounded-md text-white font-semibold transition-colors flex items-center gap-2 ${
+        className={`px-4 py-2 text-white font-semibold transition-colors flex items-center gap-2 ${
           provider === "github"
             ? "bg-gray-800 hover:bg-gray-900"
             : provider === "facebook"

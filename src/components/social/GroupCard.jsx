@@ -1,13 +1,12 @@
 import { Link } from "react-router-dom";
 import { getMetadata } from "../../lib/metadata";
-import { getGroupType, isPrivateGroup } from "../../lib/socialMetadata";
+import { getGroupType } from "../../lib/socialMetadata";
 
 /**
  * Carte d'affichage d'un groupe
  */
 export default function GroupCard({ group, currentUserId }) {
   const groupType = getGroupType(group);
-  const isPrivate = isPrivateGroup(group);
   const avatarUrl = getMetadata(group, "avatarUrl");
   const location = getMetadata(group, "location");
   const tags = getMetadata(group, "tags", []);
@@ -116,24 +115,6 @@ export default function GroupCard({ group, currentUserId }) {
             <span className="bg-gray-100 border border-gray-300 px-2 py-0.5 font-bold text-xs uppercase">
               {typeLabels[groupType] || "Groupe"}
             </span>
-            {isPrivate && (
-              <span className="bg-bauhaus-yellow text-bauhaus-black border border-bauhaus-black px-2 py-0.5 font-bold text-xs flex items-center gap-1">
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>{" "}
-                Privé
-              </span>
-            )}
           </div>
         </div>
       </div>

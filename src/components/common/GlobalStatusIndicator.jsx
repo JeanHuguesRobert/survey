@@ -18,7 +18,7 @@ export default function GlobalStatusIndicator() {
       <div className="w-full max-w-sm mt-6 pointer-events-auto drop-shadow-xl relative">
         {status && status !== "idle" && (
           <div
-            className={`rounded-lg p-3 mb-2 shadow-lg border ${status === "error" ? "bg-red-100 border-red-300 text-red-800" : status === "loading" ? "bg-blue-100 border-blue-300 text-blue-800" : "bg-green-100 border-green-300 text-green-800"}`}
+            className={`  p-3 mb-2 shadow-lg border ${status === "error" ? "bg-red-100 border-red-300 text-red-800" : status === "loading" ? "bg-blue-100 border-blue-300 text-blue-800" : "bg-green-100 border-green-300 text-green-800"}`}
           >
             <span className="font-medium text-sm">
               {status === "loading" && "Chargement..."}
@@ -33,7 +33,7 @@ export default function GlobalStatusIndicator() {
         {/* Connection Status Indicator */}
         {connectionState !== "connected" && (
           <div
-            className={`rounded-lg p-3 mb-2 shadow-lg border ${connectionState === "error" ? "bg-red-100 border-red-300 text-red-800" : "bg-yellow-100 border-yellow-300 text-yellow-800"}`}
+            className={`  p-3 mb-2 shadow-lg border ${connectionState === "error" ? "bg-red-100 border-red-300 text-red-800" : "bg-yellow-100 border-yellow-300 text-yellow-800"}`}
           >
             <div className="flex items-center">
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

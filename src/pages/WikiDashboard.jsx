@@ -144,7 +144,7 @@ export default function WikiDashboard() {
             <div className="flex gap-3">
               <Link
                 to="/user-dashboard"
-                className="bg-blue-600 text-bauhaus-white px-4 py-2 rounded-md hover:bg-blue-700 font-semibold"
+                className="bg-blue-600 text-bauhaus-white px-4 py-2 hover:bg-blue-700 font-semibold"
               >
                 Votre tableau de bord
               </Link>
@@ -154,7 +154,7 @@ export default function WikiDashboard() {
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className=" rounded-lg shadow-md p-6">
+          <div className="   shadow-md p-6">
             <div className="flex items-center">
               <div className="p-3 rounded-full bg-green-100 text-green-600">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -173,7 +173,7 @@ export default function WikiDashboard() {
             </div>
           </div>
 
-          <div className=" rounded-lg shadow-md p-6">
+          <div className="   shadow-md p-6">
             <div className="flex items-center">
               <div className="p-3 rounded-full bg-blue-100 text-blue-600">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -192,7 +192,7 @@ export default function WikiDashboard() {
             </div>
           </div>
 
-          <div className=" rounded-lg shadow-md p-6">
+          <div className="   shadow-md p-6">
             <div className="flex items-center">
               <div className="p-3 rounded-full bg-purple-100 text-purple-600">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -213,7 +213,7 @@ export default function WikiDashboard() {
         </div>
 
         {/* Activity Chart */}
-        <div className=" rounded-lg shadow-md p-6 mb-8">
+        <div className="   shadow-md p-6 mb-8">
           <h2 className="text-xl font-bold text-gray-50 mb-4">Activité des 6 derniers mois</h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={stats?.activityData || []}>
@@ -229,7 +229,7 @@ export default function WikiDashboard() {
         {/* Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Pages Created */}
-          <div className=" rounded-lg shadow-md p-6">
+          <div className="   shadow-md p-6">
             <h2 className="text-xl font-bold text-gray-50 mb-4">Pages créées</h2>
             {createdPages.length > 0 ? (
               <div className="space-y-3">
@@ -264,7 +264,7 @@ export default function WikiDashboard() {
           </div>
 
           {/* Most Edited Pages */}
-          <div className=" rounded-lg shadow-md p-6">
+          <div className="   shadow-md p-6">
             <h2 className="text-xl font-bold text-gray-50 mb-4">Pages les plus éditées</h2>
             {stats?.mostEditedPages?.length > 0 ? (
               <div className="space-y-3">
@@ -287,7 +287,7 @@ export default function WikiDashboard() {
         </div>
 
         {/* Recent Edits */}
-        <div className=" rounded-lg shadow-md p-6 mt-8">
+        <div className="   shadow-md p-6 mt-8">
           <h2 className="text-xl font-bold text-gray-50 mb-4">Éditions récentes</h2>
           {recentEdits.length > 0 ? (
             <div className="space-y-4">

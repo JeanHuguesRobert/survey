@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { isDeleted } from "../lib/metadata";
-import { getDisplayName, getUserInitial } from "../lib/userDisplay";
+import { getDisplayName, getUserInitials } from "../lib/userDisplay";
 import { getUserRole, ROLE_ADMIN } from "../lib/permissions";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import SubscribeButton from "../components/common/SubscribeButton";
@@ -142,7 +142,7 @@ export default function UserPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="rounded-lg shadow-sm p-6 mb-6 flex items-center gap-6">
+      <div className="  shadow-sm p-6 mb-6 flex items-center gap-6">
         <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center text-3xl overflow-hidden">
           {avatarSrc ? (
             <img
@@ -151,7 +151,7 @@ export default function UserPage() {
               className="w-full h-full object-cover"
             />
           ) : (
-            <span>{getUserInitial(user)}</span>
+            <span>{getUserInitials(user)}</span>
           )}
         </div>
 
@@ -168,7 +168,7 @@ export default function UserPage() {
                 String(import.meta.env.VITE_CONTACT_EMAIL).toLowerCase() && (
                 <Link
                   to="/admin"
-                  className="ml-3 px-3 py-1 border rounded text-sm bg-primary-600 text-bauhaus-white"
+                  className="ml-3 px-3 py-1 border text-sm bg-primary-600 text-bauhaus-white"
                 >
                   Admin
                 </Link>
@@ -194,14 +194,14 @@ export default function UserPage() {
         </div>
       </div>
 
-      <div className="rounded-lg shadow-sm p-6">
+      <div className="  shadow-sm p-6">
         <h2 className="text-xl font-semibold mb-4">Publications récentes</h2>
         {posts.length === 0 ? (
           <p className="text-gray-400">Aucune publication publique.</p>
         ) : (
           <ul className="space-y-3">
             {posts.map((p) => (
-              <li key={p.id} className="border p-3 rounded">
+              <li key={p.id} className="border p-3 ">
                 <Link to={`/posts/${p.id}`} className="font-medium hover:underline">
                   {p.metadata?.title || (p.content || "(sans titre)").slice(0, 80)}
                 </Link>

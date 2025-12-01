@@ -78,7 +78,7 @@
 
 ### Tables existantes étendues
 
-- ✅ `groups` - Ajout metadata (groupType, location, isPrivate, requireApproval, etc.)
+- ✅ `groups` - Ajout metadata (groupType, location, etc.)
 - ✅ `posts` - Ajout metadata (postType, title, groupId, linkedType/linkedId, isPinned, isLocked,
   viewCount)
 - ✅ `comments` - Ajout metadata (parentCommentId, isEdited, editedAt)
@@ -181,7 +181,7 @@
 - ✅ Empty states ("Aucun groupe pour l'instant")
 - ✅ Responsive design (Tailwind CSS)
 - ✅ Icônes contextuelles (📝 💬 🏘️ etc.)
-- ✅ Badges visuels (Épinglé, Verrouillé, Privé)
+- ✅ Badges visuels (Épinglé, Verrouillé, Bloqué)
 
 ## Stats
 

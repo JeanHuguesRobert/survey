@@ -9,7 +9,6 @@
   right: 6px;
   width: 10px;
   height: 10px;
-  border-radius: 50%;
   background: #ffb86b;
   box-shadow: 0 0 0 3px rgba(255, 184, 107, 0.12);
 }
@@ -24,7 +23,6 @@
   overflow: auto;
   background: var(--color-surface-primary, #fff);
   border: 1px solid var(--color-border-default, #e6e9ef);
-  border-radius: 12px;
   padding: 12px;
   box-shadow: 0 10px 30px rgba(2, 6, 23, 0.35);
   backdrop-filter: blur(6px);
@@ -52,7 +50,6 @@
   justify-content: space-between;
   align-items: center;
   padding: 8px;
-  border-radius: 8px;
   background: var(--color-surface-secondary, #fbfdff);
   border: 1px solid rgba(15, 23, 42, 0.03);
 }

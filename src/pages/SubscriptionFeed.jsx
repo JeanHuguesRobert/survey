@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { isDeleted } from "../lib/metadata";
+import { enrichUserMetadata } from "../lib/userTransform";
 import SiteFooter from "../components/layout/SiteFooter";
 
 const CONTENT_TYPE_LABELS = {
@@ -65,7 +66,7 @@ export default function SubscriptionFeed() {
       if (groupedSubs.post?.length > 0) {
         const { data: postComments } = await supabase
           .from("comments")
-          .select("*, users(id, display_name), posts!inner(id, metadata)")
+          .select("*, users(id, display_name, metadata), posts!inner(id, metadata)")
           .in("post_id", groupedSubs.post)
           .order("created_at", { ascending: false })
           .limit(50);
@@ -74,6 +75,7 @@ export default function SubscriptionFeed() {
           allComments.push(
             ...postComments.map((c) => ({
               ...c,
+              users: enrichUserMetadata(c.users),
               content_type: "post",
               content_id: c.post_id,
               content_title: c.posts?.metadata?.title || "Sans titre",
@@ -97,7 +99,7 @@ export default function SubscriptionFeed() {
   if (userStatus === "signing_in" || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className=" rounded-lg shadow-md p-12 text-center max-w-md">
+        <div className="   shadow-md p-12 text-center max-w-md">
           <p className="text-gray-300 mb-4">Chargement de vos abonnements...</p>
         </div>
       </div>
@@ -107,11 +109,11 @@ export default function SubscriptionFeed() {
   if (userStatus === "signed_out" || !currentUser) {
     return (
       <div className="min-h-screen  flex items-center justify-center">
-        <div className=" rounded-lg shadow-md p-12 text-center max-w-md">
+        <div className="   shadow-md p-12 text-center max-w-md">
           <p className="text-gray-300 mb-4">Vous devez être connecté pour voir vos abonnements</p>
           <Link
             to="/"
-            className="inline-block px-6 py-3 bg-blue-900 text-bauhaus-white rounded-md hover:bg-blue-800"
+            className="inline-block px-6 py-3 bg-blue-900 text-bauhaus-white hover:bg-blue-800"
           >
             Retour à l'accueil
           </Link>
@@ -136,7 +138,7 @@ export default function SubscriptionFeed() {
         <div className="mb-6 flex gap-2">
           <button
             onClick={() => setFilter("all")}
-            className={`px-4 py-2 rounded-md font-medium transition-colors ${
+            className={`px-4 py-2 font-medium transition-colors ${
               filter === "all"
                 ? "bg-blue-600 text-bauhaus-white"
                 : " text-gray-200 border border-gray-300 hover:bg-gray-50"
@@ -146,7 +148,7 @@ export default function SubscriptionFeed() {
           </button>
           <button
             onClick={() => setFilter("post")}
-            className={`px-4 py-2 rounded-md font-medium transition-colors ${
+            className={`px-4 py-2 font-medium transition-colors ${
               filter === "post"
                 ? "bg-orange-600 text-bauhaus-white"
                 : " text-gray-200 border border-gray-300 hover:bg-gray-50"
@@ -156,7 +158,7 @@ export default function SubscriptionFeed() {
           </button>
           <button
             onClick={() => setFilter("proposition")}
-            className={`px-4 py-2 rounded-md font-medium transition-colors ${
+            className={`px-4 py-2 font-medium transition-colors ${
               filter === "proposition"
                 ? "bg-blue-600 text-bauhaus-white"
                 : " text-gray-200 border border-gray-300 hover:bg-gray-50"
@@ -166,7 +168,7 @@ export default function SubscriptionFeed() {
           </button>
           <button
             onClick={() => setFilter("wiki_page")}
-            className={`px-4 py-2 rounded-md font-medium transition-colors ${
+            className={`px-4 py-2 font-medium transition-colors ${
               filter === "wiki_page"
                 ? "bg-green-600 text-bauhaus-white"
                 : " text-gray-200 border border-gray-300 hover:bg-gray-50"
@@ -182,7 +184,7 @@ export default function SubscriptionFeed() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-900"></div>
           </div>
         ) : comments.length === 0 ? (
-          <div className=" rounded-lg shadow-md p-12 text-center">
+          <div className="   shadow-md p-12 text-center">
             <p className="text-gray-300 mb-4">
               {filter === "all"
                 ? "Vous n'êtes abonné à aucun contenu pour le moment"
@@ -190,7 +192,7 @@ export default function SubscriptionFeed() {
             </p>
             <Link
               to="/social"
-              className="inline-block px-6 py-3 bg-blue-900 text-bauhaus-white rounded-md hover:bg-blue-800"
+              className="inline-block px-6 py-3 bg-blue-900 text-bauhaus-white hover:bg-blue-800"
             >
               Explorer les contenus
             </Link>
@@ -202,12 +204,12 @@ export default function SubscriptionFeed() {
               return (
                 <div
                   key={comment.id}
-                  className=" rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow"
+                  className="   shadow-sm p-6 hover:shadow-md transition-shadow"
                 >
                   {/* En-tête */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${typeInfo.color}`}>
+                      <span className={`px-2 py-1 text-xs font-medium ${typeInfo.color}`}>
                         {typeInfo.icon} {typeInfo.label}
                       </span>
                       <Link

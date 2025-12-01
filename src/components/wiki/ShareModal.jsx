@@ -107,11 +107,11 @@ const ShareModal = ({ isOpen, onClose, pageTitle, pageUrl, pageContent }) => {
 
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex justify-center items-center">
-      <div className=" p-8 rounded-lg shadow-xl max-w-md w-full m-4">
+      <div className=" p-8   shadow-xl max-w-md w-full m-4">
         <h2 className="text-2xl font-bold mb-4">Partager la page Wiki</h2>
         {feedbackMessage && (
           <div
-            className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded relative mb-4"
+            className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 relative mb-4"
             role="alert"
           >
             <span className="block sm:inline">{feedbackMessage}</span>
@@ -123,7 +123,7 @@ const ShareModal = ({ isOpen, onClose, pageTitle, pageUrl, pageContent }) => {
           </label>
           <textarea
             id="shareText"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-200 leading-tight focus:outline-none focus:shadow-outline"
+            className="shadow appearance-none border w-full py-2 px-3 text-gray-200 leading-tight focus:outline-none focus:shadow-outline"
             rows="5"
             value={shareText}
             onChange={(e) => setShareText(e.target.value)}
@@ -152,20 +152,20 @@ const ShareModal = ({ isOpen, onClose, pageTitle, pageUrl, pageContent }) => {
         <div className="flex justify-between items-center mb-4">
           <button
             onClick={handleGenerateTextWithBob}
-            className="bg-green-500 hover:bg-green-700 text-bauhaus-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            className="bg-green-500 hover:bg-green-700 text-bauhaus-white font-bold py-2 px-4 focus:outline-none focus:shadow-outline"
             disabled={loadingBob}
           >
             {loadingBob ? "Génération..." : "IA"}
           </button>
           <button
             onClick={handleCopyText}
-            className="bg-gray-500 hover:bg-gray-700 text-bauhaus-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            className="bg-gray-500 hover:bg-gray-700 text-bauhaus-white font-bold py-2 px-4 focus:outline-none focus:shadow-outline"
           >
             Copier le texte
           </button>
           <button
             onClick={handleShare}
-            className="bg-blue-500 hover:bg-blue-700 text-bauhaus-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            className="bg-blue-500 hover:bg-blue-700 text-bauhaus-white font-bold py-2 px-4 focus:outline-none focus:shadow-outline"
           >
             Partager
           </button>
@@ -173,7 +173,7 @@ const ShareModal = ({ isOpen, onClose, pageTitle, pageUrl, pageContent }) => {
 
         <button
           onClick={onClose}
-          className="bg-gray-500 hover:bg-gray-700 text-bauhaus-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full"
+          className="bg-gray-500 hover:bg-gray-700 text-bauhaus-white font-bold py-2 px-4 focus:outline-none focus:shadow-outline w-full"
         >
           Annuler
         </button>

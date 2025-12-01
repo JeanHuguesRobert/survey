@@ -41,7 +41,7 @@ export default function VoteButton({ propositionId, userId, currentVote, onVoteC
       <button
         onClick={() => handleVote(true)}
         disabled={loading}
-        className={`flex-1 py-2 px-4 rounded-md font-semibold transition-colors disabled:opacity-50 ${
+        className={`flex-1 py-2 px-4 font-semibold transition-colors disabled:opacity-50 ${
           currentVote?.vote_value === true
             ? "bg-green-600 text-bauhaus-white"
             : "bg-green-100 text-green-700 hover:bg-green-200"
@@ -52,7 +52,7 @@ export default function VoteButton({ propositionId, userId, currentVote, onVoteC
       <button
         onClick={() => handleVote(null)}
         disabled={loading}
-        className={`flex-1 py-2 px-4 rounded-md font-semibold transition-colors disabled:opacity-50 ${
+        className={`flex-1 py-2 px-4 font-semibold transition-colors disabled:opacity-50 ${
           currentVote?.vote_value === null
             ? "bg-gray-600 text-bauhaus-white"
             : "bg-gray-100 text-gray-200 hover:bg-gray-200"
@@ -63,7 +63,7 @@ export default function VoteButton({ propositionId, userId, currentVote, onVoteC
       <button
         onClick={() => handleVote(false)}
         disabled={loading}
-        className={`flex-1 py-2 px-4 rounded-md font-semibold transition-colors disabled:opacity-50 ${
+        className={`flex-1 py-2 px-4 font-semibold transition-colors disabled:opacity-50 ${
           currentVote?.vote_value === false
             ? "bg-red-600 text-bauhaus-white"
             : "bg-red-100 text-red-700 hover:bg-red-200"

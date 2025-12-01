@@ -340,7 +340,6 @@ export default function GestureHeaderMenu({ activeEdges = ["top"] }) {
                       fontWeight: 500,
                       fontSize: "0.95em",
                       padding: "2px 8px",
-                      borderRadius: "var(--radius-sm)",
                       transition: "background var(--duration-fast) ease",
                       display: "inline-block",
                     }}
@@ -358,7 +357,6 @@ export default function GestureHeaderMenu({ activeEdges = ["top"] }) {
                       fontWeight: 500,
                       fontSize: "0.95em",
                       padding: "2px 8px",
-                      borderRadius: "var(--radius-sm)",
                       transition: "background var(--duration-fast) ease",
                       display: "inline-block",
                     }}
@@ -376,7 +374,6 @@ export default function GestureHeaderMenu({ activeEdges = ["top"] }) {
                       fontWeight: 500,
                       fontSize: "0.95em",
                       padding: "2px 8px",
-                      borderRadius: "var(--radius-sm)",
                       transition: "background var(--duration-fast) ease",
                       display: "inline-block",
                     }}
@@ -394,7 +391,6 @@ export default function GestureHeaderMenu({ activeEdges = ["top"] }) {
                       fontWeight: 500,
                       fontSize: "0.95em",
                       padding: "2px 8px",
-                      borderRadius: "var(--radius-sm)",
                       transition: "background var(--duration-fast) ease",
                       display: "inline-block",
                     }}
@@ -412,7 +408,6 @@ export default function GestureHeaderMenu({ activeEdges = ["top"] }) {
                       fontWeight: 500,
                       fontSize: "0.95em",
                       padding: "2px 8px",
-                      borderRadius: "var(--radius-sm)",
                       transition: "background var(--duration-fast) ease",
                       display: "inline-block",
                     }}
@@ -454,7 +449,6 @@ export default function GestureHeaderMenu({ activeEdges = ["top"] }) {
                         fontWeight: 500,
                         fontSize: "0.90em",
                         padding: "2px 8px",
-                        borderRadius: "var(--radius-sm)",
                         transition: "background var(--duration-fast) ease",
                         display: "inline-block",
                       }}
@@ -470,7 +464,6 @@ export default function GestureHeaderMenu({ activeEdges = ["top"] }) {
                         background: "transparent",
                         border: "1px solid var(--color-content-primary)",
                         color: "var(--color-content-primary)",
-                        borderRadius: "var(--radius-sm)",
                         padding: "2px 8px",
                         fontSize: "0.90em",
                         fontWeight: 600,
@@ -489,7 +482,6 @@ export default function GestureHeaderMenu({ activeEdges = ["top"] }) {
                       background: "var(--color-action-primary)",
                       color: "var(--color-bg-app)",
                       border: "none",
-                      borderRadius: "var(--radius-sm)",
                       padding: "2px 8px",
                       fontSize: "0.90em",
                       fontWeight: 600,

@@ -20,8 +20,6 @@ Groupes/communautés de différents types :
 
 - `groupType` : `neighborhood`, `association`, `community`, `forum`
 - `location` : Localisation géographique
-- `isPrivate` : Visible uniquement aux membres
-- `requireApproval` : Nécessite validation pour rejoindre
 - `avatarUrl`, `tags` : Métadonnées visuelles
 
 #### `posts` (existante, étendue)
@@ -241,7 +239,6 @@ migrateMetadata(entity, v); // Migration schéma
 // Groups
 createGroupMetadata(type, opts)
 getGroupType(group)
-isPrivateGroup(group)
 
 // Posts
 createPostMetadata(type, title, opts)

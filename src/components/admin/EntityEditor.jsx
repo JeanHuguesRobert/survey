@@ -74,7 +74,6 @@ export default function EntityEditor({ type, id, onClose, onSaved }) {
       setItem(res);
       setJsonValue(JSON.stringify(res, null, 2));
       if (onSaved) onSaved(res);
-      alert("Saved");
     } catch (err) {
       const raw = err?.message || String(err);
       // Log details to console for debugging
@@ -99,7 +98,6 @@ export default function EntityEditor({ type, id, onClose, onSaved }) {
     setLoading(true);
     try {
       await deleteEntity(type, id);
-      alert("Deleted");
       if (onClose) onClose();
     } catch (err) {
       alert("Error deleting: " + err.message);
@@ -117,10 +115,10 @@ export default function EntityEditor({ type, id, onClose, onSaved }) {
           Editing {type} / {id}
         </h3>
         <div className="flex gap-2">
-          <button onClick={onClose} className="px-3 py-1 border rounded">
+          <button onClick={onClose} className="px-3 py-1 border ">
             Close
           </button>
-          <button onClick={handleDelete} className="px-3 py-1 bg-red-600 text-white rounded">
+          <button onClick={handleDelete} className="px-3 py-1 bg-red-600 text-white ">
             Delete
           </button>
         </div>
@@ -134,21 +132,18 @@ export default function EntityEditor({ type, id, onClose, onSaved }) {
             value={jsonValue}
             onChange={(e) => setJsonValue(e.target.value)}
             rows={20}
-            className="w-full font-mono text-sm p-2 border rounded"
+            className="w-full font-mono text-sm p-2 border "
           />
 
           <div className="mt-3 flex gap-2">
-            <button
-              onClick={handleSave}
-              className="px-4 py-2 bg-primary-600 text-bauhaus-white rounded"
-            >
+            <button onClick={handleSave} className="px-4 py-2 bg-primary-600 text-bauhaus-white ">
               Save
             </button>
             <button
               onClick={() => {
                 setJsonValue(JSON.stringify(item, null, 2));
               }}
-              className="px-4 py-2 border rounded"
+              className="px-4 py-2 border "
             >
               Reset
             </button>

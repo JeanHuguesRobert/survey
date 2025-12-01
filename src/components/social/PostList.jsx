@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { isDeleted } from "../../lib/metadata";
+import { enrichUserMetadata } from "../../lib/userTransform";
 import PostCard from "./PostCard";
 
 /**
@@ -59,8 +60,13 @@ export default function PostList({
 
       if (fetchError) throw fetchError;
 
-      // Filtre soft delete
-      const activePosts = (data || []).filter((p) => !isDeleted(p));
+      // Filtre soft delete et enrichit user metadata
+      const activePosts = (data || [])
+        .filter((p) => !isDeleted(p))
+        .map((post) => ({
+          ...post,
+          users: enrichUserMetadata(post.users),
+        }));
 
       // Tri manuel pour mettre les épinglés en premier
       const sorted = activePosts.sort((a, b) => {

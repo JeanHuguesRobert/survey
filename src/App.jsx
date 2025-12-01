@@ -48,6 +48,7 @@ import PublicBrowser from "./components/features/PublicBrowser";
 import Social from "./pages/Social";
 import GroupPage from "./pages/GroupPage";
 import GroupCreate from "./pages/GroupCreate";
+import GroupEdit from "./pages/GroupEdit";
 import PostPage from "./pages/PostPage";
 import PostCreate from "./pages/PostCreate";
 import PostEdit from "./pages/PostEdit";
@@ -325,13 +326,13 @@ export default function Consultation() {
                 >
                   <div className="relative h-6 w-6">
                     <span
-                      className={`absolute left-1 top-1 block h-0.5 w-4 rounded-sm bg-light transition-transform duration-300 ${isMenuOpen ? "translate-y-2 rotate-45" : ""}`}
+                      className={`absolute left-1 top-1 block h-0.5 w-4  bg-light transition-transform duration-300 ${isMenuOpen ? "translate-y-2 rotate-45" : ""}`}
                     />
                     <span
-                      className={`absolute left-1 top-2.5 block h-0.5 w-4 rounded-sm bg-light transition-opacity duration-300 ${isMenuOpen ? "opacity-0" : "opacity-100"}`}
+                      className={`absolute left-1 top-2.5 block h-0.5 w-4  bg-light transition-opacity duration-300 ${isMenuOpen ? "opacity-0" : "opacity-100"}`}
                     />
                     <span
-                      className={`absolute left-1 top-4 block h-0.5 w-4 rounded-sm bg-light transition-transform duration-300 ${isMenuOpen ? "-translate-y-2 -rotate-45" : ""}`}
+                      className={`absolute left-1 top-4 block h-0.5 w-4  bg-light transition-transform duration-300 ${isMenuOpen ? "-translate-y-2 -rotate-45" : ""}`}
                     />
                   </div>
                   <span className="sr-only">
@@ -1056,7 +1057,6 @@ export default function Consultation() {
               background: "var(--color-bg-app)",
               border: "2px solid var(--color-border-strong)",
               padding: "2rem",
-              borderRadius: "var(--radius-md)",
             }}
           >
             {!stats ? (
@@ -1294,6 +1294,7 @@ export function App() {
         <Route path="/subscriptions" element={<SubscriptionFeed />} />
         <Route path="/groups/new" element={<GroupCreate />} />
         <Route path="/groups/:id" element={<GroupPage />} />
+        <Route path="/groups/:id/edit" element={<GroupEdit />} />
         <Route path="/posts/new" element={<PostCreate />} />
         <Route path="/posts/:id" element={<PostPage />} />
         <Route path="/posts/:id/edit" element={<PostEdit />} />

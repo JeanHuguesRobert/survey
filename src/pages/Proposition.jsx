@@ -116,7 +116,7 @@ export default function Proposition() {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <div className=" rounded-lg shadow-md p-6">
+      <div className="   shadow-md p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-50 mb-2">{proposition.title}</h1>
@@ -190,7 +190,7 @@ export default function Proposition() {
         )}
 
         {/* Résultats des votes */}
-        <div className="rounded-lg p-4 mb-6">
+        <div className="  p-4 mb-6">
           <h3 className="text-lg font-semibold mb-3">Résultats des votes</h3>
           <div className="flex justify-between text-sm font-semibold mb-2">
             <span className="text-green-700">{votes.approve} Pour</span>
@@ -226,7 +226,7 @@ export default function Proposition() {
 
           {/* Afficher le vote de l'utilisateur */}
           {userVote && (
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-3">
+            <div className="bg-blue-50 border border-blue-200 p-3 mb-3">
               <p className="text-sm text-blue-800">
                 Vous avez voté :{" "}
                 <strong>
@@ -252,7 +252,7 @@ export default function Proposition() {
               onVoteChange={handleVoteChange}
             />
           ) : (
-            <div className=" border border-gray-200 rounded-md p-3 text-center">
+            <div className=" border border-gray-200 p-3 text-center">
               <p className="text-sm text-gray-300">
                 <Link to="/kudocracy" className="text-blue-900 hover:underline">
                   Connectez-vous pour voter

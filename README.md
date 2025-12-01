@@ -318,7 +318,7 @@ Cette plateforme participe à l'initiative citoyenne **"Transparence"** qui vise
 
 - 🔄 **Abonnements wiki** : suivre les modifications des pages wiki
 - 🔄 **Notifications** pour les nouveaux contenus du Café
-- 🔄 **Messagerie privée** entre utilisateurs
+- 🔄 **Messagerie publique** entre utilisateurs
 - 🔄 **Système de badges** pour récompenser l'engagement citoyen
 - 🔄 Recherche avancée dans le wiki
 - 🔄 Export PDF des résultats

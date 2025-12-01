@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { isDeleted } from "../lib/metadata";
+import { enrichUserMetadata } from "../lib/userTransform";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import GazetteLayout from "../components/gazette/GazetteLayout";
 import GazettePost from "../components/gazette/GazettePost";
@@ -31,7 +32,7 @@ function CollapsibleHelpBanner({ gazetteName }) {
   }
 
   return (
-    <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded font-sans text-sm break-inside-avoid-column">
+    <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 font-sans text-sm break-inside-avoid-column">
       <div className="flex justify-between items-start gap-2 mb-2">
         <h3 className="font-bold text-blue-900">💡 Guide de l'éditeur</h3>
         <button
@@ -132,13 +133,13 @@ export default function Gazette() {
   // Update selected week from URL or default to latest
   useEffect(() => {
     const weekParam = searchParams.get("week");
-    if (weekParam && !isNaN(new Date(weekParam).getTime())) {
-      setSelectedWeek(new Date(weekParam).getTime());
+    if (weekParam) {
+      setSelectedWeek(weekParam);
     } else if (weeks.length > 0 && !selectedWeek) {
       // Default to the most recent week
-      setSelectedWeek(weeks[0].timestamp);
+      setSelectedWeek(weeks[0].dateString);
     }
-  }, [weeks, searchParams]);
+  }, [weeks, searchParams, selectedWeek]);
 
   async function loadPosts() {
     try {
@@ -146,36 +147,50 @@ export default function Gazette() {
 
       const { data, error } = await supabase
         .from("posts")
-        .select("*, users(id, display_name)")
+        .select("*, users(id, display_name, metadata)")
         .eq("metadata->>gazette", gazetteName)
         .order("created_at", { ascending: true });
 
       if (error) throw error;
 
-      const activePosts = (data || []).filter((p) => !isDeleted(p));
+      // Filter deleted and enrich user metadata
+      const activePosts = (data || [])
+        .filter((p) => !isDeleted(p))
+        .map((post) => ({
+          ...post,
+          users: enrichUserMetadata(post.users),
+        }));
 
       // Group posts by week
       const postsByWeek = {};
       activePosts.forEach((post) => {
         const date = new Date(post.created_at);
         const monday = getMonday(date);
-        const key = monday.getTime();
 
-        if (!postsByWeek[key]) {
-          postsByWeek[key] = [];
+        // Create a stable key based on local date string YYYY-MM-DD
+        const year = monday.getFullYear();
+        const month = String(monday.getMonth() + 1).padStart(2, "0");
+        const day = String(monday.getDate()).padStart(2, "0");
+        const dateString = `${year}-${month}-${day}`;
+
+        if (!postsByWeek[dateString]) {
+          postsByWeek[dateString] = {
+            timestamp: monday.getTime(), // Keep timestamp for sorting
+            posts: [],
+          };
         }
-        postsByWeek[key].push(post);
+        postsByWeek[dateString].posts.push(post);
       });
 
       // Create weeks array for selector
       const sortedWeeks = Object.keys(postsByWeek)
-        .map(Number)
-        .sort((a, b) => b - a) // Descending order
-        .map((timestamp) => ({
-          timestamp,
-          label: formatDateRange(new Date(timestamp)),
-          posts: postsByWeek[timestamp],
-        }));
+        .map((dateString) => ({
+          dateString,
+          timestamp: postsByWeek[dateString].timestamp,
+          label: formatDateRange(new Date(postsByWeek[dateString].timestamp)),
+          posts: postsByWeek[dateString].posts,
+        }))
+        .sort((a, b) => b.timestamp - a.timestamp); // Descending order
 
       setWeeks(sortedWeeks);
       setPosts(activePosts); // Keep all posts in state if needed, but we use weeks mostly
@@ -186,9 +201,9 @@ export default function Gazette() {
     }
   }
 
-  const handleWeekChange = (timestamp) => {
-    setSelectedWeek(timestamp);
-    setSearchParams({ week: new Date(timestamp).toISOString().split("T")[0] });
+  const handleWeekChange = (dateString) => {
+    setSelectedWeek(dateString);
+    setSearchParams({ week: dateString });
   };
 
   if (loading) {
@@ -201,7 +216,7 @@ export default function Gazette() {
     );
   }
 
-  const currentWeekPosts = weeks.find((w) => w.timestamp === selectedWeek)?.posts || [];
+  const currentWeekPosts = weeks.find((w) => w.dateString === selectedWeek)?.posts || [];
 
   return (
     <GazetteLayout

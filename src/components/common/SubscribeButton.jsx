@@ -1,3 +1,4 @@
+import { isAnonymous } from "../../lib/permissions";
 import { useSubscription } from "../../lib/useSubscription";
 
 /**
@@ -11,7 +12,7 @@ export default function SubscribeButton({ contentType, contentId, currentUser, c
   );
 
   const handleClick = async () => {
-    if (!currentUser) {
+    if (!currentUser || isAnonymous(currentUser)) {
       alert("Vous devez être connecté pour vous abonner");
       return;
     }
@@ -37,7 +38,7 @@ export default function SubscribeButton({ contentType, contentId, currentUser, c
       <button
         onClick={handleClick}
         disabled={!currentUser}
-        className={`inline-flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-colors ${
+        className={`inline-flex items-center gap-2 px-4 py-2 font-medium transition-colors ${
           isSubscribed
             ? "bg-blue-600 text-bauhaus-white hover:bg-blue-700"
             : " text-blue-600 border-2 border-blue-600 hover:bg-blue-50"

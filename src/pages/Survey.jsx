@@ -15,7 +15,7 @@ export default function Survey() {
         <div className="mt-8 flex flex-col items-center">
           <Link
             to="/contact"
-            className="inline-block px-4 py-2 mb-4 bg-blue-600 text-bauhaus-white rounded hover:bg-blue-700 font-semibold shadow"
+            className="inline-block px-4 py-2 mb-4 bg-blue-600 text-bauhaus-white hover:bg-blue-700 font-semibold shadow"
           >
             Contactez-nous
           </Link>

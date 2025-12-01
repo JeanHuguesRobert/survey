@@ -1,8 +1,25 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
-import { createPostMetadata, POST_TYPES, LINKED_TYPES } from "../../lib/socialMetadata";
+import {
+  createPostMetadata,
+  POST_TYPES,
+  LINKED_TYPES,
+  getPostTitle,
+  getPostSubtitle,
+  getPostType,
+  getPostSubtype,
+} from "../../lib/socialMetadata";
 import { isAnonymous } from "../../lib/permissions";
+import { getMetadata } from "../../lib/metadata";
+import {
+  getPostGroupId,
+  getPostEvent,
+  getPostGazette,
+  getPostSourceUrl,
+  isPinnedPost,
+  isLockedPost,
+} from "../../lib/postPredicates";
 
 /**
  * Éditeur de post (nouveau ou édition)
@@ -19,22 +36,22 @@ export default function PostEditor({ post = null, currentUser }) {
   const gazetteFromUrl = searchParams.get("gazette");
 
   const [formData, setFormData] = useState({
-    title: post?.metadata?.title || "",
-    subtitle: post?.metadata?.subtitle || "",
+    title: getPostTitle(post) || "",
+    subtitle: getPostSubtitle(post) || "",
     content: post?.content || "",
-    subtype: post?.metadata?.subtype || "",
-    eventDate: post?.metadata?.event?.date || "",
-    eventLocation: post?.metadata?.event?.location || "",
-    eventDuration: post?.metadata?.event?.duration || "",
-    postType: post?.metadata?.postType || POST_TYPES.FORUM,
-    groupId: post?.metadata?.groupId || groupIdFromUrl || "",
-    linkedType: post?.metadata?.linkedType || linkedTypeFromUrl || "",
-    linkedId: post?.metadata?.linkedId || linkedIdFromUrl || "",
-    tags: post?.metadata?.tags?.join(", ") || "",
-    gazette: post?.metadata?.gazette || gazetteFromUrl || "",
-    sourceUrl: post?.metadata?.sourceUrl || "",
-    isPinned: post?.metadata?.isPinned || false,
-    isLocked: post?.metadata?.isLocked || false,
+    subtype: getPostSubtype(post) || "",
+    eventDate: getPostEvent(post)?.date || "",
+    eventLocation: getPostEvent(post)?.location || "",
+    eventDuration: getPostEvent(post)?.duration || "",
+    postType: getPostType(post) || POST_TYPES.FORUM,
+    groupId: getPostGroupId(post) || groupIdFromUrl || "",
+    linkedType: getMetadata(post, "linkedType") || linkedTypeFromUrl || "",
+    linkedId: getMetadata(post, "linkedId") || linkedIdFromUrl || "",
+    tags: getMetadata(post, "tags")?.join(", ") || "",
+    gazette: getPostGazette(post) || gazetteFromUrl || "",
+    sourceUrl: getPostSourceUrl(post) || "",
+    isPinned: isPinnedPost(post) || false,
+    isLocked: isLockedPost(post) || false,
   });
 
   const [loading, setLoading] = useState(false);
@@ -115,9 +132,9 @@ export default function PostEditor({ post = null, currentUser }) {
       if (isEditing) {
         // Update existing post
         // Check what is sourceUrl, did it change, if so log it
-        if (post.metadata?.sourceUrl !== formData.sourceUrl) {
+        if (getPostSourceUrl(post) !== formData.sourceUrl) {
           console.log(
-            `Post ${post.id} sourceUrl changed from ${post.metadata?.sourceUrl} to ${formData.sourceUrl}`
+            `Post ${post.id} sourceUrl changed from ${getPostSourceUrl(post)} to ${formData.sourceUrl}`
           );
           // Check that metadata.sourceUrl is what formData.sourceUrl is
           if (metadata.sourceUrl !== formData.sourceUrl) {
@@ -203,12 +220,10 @@ export default function PostEditor({ post = null, currentUser }) {
       </h1>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 mb-4">{error}</div>
       )}
 
-      <form onSubmit={handleSubmit} className=" rounded-lg shadow-sm p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="   shadow-sm p-6 space-y-6">
         {/* Type de post */}
         <div>
           <label className="block text-sm font-medium text-gray-200 mb-2">
@@ -218,7 +233,7 @@ export default function PostEditor({ post = null, currentUser }) {
             name="postType"
             value={formData.postType}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
             <option value={POST_TYPES.FORUM}>Discussion (Forum)</option>
             <option value={POST_TYPES.BLOG}>Article (Blog)</option>
@@ -235,7 +250,7 @@ export default function PostEditor({ post = null, currentUser }) {
             value={formData.title}
             onChange={handleChange}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             placeholder="Titre de votre publication..."
           />
         </div>
@@ -250,7 +265,7 @@ export default function PostEditor({ post = null, currentUser }) {
             name="subtitle"
             value={formData.subtitle}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             placeholder="Court sous-titre qui complète le titre"
           />
         </div>
@@ -264,7 +279,7 @@ export default function PostEditor({ post = null, currentUser }) {
             onChange={handleChange}
             required
             rows={12}
-            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono text-sm"
+            className="w-full px-3 py-2 border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono text-sm"
             placeholder="Écrivez votre message... (Markdown supporté)"
           />
           <p className="text-xs text-gray-400 mt-1">
@@ -281,7 +296,7 @@ export default function PostEditor({ post = null, currentUser }) {
             name="subtype"
             value={formData.subtype}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded"
+            className="w-full px-3 py-2 border border-gray-300 "
           >
             <option value="">Aucun</option>
             <option value="event">Événement</option>
@@ -299,7 +314,7 @@ export default function PostEditor({ post = null, currentUser }) {
                 name="eventDate"
                 value={formData.eventDate}
                 onChange={handleChange}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded"
+                className="w-full px-3 py-2 text-sm border border-gray-300 "
               />
             </div>
             <div>
@@ -309,7 +324,7 @@ export default function PostEditor({ post = null, currentUser }) {
                 name="eventLocation"
                 value={formData.eventLocation}
                 onChange={handleChange}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded"
+                className="w-full px-3 py-2 text-sm border border-gray-300 "
                 placeholder="Adresse, ville, lien de réunion..."
               />
             </div>
@@ -320,7 +335,7 @@ export default function PostEditor({ post = null, currentUser }) {
                 name="eventDuration"
                 value={formData.eventDuration}
                 onChange={handleChange}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded"
+                className="w-full px-3 py-2 text-sm border border-gray-300 "
                 placeholder="ex: 2h, 90 minutes, 2025-12-01T10:00/2025-12-01T12:00"
               />
             </div>
@@ -340,7 +355,7 @@ export default function PostEditor({ post = null, currentUser }) {
                   name="linkedType"
                   value={formData.linkedType}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="">Aucun lien</option>
                   <option value={LINKED_TYPES.WIKI_PAGE}>Page Wiki</option>
@@ -355,7 +370,7 @@ export default function PostEditor({ post = null, currentUser }) {
                   name="linkedId"
                   value={formData.linkedId}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 focus:ring-2 focus:ring-primary-500"
                   placeholder="UUID..."
                   disabled={!formData.linkedType}
                 />
@@ -374,7 +389,7 @@ export default function PostEditor({ post = null, currentUser }) {
             name="tags"
             value={formData.tags}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             placeholder="démocratie, participation, environnement..."
           />
         </div>
@@ -391,7 +406,7 @@ export default function PostEditor({ post = null, currentUser }) {
                 name="isPinned"
                 checked={formData.isPinned}
                 onChange={handleChange}
-                className="w-4 h-4 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
+                className="w-4 h-4 text-primary-600 focus:ring-2 focus:ring-primary-500"
               />
             </label>
 
@@ -404,7 +419,7 @@ export default function PostEditor({ post = null, currentUser }) {
                 name="isLocked"
                 checked={formData.isLocked}
                 onChange={handleChange}
-                className="w-4 h-4 text-primary-600 rounded focus:ring-2 focus:ring-primary-500"
+                className="w-4 h-4 text-primary-600 focus:ring-2 focus:ring-primary-500"
               />
             </label>
           </div>
@@ -420,7 +435,7 @@ export default function PostEditor({ post = null, currentUser }) {
             name="gazette"
             value={formData.gazette}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             placeholder="Nom de la gazette, cad nom du groupe des éditeurs"
           />
           <p className="text-xs text-gray-400 mt-1">
@@ -438,7 +453,7 @@ export default function PostEditor({ post = null, currentUser }) {
             name="sourceUrl"
             value={formData.sourceUrl}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             placeholder="https://www.facebook.com/..."
           />
           <p className="text-xs text-gray-400 mt-1">
@@ -451,14 +466,14 @@ export default function PostEditor({ post = null, currentUser }) {
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 px-4 py-2 bg-orange-600 text-bauhaus-white rounded hover:bg-orange-700 disabled:bg-gray-400 font-semibold"
+            className="flex-1 px-4 py-2 bg-orange-600 text-bauhaus-white hover:bg-orange-700 disabled:bg-gray-400 font-semibold"
           >
             {loading ? "Enregistrement..." : isEditing ? "Mettre à jour" : "Publier"}
           </button>
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+            className="px-4 py-2 bg-gray-200 text-gray-800 hover:bg-gray-300"
           >
             Annuler
           </button>

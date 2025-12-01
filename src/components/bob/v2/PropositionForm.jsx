@@ -59,7 +59,6 @@ export default function PropositionForm({
                 }}
                 style={{
                   padding: "4px 8px",
-                  borderRadius: "16px",
                   border: "1px solid #ccc",
                   background: selectedTags.includes(tag) ? "#007bff" : "#f0f0f0",
                   color: selectedTags.includes(tag) ? "white" : "black",

@@ -190,13 +190,11 @@ export default function DocumentManagement() {
       </div>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
-          {error}
-        </div>
+        <div className="mb-4 p-4 bg-red-50 border border-red-200   text-red-800">{error}</div>
       )}
 
       {/* Upload Section */}
-      <div className=" shadow rounded-lg p-6 mb-6">
+      <div className=" shadow   p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Upload Document</h2>
 
         <div className="mb-4">
@@ -205,7 +203,7 @@ export default function DocumentManagement() {
             type="file"
             accept={ACCEPTED_EXTENSIONS}
             onChange={(e) => setSelectedFile(e.target.files[0])}
-            className="w-full p-2 border rounded"
+            className="w-full p-2 border "
             disabled={uploading}
           />
           {selectedFile && (
@@ -221,7 +219,7 @@ export default function DocumentManagement() {
             <select
               value={metadata.type}
               onChange={(e) => setMetadata({ ...metadata, type: e.target.value })}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border "
               disabled={uploading}
             >
               <option value="pv">Procès-Verbal</option>
@@ -237,7 +235,7 @@ export default function DocumentManagement() {
               type="date"
               value={metadata.date}
               onChange={(e) => setMetadata({ ...metadata, date: e.target.value })}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border "
               disabled={uploading}
             />
           </div>
@@ -248,7 +246,7 @@ export default function DocumentManagement() {
           <textarea
             value={metadata.description}
             onChange={(e) => setMetadata({ ...metadata, description: e.target.value })}
-            className="w-full p-2 border rounded"
+            className="w-full p-2 border "
             rows="2"
             disabled={uploading}
           />
@@ -260,7 +258,7 @@ export default function DocumentManagement() {
             type="url"
             value={metadata.source_url}
             onChange={(e) => setMetadata({ ...metadata, source_url: e.target.value })}
-            className="w-full p-2 border rounded"
+            className="w-full p-2 border "
             placeholder="https://example.com/original-document.pdf"
             disabled={uploading}
           />
@@ -270,7 +268,7 @@ export default function DocumentManagement() {
         </div>
 
         {uploadProgress && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-blue-800">
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 text-blue-800">
             {uploadProgress}
           </div>
         )}
@@ -278,14 +276,14 @@ export default function DocumentManagement() {
         <button
           onClick={handleFileUpload}
           disabled={!selectedFile || uploading}
-          className="bg-blue-600 text-bauhaus-white px-6 py-2 rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+          className="bg-blue-600 text-bauhaus-white px-6 py-2 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
         >
           {uploading ? "Uploading..." : "Upload Document"}
         </button>
       </div>
 
       {/* Documents List */}
-      <div className=" shadow rounded-lg p-6">
+      <div className=" shadow   p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Documents ({filteredDocs.length})</h2>
           <div className="flex gap-4">
@@ -294,12 +292,12 @@ export default function DocumentManagement() {
               placeholder="Search..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="p-2 border rounded"
+              className="p-2 border "
             />
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="p-2 border rounded"
+              className="p-2 border "
             >
               <option value="all">All Types</option>
               <option value="pv">PV</option>
@@ -333,7 +331,7 @@ export default function DocumentManagement() {
                   <tr key={doc.id} className="border-t hover:bg-gray-50">
                     <td className="px-4 py-2">{doc.filename}</td>
                     <td className="px-4 py-2">
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
+                      <span className="px-2 py-1 bg-blue-100 text-blue-800 text-sm">
                         {doc.metadata?.type || "autre"}
                       </span>
                     </td>
@@ -367,14 +365,12 @@ export default function DocumentManagement() {
       </div>
 
       {/* Cache Rebuild Notice */}
-      <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+      <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200  ">
         <p className="text-yellow-800 font-medium mb-2">📋 Next Steps:</p>
         <p className="text-yellow-700 text-sm mb-2">
           After uploading documents, you need to rebuild the Gemini Context Cache:
         </p>
-        <code className="block bg-yellow-100 p-2 rounded text-sm">
-          node scripts/create_cache.js
-        </code>
+        <code className="block bg-yellow-100 p-2 text-sm">node scripts/create_cache.js</code>
         <p className="text-yellow-700 text-sm mt-2">
           Then update your .env file with the new GEMINI_CACHE_ID and restart the server.
         </p>

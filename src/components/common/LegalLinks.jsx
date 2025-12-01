@@ -33,7 +33,7 @@ export default function LegalLinks() {
       <div className="mt-8 text-center">
         <a
           href="/contact"
-          className="inline-block px-4 py-2 bg-blue-600 text-bauhaus-white rounded hover:bg-blue-700 font-semibold shadow"
+          className="inline-block px-4 py-2 bg-blue-600 text-bauhaus-white hover:bg-blue-700 font-semibold shadow"
         >
           Contactez-nous
         </a>
@@ -51,7 +51,7 @@ export function LegalPage({ type }) {
       <div className="mt-8 text-center">
         <a
           href="/contact"
-          className="inline-block px-4 py-2 bg-blue-600 text-bauhaus-white rounded hover:bg-blue-700 font-semibold shadow"
+          className="inline-block px-4 py-2 bg-blue-600 text-bauhaus-white hover:bg-blue-700 font-semibold shadow"
         >
           Contactez-nous
         </a>

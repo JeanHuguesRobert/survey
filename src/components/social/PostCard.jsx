@@ -2,14 +2,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { getMetadata } from "../../lib/metadata";
-import {
-  getPostTitle,
-  getPostType,
-  isPinned,
-  isLocked,
-  POST_TYPES,
-} from "../../lib/socialMetadata";
-import { getDisplayName, getUserInitial } from "../../lib/userDisplay";
+import { getPostTitle, getPostType, POST_TYPES } from "../../lib/socialMetadata";
+import { isPinnedPost, isLockedPost, getPostEvent, isGazettePost } from "../../lib/postPredicates";
+import { getDisplayName, getUserInitials } from "../../lib/userDisplay";
 
 /**
  * Carte d'affichage d'un article
@@ -19,12 +14,12 @@ export default function PostCard({ post, currentUserId, gazette = null, showMark
   const navigate = useNavigate();
   const title = getPostTitle(post);
   const postType = getPostType(post);
-  const pinned = isPinned(post);
-  const locked = isLocked(post);
+  const pinned = isPinnedPost(post);
+  const locked = isLockedPost(post);
   const tags = getMetadata(post, "tags", []);
   const viewCount = getMetadata(post, "viewCount", 0);
   const subtitle = getMetadata(post, "subtitle", "");
-  const event = getMetadata(post, "event", null);
+  const event = getPostEvent(post);
 
   // Icônes par type
   const typeIcons = {
@@ -47,7 +42,7 @@ export default function PostCard({ post, currentUserId, gazette = null, showMark
       {/* Header */}
       <div className="flex items-start gap-4 mb-3">
         <div className="w-10 h-10 rounded-none border border-bauhaus-black bg-gray-100 flex items-center justify-center flex-shrink-0 font-bold text-bauhaus-black">
-          {getUserInitial(post.users)}
+          {getUserInitials(post.users)}
         </div>
 
         <div className="flex-1 min-w-0">
@@ -130,7 +125,7 @@ export default function PostCard({ post, currentUserId, gazette = null, showMark
       )}
 
       {/* Extrait du contenu */}
-      {showMarkdown || post.metadata?.gazette ? (
+      {showMarkdown || isGazettePost(post) ? (
         <div className={`text-gray-600 text-sm mb-3 ${expanded ? "" : "line-clamp-3"}`}>
           <ReactMarkdown>
             {expanded ? post.content || "" : (post.content || "").slice(0, 600)}
@@ -200,7 +195,7 @@ export default function PostCard({ post, currentUserId, gazette = null, showMark
               if (post.metadata?.groupId) params.set("groupId", post.metadata?.groupId);
               navigate(`/posts/new?${params.toString()}`);
             }}
-            className="ml-2 text-xs bg-primary-600 text-bauhaus-white px-2 py-0.5 rounded hover:opacity-90"
+            className="ml-2 text-xs bg-primary-600 text-bauhaus-white px-2 py-0.5 hover:opacity-90"
           >
             ✍️ Démarrer une discussion
           </button>

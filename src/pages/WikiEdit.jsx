@@ -84,28 +84,28 @@ export default function WikiEdit() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Titre"
-          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <input
           value={slug}
           onChange={(e) => setSlug(e.target.value)}
           placeholder="Adresse de la page (ex : page-exemple)"
-          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows={20}
           placeholder="Contenu de la page..."
-          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
         />
         <div className="flex gap-4">
-          <button onClick={handleSave} className="btn btn-success px-6 py-2 rounded-md">
+          <button onClick={handleSave} className="btn btn-success px-6 py-2 ">
             Enregistrer
           </button>
           <button
             onClick={() => navigate(`/wiki/${initialSlug}`)}
-            className="btn btn-secondary px-6 py-2 rounded-md"
+            className="btn btn-secondary px-6 py-2 "
           >
             Annuler
           </button>

@@ -304,12 +304,12 @@ export default function GlobalDashboard() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
+          <div className="bg-red-50 border border-red-200   p-6 max-w-md">
             <h2 className="text-red-800 font-semibold mb-2">Error Loading Dashboard</h2>
             <p className="text-red-600 text-sm">{error}</p>
             <button
               onClick={fetchDashboardData}
-              className="mt-4 px-4 py-2 bg-red-600 text-bauhaus-white rounded-md hover:bg-red-700"
+              className="mt-4 px-4 py-2 bg-red-600 text-bauhaus-white hover:bg-red-700"
             >
               Retry
             </button>
@@ -329,7 +329,7 @@ export default function GlobalDashboard() {
 
         {/* Overall Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="rounded-lg shadow-md p-6">
+          <div className="  shadow-md p-6">
             <h3 className="text-lg font-semibold text-gray-50 mb-4">Kudocracy</h3>
             <div className="space-y-2">
               <div className="flex justify-between">
@@ -347,7 +347,7 @@ export default function GlobalDashboard() {
             </div>
           </div>
 
-          <div className="rounded-lg shadow-md p-6">
+          <div className="  shadow-md p-6">
             <h3 className="text-lg font-semibold text-gray-50 mb-4">Wiki</h3>
             <div className="space-y-2">
               <div className="flex justify-between">
@@ -361,7 +361,7 @@ export default function GlobalDashboard() {
             </div>
           </div>
 
-          <div className=" rounded-lg shadow-md p-6">
+          <div className="   shadow-md p-6">
             <h3 className="text-lg font-semibold text-gray-50 mb-4">Social</h3>
             <div className="space-y-2">
               <div className="flex justify-between">
@@ -375,7 +375,7 @@ export default function GlobalDashboard() {
             </div>
           </div>
 
-          <div className=" rounded-lg shadow-md p-6">
+          <div className="   shadow-md p-6">
             <h3 className="text-lg font-semibold text-gray-50 mb-4">Profile</h3>
             <div className="space-y-2">
               <div className="flex justify-between">
@@ -396,7 +396,7 @@ export default function GlobalDashboard() {
 
         {/* Contribution Metrics */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className=" rounded-lg shadow-md p-6">
+          <div className="   shadow-md p-6">
             <h3 className="text-lg font-semibold text-gray-50 mb-4">Contribution Metrics</h3>
             <div className="space-y-4">
               <div>
@@ -418,7 +418,7 @@ export default function GlobalDashboard() {
             </div>
           </div>
 
-          <div className=" rounded-lg shadow-md p-6">
+          <div className="   shadow-md p-6">
             <h3 className="text-lg font-semibold text-gray-50 mb-4">Contribution Distribution</h3>
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
@@ -464,7 +464,7 @@ export default function GlobalDashboard() {
         </div>
 
         {/* Recent Activity Feed */}
-        <div className=" rounded-lg shadow-md p-6 mb-8">
+        <div className="   shadow-md p-6 mb-8">
           <h3 className="text-lg font-semibold text-gray-50 mb-4">Recent Activity</h3>
           <div className="space-y-4">
             {recentActivity.length === 0 ? (
@@ -473,7 +473,7 @@ export default function GlobalDashboard() {
               recentActivity.map((activity) => (
                 <div
                   key={activity.id}
-                  className="flex items-start space-x-4 p-4 border border-gray-200 rounded-lg"
+                  className="flex items-start space-x-4 p-4 border border-gray-200  "
                 >
                   <div
                     className={`w-3 h-3 rounded-full mt-2 ${
@@ -509,7 +509,7 @@ export default function GlobalDashboard() {
 
         {/* Visual Analytics */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className=" rounded-lg shadow-md p-6">
+          <div className="   shadow-md p-6">
             <h3 className="text-lg font-semibold text-gray-50 mb-4">Activity Timeline</h3>
             <ResponsiveContainer width="100%" height={200}>
               <AreaChart data={activityHeatmap}>
@@ -528,7 +528,7 @@ export default function GlobalDashboard() {
             </ResponsiveContainer>
           </div>
 
-          <div className=" rounded-lg shadow-md p-6">
+          <div className="   shadow-md p-6">
             <h3 className="text-lg font-semibold text-gray-50 mb-4">Activity by Module</h3>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={contributionData}>
@@ -543,12 +543,12 @@ export default function GlobalDashboard() {
         </div>
 
         {/* Quick Access Panel */}
-        <div className=" rounded-lg shadow-md p-6">
+        <div className="   shadow-md p-6">
           <h3 className="text-lg font-semibold text-gray-50 mb-4">Quick Access</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Link
               to="/kudocracy"
-              className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex flex-col items-center p-4 border border-gray-200   hover:bg-gray-50 transition-colors"
             >
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-2">
                 <span className="text-blue-600 font-bold text-xl">K</span>
@@ -559,7 +559,7 @@ export default function GlobalDashboard() {
 
             <Link
               to="/wiki"
-              className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex flex-col items-center p-4 border border-gray-200   hover:bg-gray-50 transition-colors"
             >
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-2">
                 <span className="text-green-600 font-bold text-xl">W</span>
@@ -570,7 +570,7 @@ export default function GlobalDashboard() {
 
             <Link
               to="/social"
-              className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex flex-col items-center p-4 border border-gray-200   hover:bg-gray-50 transition-colors"
             >
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-2">
                 <span className="text-purple-600 font-bold text-xl">S</span>
@@ -581,7 +581,7 @@ export default function GlobalDashboard() {
 
             <Link
               to="/profile"
-              className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex flex-col items-center p-4 border border-gray-200   hover:bg-gray-50 transition-colors"
             >
               <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-2">
                 <span className="text-orange-600 font-bold text-xl">P</span>
@@ -595,19 +595,19 @@ export default function GlobalDashboard() {
             <div className="flex flex-wrap gap-3">
               <Link
                 to="/kudocracy/create"
-                className="px-4 py-2 bg-blue-600 text-bauhaus-white rounded-md hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 bg-blue-600 text-bauhaus-white hover:bg-blue-700 transition-colors"
               >
                 New Proposition
               </Link>
               <Link
                 to="/wiki/create"
-                className="px-4 py-2 bg-green-600 text-bauhaus-white rounded-md hover:bg-green-700 transition-colors"
+                className="px-4 py-2 bg-green-600 text-bauhaus-white hover:bg-green-700 transition-colors"
               >
                 New Wiki Page
               </Link>
               <Link
                 to="/social/create"
-                className="px-4 py-2 bg-purple-600 text-bauhaus-white rounded-md hover:bg-purple-700 transition-colors"
+                className="px-4 py-2 bg-purple-600 text-bauhaus-white hover:bg-purple-700 transition-colors"
               >
                 New Post
               </Link>

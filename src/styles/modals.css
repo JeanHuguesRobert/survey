@@ -12,7 +12,6 @@
   background: var(--color-surface-primary);
   border: 2px solid var(--color-border-strong);
   box-shadow: var(--shadow-lg);
-  border-radius: var(--radius-md);
   position: relative;
   z-index: var(--z-modal);
 }

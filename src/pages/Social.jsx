@@ -168,7 +168,7 @@ export default function Social() {
             setSearchParams(params);
             if (value) setTab("posts");
           }}
-          className="ml-3 inline-block border rounded px-2 py-1"
+          className="ml-3 inline-block border px-2 py-1"
         >
           <option value="">Toutes</option>
           {gazettes.map((g) => (

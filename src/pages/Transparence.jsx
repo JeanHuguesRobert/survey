@@ -125,7 +125,7 @@ export default function Transparence() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`Accéder au site officiel de ${COMMUNITY_NAME} (nouvelle fenêtre)`}
-            className="inline-block px-4 py-2 bg-blue-900 text-bauhaus-white rounded-md hover:bg-blue-800"
+            className="inline-block px-4 py-2 bg-blue-900 text-bauhaus-white hover:bg-blue-800"
           >
             Accéder au site de {COMMUNITY_NAME}
           </a>
@@ -278,7 +278,7 @@ export default function Transparence() {
         <section className="rounded-xl shadow p-6 md:p-8">
           <h2 className="text-xl font-semibold text-slate-900 mb-4">Scores de référence</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="border border-slate-200 rounded-lg p-5 text-center">
+            <div className="border border-slate-200   p-5 text-center">
               <p className="text-sm  text-slate-500 tracking-wide mb-2">Score {COMMUNITY_NAME}</p>
               <p className={`text-3xl font-bold ${scoreColor(cityScore ?? 0)}`}>
                 {cityScore !== null
@@ -289,7 +289,7 @@ export default function Transparence() {
                 Données collectées auprès des {communityLabels.citizens} de {COMMUNITY_NAME}.
               </p>
             </div>
-            <div className="border border-slate-200 rounded-lg p-5 text-center">
+            <div className="border border-slate-200   p-5 text-center">
               <p className="text-sm  text-slate-500 tracking-wide mb-2">Score moyen</p>
               <p
                 className={`text-3xl font-bold ${scoreColor(nationalAverage ? Number(nationalAverage) : 3.2)}`}
@@ -302,7 +302,7 @@ export default function Transparence() {
                 Calculé sur les {communityLabels.name}s enregistrées dans la base.
               </p>
             </div>
-            <div className="border border-slate-200 rounded-lg p-5 text-center">
+            <div className="border border-slate-200   p-5 text-center">
               <p className="text-sm  text-slate-500 tracking-wide mb-2">Votre commune</p>
               <p className={`text-3xl font-bold ${scoreColor(selectedCommune?.score ?? 0)}`}>
                 {selectedCommune ? formatScore(selectedCommune.score) : "Sélectionnez"}
@@ -328,7 +328,7 @@ export default function Transparence() {
                 <input
                   id="commune"
                   list="commune-list"
-                  className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full   border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   placeholder={`Ex : Marseille, Nantes, ${CITY_NAME}`}
                   value={searchTerm}
                   onChange={(event) => handleCommuneSelection(event.target.value)}
@@ -342,14 +342,14 @@ export default function Transparence() {
               <button
                 type="button"
                 onClick={() => handleCommuneSelection(searchTerm)}
-                className="px-4 py-2 rounded-lg bg-orange-500 text-bauhaus-white font-semibold hover:bg-orange-600"
+                className="px-4 py-2   bg-orange-500 text-bauhaus-white font-semibold hover:bg-orange-600"
               >
                 Tester
               </button>
               <button
                 type="button"
                 onClick={handleToggleForm}
-                className="px-4 py-2 rounded-lg border border-orange-500 text-orange-600 font-semibold hover:bg-orange-50"
+                className="px-4 py-2   border border-orange-500 text-orange-600 font-semibold hover:bg-orange-50"
               >
                 {formOpen ? "Fermer le formulaire" : "Contribuer"}
               </button>
@@ -359,19 +359,19 @@ export default function Transparence() {
             {successMessage && <p className="text-sm text-green-600 mt-3">{successMessage}</p>}
           </div>
 
-          <div className="border border-dashed border-slate-200 rounded-lg p-5">
+          <div className="border border-dashed border-slate-200   p-5">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">Checklist transparence</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {CRITERIA.map((criterion) => (
                 <label
                   key={criterion.key}
-                  className="flex items-start gap-3 rounded-lg border border-slate-200 p-4"
+                  className="flex items-start gap-3   border border-slate-200 p-4"
                 >
                   <input
                     type="checkbox"
                     checked={selectedCommune ? Boolean(selectedCommune[criterion.key]) : false}
                     readOnly
-                    className="mt-1 h-5 w-5 rounded border-slate-300 text-orange-500 focus:ring-orange-500"
+                    className="mt-1 h-5 w-5 border-slate-300 text-orange-500 focus:ring-orange-500"
                   />
                   <span className="text-sm text-slate-700">{criterion.label}</span>
                 </label>
@@ -413,7 +413,7 @@ export default function Transparence() {
                   <input
                     id="commune_name"
                     name="commune_name"
-                    className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full   border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                     value={formData.commune_name}
                     onChange={handleInputChange}
                     placeholder={`Ex : ${CITY_NAME}`}
@@ -430,7 +430,7 @@ export default function Transparence() {
                   <input
                     id="insee_code"
                     name="insee_code"
-                    className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full   border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                     value={formData.insee_code || ""}
                     onChange={handleInputChange}
                     placeholder="2B097"
@@ -448,7 +448,7 @@ export default function Transparence() {
                     name="population"
                     type="number"
                     min="0"
-                    className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full   border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                     value={formData.population === "" ? "" : formData.population}
                     onChange={handleInputChange}
                     placeholder="8000"
@@ -460,11 +460,11 @@ export default function Transparence() {
                 {CRITERIA.map((criterion) => (
                   <label
                     key={criterion.key}
-                    className="flex items-start gap-3 rounded-lg border border-slate-200 p-4"
+                    className="flex items-start gap-3   border border-slate-200 p-4"
                   >
                     <input
                       type="checkbox"
-                      className="mt-1 h-5 w-5 rounded border-slate-300 text-orange-500 focus:ring-orange-500"
+                      className="mt-1 h-5 w-5 border-slate-300 text-orange-500 focus:ring-orange-500"
                       checked={Boolean(formData[criterion.key])}
                       onChange={() => handleCheckboxChange(criterion.key)}
                     />
@@ -484,7 +484,7 @@ export default function Transparence() {
                   <input
                     id="submitted_by"
                     name="submitted_by"
-                    className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full   border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                     value={formData.submitted_by || ""}
                     onChange={handleInputChange}
                     placeholder={`Collectif citoyen ${CITY_NAME}`}
@@ -501,7 +501,7 @@ export default function Transparence() {
                     id="contact_email"
                     name="contact_email"
                     type="email"
-                    className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full   border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                     value={formData.contact_email || ""}
                     onChange={handleInputChange}
                     placeholder="collectif@example.org"
@@ -517,7 +517,7 @@ export default function Transparence() {
                   id="notes"
                   name="notes"
                   rows={3}
-                  className="w-full rounded-lg border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full   border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   value={formData.notes || ""}
                   onChange={handleInputChange}
                   placeholder="Précisez vos sources, liens vers les documents, modalités d\'accès..."
@@ -532,7 +532,7 @@ export default function Transparence() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-orange-500 text-bauhaus-white font-semibold hover:bg-orange-600 disabled:opacity-60"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5   bg-orange-500 text-bauhaus-white font-semibold hover:bg-orange-600 disabled:opacity-60"
                 >
                   {saving ? "Enregistrement..." : "Publier / Mettre à jour"}
                 </button>
@@ -598,7 +598,7 @@ export default function Transparence() {
       <div className="mt-8 flex flex-col items-center">
         <Link
           to="/contact"
-          className="inline-block px-4 py-2 mb-4 bg-blue-600 text-bauhaus-white rounded hover:bg-blue-700 font-semibold shadow"
+          className="inline-block px-4 py-2 mb-4 bg-blue-600 text-bauhaus-white hover:bg-blue-700 font-semibold shadow"
         >
           Contactez-nous
         </Link>

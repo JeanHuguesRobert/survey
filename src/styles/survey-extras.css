@@ -21,7 +21,6 @@
 .info-box {
   background: var(--color-surface-secondary);
   border: 2px solid var(--color-border-medium);
-  border-radius: var(--radius-sm);
   padding: var(--space-4);
   margin-top: var(--space-4);
 }

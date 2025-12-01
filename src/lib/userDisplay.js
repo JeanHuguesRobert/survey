@@ -4,7 +4,7 @@
 
 /**
  * Obtient le nom d'affichage d'un utilisateur
- * Priorité: display_name > metadata.displayName > email > 'Anonyme'
+ * Priorité: metadata.displayName > display_name > metadata.email > email > 'Utilisateur'
  *
  * @param {Object} user - Objet utilisateur (peut venir de users, auth, etc.)
  * @returns {string} Le nom d'affichage
@@ -12,14 +12,27 @@
 export function getDisplayName(user) {
   if (!user) return "Anonyme";
 
-  // Essayer display_name (format Supabase standard)
+  // Priorité 1: metadata.displayName (enriched metadata)
+  if (user.metadata?.displayName && typeof user.metadata.displayName === "string") {
+    return user.metadata.displayName;
+  }
+
+  // Priorité 2: display_name SQL column (backward compatibility)
   if (user.display_name) return user.display_name;
 
-  // Essayer metadata.displayName
-  if (user.metadata?.displayName) return user.metadata.displayName;
+  // Priorité 3: metadata.email (enriched metadata)
+  // Ne pas exposer l'email publiquement. Retourner un email masqué.
+  if (user.metadata?.email && typeof user.metadata.email === "string") {
+    const parts = user.metadata.email.split("@");
+    if (parts.length === 2) {
+      const local = parts[0];
+      const domain = parts[1];
+      const visible = local.slice(0, 2);
+      return `${visible}****@${domain}`;
+    }
+  }
 
-  // Ne pas exposer l'email publiquement. Si aucun nom n'est disponible,
-  // retourner un email masqué pour permettre une reconnaissance limitée.
+  // Priorité 4: email SQL column (backward compatibility)
   if (user.email && typeof user.email === "string") {
     const parts = user.email.split("@");
     if (parts.length === 2) {
@@ -39,7 +52,7 @@ export function getDisplayName(user) {
  * @param {Object} user - Objet utilisateur
  * @returns {string} L'initiale en majuscule
  */
-export function getUserInitial(user) {
+export function getUserInitials(user) {
   const displayName = getDisplayName(user);
 
   // Si c'est "Anonyme", retourne "?"

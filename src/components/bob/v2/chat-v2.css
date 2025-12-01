@@ -161,7 +161,6 @@
   padding: var(--space-4);
   background: var(--color-surface-secondary);
   border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all var(--duration-normal) var(--ease-smooth);
 }
@@ -177,7 +176,6 @@
   display: flex;
   gap: var(--space-3);
   padding: var(--space-4);
-  border-radius: var(--radius-xl);
   max-width: 80%;
   position: relative;
 }
@@ -336,7 +334,6 @@
   flex: 1;
   padding: var(--space-4) var(--space-5);
   border: 2px solid var(--color-border-default);
-  border-radius: var(--radius-xl);
   font-size: 1rem;
   font-family: var(--font-body);
   background: var(--color-surface-primary);
@@ -414,7 +411,6 @@
 .streaming-timer {
   background: var(--color-surface-primary);
   padding: 6px 10px;
-  border-radius: 8px;
   border: 1px solid var(--color-border-default);
   font-size: 0.9rem;
   color: var(--color-content-primary);
@@ -432,7 +428,6 @@
 .bob-modal-dialog {
   background: var(--color-surface-primary);
   padding: 1rem;
-  border-radius: 8px;
   max-width: 720px;
   width: 95%;
 }
@@ -445,7 +440,6 @@
   max-height: 220px;
   overflow: auto;
   padding: 6px;
-  border-radius: 8px;
   background: var(--color-surface-secondary);
   border: 1px solid var(--color-border-default);
 }
@@ -503,7 +497,6 @@
 }
 .model-mode-presets button {
   padding: 8px 12px;
-  border-radius: 8px;
   border: 1px solid var(--color-border-default);
   background: var(--color-surface-primary);
 }
@@ -542,7 +535,6 @@
   max-width: 94%;
   background: var(--color-surface-primary);
   border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
@@ -573,7 +565,6 @@
 }
 .preset-select {
   padding: 8px 10px;
-  border-radius: 8px;
   border: 1px solid var(--color-border-default);
   background: var(--color-surface-secondary);
   color: var(--color-content-primary);
@@ -605,13 +596,11 @@
 .selector-select,
 .preset-select {
   padding: 8px 10px;
-  border-radius: 8px;
   border: 1px solid var(--color-border-default);
   background: var(--color-surface-secondary);
 }
 .provider-option {
   padding: 8px 10px;
-  border-radius: 8px;
   border: 1px solid var(--color-border-default);
   background: var(--color-surface-secondary);
   display: inline-flex;
@@ -631,7 +620,6 @@
 }
 .selector-select {
   padding: 8px 10px;
-  border-radius: 8px;
   border: 1px solid var(--color-border-default);
   background: var(--color-surface-primary);
   color: var(--color-content-primary);
@@ -646,7 +634,6 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
   background: transparent;
 }
 
@@ -654,7 +641,6 @@
 .model-metrics {
   padding: 0;
   background: transparent;
-  border-radius: 0;
   border: 0;
 }
 .metric-hint {
@@ -676,7 +662,6 @@
 }
 .mode-option {
   padding: 8px 10px;
-  border-radius: 8px;
   border: 1px solid var(--color-border-default);
   background: transparent;
 }
@@ -690,7 +675,6 @@
   width: 100%;
   padding: 8px;
   border: 1px solid var(--color-border-default);
-  border-radius: 8px;
 }
 .model-mode-actions {
   display: flex;
@@ -717,7 +701,6 @@
   border: 1px solid var(--color-warning-border, #fde3b9);
   color: var(--color-warning, #92400e);
   padding: 6px 10px;
-  border-radius: 8px;
   font-size: 0.9rem;
   z-index: 1200;
 }
@@ -731,7 +714,6 @@
 /* ProviderStatus small adjustments inside modal */
 .provider-item__use {
   padding: 6px 10px;
-  border-radius: 6px;
   border: 1px solid var(--color-border-default);
   background: transparent;
 }
@@ -754,7 +736,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-md);
   background: var(--color-surface-secondary);
   margin-right: var(--space-3);
 }
@@ -787,7 +768,6 @@
   align-items: flex-start;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
   background: var(--color-surface-secondary);
   box-shadow: var(--shadow-sm);
   color: var(--color-content-primary);
@@ -825,7 +805,6 @@
   color: var(--color-content-primary);
   background: var(--color-surface-tertiary);
   padding: 2px 6px;
-  border-radius: var(--radius-sm);
 }
 
 .chat-interface .chat-controls-area {
@@ -839,7 +818,6 @@
   min-height: 38px;
   padding: var(--space-2);
   border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
   background: transparent;
   color: var(--color-content-primary);
 }
@@ -848,7 +826,6 @@
   background: transparent;
   border: 1px solid transparent;
   padding: 6px 8px;
-  border-radius: var(--radius-sm);
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -886,14 +863,12 @@
   background: var(--color-action-primary);
   color: var(--color-content-inverted);
   padding: 6px 10px;
-  border-radius: var(--radius-sm);
 }
 
 .chat-interface .send-btn {
   background: var(--color-action-primary);
   color: var(--color-content-inverted);
   padding: 6px 10px;
-  border-radius: var(--radius-sm);
 }
 
 .chat-interface .btn-ghost {
@@ -920,7 +895,6 @@
   background: var(--color-bg-app);
   border: 1px solid var(--color-action-highlight);
   padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
 }
 
@@ -969,7 +943,6 @@
   align-items: center;
   justify-content: center;
   font-size: 12px;
-  border-radius: 4px;
   background: transparent;
 }
 
@@ -1081,7 +1054,6 @@
 
 .suggested-tag-btn {
   padding: 4px 8px;
-  border-radius: var(--radius-md);
   background: var(--color-surface-secondary);
   border: 1px solid var(--color-border-default);
   cursor: pointer;
@@ -1145,7 +1117,6 @@
 /* Model modal buttons */
 .model-mode-panel button {
   padding: 6px 10px;
-  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border-default);
   background: var(--color-surface-secondary);
   cursor: pointer;
@@ -1270,7 +1241,6 @@
 .thought-content {
   padding: 0.5rem;
   background: var(--color-surface-secondary);
-  border-radius: var(--radius-md);
   margin-top: var(--space-2);
 }
 
@@ -1287,7 +1257,6 @@
 .consent-modal {
   background: var(--color-surface-primary);
   padding: var(--space-4);
-  border-radius: var(--radius-lg);
   max-width: 640px;
   width: 90%;
 }
@@ -1295,7 +1264,6 @@
 .notification-message {
   background: #fff3cd;
   padding: 6px;
-  border-radius: 4px;
 }
 
 .notification-link {
@@ -1307,7 +1275,6 @@
   margin-top: var(--space-2);
   background: var(--color-surface-secondary);
   padding: var(--space-2);
-  border-radius: var(--radius-md);
 }
 
 .sources-list .source-item {
@@ -1360,7 +1327,6 @@
 .tag-input {
   border: 1px solid var(--color-border-default);
   padding: 6px;
-  border-radius: var(--radius-md);
 }
 
 .suggested-tags {
@@ -1402,7 +1368,6 @@
     var(--color-surface-primary)
   );
   padding: var(--space-4);
-  border-radius: var(--radius-md);
   max-width: 780px;
   width: min(96%, 780px);
   box-shadow: var(--shadow-lg);
@@ -1438,7 +1403,6 @@
   background: var(--color-surface-secondary);
   border: 1px solid var(--color-border-default);
   padding: 6px 10px;
-  border-radius: var(--radius-sm);
   cursor: pointer;
   font-weight: 600;
   font-size: 0.95rem;
@@ -1452,7 +1416,6 @@
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  border-radius: 10px;
   border: 1px solid var(--color-border-default);
   background: var(--color-surface-secondary);
   cursor: pointer;
@@ -1484,7 +1447,6 @@
 }
 .mode-option {
   padding: 8px 10px;
-  border-radius: 8px;
   border: 1px solid var(--color-border-default);
   background: var(--color-surface-secondary);
   cursor: pointer;
@@ -1502,7 +1464,6 @@
 
 .custom-model-control input {
   padding: 10px;
-  border-radius: 8px;
   border: 1px solid var(--color-border-default);
 }
 
@@ -1558,7 +1519,6 @@
 .provider-option,
 .mode-option {
   padding: 8px 10px;
-  border-radius: var(--radius-md);
   border: 1px solid var(--color-border-default);
   background: var(--color-surface-secondary);
   cursor: pointer;
@@ -1587,7 +1547,6 @@
 .custom-model-control input {
   width: 100%;
   padding: 8px;
-  border-radius: var(--radius-md);
   border: 1px solid var(--color-border-default);
   background: var(--color-surface-primary);
 }
@@ -1608,7 +1567,6 @@
 .provider-item__use,
 .provider-item__expand {
   padding: 6px 8px;
-  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border-default);
   background: var(--color-surface-secondary);
   cursor: pointer;

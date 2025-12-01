@@ -3,17 +3,28 @@ import ReactMarkdown from "react-markdown";
 import { Link } from "react-router-dom";
 import FacebookEmbed from "../FacebookEmbed";
 import { supabase } from "../../lib/supabase";
+import { getPostTitle, getPostSubtitle } from "../../lib/socialMetadata";
+import {
+  isFacebookPost,
+  getPostSourceUrl,
+  getPostGazette,
+  getPostEvent,
+  getAuthor,
+} from "../../lib/postPredicates";
+import { getDisplayName } from "../../lib/userDisplay";
 
 export default function GazettePost({ post, isEditor = false, gazetteName = null }) {
-  const { id, content, created_at, users } = post;
-  const title = post.metadata?.title || "";
-  const subtitle = post.metadata?.subtitle || "";
-  const authorName = users?.display_name || "Anonyme";
-  const sourceUrl = post.metadata?.sourceUrl;
-  const isFacebook = sourceUrl && sourceUrl.includes("facebook.com");
+  const { id, content, created_at } = post;
+  const title = getPostTitle(post);
+  const subtitle = getPostSubtitle(post);
+  const author = getAuthor(post);
+  const authorName = getDisplayName(author) || "Anonyme";
+  const sourceUrl = getPostSourceUrl(post);
+  const isFacebook = isFacebookPost(post);
+  const event = getPostEvent(post);
   const cafeHref = `/social?tab=posts&linkedType=post&linkedId=${id}${
-    post.metadata?.gazette || gazetteName
-      ? "&gazette=" + encodeURIComponent(post.metadata?.gazette || gazetteName)
+    getPostGazette(post) || gazetteName
+      ? "&gazette=" + encodeURIComponent(getPostGazette(post) || gazetteName)
       : ""
   }`;
   // normalize problematic non-breaking spaces Supabase AI may insert
@@ -57,12 +68,12 @@ export default function GazettePost({ post, isEditor = false, gazetteName = null
       )}
 
       {/* Event info */}
-      {post.metadata?.event && (
+      {event && (
         <div className="mb-3 text-sm text-gray-700">
-          {post.metadata.event.date && (
+          {event.date && (
             <div>
               📅 <strong>Date:</strong>{" "}
-              {new Date(post.metadata.event.date).toLocaleString("fr-FR", {
+              {new Date(event.date).toLocaleString("fr-FR", {
                 day: "numeric",
                 month: "long",
                 year: "numeric",
@@ -71,14 +82,14 @@ export default function GazettePost({ post, isEditor = false, gazetteName = null
               })}
             </div>
           )}
-          {post.metadata.event.location && (
+          {event.location && (
             <div>
-              📍 <strong>Lieu:</strong> {post.metadata.event.location}
+              📍 <strong>Lieu:</strong> {event.location}
             </div>
           )}
-          {post.metadata.event.duration && (
+          {event.duration && (
             <div>
-              ⏱️ <strong>Durée:</strong> {post.metadata.event.duration}
+              ⏱️ <strong>Durée:</strong> {event.duration}
             </div>
           )}
         </div>

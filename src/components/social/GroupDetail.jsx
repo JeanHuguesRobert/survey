@@ -4,10 +4,11 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { isDeleted, getMetadata } from "../../lib/metadata";
-import { getGroupType, isPrivateGroup, requiresApproval } from "../../lib/socialMetadata";
+import { getGroupType } from "../../lib/socialMetadata";
 import CommentSection from "../common/CommentSection";
 import SiteFooter from "../layout/SiteFooter";
-import { getDisplayName, getUserInitial } from "../../lib/userDisplay";
+import { getDisplayName, getUserInitials } from "../../lib/userDisplay";
+import { enrichUserMetadata } from "../../lib/userTransform";
 import { isAdmin, isAnonymous } from "../../lib/permissions";
 
 /**
@@ -58,7 +59,13 @@ export default function GroupDetail({ currentUser }) {
         .eq("group_id", id);
 
       if (membersError) throw membersError;
-      setMembers(membersData || []);
+
+      // Enrich user metadata
+      const enrichedMembers = (membersData || []).map((member) => ({
+        ...member,
+        users: enrichUserMetadata(member.users),
+      }));
+      setMembers(enrichedMembers);
 
       // Vérifier si user actuel est membre/admin
       if (currentUser) {
@@ -78,7 +85,13 @@ export default function GroupDetail({ currentUser }) {
 
       if (postsError) throw postsError;
 
-      const activePosts = (postsData || []).filter((p) => !isDeleted(p));
+      // Enrich user metadata and filter deleted posts
+      const activePosts = (postsData || [])
+        .filter((p) => !isDeleted(p))
+        .map((post) => ({
+          ...post,
+          users: enrichUserMetadata(post.users),
+        }));
       setPosts(activePosts);
 
       // Detect if this group acts as a Gazette editor
@@ -133,13 +146,6 @@ export default function GroupDetail({ currentUser }) {
 
       if (error) throw error;
 
-      // Si approbation requise
-      if (requiresApproval(group)) {
-        alert("Demande envoyée ! En attente d'approbation par les admins.");
-      } else {
-        alert("Vous avez rejoint le groupe !");
-      }
-
       loadGroupData();
     } catch (err) {
       console.error("Error joining group:", err);
@@ -159,7 +165,6 @@ export default function GroupDetail({ currentUser }) {
 
       if (error) throw error;
 
-      alert("Vous avez quitté le groupe");
       loadGroupData();
     } catch (err) {
       console.error("Error leaving group:", err);
@@ -178,9 +183,7 @@ export default function GroupDetail({ currentUser }) {
   if (error) {
     return (
       <div className="max-w-2xl mx-auto mt-8">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          {error}
-        </div>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 ">{error}</div>
         <button
           onClick={() => navigate("/social")}
           className="mt-4 text-primary-600 hover:underline"
@@ -194,7 +197,6 @@ export default function GroupDetail({ currentUser }) {
   if (!group) return null;
 
   const groupType = getGroupType(group);
-  const isPrivate = isPrivateGroup(group);
   const avatarUrl = getMetadata(group, "avatarUrl");
   const location = getMetadata(group, "location");
   const tags = getMetadata(group, "tags", []);
@@ -202,12 +204,12 @@ export default function GroupDetail({ currentUser }) {
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       {/* Header */}
-      <div className=" rounded-lg shadow-sm p-6 mb-6">
+      <div className="   shadow-sm p-6 mb-6">
         <div className="flex items-start gap-6">
           {avatarUrl ? (
-            <img src={avatarUrl} alt={group.name} className="w-24 h-24 rounded-lg object-cover" />
+            <img src={avatarUrl} alt={group.name} className="w-24 h-24   object-cover" />
           ) : (
-            <div className="w-24 h-24 rounded-lg bg-primary-100 flex items-center justify-center text-4xl">
+            <div className="w-24 h-24   bg-primary-100 flex items-center justify-center text-4xl">
               {groupType === "neighborhood" && "🏘️"}
               {groupType === "association" && "🤝"}
               {groupType === "community" && "👥"}
@@ -223,7 +225,7 @@ export default function GroupDetail({ currentUser }) {
             {tags.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-3">
                 {tags.map((tag, idx) => (
-                  <span key={idx} className="text-sm bg-blue-50 text-blue-700 px-3 py-1 rounded">
+                  <span key={idx} className="text-sm bg-blue-50 text-blue-700 px-3 py-1 ">
                     {tag}
                   </span>
                 ))}
@@ -236,7 +238,7 @@ export default function GroupDetail({ currentUser }) {
                   <Link
                     key={g}
                     to={g === "global" ? "/gazette" : `/gazette/${g}`}
-                    className="inline-block text-sm bg-primary-600 text-bauhaus-white px-3 py-1 rounded hover:opacity-90"
+                    className="inline-block text-sm bg-primary-600 text-bauhaus-white px-3 py-1 hover:opacity-90"
                   >
                     {g === "global" ? "Consulter la Gazette" : `Gazette : ${g}`}
                   </Link>
@@ -253,17 +255,6 @@ export default function GroupDetail({ currentUser }) {
             </div>
 
             <p className="text-gray-300 mb-4">{group.description}</p>
-
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-400">
-                {members.length} membre{members.length !== 1 ? "s" : ""}
-              </span>
-              {isPrivate && (
-                <span className="text-sm bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                  🔒 Groupe privé
-                </span>
-              )}
-            </div>
           </div>
 
           {/* Actions */}
@@ -271,7 +262,7 @@ export default function GroupDetail({ currentUser }) {
             {currentUser && !isMember && (
               <button
                 onClick={handleJoinGroup}
-                className="px-4 py-2 bg-primary-600 text-bauhaus-white rounded hover:bg-primary-700"
+                className="px-4 py-2 bg-primary-600 text-bauhaus-white hover:bg-primary-700"
               >
                 Rejoindre
               </button>
@@ -279,7 +270,7 @@ export default function GroupDetail({ currentUser }) {
             {isMember && !isGroupAdmin && (
               <button
                 onClick={handleLeaveGroup}
-                className="px-4 py-2 bg-gray-200 text-gray-200 rounded hover:bg-gray-300"
+                className="px-4 py-2 bg-gray-200 text-gray-200 hover:bg-gray-300"
               >
                 Quitter
               </button>
@@ -287,7 +278,7 @@ export default function GroupDetail({ currentUser }) {
             {isGroupAdmin && (
               <button
                 onClick={() => navigate(`/groups/${id}/edit`)}
-                className="px-4 py-2 bg-primary-600 text-bauhaus-white rounded hover:bg-primary-700"
+                className="px-4 py-2 bg-primary-600 text-bauhaus-white hover:bg-primary-700"
               >
                 Gérer
               </button>
@@ -300,13 +291,13 @@ export default function GroupDetail({ currentUser }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Posts */}
         <div className="lg:col-span-2">
-          <div className=" rounded-lg shadow-sm p-6">
+          <div className="   shadow-sm p-6">
             <h2 className="text-xl font-semibold mb-4">Publications</h2>
 
             {isMember && (
               <button
                 onClick={() => navigate(`/posts/new?groupId=${id}`)}
-                className="w-full mb-4 px-4 py-2 bg-primary-600 text-bauhaus-white rounded hover:bg-primary-700"
+                className="w-full mb-4 px-4 py-2 bg-primary-600 text-bauhaus-white hover:bg-primary-700"
               >
                 + Nouvelle publication
               </button>
@@ -319,7 +310,7 @@ export default function GroupDetail({ currentUser }) {
                 {posts.map((post) => (
                   <div
                     key={post.id}
-                    className="border border-gray-200 rounded p-4 hover:bg-gray-50 cursor-pointer"
+                    className="border border-gray-200 p-4 hover:bg-gray-50 cursor-pointer"
                     onClick={() => navigate(`/posts/${post.id}`)}
                   >
                     <h3 className="font-semibold text-gray-50 mb-2">
@@ -348,13 +339,13 @@ export default function GroupDetail({ currentUser }) {
 
         {/* Membres */}
         <div className="lg:col-span-1">
-          <div className=" rounded-lg shadow-sm p-6">
+          <div className="   shadow-sm p-6">
             <h2 className="text-xl font-semibold mb-4">Membres</h2>
             <div className="space-y-3">
               {members.map((member) => (
                 <div key={member.id} className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
-                    {getUserInitial(member.users)}
+                    {getUserInitials(member.users)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-50 truncate">

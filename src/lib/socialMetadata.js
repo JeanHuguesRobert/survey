@@ -29,8 +29,6 @@ export function createGroupMetadata(groupType, options = {}) {
     location: options.location || null,
     avatarUrl: options.avatarUrl || null,
     tags: options.tags || [],
-    isPrivate: options.isPrivate || false,
-    requireApproval: options.requireApproval || false,
   });
 }
 
@@ -39,20 +37,6 @@ export function createGroupMetadata(groupType, options = {}) {
  */
 export function getGroupType(group) {
   return getMetadata(group, "groupType", GROUP_TYPES.COMMUNITY);
-}
-
-/**
- * Vérifie si un groupe est privé
- */
-export function isPrivateGroup(group) {
-  return getMetadata(group, "isPrivate", false) === true;
-}
-
-/**
- * Vérifie si un groupe nécessite approbation pour rejoindre
- */
-export function requiresApproval(group) {
-  return getMetadata(group, "requireApproval", false) === true;
 }
 
 // ============ POSTS ============

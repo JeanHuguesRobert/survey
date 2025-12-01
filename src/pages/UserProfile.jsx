@@ -89,7 +89,7 @@ export default function UserProfile() {
     // Affiche le formulaire de création de profil si non connecté
     return (
       <div className="min-h-screen bg-bauhaus-black flex items-center justify-center">
-        <div className="max-w-md w-full bg-bauhaus-black border-2 border-bauhaus-yellow rounded-md p-8 shadow-md">
+        <div className="max-w-md w-full bg-bauhaus-black border-2 border-bauhaus-yellow p-8 shadow-md">
           <h1 className="text-2xl font-bold text-bauhaus-yellow mb-4">Créer votre profil</h1>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
@@ -102,7 +102,7 @@ export default function UserProfile() {
                 value={formData.display_name}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-2 border border-bauhaus-yellow rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                className="w-full px-4 py-2 border border-bauhaus-yellow focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 placeholder="Comment souhaitez-vous être appelé ?"
               />
             </div>
@@ -115,7 +115,7 @@ export default function UserProfile() {
                 name="neighborhood"
                 value={formData.neighborhood}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-bauhaus-yellow rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                className="w-full px-4 py-2 border border-bauhaus-yellow focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 placeholder="Ex: Centre-ville, Porette, etc."
               />
             </div>
@@ -128,14 +128,14 @@ export default function UserProfile() {
                 value={formData.interests}
                 onChange={handleChange}
                 rows={4}
-                className="w-full px-4 py-2 border border-bauhaus-yellow rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                className="w-full px-4 py-2 border border-bauhaus-yellow focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 placeholder="Ex: urbanisme, culture, environnement, éducation..."
               />
             </div>
             <button
               type="submit"
               disabled={saving}
-              className="w-full bg-orange-600 text-bauhaus-white py-3 px-6 rounded-md font-semibold hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="w-full bg-orange-600 text-bauhaus-white py-3 px-6 font-semibold hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {saving ? "Enregistrement..." : "Créer le profil"}
             </button>
@@ -148,13 +148,13 @@ export default function UserProfile() {
   return (
     <div className="min-h-screen  py-8">
       <div className="max-w-2xl mx-auto px-4">
-        <div className=" rounded-lg shadow-md p-6">
+        <div className="   shadow-md p-6">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold text-gray-50">Votre profil</h1>
             <div className="flex items-center gap-3">
               <Link
                 to="/user-dashboard"
-                className="bg-blue-600 text-bauhaus-white px-4 py-2 rounded-md hover:bg-blue-700 font-semibold flex items-center gap-2"
+                className="bg-blue-600 text-bauhaus-white px-4 py-2 hover:bg-blue-700 font-semibold flex items-center gap-2"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -169,7 +169,7 @@ export default function UserProfile() {
               {currentUser && getUserRole(currentUser) === ROLE_ADMIN && (
                 <Link
                   to="/admin"
-                  className="px-3 py-1 border rounded text-sm bg-primary-600 text-bauhaus-white"
+                  className="px-3 py-1 border text-sm bg-primary-600 text-bauhaus-white"
                 >
                   Admin
                 </Link>
@@ -213,7 +213,7 @@ export default function UserProfile() {
               {canWrite(currentUser) && enabledProviders.find((p) => p.id === "facebook") && (
                 <Link
                   to="/oauth/consent?provider=facebook"
-                  className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+                  className="px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 text-sm"
                 >
                   {currentUser?.metadata?.facebookId
                     ? "Re-importer depuis Facebook"
@@ -248,7 +248,7 @@ export default function UserProfile() {
         </div>
 
         {!canWrite(currentUser) && (
-          <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-md p-4 text-yellow-800">
+          <div className="mb-6 bg-yellow-50 border border-yellow-200 p-4 text-yellow-800">
             ⚠️ Vous êtes connecté en tant qu'utilisateur anonyme partagé. Vous ne pouvez pas
             modifier ce profil.
           </div>
@@ -262,7 +262,7 @@ export default function UserProfile() {
               type="email"
               value={currentUser.email}
               disabled
-              className="w-full px-4 py-2 border border-gray-700 rounded-md bg-gray-800 text-gray-50 cursor-not-allowed"
+              className="w-full px-4 py-2 border border-gray-700 bg-gray-800 text-gray-50 cursor-not-allowed"
             />
             <p className="mt-1 text-xs text-gray-400">L'email ne peut pas être modifié</p>
           </div>
@@ -278,7 +278,7 @@ export default function UserProfile() {
               value={formData.avatarUrl}
               onChange={(e) => setFormData((prev) => ({ ...prev, avatarUrl: e.target.value }))}
               disabled={!canWrite(currentUser)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="w-full px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               placeholder="https://exemple.com/avatar.jpg"
               pattern="https?://.+"
             />
@@ -319,7 +319,7 @@ export default function UserProfile() {
               onChange={handleChange}
               required
               disabled={!canWrite(currentUser)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="w-full px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               placeholder="Comment souhaitez-vous être appelé ?"
             />
           </div>
@@ -335,7 +335,7 @@ export default function UserProfile() {
               value={formData.neighborhood}
               onChange={handleChange}
               disabled={!canWrite(currentUser)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="w-full px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               placeholder="Ex: Centre-ville, Porette, etc."
             />
           </div>
@@ -351,7 +351,7 @@ export default function UserProfile() {
               onChange={handleChange}
               rows={4}
               disabled={!canWrite(currentUser)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="w-full px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               placeholder="Ex: urbanisme, culture, environnement, éducation..."
             />
             <p className="mt-1 text-xs text-gray-400">
@@ -360,7 +360,7 @@ export default function UserProfile() {
           </div>
 
           {/* RGPD Info */}
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+          <div className="bg-blue-50 border border-blue-200 p-4">
             <h3 className="text-sm font-semibold text-blue-900 mb-2">🔒 Confidentialité</h3>
             <p className="text-xs text-blue-800">
               Vos informations personnelles sont protégées et ne seront jamais vendues. Seul votre
@@ -377,7 +377,7 @@ export default function UserProfile() {
           {/* Message de confirmation/erreur */}
           {message.text && (
             <div
-              className={`rounded-md p-4 ${
+              className={`p-4 ${
                 message.type === "success"
                   ? "bg-green-50 border border-green-200 text-green-800"
                   : "bg-red-50 border border-red-200 text-red-800"
@@ -392,14 +392,14 @@ export default function UserProfile() {
             <button
               type="submit"
               disabled={saving || !canWrite(currentUser)}
-              className="flex-1 bg-orange-600 text-bauhaus-white py-3 px-6 rounded-md font-semibold hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="flex-1 bg-orange-600 text-bauhaus-white py-3 px-6 font-semibold hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {saving ? "Enregistrement..." : "Enregistrer les modifications"}
             </button>
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="px-6 py-3 border border-gray-300 rounded-md text-gray-200 hover:bg-gray-50"
+              className="px-6 py-3 border border-gray-300 text-gray-200 hover:bg-gray-50"
             >
               Annuler
             </button>

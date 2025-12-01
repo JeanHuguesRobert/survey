@@ -90,7 +90,7 @@ export default function WikiCreate() {
           value={title}
           onChange={handleTitleChange}
           placeholder="Titre"
-          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <div>
           {initialSlugParam && (
@@ -109,7 +109,7 @@ export default function WikiCreate() {
             value={slug}
             onChange={handleSlugChange}
             placeholder="Adresse de la page (ex : page-exemple)"
-            className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 ${allowSlugEdit ? "border-gray-300 focus:ring-blue-500" : "border-gray-200 bg-gray-100 cursor-not-allowed"}`}
+            className={`w-full px-4 py-2 border focus:outline-none focus:ring-2 ${allowSlugEdit ? "border-gray-300 focus:ring-blue-500" : "border-gray-200 bg-gray-100 cursor-not-allowed"}`}
             disabled={!allowSlugEdit}
           />
         </div>
@@ -118,16 +118,13 @@ export default function WikiCreate() {
           onChange={(e) => setContent(e.target.value)}
           rows={20}
           placeholder="Contenu de la page..."
-          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
         />
         <div className="flex gap-4">
-          <button onClick={handleSave} className="btn btn-success px-6 py-2 rounded-md">
+          <button onClick={handleSave} className="btn btn-success px-6 py-2 ">
             Enregistrer
           </button>
-          <button
-            onClick={() => navigate("/wiki")}
-            className="btn btn-secondary px-6 py-2 rounded-md"
-          >
+          <button onClick={() => navigate("/wiki")} className="btn btn-secondary px-6 py-2 ">
             Annuler
           </button>
         </div>

@@ -236,7 +236,6 @@ export default function Wiki() {
       marginLeft: 24,
       position: "relative",
       background: "var(--color-surface-secondary)",
-      borderRadius: "var(--radius-md)",
       padding: "16px",
       boxSizing: "border-box",
       border: "1px solid var(--color-border-medium)",
@@ -268,7 +267,6 @@ export default function Wiki() {
     splitterBar: {
       width: 2,
       background: "var(--color-border-medium)",
-      borderRadius: 2,
       height: "100%",
     },
     main: {
@@ -285,7 +283,6 @@ export default function Wiki() {
     },
     themeCard: {
       background: "var(--color-surface-secondary)",
-      borderRadius: "var(--radius-md)",
       padding: "20px",
       boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
       border: "1px solid var(--color-border-medium)",
@@ -313,8 +310,6 @@ export default function Wiki() {
     searchInput: {
       width: "100%",
       padding: "8px 12px",
-      borderRadius: "var(--radius-sm)",
-      border: "1px solid var(--color-border-medium)",
       fontSize: "1em",
       background: "var(--color-bg-app)",
       color: "var(--color-content-primary)",
@@ -323,7 +318,6 @@ export default function Wiki() {
     },
     select: {
       padding: "6px 10px",
-      borderRadius: "var(--radius-sm)",
       border: "1px solid var(--color-border-medium)",
       fontSize: "1em",
       background: "var(--color-bg-app)",
@@ -333,13 +327,11 @@ export default function Wiki() {
     viewToggle: {
       display: "flex",
       background: "var(--color-surface-tertiary)",
-      borderRadius: "var(--radius-md)",
       padding: "2px",
       gap: "2px",
     },
     toolbarButton: {
       padding: "6px 16px",
-      borderRadius: "var(--radius-sm)",
       fontWeight: 500,
       fontSize: "0.95em",
       background: "none",
@@ -367,7 +359,6 @@ export default function Wiki() {
     },
     wikiCard: {
       background: "var(--color-surface-secondary)",
-      borderRadius: "var(--radius-md)",
       padding: "16px",
       boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
       border: "1px solid var(--color-border-medium)",
@@ -448,7 +439,6 @@ export default function Wiki() {
       alignItems: "center",
       gap: "8px",
       padding: "8px 16px",
-      borderRadius: "var(--radius-sm)",
       fontWeight: 600,
       fontSize: "1em",
       background: "var(--color-action-primary)",
@@ -474,7 +464,6 @@ export default function Wiki() {
       wordBreak: "break-word",
       background: "var(--color-bg-app)",
       padding: "8px",
-      borderRadius: "var(--radius-sm)",
     },
     errorText: {
       color: "var(--color-content-secondary)",

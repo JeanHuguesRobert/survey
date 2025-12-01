@@ -1,59 +1,63 @@
+// src/pages/GroupEdit.jsx
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { isDeleted } from "../lib/metadata";
-import PostEditor from "../components/social/PostEditor";
+import { isAdmin } from "../lib/permissions";
+import GroupForm from "../components/social/GroupForm";
 
 /**
- * Page d'édition de post
+ * Page d'édition de groupe
  */
-export default function PostEdit() {
+export default function GroupEdit() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { currentUser, userStatus } = useCurrentUser();
 
-  const [post, setPost] = useState(null);
+  const [group, setGroup] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!id) return;
-    if (userStatus !== "signed_in" || !currentUser) return; // Attendre que currentUser soit chargé
+    if (userStatus !== "signed_in" || !currentUser) return;
 
-    async function loadPost() {
+    async function loadGroup() {
       try {
         setLoading(true);
         setError(null);
 
-        // Charger le post
-        const { data: postData, error: postError } = await supabase
-          .from("posts")
+        // Charger le groupe
+        const { data: groupData, error: groupError } = await supabase
+          .from("groups")
           .select("*")
           .eq("id", id)
           .single();
 
-        if (postError) throw postError;
+        if (groupError) throw groupError;
 
-        if (isDeleted(postData)) {
-          throw new Error("Ce post a été supprimé");
+        if (isDeleted(groupData)) {
+          throw new Error("Ce groupe a été supprimé");
         }
 
-        // Vérifier que l'utilisateur est l'auteur
-        if (postData.author_id !== currentUser.id) {
-          throw new Error("Vous n'êtes pas autorisé à modifier ce post");
+        // Vérifier que l'utilisateur est le créateur ou admin (pour l'instant créateur)
+        // TODO: Ajouter vérification admin plus robuste si nécessaire
+        if (groupData.created_by !== currentUser.id && !isAdmin(currentUser)) {
+          throw new Error("Vous n'êtes pas autorisé à modifier ce groupe");
         }
 
-        setPost(postData);
+        setGroup(groupData);
       } catch (err) {
-        console.error("Error loading post:", err);
+        console.error("Error loading group:", err);
         setError(err.message);
       } finally {
         setLoading(false);
       }
     }
 
-    loadPost();
+    loadGroup();
   }, [id, currentUser, userStatus]);
 
   if (userStatus === "signing_in") {
@@ -67,7 +71,7 @@ export default function PostEdit() {
   if (userStatus === "signed_out" || !currentUser) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 text-center">
-        <p className="text-gray-300 mb-4">Vous devez être connecté pour modifier une publication</p>
+        <p className="text-gray-300 mb-4">Vous devez être connecté pour modifier un groupe</p>
         <button onClick={() => navigate("/social")} className="text-primary-600 hover:underline">
           Retour au Café
         </button>
@@ -94,7 +98,7 @@ export default function PostEdit() {
     );
   }
 
-  if (!post) return null;
+  if (!group) return null;
 
-  return <PostEditor post={post} currentUser={currentUser} />;
+  return <GroupForm group={group} currentUser={currentUser} />;
 }

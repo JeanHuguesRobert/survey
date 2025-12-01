@@ -56,7 +56,7 @@ export default function Audit() {
         <div className="mt-8 text-center">
           <Link
             to="/"
-            className="px-4 py-2 bg-gray-100 text-blue-900 font-semibold rounded-md hover:bg-gray-200"
+            className="px-4 py-2 bg-gray-100 text-blue-900 font-semibold hover:bg-gray-200"
           >
             Retour à la consultation
           </Link>

@@ -138,10 +138,10 @@ export default function GazetteLayout({
                 <select
                   className="gazette-selector"
                   value={selectedWeek || ""}
-                  onChange={(e) => onWeekChange(Number(e.target.value))}
+                  onChange={(e) => onWeekChange(e.target.value)}
                 >
                   {weeks.map((week) => (
-                    <option key={week.timestamp} value={week.timestamp}>
+                    <option key={week.dateString} value={week.dateString}>
                       {week.label}
                     </option>
                   ))}

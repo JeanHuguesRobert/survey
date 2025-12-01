@@ -12,5 +12,4 @@
 }
 .shared-scrollbar::-webkit-scrollbar-thumb {
   background: var(--color-border-default);
-  border-radius: var(--radius-full);
 }

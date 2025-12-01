@@ -11,7 +11,6 @@
       width: 340px;
       max-width: 95vw;
       background: #fff;
-      border-radius: 12px;
       box-shadow: 0 4px 24px #0002;
       font-family: sans-serif;
       z-index: 9999;
@@ -52,7 +51,6 @@
       padding: 0 18px;
       font-size: 1em;
       cursor: pointer;
-      border-radius: 0 0 12px 0;
     }
   `;
   document.head.appendChild(style);

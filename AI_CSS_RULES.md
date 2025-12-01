@@ -34,8 +34,8 @@ raw hex/rgb colors directly.
 
 Reason in terms of **hierarchy** and **relationship**, not luminance.
 
-✅ **Use**: `surface-primary`, `content-secondary`, `border-subtle`  
-❌ **Avoid**: `bg-dark`, `text-light`, `border-gray-300`
+✅ **Use**: `surface-primary`, `content-secondary`, `border-subtle` ❌ **Avoid**: `bg-dark`,
+`text-light`, `border-gray-300`
 
 ### 3. **Mobile-First Approach**
 
@@ -69,8 +69,8 @@ Interactive elements **MUST** be at least 44px in width and height for accessibi
 
 Use logical properties for better internationalization support (when applicable).
 
-✅ **Preferred**: `margin-inline`, `padding-block`, `inset-inline-start`  
-⚠️ **Legacy**: `margin-left`, `padding-top`, `left` (use only when logical properties don't apply)
+✅ **Preferred**: `margin-inline`, `padding-block`, `inset-inline-start` ⚠️ **Legacy**:
+`margin-left`, `padding-top`, `left` (use only when logical properties don't apply)
 
 ### 6. **Modern Viewport Units**
 
@@ -166,7 +166,6 @@ When creating a new reusable component CSS file:
 .my-component {
   background: var(--color-surface-primary);
   padding: var(--space-4);
-  border-radius: var(--radius-md);
 }
 
 .my-component__header {
@@ -299,5 +298,4 @@ Before committing CSS changes, verify:
 
 ---
 
-**Last Updated**: 2025-11-25  
-**Architecture Version**: 1.0.0
+**Last Updated**: 2025-11-25 **Architecture Version**: 1.0.0

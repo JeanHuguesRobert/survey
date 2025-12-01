@@ -148,7 +148,7 @@ export function CollectorPanel({ isOpen, data, onUpdate, onRemove, onClear, onRe
             </div>
           ) : (
             data.map((item) => (
-              <div key={item.id} className="rounded-lg p-3 border border-gray-200 group">
+              <div key={item.id} className="  p-3 border border-gray-200 group">
                 <div className="flex justify-between items-start mb-2">
                   <span
                     className={`px-2 py-0.5 text-xs font-medium rounded-full ${TAG_COLOR_MAP[item.data_type]}`}
@@ -180,14 +180,14 @@ export function CollectorPanel({ isOpen, data, onUpdate, onRemove, onClear, onRe
             <button
               onClick={handleCreateWiki}
               disabled={isCreatingWiki}
-              className="w-full px-4 py-2 text-sm font-semibold text-white bg-green-600 rounded-md shadow-sm hover:bg-green-700 disabled:bg-green-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              className="w-full px-4 py-2 text-sm font-semibold text-white bg-green-600 shadow-sm hover:bg-green-700 disabled:bg-green-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
             >
               {isCreatingWiki ? "📝 Création..." : "📝 Créer une page Wiki"}
             </button>
 
             <button
               onClick={handleSave}
-              className="w-full px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 text-sm font-semibold text-white bg-blue-600 shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               💾 Sauvegarder pour Ophélia
             </button>
@@ -195,13 +195,13 @@ export function CollectorPanel({ isOpen, data, onUpdate, onRemove, onClear, onRe
             <div className="flex space-x-2">
               <button
                 onClick={handleExport}
-                className="w-full px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400"
+                className="w-full px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-200 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400"
               >
                 📤 Exporter JSON
               </button>
               <button
                 onClick={onClear}
-                className="w-full px-4 py-2 text-sm font-semibold text-red-600 bg-red-100 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400"
+                className="w-full px-4 py-2 text-sm font-semibold text-red-600 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400"
               >
                 🗑️ Tout effacer
               </button>
@@ -217,7 +217,7 @@ export function CollectorPanel({ isOpen, data, onUpdate, onRemove, onClear, onRe
           onClick={() => setIsViewJsonModalOpen(false)}
         >
           <div
-            className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 m-4"
+            className="bg-white   shadow-xl w-full max-w-2xl p-6 m-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">
@@ -227,18 +227,18 @@ export function CollectorPanel({ isOpen, data, onUpdate, onRemove, onClear, onRe
                   navigator.clipboard.writeText(JSON.stringify(data, null, 2));
                   alert("✅ JSON copié dans le presse-papiers !");
                 }}
-                className="text-sm px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700"
+                className="text-sm px-3 py-1.5 bg-blue-600 text-white hover:bg-blue-700"
               >
                 📋 Copier
               </button>
             </div>
-            <pre className="p-4 rounded-lg overflow-auto max-h-96 text-sm">
+            <pre className="p-4   overflow-auto max-h-96 text-sm">
               {JSON.stringify(data, null, 2)}
             </pre>
             <div className="mt-4 flex justify-end">
               <button
                 onClick={() => setIsViewJsonModalOpen(false)}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                className="px-4 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300"
               >
                 Fermer
               </button>

@@ -309,8 +309,7 @@ export default function SiteFooter({
       gap: "2px", // minimal
       padding: "4px", // minimal
       background: "var(--color-bg-app)", // changed from var(--color-surface-tertiary)
-      border: "1px solid var(--color-border-medium)", // thinner
-      borderRadius: "var(--radius-sm)",
+      border: "1px solid var(--color-border-medium)",
       margin: "0",
       alignItems: "center", // center horizontally
       justifyContent: "center", // center vertically
@@ -339,8 +338,7 @@ export default function SiteFooter({
     },
     authButton: {
       padding: "2px 8px", // minimal
-      border: "1px solid var(--color-border-strong)", // thinner
-      borderRadius: "var(--radius-sm)",
+      border: "1px solid var(--color-border-strong)",
       fontWeight: 600,
       cursor: "pointer",
       transition: "all var(--duration-fast) ease",
@@ -391,8 +389,7 @@ export default function SiteFooter({
     version: {
       fontSize: "0.50rem", // smaller
       color: "var(--color-content-secondary)",
-      padding: "2px", // minimal
-      borderRadius: "var(--radius-sm)",
+      padding: "2px",
       textAlign: "center",
       margin: "0",
     },

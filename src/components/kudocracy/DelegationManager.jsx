@@ -105,10 +105,10 @@ export default function DelegationManager({ user }) {
 
   return (
     <div className="space-y-6">
-      <div className=" rounded-lg shadow-md p-6">
+      <div className="   shadow-md p-6">
         <h2 className="text-2xl font-bold text-gray-50 mb-4">Vos délégations</h2>
 
-        <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
+        <div className="bg-blue-50 border border-blue-200 p-4 mb-6">
           <p className="text-sm text-blue-800">
             Déléguez votre pouvoir de vote sur des sujets spécifiques à des personnes en qui vous
             avez confiance. Votre vote direct sur une proposition remplace toujours la délégation.
@@ -120,7 +120,7 @@ export default function DelegationManager({ user }) {
             {delegations.map((delegation) => (
               <div
                 key={delegation.id}
-                className="flex justify-between items-center p-4 rounded-md border border-gray-200"
+                className="flex justify-between items-center p-4 border border-gray-200"
               >
                 <div>
                   <p className="font-semibold text-gray-50">{delegation.tag.name}</p>
@@ -130,7 +130,7 @@ export default function DelegationManager({ user }) {
                 </div>
                 <button
                   onClick={() => handleDeleteDelegation(delegation.id)}
-                  className="px-3 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200 font-semibold text-sm"
+                  className="px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 font-semibold text-sm"
                 >
                   Supprimer
                 </button>
@@ -142,7 +142,7 @@ export default function DelegationManager({ user }) {
         )}
       </div>
 
-      <div className=" rounded-lg shadow-md p-6">
+      <div className="   shadow-md p-6">
         <h3 className="text-xl font-bold text-gray-50 mb-4">Créer une nouvelle délégation</h3>
 
         <div className="space-y-4">
@@ -151,7 +151,7 @@ export default function DelegationManager({ user }) {
             <select
               value={selectedTag}
               onChange={(e) => setSelectedTag(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md"
+              className="w-full px-4 py-2 border border-gray-300 "
             >
               <option value="">-- Sélectionnez un tag --</option>
               {availableTags.map((tag) => (
@@ -167,7 +167,7 @@ export default function DelegationManager({ user }) {
             <select
               value={selectedDelegate}
               onChange={(e) => setSelectedDelegate(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md"
+              className="w-full px-4 py-2 border border-gray-300 "
             >
               <option value="">-- Sélectionnez un utilisateur --</option>
               {users.map((u) => (
@@ -181,7 +181,7 @@ export default function DelegationManager({ user }) {
           <button
             onClick={handleCreateDelegation}
             disabled={loading}
-            className="w-full py-3 bg-blue-900 text-bauhaus-white font-bold rounded-md hover:bg-blue-800 disabled:opacity-50"
+            className="w-full py-3 bg-blue-900 text-bauhaus-white font-bold hover:bg-blue-800 disabled:opacity-50"
           >
             {loading ? "Création..." : "Créer la délégation"}
           </button>

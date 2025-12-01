@@ -45,7 +45,7 @@ export function CollectorModal({ isOpen, onClose, onAdd, initialData = null }) {
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 m-4"
+        className="bg-white   shadow-xl w-full max-w-lg p-6 m-4"
         onClick={(e) => e.stopPropagation()}
       >
         <form onSubmit={handleSubmit}>
@@ -61,7 +61,7 @@ export function CollectorModal({ isOpen, onClose, onAdd, initialData = null }) {
               id="dataType"
               value={type}
               onChange={(e) => setType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               {DATA_TYPES.map((t) => (
                 <option key={t} value={t}>
@@ -82,13 +82,13 @@ export function CollectorModal({ isOpen, onClose, onAdd, initialData = null }) {
                 onChange={(e) => setValue(e.target.value)}
                 rows={8}
                 placeholder="Copiez-collez le texte ici..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y"
+                className="w-full px-3 py-2 border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y"
               />
               <button
                 type="button"
                 onClick={handleSummarize}
                 disabled={isSummarizing || !value}
-                className="absolute bottom-2 right-2 flex items-center px-3 py-1.5 text-xs font-semibold text-white bg-purple-600 rounded-md shadow-sm hover:bg-purple-700 disabled:bg-purple-300 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                className="absolute bottom-2 right-2 flex items-center px-3 py-1.5 text-xs font-semibold text-white bg-purple-600 shadow-sm hover:bg-purple-700 disabled:bg-purple-300 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
               >
                 {isSummarizing ? (
                   <span className="animate-pulse">✨ Analyse...</span>
@@ -104,13 +104,13 @@ export function CollectorModal({ isOpen, onClose, onAdd, initialData = null }) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400"
             >
               Annuler
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               disabled={!value.trim()}
             >
               {initialData ? "Modifier" : "Ajouter"}
