@@ -5,17 +5,53 @@ import { linkifyWardWiki } from "../../lib/wikiLinks";
 
 export function LegalMarkdown({ file }) {
   const [content, setContent] = useState("");
+  const [error, setError] = useState(null);
   useEffect(() => {
-    fetch(file)
-      .then((res) => res.text())
-      .then(setContent);
+    let isMounted = true;
+
+    async function loadMarkdown() {
+      if (!file) return;
+      try {
+        const urlWithRaw = appendRawParam(file);
+        const res = await fetch(urlWithRaw, {
+          headers: { Accept: "text/plain, text/markdown" },
+        });
+        if (!res.ok) throw new Error(`Impossible de charger ${file}`);
+        const text = await res.text();
+        if (isMounted) {
+          setContent(text);
+          setError(null);
+        }
+      } catch (err) {
+        console.error("Markdown fetch error:", err);
+        if (isMounted) {
+          setError(err.message || "Erreur de chargement");
+        }
+      }
+    }
+
+    loadMarkdown();
+
+    return () => {
+      isMounted = false;
+    };
   }, [file]);
+
+  if (error) {
+    return <div className="text-red-500">{error}</div>;
+  }
   return (
     // apply site markdown typography (Tailwind Typography / prose) while keeping legacy "markdown-content"
     <div className="markdown-content prose max-w-none">
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{linkifyWardWiki(content)}</ReactMarkdown>
     </div>
   );
+}
+
+function appendRawParam(path) {
+  if (!path) return path;
+  if (path.includes("raw=1")) return path;
+  return path.includes("?") ? `${path}&raw=1` : `${path}?raw=1`;
 }
 
 // Utilisation dans une page ou un footer :

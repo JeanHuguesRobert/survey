@@ -10,6 +10,7 @@ import { GROUP_TYPES, POST_TYPES } from "../lib/socialMetadata";
 import { canWrite } from "../lib/permissions";
 import SiteFooter from "../components/layout/SiteFooter";
 import { MOVEMENT_NAME } from "../constants";
+import { detectGazetteAssignments } from "../lib/gazetteAssignments";
 
 /**
  * Page principale Social - Vue d'ensemble groupes + posts
@@ -29,6 +30,7 @@ export default function Social() {
   const [contextTitle, setContextTitle] = useState(null);
   const [contextGroup, setContextGroup] = useState(null);
   const [groupMembership, setGroupMembership] = useState({ isMember: false, loading: false });
+  const [groupGazettes, setGroupGazettes] = useState([]);
   const searchParamsString = searchParams.toString();
   const isGroupScoped = Boolean(groupIdParam);
   const effectiveGazetteFilter = isGroupScoped ? null : gazetteParam;
@@ -59,6 +61,8 @@ export default function Social() {
           .single();
         if (groupError) throw groupError;
         setContextGroup(group);
+        const gazetteAssignments = await detectGazetteAssignments(group);
+        setGroupGazettes(gazetteAssignments);
 
         if (currentUser?.id) {
           const { data: membershipData, error: membershipError } = await supabase
@@ -76,6 +80,7 @@ export default function Social() {
       }
 
       setContextGroup(null);
+      setGroupGazettes([]);
       setGroupMembership({ loading: false, isMember: false });
 
       if (linkedTypeParam === "post" && linkedIdParam) {
@@ -94,6 +99,7 @@ export default function Social() {
       console.error("Error loading social context:", err);
       if (groupIdParam) {
         setContextGroup(null);
+        setGroupGazettes([]);
         setGroupMembership({ loading: false, isMember: false });
       } else {
         setContextTitle(null);
@@ -513,6 +519,7 @@ export default function Social() {
                 linkedType={linkedTypeParam}
                 linkedId={linkedIdParam}
                 groupId={groupIdParam}
+                relatedGazettes={groupGazettes}
               />
             </div>
           </div>
@@ -531,6 +538,7 @@ export default function Social() {
             linkedType={linkedTypeParam}
             linkedId={linkedIdParam}
             groupId={groupIdParam}
+            relatedGazettes={groupGazettes}
           />
         )}
       </div>

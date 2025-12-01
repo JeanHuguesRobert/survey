@@ -38,5 +38,7 @@
   "tailwindCSS.experimental.classRegex": [
     "className\\s*=\\s*\"([^\"]+)\"",
     "className\\s*=\\s*\\{`([^`]+)`\\}"
-  ]
+  ],
+  "python-envs.defaultEnvManager": "ms-python.python:system",
+  "python-envs.pythonProjects": []
 }

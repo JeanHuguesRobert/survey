@@ -77,6 +77,8 @@ import DataReview from "./pages/admin/DataReview";
 import Entities from "./pages/admin/Entities";
 import Admin from "./pages/Admin";
 import Gazette from "./pages/Gazette";
+import SurveyModeEmploi from "./pages/SurveyModeEmploi";
+import MarkdownViewer from "./pages/MarkdownViewer";
 import NotFound from "./pages/NotFound";
 
 export default function Consultation() {
@@ -1274,6 +1276,8 @@ export function App() {
         <Route path="/legal/terms" element={<LegalPage type="terms" />} />
         <Route path="/legal/privacy" element={<LegalPage type="privacy" />} />
         <Route path="/survey" element={<Survey />} />
+        <Route path="/markdown-viewer" element={<MarkdownViewer />} />
+        <Route path="/survey-mode-emploi" element={<SurveyModeEmploi />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/browser/*" element={<PublicBrowser />} />
         <Route path="/gazette" element={<Gazette />} />

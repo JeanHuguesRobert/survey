@@ -5,6 +5,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { isDeleted, getMetadata } from "../../lib/metadata";
 import { getGroupType } from "../../lib/socialMetadata";
+import { detectGazetteAssignments } from "../../lib/gazetteAssignments";
 import CommentSection from "../common/CommentSection";
 import SiteFooter from "../layout/SiteFooter";
 import { getDisplayName, getUserInitials } from "../../lib/userDisplay";
@@ -33,30 +34,6 @@ export default function GroupDetail({ currentUser }) {
       loadGroupData();
     }
   }, [id, currentUser]);
-
-  async function detectGazetteRoles(groupData) {
-    const assignments = [];
-    const globalEditorName = import.meta.env.VITE_GLOBAL_GAZETTE_EDITOR_GROUP || "La Gazette";
-
-    if (groupData.name === globalEditorName) {
-      assignments.push("global");
-    }
-
-    try {
-      const { data: gposts } = await supabase
-        .from("posts")
-        .select("id")
-        .eq("metadata->>gazette", groupData.name)
-        .limit(1);
-      if (gposts && gposts.length > 0) {
-        assignments.push(groupData.name);
-      }
-    } catch (err) {
-      console.error("Error detecting gazette membership:", err);
-    }
-
-    return Array.from(new Set(assignments));
-  }
 
   async function loadGroupData() {
     try {
@@ -100,7 +77,7 @@ export default function GroupDetail({ currentUser }) {
         setIsGroupAdmin(!!membership);
       }
 
-      const gazetteAssignments = await detectGazetteRoles(groupData);
+      const gazetteAssignments = await detectGazetteAssignments(groupData);
       setGazetteNames(gazetteAssignments);
 
       // Charger les posts du groupe et des gazettes associées

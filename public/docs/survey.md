@@ -1,4 +1,4 @@
-# Kudocray/Survey : la consultation citoyenne ouverte de Corte
+# Kudocray.Survey : la consultation citoyenne ouverte de Corte
 
 Une plateforme participative, libre et transparente pour débattre, proposer et suivre la vie
 démocratique. Tout est publié sous licence MIT et co-construit avec les usagers.
@@ -11,6 +11,9 @@ enrichir la démocratie locale.
 
 L'objectif : faciliter la participation, documenter les débats, créer du lien entre citoyens et
 publier des résultats auditables en temps réel.
+
+➡️ Pour un guide pas à pas, consultez le
+[Mode d'emploi de la plateforme](/docs/survey-mode-emploi.md).
 
 ## Fonctions clés
 
@@ -28,6 +31,36 @@ l'information circule librement et où les initiatives locales prennent racine.
 
 Si vous lisez un article dans la Gazette, cliquez sur "Discuter au Café" pour ouvrir le Café avec
 les publications et discussions liées à cette Gazette ou à l'article en question.
+
+### 📰 Gazette citoyenne
+
+Le journal participatif de Corte publie chaque semaine des dossiers thématiques issus des groupes et
+des contributions citoyennes :
+
+- **Sélection éditorialisée** : articles mis en avant par l'équipe Gazette ou les rédactions de
+  quartier
+- **Contextualisation automatique** : chaque article affiche les discussions associées dans le Café
+  et les liens vers les propositions Kudocracy
+- **Publication ouverte** : toute personne habilitée peut soumettre un article (texte, médias,
+  liens) puis le rattacher à une édition de la Gazette
+- **Relais terrain** : les rédactions de quartier peuvent créer leur propre section et publier en
+  autonomie
+
+Depuis la Gazette, les lecteurs accèdent en un clic aux discussions ciblées, aux groupes impliqués
+et aux actions proposées.
+
+### 📈 Tableau de bord social
+
+Un espace personnel résume désormais votre activité citoyenne :
+
+- **Articles récents et aimés** : vos publications sont enrichies des métadonnées Gazette/groupes
+  pour retrouver rapidement leur contexte
+- **Commentaires suivis** : historique chronologique avec accès direct aux discussions
+- **Statistiques interactives** : courbes mensuelles, abonnés et cumul de likes
+- **Actions rapides** : publication instantanée d'un article, d'un commentaire ou mise à jour de
+  profil
+
+Ce tableau de bord centralise vos interactions et simplifie le suivi de vos contributions.
 
 ### 📚 Wiki collaboratif
 
@@ -147,12 +180,14 @@ participation citoyenne ailleurs. Les contributions sont bienvenues.
 
 ### Rejoignez le mouvement #PERTITELLU
 
-👥 **Groupe Facebook** : https://www.facebook.com/groups/1269635707349220 📧 **Contact** :
-[jeanhuguesrobert@gmail.com](mailto:jeanhuguesrobert@gmail.com) 🌐 **Plateforme** : https://lepp.fr
+👥 **Groupe Facebook** :
+[facebook.com/groups/1269635707349220](https://www.facebook.com/groups/1269635707349220) 📧
+**Contact** : [jeanhuguesrobert@gmail.com](mailto:jeanhuguesrobert@gmail.com) 🌐 **Plateforme** :
+[lepp.fr](https://lepp.fr)
 
 ---
 
 **Ensemble, construisons une démocratie locale plus participative, plus transparente, plus proche
 des citoyens.**
 
-_#PERTITELLU | CORTI CAPITALE_
+### #PERTITELLU | CORTI CAPITALE

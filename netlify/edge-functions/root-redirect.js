@@ -1,4 +1,15 @@
+// netlify/edge-functions/root-redirect.js
+
 export default async (request, context) => {
+  const url = new URL(request.url);
+  const markdownTarget = resolveMarkdownTarget(request, url);
+  if (markdownTarget) {
+    const viewerUrl = new URL(request.url);
+    viewerUrl.pathname = "/markdown-viewer";
+    viewerUrl.search = new URLSearchParams({ file: markdownTarget }).toString();
+    return Response.redirect(viewerUrl.toString(), 302);
+  }
+
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
   const CACHE_TTL = Number(Deno.env.get("SITE_CONFIG_CACHE_TTL") || 5); // seconds
@@ -40,7 +51,7 @@ export default async (request, context) => {
   if (!cfg || !cfg.redirect_enabled || !cfg.redirect_url) return context.next();
 
   try {
-    const reqUrl = new URL(request.url);
+    const reqUrl = url;
     const target = new URL(cfg.redirect_url);
     // bypass if same host
     if (reqUrl.host === target.host) return context.next();
@@ -53,3 +64,12 @@ export default async (request, context) => {
     return context.next();
   }
 };
+
+function resolveMarkdownTarget(request, url) {
+  const accept = request.headers.get("accept") || "";
+  if (!accept.includes("text/html")) return null;
+  if (!url.pathname.startsWith("/docs/")) return null;
+  if (url.searchParams.get("raw") === "1") return null;
+  if (!url.pathname.endsWith(".md")) return null;
+  return `${url.pathname}${url.search}`;
+}

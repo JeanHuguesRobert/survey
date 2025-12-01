@@ -15,6 +15,7 @@ export default function PostList({
   tag = null,
   gazette = null,
   currentUserId = null,
+  relatedGazettes = [],
 }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,46 +23,82 @@ export default function PostList({
 
   useEffect(() => {
     loadPosts();
-  }, [groupId, linkedType, linkedId, postType, tag, gazette]);
+  }, [
+    groupId,
+    linkedType,
+    linkedId,
+    postType,
+    tag,
+    gazette,
+    JSON.stringify(relatedGazettes || []),
+  ]);
 
   async function loadPosts() {
     try {
       setLoading(true);
       setError(null);
 
-      let query = supabase.from("posts").select("*, users(id, display_name, metadata)");
+      const gazetteList = Array.isArray(relatedGazettes)
+        ? relatedGazettes.filter((name) => Boolean(name))
+        : [];
 
-      // Filtres
-      if (groupId) {
-        query = query.eq("metadata->>groupId", groupId);
-      }
-      if (linkedType) {
-        query = query.eq("metadata->>linkedType", linkedType);
-      }
-      if (linkedId) {
-        query = query.eq("metadata->>linkedId", linkedId);
-      }
-      if (postType) {
-        query = query.eq("metadata->>postType", postType);
-      }
-      if (tag) {
-        // Filter posts whose metadata.tags array contains the tag
-        // Use Supabase 'contains' on the JSON column
-        query = query.contains("metadata", { tags: [tag] });
-      }
-      if (gazette) {
-        query = query.eq("metadata->>gazette", gazette);
-      }
+      const buildBaseQuery = () => {
+        let query = supabase.from("posts").select("*, users(id, display_name, metadata)");
 
-      // Tri: épinglés en premier, puis par date
-      query = query.order("created_at", { ascending: false });
+        if (linkedType) {
+          query = query.eq("metadata->>linkedType", linkedType);
+        }
+        if (linkedId) {
+          query = query.eq("metadata->>linkedId", linkedId);
+        }
+        if (postType) {
+          query = query.eq("metadata->>postType", postType);
+        }
+        if (tag) {
+          query = query.contains("metadata", { tags: [tag] });
+        }
 
-      const { data, error: fetchError } = await query;
+        return query.order("created_at", { ascending: false });
+      };
 
-      if (fetchError) throw fetchError;
+      let fetchedPosts = [];
+
+      const shouldMergeGazettePosts = Boolean(groupId && gazetteList.length > 0 && !gazette);
+
+      if (shouldMergeGazettePosts) {
+        const queries = [buildBaseQuery().eq("metadata->>groupId", groupId)];
+
+        gazetteList.forEach((name) => {
+          queries.push(buildBaseQuery().eq("metadata->>gazette", name));
+        });
+
+        const results = await Promise.all(queries);
+
+        results.forEach((result) => {
+          if (result.error) {
+            throw result.error;
+          }
+          fetchedPosts.push(...(result.data || []));
+        });
+      } else {
+        let query = buildBaseQuery();
+
+        if (groupId) {
+          query = query.eq("metadata->>groupId", groupId);
+        }
+        if (gazette) {
+          query = query.eq("metadata->>gazette", gazette);
+        } else if (!groupId && gazetteList.length > 0) {
+          query = query.in("metadata->>gazette", gazetteList);
+        }
+
+        const { data, error: fetchError } = await query;
+        if (fetchError) throw fetchError;
+        fetchedPosts = data || [];
+      }
 
       // Filtre soft delete et enrichit user metadata
-      const activePosts = (data || [])
+      const activePosts = (fetchedPosts || [])
         .filter((p) => !isDeleted(p))
         .map((post) => ({
           ...post,

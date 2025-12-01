@@ -9,7 +9,7 @@ export default function Audit() {
   const [auditContent, setAuditContent] = useState("");
 
   useEffect(() => {
-    fetch("/docs/audit-ethique.md")
+    fetch("/docs/audit-ethique.md?raw=1")
       .then((res) => res.text())
       .then((raw) => {
         const replacements = {

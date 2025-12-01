@@ -11,7 +11,7 @@ export default function AuditContent() {
 
   useEffect(() => {
     // Charger le fichier Markdown
-    fetch("/docs/audit-ethique.md")
+    fetch("/docs/audit-ethique.md?raw=1")
       .then((response) => {
         if (!response.ok) {
           throw new Error(`Erreur lors du chargement du rapport: ${response.status}`);

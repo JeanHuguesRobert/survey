@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
+import { getMetadata } from "../lib/metadata";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import SiteFooter from "../components/layout/SiteFooter";
 
@@ -100,6 +101,21 @@ export default function SocialDashboard() {
         });
       }
 
+      // Helper to enrich post data for consistent rendering
+      const formatPost = (post) => {
+        const title = getMetadata(post, "title", post.title || "Publication sans titre");
+        const summary = getMetadata(post, "summary", post.content || "");
+        const gazette = getMetadata(post, "gazette");
+        const groupName = getMetadata(post, "groupName");
+        return {
+          ...post,
+          displayTitle: title,
+          summary,
+          gazette,
+          groupName,
+        };
+      };
+
       // Most liked posts
       const likesByPost = {};
       postLikes?.forEach((like) => {
@@ -108,7 +124,7 @@ export default function SocialDashboard() {
 
       const mostLikedPosts = (userPosts || [])
         .map((post) => ({
-          ...post,
+          ...formatPost(post),
           likes: likesByPost[post.id] || 0,
         }))
         .sort((a, b) => b.likes - a.likes)
@@ -122,6 +138,11 @@ export default function SocialDashboard() {
 
       if (subscribersError) console.error("Error fetching subscribers:", subscribersError);
 
+      const decoratedPosts = (userPosts || []).map((post) => ({
+        ...formatPost(post),
+        likes: likesByPost[post.id] || 0,
+      }));
+
       setStats({
         totalPosts,
         totalComments,
@@ -132,7 +153,7 @@ export default function SocialDashboard() {
         subscribersCount: subscribersCount || 0,
       });
 
-      setRecentPosts((userPosts || []).slice(0, 5));
+      setRecentPosts(decoratedPosts.slice(0, 5));
       setRecentComments((userComments || []).slice(0, 10));
     } catch (error) {
       console.error("Error loading social stats:", error);
@@ -253,7 +274,7 @@ export default function SocialDashboard() {
                         to={`/posts/${post.id}`}
                         className="font-bold text-bauhaus-blue hover:text-bauhaus-white"
                       >
-                        {post.title}
+                        {post.displayTitle}
                       </Link>
                       <p className="text-sm text-gray-400">
                         {new Date(post.created_at).toLocaleDateString("fr-FR")}
@@ -286,9 +307,14 @@ export default function SocialDashboard() {
                       to={`/posts/${post.id}`}
                       className="font-bold text-bauhaus-blue hover:text-bauhaus-white"
                     >
-                      {post.title}
+                      {post.displayTitle}
                     </Link>
-                    <p className="text-sm text-gray-400 mt-2 line-clamp-3">{post.content}</p>
+                    {(post.gazette || post.groupName) && (
+                      <p className="text-xs uppercase tracking-wide text-gray-500 mt-1">
+                        {post.gazette ? `Gazette ${post.gazette}` : post.groupName}
+                      </p>
+                    )}
+                    <p className="text-sm text-gray-400 mt-2 line-clamp-3">{post.summary}</p>
                     <div className="flex justify-between items-center mt-3 text-xs text-gray-400">
                       <span>{new Date(post.created_at).toLocaleDateString("fr-FR")}</span>
                       <span>{post.likes || 0} ❤️</span>
