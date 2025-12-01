@@ -9,7 +9,7 @@ import CommentSection from "../common/CommentSection";
 import SiteFooter from "../layout/SiteFooter";
 import { getDisplayName, getUserInitials } from "../../lib/userDisplay";
 import { enrichUserMetadata } from "../../lib/userTransform";
-import { isAdmin, isAnonymous } from "../../lib/permissions";
+import { isAdmin, isAnonymous, canWrite } from "../../lib/permissions";
 
 /**
  * Page détail d'un groupe avec membres et posts
@@ -25,6 +25,7 @@ export default function GroupDetail({ currentUser }) {
   const [error, setError] = useState(null);
   const [isMember, setIsMember] = useState(false);
   const [isGroupAdmin, setIsGroupAdmin] = useState(false);
+  const [membershipLoading, setMembershipLoading] = useState(false);
   const [gazetteNames, setGazetteNames] = useState([]);
 
   useEffect(() => {
@@ -32,6 +33,30 @@ export default function GroupDetail({ currentUser }) {
       loadGroupData();
     }
   }, [id, currentUser]);
+
+  async function detectGazetteRoles(groupData) {
+    const assignments = [];
+    const globalEditorName = import.meta.env.VITE_GLOBAL_GAZETTE_EDITOR_GROUP || "La Gazette";
+
+    if (groupData.name === globalEditorName) {
+      assignments.push("global");
+    }
+
+    try {
+      const { data: gposts } = await supabase
+        .from("posts")
+        .select("id")
+        .eq("metadata->>gazette", groupData.name)
+        .limit(1);
+      if (gposts && gposts.length > 0) {
+        assignments.push(groupData.name);
+      }
+    } catch (err) {
+      console.error("Error detecting gazette membership:", err);
+    }
+
+    return Array.from(new Set(assignments));
+  }
 
   async function loadGroupData() {
     try {
@@ -75,50 +100,58 @@ export default function GroupDetail({ currentUser }) {
         setIsGroupAdmin(!!membership);
       }
 
-      // Charger les posts du groupe
-      const { data: postsData, error: postsError } = await supabase
-        .from("posts")
-        .select("*, users(id, display_name, metadata)")
-        .eq("metadata->>groupId", id)
-        .order("created_at", { ascending: false })
-        .limit(10);
+      const gazetteAssignments = await detectGazetteRoles(groupData);
+      setGazetteNames(gazetteAssignments);
 
-      if (postsError) throw postsError;
+      // Charger les posts du groupe et des gazettes associées
+      const postQueries = [
+        supabase
+          .from("posts")
+          .select("*, users(id, display_name, metadata)")
+          .eq("metadata->>groupId", id)
+          .order("created_at", { ascending: false })
+          .limit(20),
+      ];
 
-      // Enrich user metadata and filter deleted posts
-      const activePosts = (postsData || [])
+      gazetteAssignments.forEach((gazetteName) => {
+        postQueries.push(
+          supabase
+            .from("posts")
+            .select("*, users(id, display_name, metadata)")
+            .eq("metadata->>gazette", gazetteName)
+            .order("created_at", { ascending: false })
+            .limit(20)
+        );
+      });
+
+      const queryResults = await Promise.all(postQueries);
+
+      const mergedPosts = [];
+      queryResults.forEach((result) => {
+        if (result.error) throw result.error;
+        (result.data || []).forEach((post) => {
+          if (!post) return;
+          mergedPosts.push(post);
+        });
+      });
+
+      const uniquePostsMap = new Map();
+      mergedPosts.forEach((post) => {
+        if (!uniquePostsMap.has(post.id)) {
+          uniquePostsMap.set(post.id, post);
+        }
+      });
+
+      const combinedPosts = Array.from(uniquePostsMap.values())
         .filter((p) => !isDeleted(p))
         .map((post) => ({
           ...post,
           users: enrichUserMetadata(post.users),
-        }));
-      setPosts(activePosts);
+        }))
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 20);
 
-      // Detect if this group acts as a Gazette editor
-      try {
-        const foundGazettes = [];
-        const globalEditorName = import.meta.env.VITE_GLOBAL_GAZETTE_EDITOR_GROUP || "La Gazette";
-
-        if (groupData.name === globalEditorName) {
-          foundGazettes.push("global");
-        }
-
-        // If there are posts with metadata.gazette equal to the group name,
-        // then this group is the editor for that named gazette.
-        const { data: gposts } = await supabase
-          .from("posts")
-          .select("id")
-          .eq("metadata->>gazette", groupData.name)
-          .limit(1);
-
-        if (gposts && gposts.length > 0) {
-          foundGazettes.push(groupData.name);
-        }
-
-        setGazetteNames(foundGazettes);
-      } catch (err) {
-        console.error("Error detecting gazette membership:", err);
-      }
+      setPosts(combinedPosts);
     } catch (err) {
       console.error("Error loading group:", err);
       setError(err.message);
@@ -136,8 +169,13 @@ export default function GroupDetail({ currentUser }) {
       }
       return;
     }
+    if (!canWrite(currentUser)) {
+      alert("Votre compte ne peut pas publier pour le moment");
+      return;
+    }
 
     try {
+      setMembershipLoading(true);
       const { error } = await supabase.from("group_members").insert({
         group_id: id,
         user_id: currentUser.id,
@@ -150,13 +188,16 @@ export default function GroupDetail({ currentUser }) {
     } catch (err) {
       console.error("Error joining group:", err);
       alert("Erreur lors de l'adhésion : " + err.message);
+    } finally {
+      setMembershipLoading(false);
     }
   }
 
   async function handleLeaveGroup() {
-    if (!confirm("Êtes-vous sûr de vouloir quitter ce groupe ?")) return;
+    if (!currentUser) return;
 
     try {
+      setMembershipLoading(true);
       const { error } = await supabase
         .from("group_members")
         .delete()
@@ -169,7 +210,13 @@ export default function GroupDetail({ currentUser }) {
     } catch (err) {
       console.error("Error leaving group:", err);
       alert("Erreur : " + err.message);
+    } finally {
+      setMembershipLoading(false);
     }
+  }
+
+  function handleWritePost() {
+    navigate(`/posts/new?groupId=${id}`);
   }
 
   if (loading) {
@@ -201,88 +248,120 @@ export default function GroupDetail({ currentUser }) {
   const location = getMetadata(group, "location");
   const tags = getMetadata(group, "tags", []);
 
+  const totalMembers = members.length;
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       {/* Header */}
-      <div className="   shadow-sm p-6 mb-6">
-        <div className="flex items-start gap-6">
-          {avatarUrl ? (
-            <img src={avatarUrl} alt={group.name} className="w-24 h-24   object-cover" />
-          ) : (
-            <div className="w-24 h-24   bg-primary-100 flex items-center justify-center text-4xl">
-              {groupType === "neighborhood" && "🏘️"}
-              {groupType === "association" && "🤝"}
-              {groupType === "community" && "👥"}
-              {groupType === "forum" && "💬"}
-            </div>
-          )}
+      <div className="theme-card p-6 mb-6">
+        <div className="flex flex-col gap-6 md:flex-row md:items-start">
+          <div className="flex gap-4 flex-1">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={group.name} className="w-24 h-24 rounded-lg object-cover" />
+            ) : (
+              <div className="w-24 h-24 rounded-lg bg-primary-100 flex items-center justify-center text-4xl">
+                {groupType === "neighborhood" && "🏘️"}
+                {groupType === "association" && "🤝"}
+                {groupType === "community" && "👥"}
+                {groupType === "forum" && "💬"}
+              </div>
+            )}
 
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold text-gray-50 mb-2">{group.name}</h1>
+            <div className="flex-1">
+              <p className="text-xs uppercase tracking-widest text-primary-300 mb-2">Groupe</p>
+              <h1 className="text-3xl font-bold text-gray-50 mb-2">{group.name}</h1>
 
-            {location && <p className="text-gray-300 mb-2">📍 {location}</p>}
-
-            {tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-3">
-                {tags.map((tag, idx) => (
-                  <span key={idx} className="text-sm bg-blue-50 text-blue-700 px-3 py-1 ">
-                    {tag}
+              <div className="flex flex-wrap items-center gap-3 text-sm text-gray-400 mb-3">
+                <span className="text-gray-200 font-semibold">
+                  {totalMembers} membre{totalMembers !== 1 ? "s" : ""}
+                </span>
+                {location && (
+                  <span className="flex items-center gap-1">
+                    📍 <span>{location}</span>
                   </span>
-                ))}
+                )}
+                {groupType && (
+                  <span className="px-2 py-1 text-xs rounded bg-gray-800 uppercase">
+                    {groupType}
+                  </span>
+                )}
               </div>
-            )}
 
-            {gazetteNames.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-3">
-                {gazetteNames.map((g) => (
-                  <Link
-                    key={g}
-                    to={g === "global" ? "/gazette" : `/gazette/${g}`}
-                    className="inline-block text-sm bg-primary-600 text-bauhaus-white px-3 py-1 hover:opacity-90"
-                  >
-                    {g === "global" ? "Consulter la Gazette" : `Gazette : ${g}`}
-                  </Link>
-                ))}
-              </div>
-            )}
-            <div className="mb-3">
+              {tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {tags.map((tag, idx) => (
+                    <span key={idx} className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {gazetteNames.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {gazetteNames.map((g) => (
+                    <Link
+                      key={g}
+                      to={g === "global" ? "/gazette" : `/gazette/${g}`}
+                      className="inline-block text-xs bg-primary-600 text-bauhaus-white px-3 py-1 rounded hover:opacity-90"
+                    >
+                      {g === "global" ? "Consulter la Gazette" : `Gazette : ${g}`}
+                    </Link>
+                  ))}
+                </div>
+              )}
+
+              <p className="text-gray-300 mb-4 whitespace-pre-line">{group.description}</p>
+
               <Link
                 to={`/social?tab=posts&groupId=${id}`}
-                className="text-sm underline hover:no-underline"
+                className="text-sm text-primary-300 hover:text-primary-200"
               >
                 ☕ Discuter ce groupe au Café
               </Link>
             </div>
-
-            <p className="text-gray-300 mb-4">{group.description}</p>
           </div>
 
           {/* Actions */}
-          <div className="flex flex-col gap-2">
-            {currentUser && !isMember && (
+          <div className="flex flex-col gap-2 min-w-[220px]">
+            {!isMember ? (
               <button
                 onClick={handleJoinGroup}
-                className="px-4 py-2 bg-primary-600 text-bauhaus-white hover:bg-primary-700"
+                disabled={membershipLoading}
+                className="btn btn-primary text-sm disabled:opacity-60"
               >
-                Rejoindre
+                Rejoindre le groupe
+              </button>
+            ) : (
+              !isGroupAdmin && (
+                <button
+                  onClick={handleLeaveGroup}
+                  disabled={membershipLoading}
+                  className="btn btn-ghost text-sm border disabled:opacity-60"
+                >
+                  Quitter le groupe
+                </button>
+              )
+            )}
+
+            {isMember && currentUser && canWrite(currentUser) && (
+              <button onClick={handleWritePost} className="btn btn-success text-sm">
+                ✍️ Écrire dans ce groupe
               </button>
             )}
-            {isMember && !isGroupAdmin && (
-              <button
-                onClick={handleLeaveGroup}
-                className="px-4 py-2 bg-gray-200 text-gray-200 hover:bg-gray-300"
-              >
-                Quitter
-              </button>
-            )}
+
             {isGroupAdmin && (
               <button
                 onClick={() => navigate(`/groups/${id}/edit`)}
-                className="px-4 py-2 bg-primary-600 text-bauhaus-white hover:bg-primary-700"
+                className="btn btn-secondary text-sm"
               >
-                Gérer
+                Gérer le groupe
               </button>
             )}
+
+            <button onClick={() => navigate("/social")} className="btn btn-ghost text-sm border">
+              ← Retour au Café
+            </button>
           </div>
         </div>
       </div>
@@ -291,17 +370,8 @@ export default function GroupDetail({ currentUser }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Posts */}
         <div className="lg:col-span-2">
-          <div className="   shadow-sm p-6">
+          <div className="theme-card p-6">
             <h2 className="text-xl font-semibold mb-4">Publications</h2>
-
-            {isMember && (
-              <button
-                onClick={() => navigate(`/posts/new?groupId=${id}`)}
-                className="w-full mb-4 px-4 py-2 bg-primary-600 text-bauhaus-white hover:bg-primary-700"
-              >
-                + Nouvelle publication
-              </button>
-            )}
 
             {posts.length === 0 ? (
               <p className="text-gray-400 text-center py-8">Aucune publication pour l'instant</p>
@@ -339,7 +409,7 @@ export default function GroupDetail({ currentUser }) {
 
         {/* Membres */}
         <div className="lg:col-span-1">
-          <div className="   shadow-sm p-6">
+          <div className="theme-card p-6">
             <h2 className="text-xl font-semibold mb-4">Membres</h2>
             <div className="space-y-3">
               {members.map((member) => (

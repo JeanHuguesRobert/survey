@@ -15,6 +15,7 @@ export const GROUP_TYPES = {
   ASSOCIATION: "association", // Association
   COMMUNITY: "community", // Communauté générale
   FORUM: "forum", // Forum de discussion
+  GAZETTE: "gazette", // Gazette (groupe d'éditeurs)
 };
 
 /**

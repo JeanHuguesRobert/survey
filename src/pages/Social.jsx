@@ -1,13 +1,13 @@
 // src/pages/Social.jsx
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import GroupList from "../components/social/GroupList";
 import PostList from "../components/social/PostList";
 import { supabase } from "../lib/supabase";
 import { GROUP_TYPES, POST_TYPES } from "../lib/socialMetadata";
-import { canWrite, getUserRole, ROLE_ADMIN } from "../lib/permissions";
+import { canWrite } from "../lib/permissions";
 import SiteFooter from "../components/layout/SiteFooter";
 import { MOVEMENT_NAME } from "../constants";
 
@@ -28,43 +28,90 @@ export default function Social() {
   const groupIdParam = searchParams.get("groupId");
   const [contextTitle, setContextTitle] = useState(null);
   const [contextGroup, setContextGroup] = useState(null);
+  const [groupMembership, setGroupMembership] = useState({ isMember: false, loading: false });
+  const searchParamsString = searchParams.toString();
+  const isGroupScoped = Boolean(groupIdParam);
+  const effectiveGazetteFilter = isGroupScoped ? null : gazetteParam;
 
-  useEffect(() => {
-    let mounted = true;
-    async function loadContext() {
-      try {
-        if (linkedTypeParam === "post" && linkedIdParam) {
-          const { data } = await supabase
-            .from("posts")
-            .select("id,title,metadata")
-            .eq("id", linkedIdParam)
-            .single();
-          if (mounted && data) {
-            setContextTitle(data.title || `Article ${data.id}`);
-          }
-        } else if (gazetteParam) {
-          setContextTitle(`Gazette ${gazetteParam}`);
-        } else if (groupIdParam) {
-          // Fetch group name
-          const { data: group } = await supabase
-            .from("groups")
-            .select("id,name")
-            .eq("id", groupIdParam)
-            .single();
-          setContextGroup(group);
+  function getGazetteSummary(name) {
+    if (!name) return null;
+    if (name === "global") {
+      return {
+        title: "La Gazette",
+        description: "Les meilleures contributions sélectionnées par l'équipe du mouvement.",
+      };
+    }
+    return {
+      title: `Gazette : ${name}`,
+      description: "Actualités et billets rédigés par la communauté.",
+    };
+  }
+
+  const refreshContext = useCallback(async () => {
+    try {
+      if (groupIdParam) {
+        setContextTitle(null);
+        setGroupMembership((prev) => ({ ...prev, loading: true }));
+        const { data: group, error: groupError } = await supabase
+          .from("groups")
+          .select("id,name,description,metadata")
+          .eq("id", groupIdParam)
+          .single();
+        if (groupError) throw groupError;
+        setContextGroup(group);
+
+        if (currentUser?.id) {
+          const { data: membershipData, error: membershipError } = await supabase
+            .from("group_members")
+            .select("user_id")
+            .eq("group_id", groupIdParam)
+            .eq("user_id", currentUser.id)
+            .limit(1);
+          if (membershipError) throw membershipError;
+          setGroupMembership({ loading: false, isMember: (membershipData || []).length > 0 });
         } else {
-          setContextTitle(null);
+          setGroupMembership({ loading: false, isMember: false });
         }
-      } catch (err) {
-        console.error("Error loading social context:", err);
+        return;
+      }
+
+      setContextGroup(null);
+      setGroupMembership({ loading: false, isMember: false });
+
+      if (linkedTypeParam === "post" && linkedIdParam) {
+        const { data } = await supabase
+          .from("posts")
+          .select("id,title,metadata")
+          .eq("id", linkedIdParam)
+          .single();
+        setContextTitle(data ? data.title || `Article ${data.id}` : null);
+      } else if (gazetteParam) {
+        setContextTitle(`Gazette ${gazetteParam}`);
+      } else {
+        setContextTitle(null);
+      }
+    } catch (err) {
+      console.error("Error loading social context:", err);
+      if (groupIdParam) {
+        setContextGroup(null);
+        setGroupMembership({ loading: false, isMember: false });
+      } else {
         setContextTitle(null);
       }
     }
-    loadContext();
-    return () => {
-      mounted = false;
-    };
-  }, [linkedTypeParam, linkedIdParam, gazetteParam, groupIdParam]);
+  }, [groupIdParam, currentUser?.id, linkedTypeParam, linkedIdParam, gazetteParam]);
+
+  useEffect(() => {
+    refreshContext();
+  }, [refreshContext]);
+
+  useEffect(() => {
+    if (isGroupScoped && gazetteParam) {
+      const params = new URLSearchParams(searchParamsString);
+      params.delete("gazette");
+      setSearchParams(params);
+    }
+  }, [isGroupScoped, gazetteParam, searchParamsString, setSearchParams]);
 
   useEffect(() => {
     async function loadGazettes() {
@@ -81,9 +128,9 @@ export default function Social() {
         if (!names.includes("global")) names.unshift("global");
         setGazettes(names);
         // sensible default: if no gazette param and 'global' exists, select it by default
-        if (!gazetteParam && names.includes("global")) {
+        if (!isGroupScoped && !gazetteParam && names.includes("global")) {
           setSelectedGazette("global");
-          const params = new URLSearchParams(searchParams);
+          const params = new URLSearchParams(searchParamsString);
           params.set("gazette", "global");
           setSearchParams(params);
         }
@@ -92,11 +139,15 @@ export default function Social() {
       }
     }
     loadGazettes();
-  }, []);
+  }, [gazetteParam, isGroupScoped, searchParamsString, setSearchParams]);
 
   useEffect(() => {
-    setSelectedGazette(gazetteParam || "");
-  }, [gazetteParam]);
+    if (isGroupScoped) {
+      setSelectedGazette("");
+    } else {
+      setSelectedGazette(gazetteParam || "");
+    }
+  }, [gazetteParam, isGroupScoped]);
 
   // Keep activeTab in sync with URL query param `tab`
   useEffect(() => {
@@ -116,6 +167,69 @@ export default function Social() {
     setSearchParams(params);
     // reset filters when switching tabs
     setFilterType(null);
+  }
+
+  async function handleJoinGroup() {
+    if (!groupIdParam) return;
+    if (!currentUser) {
+      alert("Vous devez être connecté pour rejoindre un groupe");
+      return;
+    }
+    if (!canWrite(currentUser)) {
+      alert("Votre compte ne peut pas publier pour le moment");
+      return;
+    }
+    try {
+      const { error } = await supabase.from("group_members").insert({
+        group_id: groupIdParam,
+        user_id: currentUser.id,
+        metadata: { schemaVersion: 1 },
+      });
+      if (error) throw error;
+      refreshContext();
+    } catch (err) {
+      console.error("Error joining group:", err);
+      alert("Erreur lors de l'adhésion : " + err.message);
+    }
+  }
+
+  async function handleLeaveGroup() {
+    if (!groupIdParam || !currentUser) return;
+    try {
+      const { error } = await supabase
+        .from("group_members")
+        .delete()
+        .eq("group_id", groupIdParam)
+        .eq("user_id", currentUser.id);
+      if (error) throw error;
+      refreshContext();
+    } catch (err) {
+      console.error("Error leaving group:", err);
+      alert("Erreur lors de la sortie : " + err.message);
+    }
+  }
+
+  function handleWritePost() {
+    if (!groupIdParam) return;
+    navigate(`/posts/new?groupId=${groupIdParam}`);
+  }
+
+  const isGroupContextActive = Boolean(contextGroup && isGroupScoped);
+  const isGazetteContextActive = Boolean(!isGroupContextActive && gazetteParam);
+  const gazetteSummary = isGazetteContextActive ? getGazetteSummary(gazetteParam) : null;
+
+  function handleWriteGazetteArticle() {
+    if (!gazetteParam) return;
+    if (!currentUser) {
+      alert("Vous devez être connecté pour publier");
+      return;
+    }
+    if (!canWrite(currentUser)) {
+      alert("Votre compte ne peut pas publier pour le moment");
+      return;
+    }
+    const target = `/posts/new?gazette=${encodeURIComponent(gazetteParam)}`;
+    navigate(target);
   }
 
   return (
@@ -140,44 +254,46 @@ export default function Social() {
         </div>
       )}
 
-      {/* Gazette quick link (always visible) */}
-      <div className="mb-6">
-        <Link
-          to={
-            gazetteParam
-              ? gazetteParam === "global"
-                ? "/gazette"
-                : `/gazette/${gazetteParam}`
-              : "/gazette"
-          }
-          className="inline-block btn btn-ghost text-sm"
-        >
-          📰 La Gazette
-        </Link>
-        <select
-          value={selectedGazette}
-          onChange={(e) => {
-            const value = e.target.value;
-            setSelectedGazette(value);
-            const params = new URLSearchParams(searchParams);
-            if (!value) {
-              params.delete("gazette");
-            } else {
-              params.set("gazette", value);
+      {/* Gazette quick link (hidden when scoped to a group) */}
+      {!isGroupScoped && (
+        <div className="mb-6">
+          <Link
+            to={
+              gazetteParam
+                ? gazetteParam === "global"
+                  ? "/gazette"
+                  : `/gazette/${gazetteParam}`
+                : "/gazette"
             }
-            setSearchParams(params);
-            if (value) setTab("posts");
-          }}
-          className="ml-3 inline-block border px-2 py-1"
-        >
-          <option value="">Toutes</option>
-          {gazettes.map((g) => (
-            <option key={g} value={g}>
-              {g === "global" ? "LA GAZETTE (global)" : g}
-            </option>
-          ))}
-        </select>
-      </div>
+            className="inline-block btn btn-ghost text-sm"
+          >
+            📰 La Gazette
+          </Link>
+          <select
+            value={selectedGazette}
+            onChange={(e) => {
+              const value = e.target.value;
+              setSelectedGazette(value);
+              const params = new URLSearchParams(searchParams);
+              if (!value) {
+                params.delete("gazette");
+              } else {
+                params.set("gazette", value);
+              }
+              setSearchParams(params);
+              if (value) setTab("posts");
+            }}
+            className="ml-3 inline-block border px-2 py-1"
+          >
+            <option value="">Toutes</option>
+            {gazettes.map((g) => (
+              <option key={g} value={g}>
+                {g === "global" ? "LA GAZETTE (global)" : g}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Tabs */}
       <nav className="tabs-nav">
@@ -229,6 +345,12 @@ export default function Social() {
             >
               💬 Forums
             </button>
+            <button
+              onClick={() => setFilterType(GROUP_TYPES.GAZETTE)}
+              className={`filter-chip ${filterType === GROUP_TYPES.GAZETTE ? "active" : ""}`}
+            >
+              📰 Gazettes
+            </button>
           </div>
         </div>
       )}
@@ -265,29 +387,99 @@ export default function Social() {
       )}
 
       {/* Content */}
-      {(contextTitle || contextGroup) && (
-        <div className="mb-6 theme-card p-4 text-sm">
-          <strong>Contexte : </strong>{" "}
-          {contextTitle || (contextGroup ? `Groupe ${contextGroup.name}` : null)}
-          {linkedTypeParam === "post" && linkedIdParam && (
-            <Link className="ml-3 text-primary hover:underline" to={`/posts/${linkedIdParam}`}>
-              Voir l'article
-            </Link>
-          )}
-          {gazetteParam && (
-            <Link
-              className="ml-3 text-primary hover:underline"
-              to={gazetteParam === "global" ? "/gazette" : `/gazette/${gazetteParam}`}
-            >
-              Voir la Gazette
-            </Link>
-          )}
-          {groupIdParam && contextGroup && (
-            <Link className="ml-3 text-primary hover:underline" to={`/groups/${groupIdParam}`}>
-              Voir le groupe
-            </Link>
-          )}
+      {isGroupContextActive ? (
+        <div className="mb-6 theme-card p-5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-6">
+            <div className="flex-1">
+              <p className="text-xs uppercase tracking-widest text-primary-300 mb-2">
+                Groupe focalisé
+              </p>
+              <h2 className="text-2xl font-semibold text-gray-100">{contextGroup.name}</h2>
+              {contextGroup.description && (
+                <p className="text-gray-400 mt-2 text-sm leading-relaxed line-clamp-3">
+                  {contextGroup.description}
+                </p>
+              )}
+            </div>
+            <div className="flex flex-col gap-2 min-w-[220px]">
+              {!groupMembership.isMember ? (
+                <button
+                  onClick={handleJoinGroup}
+                  disabled={groupMembership.loading}
+                  className="btn btn-primary text-sm disabled:opacity-60"
+                >
+                  Rejoindre le groupe
+                </button>
+              ) : (
+                <button
+                  onClick={handleLeaveGroup}
+                  disabled={groupMembership.loading}
+                  className="btn btn-ghost text-sm border"
+                >
+                  Quitter le groupe
+                </button>
+              )}
+              {groupMembership.isMember && currentUser && canWrite(currentUser) && (
+                <button onClick={handleWritePost} className="btn btn-success text-sm">
+                  ✍️ Écrire dans ce groupe
+                </button>
+              )}
+              <Link
+                to={`/groups/${groupIdParam}`}
+                className="btn btn-secondary text-sm text-center"
+              >
+                Voir le groupe
+              </Link>
+            </div>
+          </div>
         </div>
+      ) : isGazetteContextActive && gazetteSummary ? (
+        <div className="mb-6 theme-card p-5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-6">
+            <div className="flex-1">
+              <p className="text-xs uppercase tracking-widest text-primary-300 mb-2">Gazette</p>
+              <h2 className="text-2xl font-semibold text-gray-100">{gazetteSummary.title}</h2>
+              <p className="text-gray-400 mt-2 text-sm leading-relaxed">
+                {gazetteSummary.description}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 min-w-[220px]">
+              <Link
+                to={gazetteParam === "global" ? "/gazette" : `/gazette/${gazetteParam}`}
+                className="btn btn-primary text-sm text-center"
+              >
+                📰 Ouvrir la Gazette
+              </Link>
+              {currentUser && canWrite(currentUser) && (
+                <button onClick={handleWriteGazetteArticle} className="btn btn-success text-sm">
+                  ✍️ Proposer un article
+                </button>
+              )}
+              <Link to="/gazette" className="btn btn-ghost text-sm border text-center">
+                Voir toutes les Gazettes
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : (
+        contextTitle && (
+          <div className="mb-6 theme-card p-4 text-sm">
+            <strong>Contexte : </strong> {contextTitle}
+            {linkedTypeParam === "post" && linkedIdParam && (
+              <Link className="ml-3 text-primary hover:underline" to={`/posts/${linkedIdParam}`}>
+                Voir l'article
+              </Link>
+            )}
+            {gazetteParam && (
+              <Link
+                className="ml-3 text-primary hover:underline"
+                to={gazetteParam === "global" ? "/gazette" : `/gazette/${gazetteParam}`}
+              >
+                Voir la Gazette
+              </Link>
+            )}
+          </div>
+        )
       )}
       <div>
         {activeTab === "all" && (
@@ -317,7 +509,7 @@ export default function Social() {
               <PostList
                 currentUserId={currentUser?.id}
                 tag={searchParams.get("tag")}
-                gazette={gazetteParam}
+                gazette={effectiveGazetteFilter}
                 linkedType={linkedTypeParam}
                 linkedId={linkedIdParam}
                 groupId={groupIdParam}
@@ -335,7 +527,7 @@ export default function Social() {
             postType={filterType}
             currentUserId={currentUser?.id}
             tag={searchParams.get("tag")}
-            gazette={gazetteParam}
+            gazette={effectiveGazetteFilter}
             linkedType={linkedTypeParam}
             linkedId={linkedIdParam}
             groupId={groupIdParam}

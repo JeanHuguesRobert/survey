@@ -155,6 +155,7 @@ export default function GroupForm({ group = null, currentUser }) {
             <option value={GROUP_TYPES.NEIGHBORHOOD}>Quartier</option>
             <option value={GROUP_TYPES.ASSOCIATION}>Association</option>
             <option value={GROUP_TYPES.FORUM}>Forum de discussion</option>
+            <option value={GROUP_TYPES.GAZETTE}>Gazette (groupe d'éditeurs)</option>
           </select>
         </div>
 
