@@ -425,6 +425,7 @@
         "npm:@tailwindcss/vite@^4.1.17",
         "npm:@vitejs/plugin-react@4",
         "npm:autoprefixer@^10.4.22",
+        "npm:cheerio@^1.1.2",
         "npm:chromatic@^13.3.4",
         "npm:dompurify@^3.3.0",
         "npm:dotenv@^17.2.3",

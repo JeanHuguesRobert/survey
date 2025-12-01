@@ -36,6 +36,7 @@
     "@supabase/supabase-js": "^2.76.1",
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.17",
+    "cheerio": "^1.1.2",
     "dompurify": "^3.3.0",
     "dotenv": "^17.2.3",
     "marked": "^16.4.1",
