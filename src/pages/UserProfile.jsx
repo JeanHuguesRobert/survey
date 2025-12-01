@@ -363,8 +363,8 @@ export default function UserProfile() {
           <div className="bg-blue-50 border border-blue-200 p-4">
             <h3 className="text-sm font-semibold text-blue-900 mb-2">🔒 Confidentialité</h3>
             <p className="text-xs text-blue-800">
-              Vos informations personnelles sont protégées et ne seront jamais vendues. Seul votre
-              nom d'affichage est visible publiquement dans vos contributions.
+              Vos informations personnelles ne seront jamais vendues. Votre nom d'affichage est
+              visible publiquement dans vos contributions.
             </p>
             {currentUser?.rgpd_consent_date && (
               <p className="text-xs text-blue-700 mt-2">
