@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 // import { useSupabase } from '../contexts/SupabaseContext';
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { Link } from "react-router-dom";
+import { getTaskTitleFromPost } from "../lib/taskHelpers";
+import { TASK_STATUS_LABELS } from "../lib/taskMetadata";
+import { supabase } from "../lib/supabase";
 import {
   BarChart,
   Bar,
@@ -24,22 +27,22 @@ const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
 export default function GlobalDashboard() {
   // const { supabase } = useSupabase();
   const { currentUser } = useCurrentUser();
-  const [supabase, setSupabase] = useState(null);
-  useEffect(() => {
-    import("../lib/supabase").then(({ supabase }) => setSupabase(supabase));
-  }, []);
   const [stats, setStats] = useState({
     kudocracy: { propositions: 0, votes: 0, delegations: 0 },
     wiki: { pages: 0, edits: 0 },
     social: { posts: 0, comments: 0 },
     chat: { interactions: 0 },
     profile: { completeness: 0, joinDate: null },
+    missions: { joined: 0, created: 0 },
+    tasks: { created: 0, assigned: 0 },
   });
   const [recentActivity, setRecentActivity] = useState([]);
   const [contributionData, setContributionData] = useState([]);
   const [activityHeatmap, setActivityHeatmap] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [missionInvolvement, setMissionInvolvement] = useState([]);
+  const [taskAssignments, setTaskAssignments] = useState([]);
 
   useEffect(() => {
     if (currentUser?.id) {
@@ -48,6 +51,12 @@ export default function GlobalDashboard() {
   }, [currentUser]);
 
   const fetchDashboardData = async () => {
+    if (!supabase || !currentUser?.id) {
+      setMissionInvolvement([]);
+      setTaskAssignments([]);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -63,6 +72,11 @@ export default function GlobalDashboard() {
         postsRes,
         commentsRes,
         chatInteractionsRes,
+        missionMembershipRes,
+        missionsCreatedRes,
+        tasksCreatedRes,
+        tasksAssignedRes,
+        tasksAssignedListRes,
       ] = await Promise.all([
         supabase.from("propositions").select("id", { count: "exact" }).eq("author_id", userId),
         supabase.from("votes").select("id", { count: "exact" }).eq("user_id", userId),
@@ -71,6 +85,29 @@ export default function GlobalDashboard() {
         supabase.from("posts").select("id", { count: "exact" }).eq("author_id", userId),
         supabase.from("comments").select("id", { count: "exact" }).eq("user_id", userId),
         supabase.from("chat_interactions").select("id", { count: "exact" }).eq("user_id", userId),
+        supabase.from("group_members").select("group_id").eq("user_id", userId),
+        supabase
+          .from("groups")
+          .select("id", { count: "exact", head: true })
+          .eq("created_by", userId)
+          .eq("metadata->>type", "mission"),
+        supabase
+          .from("posts")
+          .select("id", { count: "exact", head: true })
+          .eq("author_id", userId)
+          .eq("metadata->>type", "task"),
+        supabase
+          .from("posts")
+          .select("id", { count: "exact", head: true })
+          .eq("metadata->>type", "task")
+          .contains("metadata->task_details->assignees", [userId]),
+        supabase
+          .from("posts")
+          .select("id, content, metadata, updated_at")
+          .eq("metadata->>type", "task")
+          .contains("metadata->task_details->assignees", [userId])
+          .order("updated_at", { ascending: false })
+          .limit(5),
       ]);
 
       // Check for errors
@@ -82,10 +119,82 @@ export default function GlobalDashboard() {
         postsRes,
         commentsRes,
         chatInteractionsRes,
+        missionMembershipRes,
+        missionsCreatedRes,
+        tasksCreatedRes,
+        tasksAssignedRes,
+        tasksAssignedListRes,
       ].filter((res) => res.error);
 
       if (errors.length > 0) {
         throw new Error("Failed to fetch some statistics");
+      }
+
+      const missionMemberships = missionMembershipRes.data || [];
+      let missionsJoined = 0;
+      if (missionMemberships.length > 0) {
+        const groupIds = missionMemberships.map((row) => row.group_id);
+        const { data: missionGroups, error: missionGroupsError } = await supabase
+          .from("groups")
+          .select("id, name, metadata")
+          .in("id", groupIds);
+
+        if (missionGroupsError) {
+          throw missionGroupsError;
+        }
+
+        const filteredMissions = missionGroups.filter(
+          (group) => group?.metadata?.type === "mission"
+        );
+
+        missionsJoined = filteredMissions.length;
+        setMissionInvolvement(
+          filteredMissions.map((mission) => ({
+            id: mission.id,
+            name: mission.name,
+            status: mission.metadata?.mission_details?.status || "",
+            location: mission.metadata?.mission_details?.location || "",
+          }))
+        );
+      } else {
+        setMissionInvolvement([]);
+      }
+
+      const assignedTasks = tasksAssignedListRes.data || [];
+      if (assignedTasks.length > 0) {
+        const projectIds = Array.from(
+          new Set(
+            assignedTasks.map((task) => task.metadata?.group_id).filter((value) => Boolean(value))
+          )
+        );
+
+        let projectMap = {};
+        if (projectIds.length > 0) {
+          const { data: taskProjects, error: taskProjectsError } = await supabase
+            .from("groups")
+            .select("id, name")
+            .in("id", projectIds);
+
+          if (taskProjectsError) {
+            throw taskProjectsError;
+          }
+
+          taskProjects?.forEach((project) => {
+            projectMap[project.id] = project.name;
+          });
+        }
+
+        setTaskAssignments(
+          assignedTasks.map((task) => ({
+            id: task.id,
+            projectId: task.metadata?.group_id,
+            projectName: projectMap[task.metadata?.group_id] || "Projet",
+            title: getTaskTitleFromPost(task),
+            status: task.metadata?.task_details?.status || "todo",
+          }))
+        );
+      } else {
+        setTaskAssignments([]);
       }
 
       // Calculate profile completeness
@@ -116,6 +225,14 @@ export default function GlobalDashboard() {
           completeness,
           joinDate: currentUser.created_at,
         },
+        missions: {
+          joined: missionsJoined,
+          created: missionsCreatedRes.count || 0,
+        },
+        tasks: {
+          created: tasksCreatedRes.count || 0,
+          assigned: tasksAssignedRes.count || 0,
+        },
       });
 
       // Fetch recent activity
@@ -129,12 +246,18 @@ export default function GlobalDashboard() {
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
       setError(err.message);
+      setMissionInvolvement([]);
+      setTaskAssignments([]);
     } finally {
       setLoading(false);
     }
   };
 
   const fetchRecentActivity = async (userId) => {
+    if (!supabase) {
+      return;
+    }
+
     try {
       // Fetch recent items from all tables
       const [propositions, wikiPages, posts, comments, chatInteractions] = await Promise.all([
@@ -249,6 +372,8 @@ export default function GlobalDashboard() {
       { name: "Wiki", value: stats.wiki.pages },
       { name: "Social", value: stats.social.posts + stats.social.comments },
       { name: "Chat", value: stats.chat.interactions },
+      { name: "Missions", value: stats.missions.joined + stats.missions.created },
+      { name: "Tâches", value: stats.tasks.created + stats.tasks.assigned },
     ];
     setContributionData(data);
   };
@@ -275,7 +400,11 @@ export default function GlobalDashboard() {
       stats.wiki.pages +
       stats.social.posts +
       stats.social.comments +
-      stats.chat.interactions;
+      stats.chat.interactions +
+      stats.missions.joined +
+      stats.missions.created +
+      stats.tasks.created +
+      stats.tasks.assigned;
     return total;
   };
 
@@ -285,6 +414,8 @@ export default function GlobalDashboard() {
       Wiki: stats.wiki.pages,
       Social: stats.social.posts + stats.social.comments,
       Chat: stats.chat.interactions,
+      Missions: stats.missions.joined + stats.missions.created,
+      Taches: stats.tasks.created + stats.tasks.assigned,
     };
     return Object.keys(areas).reduce((a, b) => (areas[a] > areas[b] ? a : b));
   };
@@ -389,6 +520,34 @@ export default function GlobalDashboard() {
                     ? new Date(stats.profile.joinDate).toLocaleDateString()
                     : "N/A"}
                 </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="   shadow-md p-6">
+            <h3 className="text-lg font-semibold text-gray-50 mb-4">Missions</h3>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-300">Participations :</span>
+                <span className="font-semibold">{stats.missions.joined}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-300">Organisées :</span>
+                <span className="font-semibold">{stats.missions.created}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="   shadow-md p-6">
+            <h3 className="text-lg font-semibold text-gray-50 mb-4">Tâches Kanban</h3>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-300">Créées :</span>
+                <span className="font-semibold">{stats.tasks.created}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-300">Assignées :</span>
+                <span className="font-semibold">{stats.tasks.assigned}</span>
               </div>
             </div>
           </div>
@@ -580,6 +739,30 @@ export default function GlobalDashboard() {
             </Link>
 
             <Link
+              to="/missions"
+              className="flex flex-col items-center p-4 border border-gray-200   hover:bg-gray-50 transition-colors"
+            >
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-2">
+                <span className="text-red-600 font-bold text-xl">M</span>
+              </div>
+              <span className="font-medium text-gray-50">Missions</span>
+              <span className="text-sm text-gray-400">{stats.missions.joined} mission(s)</span>
+            </Link>
+
+            <Link
+              to="/tasks"
+              className="flex flex-col items-center p-4 border border-gray-200   hover:bg-gray-50 transition-colors"
+            >
+              <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-2">
+                <span className="text-indigo-600 font-bold text-xl">T</span>
+              </div>
+              <span className="font-medium text-gray-50">Kanban</span>
+              <span className="text-sm text-gray-400">
+                {stats.tasks.created + stats.tasks.assigned} tâche(s)
+              </span>
+            </Link>
+
+            <Link
               to="/profile"
               className="flex flex-col items-center p-4 border border-gray-200   hover:bg-gray-50 transition-colors"
             >
@@ -611,9 +794,81 @@ export default function GlobalDashboard() {
               >
                 New Post
               </Link>
+              <Link
+                to="/missions"
+                className="px-4 py-2 bg-red-600 text-bauhaus-white hover:bg-red-700 transition-colors"
+              >
+                Missions
+              </Link>
+              <Link
+                to="/tasks"
+                className="px-4 py-2 bg-indigo-600 text-bauhaus-white hover:bg-indigo-700 transition-colors"
+              >
+                Tableau Kanban
+              </Link>
             </div>
           </div>
         </div>
+
+        {missionInvolvement.length > 0 && (
+          <div className="mt-8   shadow-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-50">Vos missions actives</h3>
+              <Link to="/missions" className="text-sm text-orange-400 hover:text-orange-300">
+                Voir toutes
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {missionInvolvement.slice(0, 4).map((mission) => (
+                <Link
+                  key={mission.id}
+                  to={`/missions/${mission.id}`}
+                  className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 p-4 border border-gray-800 hover:border-orange-500 transition-colors"
+                >
+                  <div>
+                    <p className="font-medium text-gray-50">{mission.name}</p>
+                    {mission.location && (
+                      <p className="text-sm text-gray-400">{mission.location}</p>
+                    )}
+                  </div>
+                  {mission.status && (
+                    <span className="text-xs uppercase tracking-wide text-gray-200 bg-gray-800 px-2 py-1">
+                      {mission.status}
+                    </span>
+                  )}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {taskAssignments.length > 0 && (
+          <div className="mt-6   shadow-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-50">Vos tâches assignées</h3>
+              <Link to="/tasks" className="text-sm text-orange-400 hover:text-orange-300">
+                Accéder au Kanban
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {taskAssignments.map((task) => (
+                <Link
+                  key={task.id}
+                  to={task.projectId ? `/tasks/${task.projectId}/task/${task.id}` : "/tasks"}
+                  className="flex items-center justify-between gap-4 p-4 border border-gray-800 hover:border-indigo-500 transition-colors"
+                >
+                  <div>
+                    <p className="font-medium text-gray-50">{task.title || "Tâche sans titre"}</p>
+                    <p className="text-sm text-gray-400">{task.projectName}</p>
+                  </div>
+                  <span className="text-xs uppercase tracking-wide text-gray-200 bg-gray-800 px-2 py-1">
+                    {TASK_STATUS_LABELS[task.status] || task.status}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -36,106 +36,51 @@ activement à la vie de leur commune ou communauté.
 
 ## 🎯 À quoi ça sert ?
 
-Cette application offre **six outils principaux** pour la participation citoyenne :
+Kudocracy.Survey rassemble plusieurs espaces complémentaires. Chacun s'adresse à un usage simple du
+quotidien : discuter, s'informer, voter ou s'organiser.
 
-### 1. ☕ **Café** - L'espace social citoyen
+### 1. ☕ Café — Discuter entre voisins
 
-Un espace de discussion et d'échange convivial où vous pouvez :
+Le Café est un lieu convivial où les habitants créent des groupes par quartier, par association ou
+par thème. On y publie des messages courts ou de vrais billets, on réagit avec des emojis, on suit
+les conversations qui nous intéressent et on peut se présenter grâce à un profil public. Tout est
+pensé pour rendre les échanges lisibles et bienveillants.
 
-- **Créer et rejoindre des groupes** thématiques (urbanisme, culture, environnement, etc.)
-- **Participer à des forums** de quartier pour s'organiser localement
-- **Partager des blogs citoyens** sur la vie locale
-- **Réagir et commenter** les publications pour enrichir les débats
-- **Créer votre profil** avec votre quartier et vos centres d'intérêt
-- **Rejoindre des associations** et mobiliser autour de projets
-- **S'abonner aux contenus** qui vous intéressent pour suivre les discussions
+### 2. 💬 Ophélia — Une assistante qui répond
 
-**Fonctionnalités :**
+Ophélia est l'IA de la plateforme. Elle répond en français aux questions des citoyens, aide à
+formuler une idée, guide vers les démarches utiles et relit les propositions avant publication. Plus
+vous nourrissez le wiki et les consultations, plus ses réponses sont pertinentes.
 
-- Types de groupes : Forums, Blogs, Quartiers, Associations
-- Types de publications : Discussions, Annonces, Événements, Questions/Réponses
-- Système de réactions (👍 ❤️ 😂 🤔 😮 😢)
-- **Abonnements universels** : suivez n'importe quel contenu commentable (posts, propositions, pages
-  wiki)
-- **Fil d'abonnements** : recevez les nouveaux commentaires sur vos contenus suivis
-- Modération citoyenne respectueuse
-- Authentification sécurisée avec gestion de profil complète
+### 3. 📖 Wiki collaboratif — La mémoire commune
 
-### 2. 💬 **Ophélia** - L'assistante IA conversationnelle
+Le wiki sert de carnet de bord collectif : comptes rendus, fiches pratiques, idées de quartier… La
+recherche est instantanée et l'interface reste simple, même pour une première contribution. Chaque
+page indique son auteur, ses dates de mise à jour et peut être partagée en un clic.
 
-Une intelligence artificielle qui répond à vos questions en français et vous aide à :
+### 4. 🗳️ Kudocratie — Débattre et voter
 
-- Mieux comprendre les enjeux locaux
-- Créer des propositions citoyennes
-- Enrichir le wiki collaboratif
-- Accéder rapidement aux informations de la plateforme
+Cette section permet de déposer une proposition, de voter pour ou contre et, si l’on préfère, de
+déléguer sa voix à quelqu’un de confiance sur un sujet précis. Les citoyens suivent l’avancée des
+propositions en temps réel et voient quels thèmes mobilisent la communauté.
 
-**Nouveautés récentes :**
+### 5. 📊 Consultations — Prendre le pouls
 
-- Interface modernisée avec un design élégant et épuré
-- Ophélia connaît maintenant tout le contenu du wiki grâce à une consolidation automatique
-- Support de plusieurs fournisseurs d'IA (OpenAI, Hugging Face, Anthropic, etc.)
-- Mode streaming pour des réponses en temps réel
+Les enquêtes recueillent des avis rapides sur les projets locaux. Elles s’adaptent à un quartier,
+une association ou une ville entière. Les résultats sont anonymes, présentés sous forme de
+graphiques lisibles et peuvent alimenter les décisions publiques.
 
-### 3. 📖 **Wiki Collaboratif** - La mémoire partagée
+### 6. 🔍 Transparence — Comprendre comment la ville décide
 
-Un espace où chacun peut documenter, partager et accéder aux connaissances :
+Un tableau de bord synthétise les engagements de transparence : comptes rendus publiés, accès aux
+archives, participation aux conseils… Les habitants comparent leur territoire à d'autres et suivent
+les progrès dans le temps.
 
-- Création et édition de pages en langage Markdown (simple et accessible)
-- Recherche rapide par titre ou adresse
-- Navigation intuitive entre les pages
-- Partage facile sur les réseaux sociaux
-- Génération automatique de résumés
+### 7. 📰 La Gazette — Raconter l'actualité locale
 
-**Nouveautés récentes :**
-
-- **Navigation moderne** avec tri (A-Z, Z-A, date de création, dernière modification)
-- **Recherche en temps réel** pour trouver rapidement une page
-- **Deux modes d'affichage** : grille ou liste
-- **Statistiques** : nombre total de pages, dernière mise à jour
-- **Barre latérale** redimensionnable pour améliorer l'ergonomie
-- Affichage des métadonnées (auteur, dates de création et modification)
-
-### 4. 🗳️ **Kudocratie** - Propositions et délégation de vote
-
-Un système de démocratie liquide où vous pouvez :
-
-- Proposer des idées et projets pour votre commune
-- Voter directement sur les propositions qui vous intéressent
-- Déléguer votre vote à des personnes de confiance sur certains sujets
-- Suivre l'évolution des propositions en temps réel
-- Organiser les propositions par thèmes (tags)
-
-### 5. 📊 **Consultations** - Sondages et enquêtes
-
-Des questionnaires sur des enjeux de démocratie locale :
-
-- Questions adaptables à différents types de communautés (municipalité, association, école, etc.)
-- Résultats visualisés en temps réel avec des graphiques interactifs
-- Anonymat garanti et respect du RGPD
-- Participation à l'enquête nationale "Transparence"
-
-### 6. 📊 **Transparence** - Audit démocratique
-
-Un outil d'évaluation et de suivi de la transparence des institutions locales :
-
-- Critères de transparence adaptés au type de communauté
-- Suivi des bonnes pratiques démocratiques
-- Comparaison entre territoires
-- Base de données publique des communes transparentes
-
-### 7. 📰 **La Gazette** - L'actualité locale
-
-Un journal numérique au style vintage (1820s) pour suivre l'actualité de la commune :
-
-- **Lecture immersive** : une mise en page "journal papier" avec colonnes et typographie d'époque
-- **Éditions hebdomadaires** : retrouvez les articles classés par semaine
-- **Rédacteurs citoyens** : les membres du groupe "La Gazette" deviennent automatiquement rédacteurs
-- **Intégration Facebook** : les rédacteurs peuvent intégrer directement des posts Facebook
-  interactifs dans leurs articles
-- **Éditions thématiques** : possibilité de créer des gazettes spécialisées (Sport, Culture, etc.)
-- **Discussion** : chaque gazette et article propose un lien "Discuter au Café" pour ouvrir le Café
-  filtré sur la gazette (et sur l'article si souhaité) pour faciliter les échanges entre citoyens
+La Gazette reprend les codes d'un journal papier : rubriques hebdomadaires, articles illustrés, ton
+chaleureux. Les membres du collectif peuvent devenir rédacteurs, publier des chroniques et renvoyer
+vers le Café pour poursuivre la discussion.
 
 ---
 
@@ -239,6 +184,28 @@ L'application sera accessible sur `http://localhost:8888`
 - ✨ **Espace social complet** : forums, blogs, quartiers, associations
 - ✨ **Page de profil dédiée** avec gestion des informations personnelles
 - ✨ **Hook `useUserProfile`** pour une gestion unifiée des données utilisateur
+
+### 📆 Agenda & Centre Incidents
+
+- ✨ **Nouvelles pages dédiées** `/agenda` et `/incidents` regroupent toutes les publications de
+  type événement/incident issues du Café Pertitellu.
+- ✨ **Double mode liste ↔ carte** grâce à `CitizenMap`, avec calques spécialisés (`EventsLayer`,
+  `IncidentsLayer`) pour visualiser la cartographie des déclarations.
+- ✨ **Filtres par Gazette** et tri chronologique/critique pour isoler rapidement les rendez-vous
+  citoyens, les incidents actifs et ceux résolus.
+- ✨ **Contributions citoyennes sur la géolocalisation** : un modal permet d'ajouter ou corriger les
+  coordonnées d'un événement/incident, instantanément reflété dans la carte.
+
+### 🧭 Missions & Tâches Kanban
+
+- ✨ **Lien missions ↔ projets de tâches** : chaque projet Kanban (`/tasks/:id`) peut pointer vers
+  une mission (`linked_mission_id`) et remonter l'état côté mission.
+- ✨ **Tableau de bord utilisateur enrichi** : la page `/user-dashboard` affiche désormais les
+  missions rejointes et les tâches assignées (statut, projet d'origine) pour l'utilisateur courant.
+- ✨ **Badges contextuels** : les cartes mission/tâche indiquent lieu, statut et accès direct aux
+  pages `/missions/:id` ou aux cartes Kanban.
+- ✨ **Statistiques consolidées** : les compteurs missions/tâches alimentent les sections « Actions
+  rapides » et les CTA du dashboard afin d'encourager l'engagement.
 
 ---
 

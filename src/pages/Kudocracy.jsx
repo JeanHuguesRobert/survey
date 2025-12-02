@@ -9,6 +9,7 @@ import { Link } from "react-router-dom";
 import { PRIMARY_COLOR, SECONDARY_COLOR } from "../constants";
 import SiteFooter from "../components/layout/SiteFooter";
 import { useCurrentUser } from "../lib/useCurrentUser";
+import { supabase } from "../lib/supabase";
 
 export default function Kudocracy() {
   // const { supabase } = useSupabase();
@@ -21,7 +22,8 @@ export default function Kudocracy() {
 
   // For sign out, use supabase directly if needed
   const handleSignOut = async () => {
-    await import("../lib/supabase").then(({ supabase }) => supabase?.auth?.signOut?.());
+    if (!supabase) return;
+    await supabase.auth?.signOut?.();
   };
 
   // If you want to add auth-required UI, you can use userStatus here

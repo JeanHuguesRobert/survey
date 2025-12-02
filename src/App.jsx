@@ -82,6 +82,15 @@ import Incidents from "./pages/Incidents";
 import SurveyModeEmploi from "./pages/SurveyModeEmploi";
 import MarkdownViewer from "./pages/MarkdownViewer";
 import NotFound from "./pages/NotFound";
+import MissionsPage from "./pages/MissionsPage";
+import MissionCreate from "./pages/MissionCreate";
+import MissionDetail from "./pages/MissionDetail";
+import TaskProjectsPage from "./pages/TaskProjectsPage";
+import TaskProjectCreate from "./pages/TaskProjectCreate";
+import TaskProjectDetail from "./pages/TaskProjectDetail";
+import TaskCreate from "./pages/TaskCreate";
+import TaskEdit from "./pages/TaskEdit";
+import TaskDetail from "./pages/TaskDetail";
 
 export default function Consultation() {
   // Feature flag for gesture header menu
@@ -1313,6 +1322,16 @@ export function App() {
         <Route path="/oauth/facebook/deletion-status" element={<FacebookDeletionStatus />} />
         <Route path="/oauth/:provider/callback" element={<OAuthCallback />} />
         <Route path="/oauth/consent" element={<OAuthConsent />} />
+        <Route path="/missions" element={<MissionsPage />} />
+        <Route path="/missions/new" element={<MissionCreate />} />
+        <Route path="/missions/:id" element={<MissionDetail />} />
+        <Route path="/missions/:id/edit" element={<MissionCreate />} />
+        <Route path="/tasks" element={<TaskProjectsPage />} />
+        <Route path="/tasks/new" element={<TaskProjectCreate />} />
+        <Route path="/tasks/:id" element={<TaskProjectDetail />} />
+        <Route path="/tasks/:projectId/task/new" element={<TaskCreate />} />
+        <Route path="/tasks/:projectId/task/:taskId" element={<TaskDetail />} />
+        <Route path="/tasks/:projectId/task/:taskId/edit" element={<TaskEdit />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>

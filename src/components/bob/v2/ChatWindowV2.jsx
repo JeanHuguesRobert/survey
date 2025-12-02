@@ -11,6 +11,7 @@ import AuthModal from "../../common/AuthModal";
 import ProviderIcon from "./ProviderIcon";
 import { useGlobalStatus as useOpStatus } from "../../../lib/useStatusOperations";
 import SiteFooter from "../../layout/SiteFooter";
+import { supabase } from "../../../lib/supabase";
 
 /**
  * ChatWindowV2
@@ -148,7 +149,6 @@ export default function ChatWindowV2({ useV2 = true, ...props }) {
         onSignIn={() => logic.openAuthModal()}
         onSignOut={async () => {
           try {
-            const { supabase } = await import("../../../lib/supabase");
             await supabase.auth.signOut();
           } catch (_) {}
         }}

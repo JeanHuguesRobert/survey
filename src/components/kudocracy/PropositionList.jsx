@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 // import { useSupabase } from '../../contexts/SupabaseContext';
 import PropositionCard from "./PropositionCard";
 import { useCurrentUser } from "../../lib/useCurrentUser";
+import { supabase } from "../../lib/supabase";
 
 export default function PropositionList() {
   const { currentUser } = useCurrentUser();
@@ -16,37 +17,35 @@ export default function PropositionList() {
   const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    import("../../lib/supabase").then(({ supabase }) => {
-      console.log("PropositionList: Component mounted, initializing...");
-      if (!supabase) {
-        console.log("PropositionList: Supabase client not yet available, waiting...");
-        return;
-      }
-      console.log("PropositionList: Supabase client available, loading data...");
-      loadTags(supabase);
-      loadPropositions(supabase, true);
-      console.log("PropositionList: Setting up real-time subscription...");
-      const subscription = supabase
-        .channel("propositions_changes")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "propositions" },
-          (payload) => {
-            console.log("PropositionList: Real-time update received:", payload);
-            loadPropositions(supabase);
-          }
-        )
-        .subscribe((status) => {
-          console.log("PropositionList: Subscription status:", status);
-        });
-      return () => {
-        console.log("PropositionList: Component unmounting, cleaning up subscription...");
-        subscription.unsubscribe();
-      };
-    });
+    console.log("PropositionList: Component mounted, initializing...");
+    if (!supabase) {
+      console.log("PropositionList: Supabase client not yet available, waiting...");
+      return undefined;
+    }
+    console.log("PropositionList: Supabase client available, loading data...");
+    loadTags();
+    loadPropositions(true);
+    console.log("PropositionList: Setting up real-time subscription...");
+    const subscription = supabase
+      .channel("propositions_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "propositions" },
+        (payload) => {
+          console.log("PropositionList: Real-time update received:", payload);
+          loadPropositions();
+        }
+      )
+      .subscribe((status) => {
+        console.log("PropositionList: Subscription status:", status);
+      });
+    return () => {
+      console.log("PropositionList: Component unmounting, cleaning up subscription...");
+      subscription.unsubscribe();
+    };
   }, [retryCount]);
 
-  const loadTags = async (supabase) => {
+  const loadTags = async () => {
     if (!supabase) return;
     const { data, error } = await supabase.from("tags").select("*").order("name");
     if (!error && data) {
@@ -54,7 +53,7 @@ export default function PropositionList() {
     }
   };
 
-  const loadPropositions = async (supabase, showSpinner = false) => {
+  const loadPropositions = async (showSpinner = false) => {
     console.log("PropositionList: loadPropositions called, supabase available:", !!supabase);
     if (!supabase) {
       console.warn("PropositionList: Supabase client not available");

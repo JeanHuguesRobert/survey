@@ -555,28 +555,25 @@ export default function SiteFooter({
               </button>
             )}
           </div>
+
           <div style={styles.links}>
             <Link to="/" style={styles.link}>
               Accueil
             </Link>
-            <Link to="/survey" style={styles.link}>
-              Présentation
-            </Link>
-            <Link to="/transparence" style={styles.link}>
-              Enquête Transparence
-            </Link>
-            <Link to="/methodologie" style={styles.link}>
-              Méthodologie
-            </Link>
-          </div>
-
-          <p style={styles.metaLabel}>Autres services (proto)</p>
-          <div style={styles.links}>
             <Link to="/bob" style={styles.link}>
               IA
             </Link>
             <Link to="/gazette" style={styles.link}>
               Gazette
+            </Link>
+            <Link to="/agenda" style={styles.link}>
+              Agenda
+            </Link>
+            <Link to="/incidents" style={styles.link}>
+              Incidents
+            </Link>
+            <Link to="/missions" style={styles.link}>
+              Bénévolat
             </Link>
             <Link to="/kudocracy" style={styles.link}>
               Propositions
@@ -586,15 +583,18 @@ export default function SiteFooter({
                 Wiki
               </Link>
             )}
-            <Link to="/incidents" style={styles.link}>
-              Incidents
+          </div>
+
+          <div style={styles.links}>
+            <Link to="/survey" style={styles.link}>
+              Présentation
             </Link>
-            <Link to="/agenda" style={styles.link}>
-              Agenda
+            <Link to="/transparence" style={styles.link}>
+              Enquête Transparence
             </Link>
-            <a href={VOLUNTEER_URL} target="_blank" rel="noopener noreferrer" style={styles.link}>
-              Bénévolat
-            </a>
+            <Link to="/methodologie" style={styles.link}>
+              Méthodologie
+            </Link>
             <a
               href="https://www.facebook.com/groups/1269635707349220"
               target="_blank"
@@ -604,12 +604,6 @@ export default function SiteFooter({
               Pertitellu
             </a>
           </div>
-
-          {showVersionInfo && (
-            <div style={styles.version}>
-              Version {APP_VERSION}, déployée le {DEPLOY_DATE}
-            </div>
-          )}
 
           <div style={styles.legal}>
             <span style={styles.legalSpan}>
@@ -622,6 +616,12 @@ export default function SiteFooter({
               </Link>
             </span>
           </div>
+
+          {showVersionInfo && (
+            <div style={styles.version}>
+              Version {APP_VERSION}, déployée le {DEPLOY_DATE}
+            </div>
+          )}
         </div>
       </div>
 

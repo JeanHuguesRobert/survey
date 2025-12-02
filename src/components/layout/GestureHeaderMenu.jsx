@@ -415,6 +415,23 @@ export default function GestureHeaderMenu({ activeEdges = ["top"] }) {
                     Café
                   </Link>
                 </li>
+                <li>
+                  <Link
+                    to="/missions"
+                    onClick={closeMenu}
+                    style={{
+                      color: "var(--color-content-primary)",
+                      textDecoration: "none",
+                      fontWeight: 500,
+                      fontSize: "0.95em",
+                      padding: "2px 8px",
+                      transition: "background var(--duration-fast) ease",
+                      display: "inline-block",
+                    }}
+                  >
+                    Missions
+                  </Link>
+                </li>
               </ul>
               {/* Auth section */}
               <div

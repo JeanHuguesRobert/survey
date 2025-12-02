@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { getTaskTitleFromPost } from "../lib/taskHelpers";
+import { TASK_STATUS_LABELS } from "../lib/taskMetadata";
 import {
   BarChart,
   Bar,
@@ -24,6 +26,8 @@ export default function UserDashboard() {
   const [stats, setStats] = useState({});
   const [dashboardError, setDashboardError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [missionInvolvement, setMissionInvolvement] = useState([]);
+  const [taskAssignments, setTaskAssignments] = useState([]);
 
   useEffect(() => {
     checkAuth();
@@ -54,6 +58,14 @@ export default function UserDashboard() {
         supabase.from("wiki_pages").select("id").eq("author_id", user.id),
         supabase.from("content_subscriptions").select("id").eq("user_id", user.id),
         supabase.rpc("count_user_subscribers", { target_user_id: user.id }),
+        supabase.from("group_members").select("group_id").eq("user_id", user.id),
+        supabase
+          .from("posts")
+          .select("id, content, metadata, updated_at")
+          .eq("metadata->>type", "task")
+          .contains("metadata->task_details->assignees", [user.id])
+          .order("updated_at", { ascending: false })
+          .limit(6),
       ]);
 
       const [
@@ -65,6 +77,8 @@ export default function UserDashboard() {
         wikiPagesRes,
         subscriptionsRes,
         subscribersRes,
+        missionMembershipRes,
+        tasksAssignedListRes,
       ] = results;
 
       // Log errors but don't block the dashboard
@@ -93,6 +107,8 @@ export default function UserDashboard() {
       const wikiPages = getData(wikiPagesRes)?.length || 0;
       const subscriptionsCount = getData(subscriptionsRes)?.length || 0;
       const subscribersCount = getCount(subscribersRes);
+      const missionMemberships = getData(missionMembershipRes) || [];
+      const assignedTasks = getData(tasksAssignedListRes) || [];
 
       // Activity timeline (last 30 days)
       const thirtyDaysAgo = new Date();
@@ -129,6 +145,8 @@ export default function UserDashboard() {
         ],
         activityTimeline,
       });
+
+      await loadMissionAndTaskInvolvement(missionMemberships, assignedTasks);
       setDashboardError(null);
     } catch (error) {
       setDashboardError("Erreur critique lors du chargement des données.");
@@ -136,6 +154,76 @@ export default function UserDashboard() {
       console.error("Error loading dashboard data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMissionAndTaskInvolvement = async (missionMemberships, assignedTasks) => {
+    try {
+      let missionDetails = [];
+      if (missionMemberships.length > 0) {
+        const groupIds = missionMemberships.map((row) => row.group_id);
+        const { data: missionGroups, error: missionGroupsError } = await supabase
+          .from("groups")
+          .select("id, name, metadata")
+          .in("id", groupIds);
+
+        if (missionGroupsError) {
+          console.error("Mission fetch error", missionGroupsError);
+        } else {
+          missionDetails = (missionGroups || [])
+            .filter((group) => group?.metadata?.type === "mission")
+            .map((mission) => ({
+              id: mission.id,
+              name: mission.name,
+              status: mission.metadata?.mission_details?.status || "",
+              location: mission.metadata?.mission_details?.location || "",
+            }));
+        }
+      }
+      setMissionInvolvement(missionDetails);
+
+      if (assignedTasks.length === 0) {
+        setTaskAssignments([]);
+        return;
+      }
+
+      const projectIds = Array.from(
+        new Set(
+          assignedTasks
+            .map((task) => task.metadata?.group_id)
+            .filter((projectId) => Boolean(projectId))
+        )
+      );
+
+      let projectMap = {};
+      if (projectIds.length > 0) {
+        const { data: taskProjects, error: taskProjectsError } = await supabase
+          .from("groups")
+          .select("id, name")
+          .in("id", projectIds);
+
+        if (taskProjectsError) {
+          console.error("Task project fetch error", taskProjectsError);
+        } else {
+          (taskProjects || []).forEach((project) => {
+            projectMap[project.id] = project.name;
+          });
+        }
+      }
+
+      setTaskAssignments(
+        assignedTasks.map((task) => ({
+          id: task.id,
+          projectId: task.metadata?.group_id,
+          projectName: projectMap[task.metadata?.group_id] || "Projet",
+          title: getTaskTitleFromPost(task),
+          status: task.metadata?.task_details?.status || "todo",
+        }))
+      );
+    } catch (error) {
+      console.error("Error loading mission/task involvement", error);
+      setMissionInvolvement([]);
+      setTaskAssignments([]);
     }
   };
 
@@ -220,6 +308,78 @@ export default function UserDashboard() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-8" style={{ background: "var(--color-bg-app)" }}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="  shadow-md p-6" style={{ background: "var(--color-bg-app)" }}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-gray-50">Vos missions</h2>
+              <Link to="/missions" className="text-sm text-orange-400 hover:text-orange-300">
+                Voir toutes
+              </Link>
+            </div>
+            {missionInvolvement.length === 0 ? (
+              <p className="text-gray-400 text-sm">
+                Vous n'êtes associé à aucune mission pour le moment. Découvrez les initiatives ou
+                créez-en une nouvelle.
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {missionInvolvement.slice(0, 4).map((mission) => (
+                  <li key={mission.id}>
+                    <Link
+                      to={`/missions/${mission.id}`}
+                      className="flex flex-col gap-1 border border-gray-800 hover:border-orange-500 transition-colors p-3"
+                    >
+                      <span className="text-gray-50 font-medium">{mission.name}</span>
+                      {mission.location && (
+                        <span className="text-sm text-gray-400">{mission.location}</span>
+                      )}
+                      {mission.status && (
+                        <span className="text-xs uppercase tracking-wide text-gray-200 bg-gray-800 px-2 py-1 inline-flex w-fit">
+                          {mission.status}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="  shadow-md p-6" style={{ background: "var(--color-bg-app)" }}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-gray-50">Vos tâches Kanban</h2>
+              <Link to="/tasks" className="text-sm text-orange-400 hover:text-orange-300">
+                Ouvrir le tableau
+              </Link>
+            </div>
+            {taskAssignments.length === 0 ? (
+              <p className="text-gray-400 text-sm">
+                Aucune tâche assignée pour l'instant. Consultez les projets Kanban pour contribuer.
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {taskAssignments.map((task) => (
+                  <li key={task.id}>
+                    <Link
+                      to={task.projectId ? `/tasks/${task.projectId}/task/${task.id}` : "/tasks"}
+                      className="flex items-center justify-between border border-gray-800 hover:border-indigo-500 transition-colors p-3"
+                    >
+                      <div>
+                        <p className="text-gray-50 font-medium">
+                          {task.title || "Tâche sans titre"}
+                        </p>
+                        <p className="text-sm text-gray-400">{task.projectName}</p>
+                      </div>
+                      <span className="text-xs uppercase tracking-wide text-gray-200 bg-gray-800 px-2 py-1">
+                        {TASK_STATUS_LABELS[task.status] || task.status}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
         {/* Personal Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <StatCard

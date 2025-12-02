@@ -10,6 +10,7 @@ import VoteButton from "../components/kudocracy/VoteButton";
 import SubscribeButton from "../components/common/SubscribeButton";
 import FacebookShareButton from "../components/common/FacebookShareButton";
 import ShareMenu from "../components/common/ShareMenu";
+import { supabase } from "../lib/supabase";
 
 export default function Proposition() {
   // const { supabase } = useSupabase();
@@ -22,49 +23,48 @@ export default function Proposition() {
   const [userVote, setUserVote] = useState(null);
 
   useEffect(() => {
-    import("../lib/supabase").then(({ supabase }) => {
-      if (!supabase || !id) return;
-      const loadProposition = async () => {
-        console.log("Loading proposition with id:", id);
-        setLoading(true);
-        setError(null);
-        try {
-          const { data, error } = await supabase
-            .from("propositions")
-            .select(
-              `
-              *,
-              author:users!propositions_author_id_fkey(display_name),
-              proposition_tags(tag:tags(*))
+    if (!supabase || !id) return;
+    const loadProposition = async () => {
+      console.log("Loading proposition with id:", id);
+      setLoading(true);
+      setError(null);
+      try {
+        const { data, error } = await supabase
+          .from("propositions")
+          .select(
             `
-            )
-            .eq("id", id)
-            .maybeSingle();
-          console.log("Proposition query result:", { data, error });
-          if (error) {
-            console.error("Error loading proposition:", error);
-            setError("Impossible de charger la proposition: " + error.message);
-          } else if (!data) {
-            setError("Proposition non trouvée");
-          } else {
-            setProposition(data);
-          }
-        } catch (err) {
-          console.error("Exception loading proposition:", err);
-          setError("Erreur lors du chargement: " + err.message);
-        } finally {
-          setLoading(false);
+            *,
+            author:users!propositions_author_id_fkey(display_name),
+            proposition_tags(tag:tags(*))
+          `
+          )
+          .eq("id", id)
+          .maybeSingle();
+        console.log("Proposition query result:", { data, error });
+        if (error) {
+          console.error("Error loading proposition:", error);
+          setError("Impossible de charger la proposition: " + error.message);
+        } else if (!data) {
+          setError("Proposition non trouvée");
+        } else {
+          setProposition(data);
         }
-      };
-      loadProposition();
-      loadVotes(supabase);
-      if (currentUser) {
-        loadUserVote(supabase);
+      } catch (err) {
+        console.error("Exception loading proposition:", err);
+        setError("Erreur lors du chargement: " + err.message);
+      } finally {
+        setLoading(false);
       }
-    });
+    };
+
+    loadProposition();
+    loadVotes();
+    if (currentUser) {
+      loadUserVote();
+    }
   }, [id, currentUser]);
 
-  const loadVotes = async (supabase) => {
+  const loadVotes = async () => {
     if (!supabase) return;
     const { data, error } = await supabase
       .from("votes")
@@ -78,7 +78,7 @@ export default function Proposition() {
     }
   };
 
-  const loadUserVote = async (supabase) => {
+  const loadUserVote = async () => {
     if (!currentUser || !supabase) return;
     const { data, error } = await supabase
       .from("votes")
