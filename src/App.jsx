@@ -77,6 +77,8 @@ import DataReview from "./pages/admin/DataReview";
 import Entities from "./pages/admin/Entities";
 import Admin from "./pages/Admin";
 import Gazette from "./pages/Gazette";
+import Agenda from "./pages/Agenda";
+import Incidents from "./pages/Incidents";
 import SurveyModeEmploi from "./pages/SurveyModeEmploi";
 import MarkdownViewer from "./pages/MarkdownViewer";
 import NotFound from "./pages/NotFound";
@@ -1282,6 +1284,8 @@ export function App() {
         <Route path="/browser/*" element={<PublicBrowser />} />
         <Route path="/gazette" element={<Gazette />} />
         <Route path="/gazette/:name" element={<Gazette />} />
+        <Route path="/agenda" element={<Agenda />} />
+        <Route path="/incidents" element={<Incidents />} />
         <Route path="/social" element={<Social />} />
         <Route path="/users/:id" element={<UserPage />} />
         <Route path="/user-dashboard" element={<UserDashboard />} />

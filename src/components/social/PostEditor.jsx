@@ -9,6 +9,7 @@ import {
   getPostSubtitle,
   getPostType,
   getPostSubtype,
+  getPostIncident,
 } from "../../lib/socialMetadata";
 import { isAnonymous } from "../../lib/permissions";
 import { getMetadata } from "../../lib/metadata";
@@ -20,6 +21,8 @@ import {
   isPinnedPost,
   isLockedPost,
 } from "../../lib/postPredicates";
+import CitizenMap from "../map/CitizenMap";
+import LocationPicker from "../map/LocationPicker";
 
 /**
  * Éditeur de post (nouveau ou édition)
@@ -43,6 +46,11 @@ export default function PostEditor({ post = null, currentUser }) {
     eventDate: getPostEvent(post)?.date || "",
     eventLocation: getPostEvent(post)?.location || "",
     eventDuration: getPostEvent(post)?.duration || "",
+    incidentStatus: getPostIncident(post)?.status || "open",
+    incidentSeverity: getPostIncident(post)?.severity || "medium",
+    incidentImpact: getPostIncident(post)?.impact || "",
+    incidentNextUpdate: getPostIncident(post)?.nextUpdate || "",
+    incidentContact: getPostIncident(post)?.contact || "",
     postType: getPostType(post) || POST_TYPES.FORUM,
     groupId: getPostGroupId(post) || groupIdFromUrl || "",
     linkedType: getMetadata(post, "linkedType") || linkedTypeFromUrl || "",
@@ -52,6 +60,7 @@ export default function PostEditor({ post = null, currentUser }) {
     sourceUrl: getPostSourceUrl(post) || "",
     isPinned: isPinnedPost(post) || false,
     isLocked: isLockedPost(post) || false,
+    location: getMetadata(post, "location") || null,
   });
 
   const [loading, setLoading] = useState(false);
@@ -115,10 +124,22 @@ export default function PostEditor({ post = null, currentUser }) {
             }
           : null;
 
+      const incidentData =
+        formData.subtype === "incident"
+          ? {
+              status: formData.incidentStatus || "open",
+              severity: formData.incidentSeverity || "medium",
+              impact: formData.incidentImpact || "",
+              nextUpdate: formData.incidentNextUpdate || null,
+              contact: formData.incidentContact || "",
+            }
+          : null;
+
       const metadata = createPostMetadata(formData.postType, formData.title, {
         subtitle: formData.subtitle || null,
         subtype: formData.subtype || null,
         event: eventData,
+        incident: incidentData,
         groupId: formData.groupId || null,
         linkedType: formData.linkedType || null,
         linkedId: formData.linkedId || null,
@@ -127,6 +148,7 @@ export default function PostEditor({ post = null, currentUser }) {
         tags: tagsArray,
         gazette: formData.gazette || null,
         sourceUrl: formData.sourceUrl || null,
+        location: formData.location || null,
       });
 
       if (isEditing) {
@@ -300,6 +322,7 @@ export default function PostEditor({ post = null, currentUser }) {
           >
             <option value="">Aucun</option>
             <option value="event">Événement</option>
+            <option value="incident">Incident</option>
           </select>
         </div>
 
@@ -339,6 +362,130 @@ export default function PostEditor({ post = null, currentUser }) {
                 placeholder="ex: 2h, 90 minutes, 2025-12-01T10:00/2025-12-01T12:00"
               />
             </div>
+          </div>
+        )}
+
+        {/* Incident fields shown when subtype=incident */}
+        {formData.subtype === "incident" && (
+          <div className="border-t pt-4 space-y-3">
+            <h3 className="text-sm font-medium text-gray-200">Détails de l'incident</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-gray-300 mb-1">Statut</label>
+                <select
+                  name="incidentStatus"
+                  value={formData.incidentStatus}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 "
+                >
+                  <option value="open">Ouvert</option>
+                  <option value="investigating">Investigation</option>
+                  <option value="monitoring">Surveillance</option>
+                  <option value="resolved">Résolu</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-300 mb-1">Sévérité</label>
+                <select
+                  name="incidentSeverity"
+                  value={formData.incidentSeverity}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 "
+                >
+                  <option value="low">Faible</option>
+                  <option value="medium">Modérée</option>
+                  <option value="high">Élevée</option>
+                  <option value="critical">Critique</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-300 mb-1">Impact</label>
+              <textarea
+                name="incidentImpact"
+                value={formData.incidentImpact}
+                onChange={handleChange}
+                rows={3}
+                className="w-full px-3 py-2 text-sm border border-gray-300 "
+                placeholder="Services impactés, zones concernées, symptômes..."
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-gray-300 mb-1">Prochaine mise à jour</label>
+                <input
+                  type="datetime-local"
+                  name="incidentNextUpdate"
+                  value={formData.incidentNextUpdate}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 "
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-300 mb-1">Contact</label>
+                <input
+                  type="text"
+                  name="incidentContact"
+                  value={formData.incidentContact}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 "
+                  placeholder="Email, canal chat, téléphone..."
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Location Picker for Events and Incidents */}
+        {(formData.subtype === "event" || formData.subtype === "incident") && (
+          <div className="border-t pt-4 space-y-3">
+            <h3 className="text-sm font-medium text-gray-200">Localisation sur la carte</h3>
+            <div className="h-[400px] w-full border border-gray-300 rounded overflow-hidden">
+              <CitizenMap
+                center={
+                  formData.location ? [formData.location.lat, formData.location.lng] : undefined
+                }
+                zoom={formData.location ? 15 : 13}
+              >
+                <LocationPicker
+                  initialPosition={
+                    formData.location ? [formData.location.lat, formData.location.lng] : null
+                  }
+                  onLocationSelect={(loc) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      location: { ...loc, source: "manual" },
+                    }))
+                  }
+                />
+              </CitizenMap>
+            </div>
+            {formData.location && (
+              <p className="text-xs text-green-600">
+                Position sélectionnée : {formData.location.lat.toFixed(5)},{" "}
+                {formData.location.lng.toFixed(5)}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                if (navigator.geolocation) {
+                  navigator.geolocation.getCurrentPosition((pos) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      location: {
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude,
+                        source: "gps",
+                      },
+                    }));
+                  });
+                }
+              }}
+              className="text-xs text-blue-600 underline"
+            >
+              📍 Me localiser
+            </button>
           </div>
         )}
 

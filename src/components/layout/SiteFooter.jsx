@@ -586,22 +586,12 @@ export default function SiteFooter({
                 Wiki
               </Link>
             )}
-            <a
-              href="https://app.tooljet.ai/applications/133a5d8d-9268-4813-8a46-0126a309b52a"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={styles.link}
-            >
+            <Link to="/incidents" style={styles.link}>
               Incidents
-            </a>
-            <a
-              href="https://events-agenda-social.deploypad.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={styles.link}
-            >
+            </Link>
+            <Link to="/agenda" style={styles.link}>
               Agenda
-            </a>
+            </Link>
             <a href={VOLUNTEER_URL} target="_blank" rel="noopener noreferrer" style={styles.link}>
               Bénévolat
             </a>

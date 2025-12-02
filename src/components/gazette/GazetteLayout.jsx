@@ -20,6 +20,7 @@ export default function GazetteLayout({
   gazetteName = null,
   editorGroupId = null,
   isEditor = false,
+  extraHeaderActions = null,
 }) {
   return (
     <div className="min-h-screen bg-[#f4e4bc] text-[#2c241b] font-serif p-4 md:p-8 overflow-x-hidden">
@@ -177,6 +178,8 @@ export default function GazetteLayout({
             )}
           </div>
         </header>
+
+        {extraHeaderActions && <div className="mb-6 flex justify-end">{extraHeaderActions}</div>}
 
         <main className="gazette-content">{children}</main>
       </div>

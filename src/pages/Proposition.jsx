@@ -9,6 +9,7 @@ import { useCurrentUser } from "../lib/useCurrentUser";
 import VoteButton from "../components/kudocracy/VoteButton";
 import SubscribeButton from "../components/common/SubscribeButton";
 import FacebookShareButton from "../components/common/FacebookShareButton";
+import ShareMenu from "../components/common/ShareMenu";
 
 export default function Proposition() {
   // const { supabase } = useSupabase();
@@ -125,7 +126,13 @@ export default function Proposition() {
               {new Date(proposition.created_at).toLocaleDateString("fr-FR")}
             </p>
           </div>
-          <FacebookShareButton url={window.location.href} quote={proposition.title} />
+          <ShareMenu
+            entityType="proposition"
+            entityId={proposition.id}
+            title={proposition.title}
+            description={proposition.description?.slice(0, 200)}
+            currentUserId={currentUser?.id}
+          />
         </div>
 
         <div className="markdown-content mb-6">

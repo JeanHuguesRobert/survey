@@ -10,8 +10,10 @@ import {
   getPostGazette,
   getPostEvent,
   getAuthor,
+  isShare,
 } from "../../lib/postPredicates";
 import { getDisplayName } from "../../lib/userDisplay";
+import { markShareDeleted } from "../../lib/sharePost";
 
 export default function GazettePost({ post, isEditor = false, gazetteName = null }) {
   const { id, content, created_at } = post;
@@ -45,6 +47,12 @@ export default function GazettePost({ post, isEditor = false, gazetteName = null
         })
         .eq("id", id);
       if (error) throw error;
+
+      // Update tracking if this is a share
+      if (isShare(post)) {
+        await markShareDeleted(post);
+      }
+
       window.location.reload();
     } catch (err) {
       console.error("Error deleting post:", err);

@@ -49,6 +49,7 @@ export const POST_TYPES = {
   BLOG: "blog", // Article de blog or gazette
   FORUM: "forum", // Thread de forum
   ANNOUNCEMENT: "announcement", // Annonce
+  SHARE: "share", // Partage d'un autre contenu
 };
 
 /**
@@ -74,6 +75,7 @@ export function createPostMetadata(postType, title, options = {}) {
     subtitle: options.subtitle || null,
     subtype: options.subtype || null,
     event: options.event || null,
+    incident: options.incident || null,
     groupId: options.groupId || null,
     linkedType: options.linkedType || null,
     linkedId: options.linkedId || null,
@@ -124,6 +126,13 @@ export function getPostEvent(post) {
 }
 
 /**
+ * Récupère les données d'incident si présentes
+ */
+export function getPostIncident(post) {
+  return getMetadata(post, "incident", null);
+}
+
+/**
  * Récupère le groupId d'un article (null si pas dans un groupe)
  */
 export function getPostGroupId(post) {
@@ -169,6 +178,58 @@ export function isLocked(post) {
 export function incrementViewCount(post) {
   const currentCount = getMetadata(post, "viewCount", 0);
   return setMetadata(post, { viewCount: currentCount + 1 });
+}
+
+// ============ SHARES ============
+
+/**
+ * Crée metadata pour un post de type share
+ * @param {string} entityType - Type d'entité partagée ("post", future: "wiki_page", etc.)
+ * @param {string} entityId - UUID de l'entité partagée
+ * @param {Object} options - Options additionnelles
+ * @returns {Object} Metadata initialisé
+ */
+export function createSharePostMetadata(entityType, entityId, options = {}) {
+  return initMetadata({
+    postType: POST_TYPES.SHARE,
+    share: {
+      entityType,
+      entityId,
+      sharedBy: options.userId,
+      sharedAt: new Date().toISOString(),
+      sharedToGazette: options.gazette || null,
+      sharedToGroup: options.groupId || null,
+    },
+    title: options.title || "Partage",
+  });
+}
+
+/**
+ * Récupère les informations de partage d'un post
+ * @param {Object} post
+ * @returns {Object|null} Info du partage ou null
+ */
+export function getShareInfo(post) {
+  return getMetadata(post, "share", null);
+}
+
+/**
+ * Récupère la liste des partages d'un post original
+ * @param {Object} post
+ * @returns {Array} Liste des partages
+ */
+export function getShares(post) {
+  return getMetadata(post, "shares", []);
+}
+
+/**
+ * Récupère le nombre de partages actifs d'un post
+ * @param {Object} post
+ * @returns {number} Nombre de partages
+ */
+export function getShareCount(post) {
+  const shares = getShares(post);
+  return shares.filter((s) => !s.isDeleted).length;
 }
 
 // ============ COMMENTS ============

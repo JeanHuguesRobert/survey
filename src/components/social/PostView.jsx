@@ -11,6 +11,7 @@ import {
   hasLinkedEntity,
   incrementViewCount,
   POST_TYPES,
+  getPostIncident,
 } from "../../lib/socialMetadata";
 import {
   isPinnedPost,
@@ -33,6 +34,7 @@ import { getDisplayName, getUserInitials } from "../../lib/userDisplay";
 import { enrichUserMetadata } from "../../lib/userTransform";
 import SubscribeButton from "../common/SubscribeButton";
 import EventInfo from "./EventInfo";
+import IncidentInfo from "./IncidentInfo";
 
 /**
  * Vue détaillée d'un article avec commentaires
@@ -190,6 +192,7 @@ export default function PostView({ currentUser }) {
   const subtitle = getPostSubtitle(post);
   const subtype = getPostSubtype(post);
   const event = getPostEvent(post);
+  const incident = getPostIncident(post);
   const tags = getMetadata(post, "tags", []);
   const viewCount = getMetadata(post, "viewCount", 0);
   const isPostAuthor = isAuthor(post, currentUser);
@@ -264,7 +267,7 @@ export default function PostView({ currentUser }) {
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
           <div className="flex items-start gap-4 flex-1">
-            <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
+            <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center shrink-0">
               {getUserInitials(post.users)}
             </div>
 
@@ -339,8 +342,9 @@ export default function PostView({ currentUser }) {
         {/* Sous-titre si présent */}
         {subtitle && <h2 className="text-xl font-semibold text-gray-300 mb-4">{subtitle}</h2>}
 
-        {/* Event info */}
+        {/* Event / Incident info */}
         {subtype === "event" && <EventInfo event={event} />}
+        {subtype === "incident" && <IncidentInfo incident={incident} />}
 
         {/* Entité liée */}
         {linkedEntity && (

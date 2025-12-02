@@ -6,6 +6,7 @@ import { enrichUserMetadata } from "../lib/userTransform";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import GazetteLayout from "../components/gazette/GazetteLayout";
 import GazettePost from "../components/gazette/GazettePost";
+import { isEventPost, getPostEvent } from "../lib/postPredicates";
 
 // Collapsible help banner for editors
 function CollapsibleHelpBanner({ gazetteName }) {
@@ -206,6 +207,13 @@ export default function Gazette() {
     setSearchParams({ week: dateString });
   };
 
+  const parseWeekDate = (dateString) => {
+    if (!dateString) return null;
+    const [year, month, day] = dateString.split("-").map(Number);
+    if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) return null;
+    return new Date(year, month - 1, day);
+  };
+
   if (loading) {
     return (
       <GazetteLayout
@@ -217,6 +225,29 @@ export default function Gazette() {
   }
 
   const currentWeekPosts = weeks.find((w) => w.dateString === selectedWeek)?.posts || [];
+  const mondayDate = parseWeekDate(selectedWeek);
+  const hasUpcomingEvents =
+    !!mondayDate &&
+    currentWeekPosts.some((post) => {
+      if (!isEventPost(post)) return false;
+      const eventData = getPostEvent(post);
+      if (!eventData?.date) return false;
+      const eventDate = new Date(eventData.date);
+      if (Number.isNaN(eventDate.getTime())) return false;
+      return eventDate.getTime() > mondayDate.getTime();
+    });
+  const agendaPath =
+    gazetteName && gazetteName !== "global"
+      ? `/agenda?gazette=${encodeURIComponent(gazetteName)}`
+      : "/agenda";
+  const agendaButton = hasUpcomingEvents ? (
+    <Link
+      to={agendaPath}
+      className="inline-flex items-center gap-2 px-4 py-2 border-2 border-[#2c241b] font-['Playfair_Display'] text-base uppercase tracking-wide bg-transparent hover:bg-[#2c241b] hover:text-[#f4e4bc] transition-colors"
+    >
+      📅 Agenda
+    </Link>
+  ) : null;
 
   return (
     <GazetteLayout
@@ -227,6 +258,7 @@ export default function Gazette() {
       weeks={weeks}
       selectedWeek={selectedWeek}
       onWeekChange={handleWeekChange}
+      extraHeaderActions={agendaButton}
     >
       {isEditor && <CollapsibleHelpBanner gazetteName={gazetteName} />}
 

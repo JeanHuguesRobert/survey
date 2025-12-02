@@ -1,5 +1,12 @@
 import { getMetadata } from "./metadata";
-import { POST_TYPES, LINKED_TYPES, getPostType } from "./socialMetadata";
+import {
+  POST_TYPES,
+  LINKED_TYPES,
+  getPostType,
+  getShareInfo,
+  getShares,
+  getShareCount,
+} from "./socialMetadata";
 
 // ============================================================================
 // GETTERS (Read-Only Instance Accessors)
@@ -51,6 +58,15 @@ export function getPostEvent(post) {
   return getMetadata(post, "event", null);
 }
 
+/**
+ * Returns the incident details if the post is an incident.
+ * @param {Object} post
+ * @returns {Object|null}
+ */
+export function getPostIncident(post) {
+  return getMetadata(post, "incident", null);
+}
+
 // ============================================================================
 // PREDICATES (Nature & State)
 // ============================================================================
@@ -87,6 +103,15 @@ export function isGlobalGazettePost(post) {
  */
 export function isEventPost(post) {
   return getMetadata(post, "subtype") === "event";
+}
+
+/**
+ * Checks if the post is an incident.
+ * @param {Object} post
+ * @returns {boolean}
+ */
+export function isIncidentPost(post) {
+  return getMetadata(post, "subtype") === "incident";
 }
 
 /**
@@ -142,6 +167,42 @@ export function isPinnedPost(post) {
  */
 export function isLockedPost(post) {
   return getMetadata(post, "isLocked", false) === true;
+}
+
+/**
+ * Checks if the post is a share.
+ * @param {Object} post
+ * @returns {boolean}
+ */
+export function isShare(post) {
+  return getPostType(post) === POST_TYPES.SHARE;
+}
+
+/**
+ * Gets share info if this is a share post.
+ * @param {Object} post
+ * @returns {Object|null}
+ */
+export function getPostShareInfo(post) {
+  return getShareInfo(post);
+}
+
+/**
+ * Gets all shares of this post (where it's been shared to).
+ * @param {Object} post
+ * @returns {Array}
+ */
+export function getPostShares(post) {
+  return getShares(post);
+}
+
+/**
+ * Gets the count of active shares.
+ * @param {Object} post
+ * @returns {number}
+ */
+export function getPostShareCount(post) {
+  return getShareCount(post);
 }
 
 // ============================================================================

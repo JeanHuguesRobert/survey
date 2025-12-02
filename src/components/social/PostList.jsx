@@ -20,6 +20,7 @@ export default function PostList({
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const shouldIgnoreLinkedFilters = Boolean(gazette);
 
   useEffect(() => {
     loadPosts();
@@ -45,10 +46,10 @@ export default function PostList({
       const buildBaseQuery = () => {
         let query = supabase.from("posts").select("*, users(id, display_name, metadata)");
 
-        if (linkedType) {
+        if (!shouldIgnoreLinkedFilters && linkedType) {
           query = query.eq("metadata->>linkedType", linkedType);
         }
-        if (linkedId) {
+        if (!shouldIgnoreLinkedFilters && linkedId) {
           query = query.eq("metadata->>linkedId", linkedId);
         }
         if (postType) {

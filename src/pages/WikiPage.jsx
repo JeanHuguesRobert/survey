@@ -9,6 +9,7 @@ import { marked } from "marked";
 import DOMPurify from "dompurify";
 import ShareModal from "../components/wiki/ShareModal";
 import FacebookShareButton from "../components/common/FacebookShareButton";
+import ShareMenu from "../components/common/ShareMenu";
 import { formatDate, formatRelativeDate } from "../lib/formatDate";
 import CommentSection from "../components/common/CommentSection";
 import { useCurrentUser } from "../lib/useCurrentUser";
@@ -124,7 +125,6 @@ const WikiPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pages, setPages] = useState([]); // Déclaration de l'état 'pages'
-  const [showShareModal, setShowShareModal] = useState(false); // Nouvel état pour le modal de partage
   const [syncHistory, setSyncHistory] = useState([]); // État pour l'historique de synchronisation
   const { currentUser } = useCurrentUser(); // Hook pour l'utilisateur connecté
   const loadPages = useDataLoader();
@@ -238,10 +238,6 @@ const WikiPage = () => {
     );
   };
 
-  const handleShare = () => {
-    setShowShareModal(true); // Ouvre le modal de partage
-  };
-
   if (loading) {
     // Loading is now handled globally by the status monitoring system
     return <div className="text-center py-12">Chargement...</div>;
@@ -280,10 +276,13 @@ const WikiPage = () => {
             <p className="text-sm text-gray-500 mt-2">Adresse de la page : /wiki/{page.slug}</p>
           </div>
           <div className="flex gap-3">
-            <button onClick={handleShare} className="btn btn-secondary-action  text-sm">
-              Partager
-            </button>
-            <FacebookShareButton url={window.location.href} quote={page.title} className="btn-sm" />
+            <ShareMenu
+              entityType="wiki_page"
+              entityId={page.id}
+              title={page.title}
+              description={page.summary || page.content?.slice(0, 200)}
+              currentUserId={currentUser?.id}
+            />
 
             {currentUser && canWrite(currentUser) && (
               <>
@@ -351,14 +350,6 @@ const WikiPage = () => {
           {next ? next.title : "Aucune"} →
         </button>
       </footer>
-
-      <ShareModal
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        pageTitle={page?.title || "Page Wiki"}
-        pageUrl={window.location.href}
-        pageContent={page?.content || ""}
-      />
 
       {/* Section de commentaires */}
       <CommentSection

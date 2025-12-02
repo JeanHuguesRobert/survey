@@ -1,16 +1,28 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import { getMetadata } from "../../lib/metadata";
 import { getPostTitle, getPostType, POST_TYPES } from "../../lib/socialMetadata";
-import { isPinnedPost, isLockedPost, getPostEvent, isGazettePost } from "../../lib/postPredicates";
+import {
+  isPinnedPost,
+  isLockedPost,
+  getPostEvent,
+  isGazettePost,
+  isShare,
+  getPostShareInfo,
+  getPostShareCount,
+} from "../../lib/postPredicates";
 import { getDisplayName, getUserInitials } from "../../lib/userDisplay";
+import { sharePost, resolveToOriginal } from "../../lib/sharePost";
+import ShareDialog from "../social/ShareDialog";
 
 /**
  * Carte d'affichage d'un article
  */
 export default function PostCard({ post, currentUserId, gazette = null, showMarkdown = false }) {
   const [expanded, setExpanded] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [originalPost, setOriginalPost] = useState(null);
   const navigate = useNavigate();
   const title = getPostTitle(post);
   const postType = getPostType(post);
@@ -20,18 +32,40 @@ export default function PostCard({ post, currentUserId, gazette = null, showMark
   const viewCount = getMetadata(post, "viewCount", 0);
   const subtitle = getMetadata(post, "subtitle", "");
   const event = getPostEvent(post);
+  const thisIsAShare = isShare(post);
+  const shareCount = getPostShareCount(post);
+
+  // Load original post if this is a share
+  useEffect(() => {
+    if (thisIsAShare) {
+      resolveToOriginal(post.id).then(setOriginalPost);
+    }
+  }, [thisIsAShare, post.id]);
+
+  async function handleShare(gazetteName) {
+    try {
+      await sharePost(post.id, { gazette: gazetteName }, { id: currentUserId });
+      alert("Partagé!");
+      setShowShareDialog(false);
+      // Optionally reload or update state
+    } catch (err) {
+      alert("Erreur: " + err.message);
+    }
+  }
 
   // Icônes par type
   const typeIcons = {
     [POST_TYPES.BLOG]: "📝",
     [POST_TYPES.FORUM]: "💬",
     [POST_TYPES.ANNOUNCEMENT]: "📢",
+    [POST_TYPES.SHARE]: "📤",
   };
 
   const typeLabels = {
     [POST_TYPES.BLOG]: "Article",
     [POST_TYPES.FORUM]: "Discussion",
     [POST_TYPES.ANNOUNCEMENT]: "Annonce",
+    [POST_TYPES.SHARE]: "Partage",
   };
 
   return (
@@ -109,6 +143,21 @@ export default function PostCard({ post, currentUserId, gazette = null, showMark
           </div>
         </div>
       </div>
+
+      {/* Share indicator - shows who shared and when */}
+      {thisIsAShare && (
+        <div className="border-l-2 border-primary-500 pl-3 mb-3 text-sm text-gray-400">
+          <div className="font-medium">Partagé par {getDisplayName(post.users)}</div>
+          <div className="text-xs">
+            {new Date(getPostShareInfo(post)?.sharedAt).toLocaleString("fr-FR")}
+          </div>
+          {originalPost && (
+            <div className="text-xs text-gray-500 mt-1">
+              Article original de {getDisplayName(originalPost.users)}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Titre */}
       <h3 className="text-xl font-bold text-gray-800 mb-2 font-bauhaus uppercase">{title}</h3>
@@ -215,7 +264,31 @@ export default function PostCard({ post, currentUserId, gazette = null, showMark
           </svg>{" "}
           {/* Nombre de comments sera ajouté plus tard */}
         </span>
+        {/* Share count */}
+        {shareCount > 0 && (
+          <span className="text-xs text-primary-400 font-bold">
+            ↗ {shareCount} partage{shareCount > 1 ? "s" : ""}
+          </span>
+        )}
+        {/* Share button */}
+        {currentUserId && !thisIsAShare && (
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowShareDialog(true);
+            }}
+            className="text-xs bg-gray-700 hover:bg-gray-600 text-white px-2 py-1 rounded"
+          >
+            📤 Partager
+          </button>
+        )}
       </div>
+
+      {/* Share dialog */}
+      {showShareDialog && (
+        <ShareDialog post={post} onShare={handleShare} onCancel={() => setShowShareDialog(false)} />
+      )}
     </Link>
   );
 }
