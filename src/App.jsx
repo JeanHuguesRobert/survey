@@ -81,6 +81,7 @@ import Admin from "./pages/Admin";
 import Gazette from "./pages/Gazette";
 import Agenda from "./pages/Agenda";
 import Incidents from "./pages/Incidents";
+import IncidentEditor from "./pages/IncidentEditor";
 import SurveyModeEmploi from "./pages/SurveyModeEmploi";
 import MarkdownViewer from "./pages/MarkdownViewer";
 import NotFound from "./pages/NotFound";
@@ -1297,6 +1298,8 @@ export function App() {
         <Route path="/gazette/:name" element={<Gazette />} />
         <Route path="/agenda" element={<Agenda />} />
         <Route path="/incidents" element={<Incidents />} />
+        <Route path="/incidents/new" element={<IncidentEditor />} />
+        <Route path="/incidents/:id/edit" element={<IncidentEditor />} />
         <Route path="/social" element={<Social />} />
         <Route path="/users/:id" element={<UserPage />} />
         <Route path="/user-dashboard" element={<UserDashboard />} />

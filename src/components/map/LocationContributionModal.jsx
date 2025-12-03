@@ -4,6 +4,7 @@ import { useCurrentUser } from "../../lib/useCurrentUser";
 import { getDisplayName } from "../../lib/userDisplay";
 import CitizenMap from "../map/CitizenMap";
 import LocationPicker from "../map/LocationPicker";
+import { appendOrMergeLastModifiedBy } from "../../lib/socialMetadata";
 
 export default function LocationContributionModal({ post, onClose, onSuccess }) {
   const { currentUser } = useCurrentUser();
@@ -77,6 +78,12 @@ export default function LocationContributionModal({ post, onClose, onSuccess }) 
 
       // Always store contributor info at root level
       updatedMetadata.locationContributedBy = contributorData;
+
+      // Append or merge lastModifiedBy as this is a metadata update
+      updatedMetadata = appendOrMergeLastModifiedBy(updatedMetadata, {
+        id: currentUser.id,
+        displayName: getDisplayName(currentUser),
+      });
 
       const { error: updateError } = await supabase
         .from("posts")

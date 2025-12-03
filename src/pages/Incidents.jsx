@@ -1,10 +1,17 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useCurrentUser } from "../lib/useCurrentUser";
+import { useNavigate } from "react-router-dom";
 import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { isDeleted } from "../lib/metadata";
 import { enrichUserMetadata } from "../lib/userTransform";
 import { getDisplayName } from "../lib/userDisplay";
-import { getPostTitle, getPostSubtitle, getPostIncident } from "../lib/socialMetadata";
+import {
+  getPostTitle,
+  getPostSubtitle,
+  getPostIncident,
+  getLatestModifier,
+} from "../lib/socialMetadata";
 import { getPostGazette } from "../lib/postPredicates";
 import CitizenMap from "../components/map/CitizenMap";
 import IncidentsLayer from "../components/map/layers/IncidentsLayer";
@@ -28,6 +35,8 @@ const STATUS_ORDER = ["open", "investigating", "monitoring", "resolved"];
 const SEVERITY_ORDER = ["critical", "high", "medium", "low"];
 
 export default function Incidents() {
+  const { currentUser } = useCurrentUser();
+  const navigate = useNavigate();
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -39,9 +48,29 @@ export default function Incidents() {
   const [mapZoom, setMapZoom] = useState(13);
   const [locationModalPost, setLocationModalPost] = useState(null);
 
+  const [editorGazettes, setEditorGazettes] = useState([]);
+
   useEffect(() => {
     setSelectedGazette(initialGazette);
   }, [initialGazette]);
+
+  useEffect(() => {
+    async function loadEditorGazettes() {
+      if (!currentUser) return;
+      try {
+        const { data, error } = await supabase
+          .from("group_members")
+          .select("group_id, groups(name)")
+          .eq("user_id", currentUser.id);
+        if (error) throw error;
+        const names = (data || []).map((d) => d.groups?.name).filter(Boolean);
+        setEditorGazettes(names);
+      } catch (err) {
+        console.warn("Error loading editor group names", err);
+      }
+    }
+    loadEditorGazettes();
+  }, [currentUser]);
 
   useEffect(() => {
     async function loadIncidents() {
@@ -71,6 +100,8 @@ export default function Incidents() {
               subtitle: getPostSubtitle(post),
               gazette: getPostGazette(post),
               authorName: getDisplayName(post.users) || "Anonyme",
+              authorId: post.author_id,
+              metadata: post.metadata,
               createdAt: new Date(post.created_at),
               incident,
               location: post.metadata?.location || null,
@@ -200,6 +231,8 @@ export default function Incidents() {
         })
       : null;
 
+    const latestModifier = getLatestModifier(item.metadata, item);
+
     return (
       <article key={item.id} className="border border-red-200 bg-white/80 p-4  shadow-sm space-y-3">
         <header>
@@ -245,6 +278,9 @@ export default function Incidents() {
         </dl>
         <div className="text-sm text-[#4b3c2f] flex flex-wrap gap-2 items-center">
           <span>Auteur : {item.authorName}</span>
+          {latestModifier && latestModifier.id !== item.authorId && (
+            <span>• Mis à jour par {latestModifier.displayName}</span>
+          )}
           {item.location && item.location.lat ? (
             <>
               <button
@@ -253,13 +289,25 @@ export default function Incidents() {
               >
                 Voir sur la carte
               </button>
-              <button
-                onClick={() => handleLocationContribution(item)}
-                className="text-xs border border-[#2c241b] text-[#2c241b] px-2 py-0.5 rounded hover:bg-[#2c241b] hover:text-[#f4e4bc] transition-colors"
-                title="Suggérer une correction de lieu"
-              >
-                ✏️ Corriger
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleLocationContribution(item)}
+                  className="text-xs border border-[#2c241b] text-[#2c241b] px-2 py-0.5 rounded hover:bg-[#2c241b] hover:text-[#f4e4bc] transition-colors"
+                  title="Suggérer une correction de lieu"
+                >
+                  ✏️ Corriger
+                </button>
+                {currentUser &&
+                  (currentUser.id === item.authorId ||
+                    (item.gazette && editorGazettes.includes(item.gazette))) && (
+                    <button
+                      onClick={() => navigate(`/incidents/${item.id}/edit`)}
+                      className="text-xs bg-gray-900 text-white px-2 py-0.5 rounded"
+                    >
+                      Modifier
+                    </button>
+                  )}
+              </div>
             </>
           ) : (
             <button
@@ -327,6 +375,16 @@ export default function Incidents() {
         )}
 
         <div className="flex justify-end mb-4">
+          {currentUser && (
+            <div className="mr-2">
+              <button
+                onClick={() => navigate("/incidents/new")}
+                className="px-3 py-1 bg-accent text-white rounded"
+              >
+                Déclarer un incident
+              </button>
+            </div>
+          )}
           <div className="inline-flex rounded-md shadow-sm" role="group">
             <button
               type="button"

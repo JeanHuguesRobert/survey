@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useMap } from "react-leaflet";
+import { parseLocationInput } from "../../lib/locationParser";
 
 export default function AddressSearchControl({ onLocationSelect }) {
   const map = useMap();
@@ -48,6 +49,23 @@ export default function AddressSearchControl({ onLocationSelect }) {
     e.preventDefault();
     e.stopPropagation();
     if (!query.trim()) return;
+
+    // First, try to parse as a direct location (URL or lat,lng)
+    // Get default center from env
+    const defaultCenterStr = import.meta.env.VITE_MAP_DEFAULT_CENTER || "42.3094,9.1490";
+    const [centerLat, centerLng] = defaultCenterStr.split(",").map(parseFloat);
+    const center = { lat: centerLat, lng: centerLng };
+
+    const parsedLocation = parseLocationInput(query, { center, maxDistanceKm: 200 });
+    if (parsedLocation) {
+      handleSelect({
+        lat: parsedLocation.lat,
+        lon: parsedLocation.lng,
+        display_name: parsedLocation.name,
+        place_id: "manual-" + Date.now(), // Fake ID for internal use
+      });
+      return;
+    }
 
     setIsSearching(true);
     try {
