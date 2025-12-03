@@ -409,6 +409,36 @@ export function updateThreadStats(rootPost, allThreadPosts, commentCounts = {}) 
   return setMetadata(rootPost, { threadStats });
 }
 
+/**
+ * Get the path from root post to current post (for breadcrumbs)
+ * @param {string} postId - Current post ID
+ * @param {Object} supabase - Supabase client
+ * @returns {Promise<Array>} Array of posts from root to current
+ */
+export async function getThreadPath(postId, supabase) {
+  const { data: post } = await supabase.from("posts").select("*").eq("id", postId).single();
+
+  if (!post) return [];
+
+  const path = [post];
+  let currentParentId = getParentId(post);
+
+  // Walk up the tree to find all ancestors
+  while (currentParentId) {
+    const { data: parent } = await supabase
+      .from("posts")
+      .select("*")
+      .eq("id", currentParentId)
+      .single();
+
+    if (!parent) break;
+    path.unshift(parent); // Add to beginning
+    currentParentId = getParentId(parent);
+  }
+
+  return path;
+}
+
 // ============ SHARES ============
 
 /**

@@ -18,6 +18,7 @@ import {
   isSubPost,
   getThreadDepth,
   getThreadStats,
+  getThreadPath,
 } from "../../lib/socialMetadata";
 import {
   isPinnedPost,
@@ -43,6 +44,7 @@ import EventInfo from "./EventInfo";
 import IncidentInfo from "./IncidentInfo";
 import SubPostEditor from "./SubPostEditor";
 import SubPostCard from "./SubPostCard";
+import ThreadNavigator from "./ThreadNavigator";
 
 /**
  * Vue détaillée d'un article avec commentaires
@@ -59,14 +61,25 @@ export default function PostView({ currentUser }) {
   const [showHistory, setShowHistory] = useState(false);
   const [subPosts, setSubPosts] = useState([]);
   const [showSubPostEditor, setShowSubPostEditor] = useState(false);
+  const [threadPath, setThreadPath] = useState([]);
 
   useEffect(() => {
     if (id) {
       loadPost();
       trackView();
       loadSubPosts();
+      loadThreadPath();
     }
   }, [id]);
+
+  async function loadThreadPath() {
+    try {
+      const path = await getThreadPath(id, supabase);
+      setThreadPath(path);
+    } catch (err) {
+      console.error("Error loading thread path:", err);
+    }
+  }
 
   async function loadPost() {
     try {
@@ -250,22 +263,26 @@ export default function PostView({ currentUser }) {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      {/* Breadcrumb */}
-      <div className="text-sm text-gray-400 mb-4 flex items-center gap-2">
-        <Link to="/social" className="hover:underline">
-          Social
-        </Link>
-        {group && (
-          <>
-            <span>›</span>
-            <Link to={`/groups/${group.id}`} className="hover:underline">
-              {group.name}
-            </Link>
-          </>
-        )}
-        <span>›</span>
-        <span className="text-gray-50">{title}</span>
-      </div>
+      {/* Thread Navigation / Breadcrumb */}
+      {threadPath.length > 1 ? (
+        <ThreadNavigator threadPath={threadPath} />
+      ) : (
+        <div className="text-sm text-gray-400 mb-4 flex items-center gap-2">
+          <Link to="/social" className="hover:underline">
+            Social
+          </Link>
+          {group && (
+            <>
+              <span>›</span>
+              <Link to={`/groups/${group.id}`} className="hover:underline">
+                {group.name}
+              </Link>
+            </>
+          )}
+          <span>›</span>
+          <span className="text-gray-50">{title}</span>
+        </div>
+      )}
 
       {/* Gazette Banner */}
       {isGazettePost(post) && (

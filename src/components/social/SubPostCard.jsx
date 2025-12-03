@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { getPostTitle, getPostSubtitle, getThreadDepth } from "../../lib/socialMetadata";
 import { getDisplayName, getUserInitials } from "../../lib/userDisplay";
@@ -7,6 +8,8 @@ import { getDisplayName, getUserInitials } from "../../lib/userDisplay";
  * Card component for displaying sub-posts in a thread hierarchy
  */
 export default function SubPostCard({ post, currentUser }) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   const title = getPostTitle(post);
   const subtitle = getPostSubtitle(post);
   const depth = getThreadDepth(post);
@@ -31,9 +34,18 @@ export default function SubPostCard({ post, currentUser }) {
     <article
       className={`border-l-4 ${depthClass} ${marginClass} p-4 rounded hover:bg-gray-800/30 transition-colors`}
     >
-      {/* Header */}
+      {/* Header with collapse button */}
       <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-3 flex-1">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          {/* Collapse/Expand Button */}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="text-gray-400 hover:text-gray-200 transition-colors shrink-0 text-lg"
+            title={isCollapsed ? "Expand" : "Collapse"}
+          >
+            {isCollapsed ? "▶" : "▼"}
+          </button>
+
           <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-sm shrink-0">
             {getUserInitials(post.users)}
           </div>
@@ -65,36 +77,53 @@ export default function SubPostCard({ post, currentUser }) {
         </div>
       </div>
 
-      {/* Title */}
-      <Link to={`/posts/${post.id}`} className="block group">
-        <h4 className="text-lg font-semibold text-gray-100 group-hover:text-primary-400 transition-colors mb-1">
-          {title}
-        </h4>
-        {subtitle && <p className="text-sm text-gray-400 italic mb-2">{subtitle}</p>}
-      </Link>
-
-      {/* Content Preview */}
-      <div className="prose prose-sm max-w-none text-gray-300 mb-3 line-clamp-3">
-        <ReactMarkdown>{contentPreview}</ReactMarkdown>
-      </div>
-
-      {/* Footer with stats */}
-      <div className="flex items-center gap-4 text-xs text-gray-400">
-        <Link
-          to={`/posts/${post.id}`}
-          className="hover:text-primary-400 transition-colors font-medium"
-        >
-          Voir le post complet →
-        </Link>
-        {commentCount > 0 && (
-          <>
-            <span>•</span>
-            <span>
+      {/* Collapsed view - just title */}
+      {isCollapsed ? (
+        <Link to={`/posts/${post.id}`} className="block group">
+          <h4 className="text-lg font-semibold text-gray-100 group-hover:text-primary-400 transition-colors">
+            {title}
+          </h4>
+          {commentCount > 0 && (
+            <span className="text-xs text-gray-400 mt-1 inline-block">
               💬 {commentCount} commentaire{commentCount > 1 ? "s" : ""}
             </span>
-          </>
-        )}
-      </div>
+          )}
+        </Link>
+      ) : (
+        <>
+          {/* Expanded view - full content */}
+          {/* Title */}
+          <Link to={`/posts/${post.id}`} className="block group">
+            <h4 className="text-lg font-semibold text-gray-100 group-hover:text-primary-400 transition-colors mb-1">
+              {title}
+            </h4>
+            {subtitle && <p className="text-sm text-gray-400 italic mb-2">{subtitle}</p>}
+          </Link>
+
+          {/* Content Preview */}
+          <div className="prose prose-sm max-w-none text-gray-300 mb-3 line-clamp-3">
+            <ReactMarkdown>{contentPreview}</ReactMarkdown>
+          </div>
+
+          {/* Footer with stats */}
+          <div className="flex items-center gap-4 text-xs text-gray-400">
+            <Link
+              to={`/posts/${post.id}`}
+              className="hover:text-primary-400 transition-colors font-medium"
+            >
+              Voir le post complet →
+            </Link>
+            {commentCount > 0 && (
+              <>
+                <span>•</span>
+                <span>
+                  💬 {commentCount} commentaire{commentCount > 1 ? "s" : ""}
+                </span>
+              </>
+            )}
+          </div>
+        </>
+      )}
     </article>
   );
 }
