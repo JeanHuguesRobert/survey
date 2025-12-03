@@ -159,10 +159,7 @@ export default function TaskProjectDetail() {
       </Link>
 
       {/* Project Header */}
-      <div
-        className="bg-white rounded-lg border-2 shadow-md p-6 mb-6"
-        style={{ borderColor: color }}
-      >
+      <div className="bg-white  border-2 shadow-md p-6 mb-6" style={{ borderColor: color }}>
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-4">
             <span className="text-5xl">{icon}</span>
@@ -210,7 +207,7 @@ export default function TaskProjectDetail() {
         <div className="flex gap-2">
           <button
             onClick={() => setViewMode(PROJECT_VIEW_MODES.KANBAN)}
-            className={`px-4 py-2 rounded-lg font-bold text-sm ${
+            className={`px-4 py-2  font-bold text-sm ${
               viewMode === PROJECT_VIEW_MODES.KANBAN
                 ? "bg-gray-900 text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -220,7 +217,7 @@ export default function TaskProjectDetail() {
           </button>
           <button
             onClick={() => setViewMode(PROJECT_VIEW_MODES.LIST)}
-            className={`px-4 py-2 rounded-lg font-bold text-sm ${
+            className={`px-4 py-2  font-bold text-sm ${
               viewMode === PROJECT_VIEW_MODES.LIST
                 ? "bg-gray-900 text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -233,7 +230,7 @@ export default function TaskProjectDetail() {
         {isMember && (
           <Link
             to={`/tasks/${id}/task/new`}
-            className="bg-primary-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-primary-700 flex items-center gap-2"
+            className="bg-primary-600 text-white px-4 py-2  font-bold hover:bg-primary-700 flex items-center gap-2"
           >
             <span className="text-xl">+</span>
             Ajouter une tâche
@@ -254,7 +251,7 @@ export default function TaskProjectDetail() {
       )}
 
       {viewMode === PROJECT_VIEW_MODES.LIST && (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+        <div className="bg-white  border border-gray-200 shadow-sm">
           <div className="p-4 border-b border-gray-200 bg-gray-50">
             <h2 className="font-bold text-gray-900">Toutes les tâches</h2>
           </div>

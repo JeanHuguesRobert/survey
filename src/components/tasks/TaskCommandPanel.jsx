@@ -83,9 +83,9 @@ export default function TaskCommandPanel({ taskId, currentUser, onCommandExecute
   const helperText = successMessage || DEFAULT_HELP_TEXT;
 
   return (
-    <div className="relative bg-white border border-gray-200 rounded-lg shadow-sm p-5">
+    <div className="relative bg-white border border-gray-200  shadow-sm p-5">
       {!currentUser && (
-        <div className="absolute inset-0 rounded-lg bg-white/85 backdrop-blur-sm flex items-center justify-center px-6 text-center z-10">
+        <div className="absolute inset-0  bg-white/85 backdrop-blur-sm flex items-center justify-center px-6 text-center z-10">
           <p className="text-sm font-medium text-gray-700">
             Connectez-vous pour exécuter des commandes rapides.
           </p>
@@ -109,7 +109,7 @@ export default function TaskCommandPanel({ taskId, currentUser, onCommandExecute
             onChange={(event) => setCommandText(event.target.value)}
             disabled={isFormDisabled}
             placeholder="Ex: /status en_cours"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm text-gray-800 resize-none disabled:bg-gray-50 disabled:text-gray-400"
+            className="w-full px-4 py-3 border border-gray-300  focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm text-gray-800 resize-none disabled:bg-gray-50 disabled:text-gray-400"
           />
 
           {errorMessage ? (
@@ -124,14 +124,14 @@ export default function TaskCommandPanel({ taskId, currentUser, onCommandExecute
             <button
               type="submit"
               disabled={isFormDisabled || isCommandEmpty}
-              className="px-5 py-2 bg-primary-600 text-white text-sm font-semibold rounded-lg hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="px-5 py-2 bg-primary-600 text-white text-sm font-semibold  hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isSubmitting ? "Exécution..." : "Exécuter"}
             </button>
           </div>
         </form>
 
-        <div className="border border-gray-100 rounded-lg bg-gray-50">
+        <div className="border border-gray-100  bg-gray-50">
           <div className="px-4 py-3 border-b border-gray-100">
             <p className="text-sm font-semibold text-gray-700">Commandes disponibles</p>
           </div>

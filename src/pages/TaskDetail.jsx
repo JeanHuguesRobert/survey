@@ -288,7 +288,7 @@ export default function TaskDetail() {
   if (error) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-8">
-        <div className="bg-red-50 text-red-700 p-4 border border-red-200 rounded mb-4">{error}</div>
+        <div className="bg-red-50 text-red-700 p-4 border border-red-200  mb-4">{error}</div>
         <Link to={`/tasks/${projectId}`} className="text-primary-600 hover:underline">
           ← Retour au projet
         </Link>
@@ -335,7 +335,7 @@ export default function TaskDetail() {
             <div className="flex gap-2">
               <Link
                 to={`/tasks/${projectId}/task/${taskId}/edit`}
-                className="px-4 py-2 text-sm font-semibold border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                className="px-4 py-2 text-sm font-semibold border border-gray-300  text-gray-700 hover:bg-gray-50"
               >
                 Modifier
               </Link>
@@ -345,14 +345,12 @@ export default function TaskDetail() {
       </div>
 
       {actionError && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3">
-          {actionError}
-        </div>
+        <div className="bg-red-50 border border-red-200 text-red-700  p-3">{actionError}</div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <div className="bg-white border border-gray-200  p-6 shadow-sm">
             <div className="flex flex-wrap gap-4 items-center mb-4">
               <div className={`px-3 py-1 rounded-full border text-sm font-semibold ${statusColor}`}>
                 {statusLabel}
@@ -377,14 +375,14 @@ export default function TaskDetail() {
             )}
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <div className="bg-white border border-gray-200  p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Discussion</h2>
             <CommentThread postId={task.id} currentUser={currentUser} />
           </div>
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm space-y-4">
+          <div className="bg-white border border-gray-200  p-5 shadow-sm space-y-4">
             <h2 className="text-lg font-semibold text-gray-900">Informations clés</h2>
 
             <div>
@@ -395,7 +393,7 @@ export default function TaskDetail() {
                 value={status}
                 onChange={handleStatusChange}
                 disabled={!isMember || updating}
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 disabled:bg-gray-50"
+                className="mt-1 w-full px-3 py-2 border border-gray-300  text-sm focus:ring-2 focus:ring-primary-500 disabled:bg-gray-50"
               >
                 {workflowStates.length === 0 && <option value={status}>{statusLabel}</option>}
                 {workflowStates.map((state) => (
@@ -414,7 +412,7 @@ export default function TaskDetail() {
                 value={priority}
                 onChange={handlePriorityChange}
                 disabled={!isMember || updating}
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 disabled:bg-gray-50"
+                className="mt-1 w-full px-3 py-2 border border-gray-300  text-sm focus:ring-2 focus:ring-primary-500 disabled:bg-gray-50"
               >
                 {Object.entries(TASK_PRIORITY_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>
@@ -433,7 +431,7 @@ export default function TaskDetail() {
                 value={dueDate ? dueDate.toISOString().slice(0, 10) : ""}
                 onChange={handleDueDateChange}
                 disabled={!isMember || updating}
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 disabled:bg-gray-50"
+                className="mt-1 w-full px-3 py-2 border border-gray-300  text-sm focus:ring-2 focus:ring-primary-500 disabled:bg-gray-50"
               />
             </div>
 
@@ -469,10 +467,7 @@ export default function TaskDetail() {
               ) : (
                 <div className="mt-1 flex flex-wrap gap-2">
                   {labels.map((label) => (
-                    <span
-                      key={label}
-                      className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs"
-                    >
+                    <span key={label} className="px-2 py-1 bg-gray-100 text-gray-700  text-xs">
                       {label}
                     </span>
                   ))}
@@ -511,7 +506,7 @@ export default function TaskDetail() {
               onCommandExecuted={handleCommandResult}
             />
           ) : (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-500">
+            <div className="bg-gray-50 border border-gray-200  p-4 text-sm text-gray-500">
               Rejoignez ce projet pour exécuter des commandes rapides.
             </div>
           )}

@@ -154,7 +154,7 @@ export default function FeedOpheliaModal({
                 <textarea
                   value={analysis.summary}
                   onChange={(e) => updateAnalysis("summary", e.target.value)}
-                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 min-h-[100px]"
+                  className="w-full p-3 border  focus:ring-2 focus:ring-indigo-500 min-h-[100px]"
                 />
               </div>
 
@@ -195,7 +195,7 @@ export default function FeedOpheliaModal({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Synthetic Q&A (Context)
                 </label>
-                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                <div className="bg-gray-50 p-4  space-y-2">
                   {analysis.questions.map((q, i) => (
                     <div key={i} className="flex gap-2 items-center">
                       <span className="text-indigo-400 font-bold">?</span>
@@ -248,13 +248,13 @@ export default function FeedOpheliaModal({
           <div className="p-4 border-t bg-gray-50 flex justify-end gap-3">
             <button
               onClick={() => setStep("initial")}
-              className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg"
+              className="px-4 py-2 text-gray-600 hover:bg-gray-200 "
             >
               Cancel
             </button>
             <button
               onClick={handleIngest}
-              className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2 font-medium"
+              className="px-6 py-2 bg-indigo-600 text-white  hover:bg-indigo-700 flex items-center gap-2 font-medium"
             >
               <Brain weight="fill" />
               Feed {botName}

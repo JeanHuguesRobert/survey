@@ -121,7 +121,7 @@ export default function TaskProjectsPage() {
         {currentUser && (
           <Link
             to="/tasks/new"
-            className="bg-primary-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-primary-700 transition-colors shadow-sm flex items-center gap-2"
+            className="bg-primary-600 text-white px-6 py-3  font-bold hover:bg-primary-700 transition-colors shadow-sm flex items-center gap-2"
           >
             <span className="text-xl">+</span>
             Créer un projet
@@ -176,7 +176,7 @@ export default function TaskProjectsPage() {
           {error}
         </div>
       ) : filteredProjects.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200 border-dashed">
+        <div className="text-center py-12 bg-gray-50  border border-gray-200 border-dashed">
           <div className="text-5xl mb-4">📋</div>
           <p className="text-gray-500 mb-4">Aucun projet trouvé</p>
           {currentUser && filter === "all" && (

@@ -118,7 +118,7 @@ export default function MissionsPage() {
           {error}
         </div>
       ) : filteredMissions.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200 border-dashed">
+        <div className="text-center py-12 bg-gray-50  border border-gray-200 border-dashed">
           <p className="text-gray-500 mb-4">Aucune mission trouvée</p>
           {currentUser && (
             <Link to="/missions/new" className="text-primary-600 font-bold hover:underline">

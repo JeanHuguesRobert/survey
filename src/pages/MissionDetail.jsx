@@ -207,7 +207,7 @@ export default function MissionDetail() {
         ← Retour aux missions
       </Link>
 
-      <div className="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200">
+      <div className="bg-white shadow-lg  overflow-hidden border border-gray-200">
         <div className="p-8">
           <div className="flex justify-between items-start mb-6">
             <div>
@@ -266,7 +266,7 @@ export default function MissionDetail() {
             </div>
 
             <div className="space-y-6">
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <div className="bg-gray-50 p-4  border border-gray-200">
                 <h3 className="font-bold text-gray-900 mb-4 border-b border-gray-200 pb-2">
                   Détails pratiques
                 </h3>
@@ -359,7 +359,7 @@ export default function MissionDetail() {
               <h3 className="text-xl font-bold">Organisation des tâches</h3>
               <Link
                 to={`/tasks/new?missionId=${id}`}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white  font-semibold hover:bg-primary-700"
               >
                 <span className="text-lg">＋</span>
                 Créer un projet de tâches
@@ -369,7 +369,7 @@ export default function MissionDetail() {
             {tasksLoading ? (
               <div className="p-6 text-gray-500">Chargement des tâches…</div>
             ) : linkedProjects.length === 0 ? (
-              <div className="p-6 bg-gray-50 border border-gray-200 rounded-lg text-gray-600">
+              <div className="p-6 bg-gray-50 border border-gray-200  text-gray-600">
                 Aucune planification n'est encore associée à cette mission.
               </div>
             ) : (
@@ -379,7 +379,7 @@ export default function MissionDetail() {
                   return (
                     <div
                       key={project.id}
-                      className="border border-gray-200 rounded-lg p-5 bg-white shadow-sm"
+                      className="border border-gray-200  p-5 bg-white shadow-sm"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                         <div>
@@ -393,7 +393,7 @@ export default function MissionDetail() {
                         </div>
                         <Link
                           to={`/tasks/${project.id}`}
-                          className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                          className="px-4 py-2 border border-gray-300  text-sm font-semibold text-gray-700 hover:bg-gray-50"
                         >
                           Ouvrir le Kanban
                         </Link>

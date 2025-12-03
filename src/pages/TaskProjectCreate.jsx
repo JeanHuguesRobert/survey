@@ -192,7 +192,7 @@ export default function TaskProjectCreate() {
 
       <form
         onSubmit={handleSubmit}
-        className="bg-white shadow-lg rounded-lg border border-gray-200 p-6 space-y-6"
+        className="bg-white shadow-lg  border border-gray-200 p-6 space-y-6"
       >
         {/* Project Name */}
         <div>
@@ -204,7 +204,7 @@ export default function TaskProjectCreate() {
             id="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-gray-300  focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             placeholder="Ex: Aménagement du parc municipal"
             required
           />
@@ -220,7 +220,7 @@ export default function TaskProjectCreate() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={4}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-gray-300  focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             placeholder="Décrivez les objectifs du projet..."
           />
         </div>
@@ -233,7 +233,7 @@ export default function TaskProjectCreate() {
           <select
             value={linkedMissionId}
             onChange={(e) => setLinkedMissionId(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-gray-300  focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             disabled={missionsLoading}
           >
             <option value="">Aucune mission</option>
@@ -259,7 +259,7 @@ export default function TaskProjectCreate() {
                 key={option.value}
                 type="button"
                 onClick={() => setColor(option.value)}
-                className={`p-3 rounded-lg border-2 transition-all ${
+                className={`p-3  border-2 transition-all ${
                   color === option.value
                     ? "border-gray-900 scale-105"
                     : "border-gray-200 hover:border-gray-400"
@@ -282,7 +282,7 @@ export default function TaskProjectCreate() {
                 key={emoji}
                 type="button"
                 onClick={() => setIcon(emoji)}
-                className={`p-3 rounded-lg border-2 text-2xl transition-all ${
+                className={`p-3  border-2 text-2xl transition-all ${
                   icon === emoji
                     ? "border-gray-900 scale-110"
                     : "border-gray-200 hover:border-gray-400"
@@ -297,7 +297,7 @@ export default function TaskProjectCreate() {
         {/* Preview */}
         <div>
           <label className="block text-sm font-bold text-gray-700 mb-2">Aperçu</label>
-          <div className="p-4 rounded-lg border-2" style={{ borderColor: color }}>
+          <div className="p-4  border-2" style={{ borderColor: color }}>
             <div className="flex items-center gap-3">
               <span className="text-3xl">{icon}</span>
               <div>
@@ -313,14 +313,14 @@ export default function TaskProjectCreate() {
           <button
             type="button"
             onClick={() => navigate("/tasks")}
-            className="flex-1 px-6 py-3 border border-gray-300 rounded-lg font-bold text-gray-700 hover:bg-gray-50"
+            className="flex-1 px-6 py-3 border border-gray-300  font-bold text-gray-700 hover:bg-gray-50"
           >
             Annuler
           </button>
           <button
             type="submit"
             disabled={submitting || !name.trim()}
-            className="flex-1 px-6 py-3 bg-primary-600 text-white rounded-lg font-bold hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-6 py-3 bg-primary-600 text-white  font-bold hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? "Création..." : "Créer le projet"}
           </button>

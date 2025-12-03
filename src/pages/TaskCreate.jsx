@@ -165,7 +165,7 @@ export default function TaskCreate() {
   if (error) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-8">
-        <div className="bg-red-50 text-red-700 p-4 border border-red-200 rounded mb-4">{error}</div>
+        <div className="bg-red-50 text-red-700 p-4 border border-red-200  mb-4">{error}</div>
         <Link to={`/tasks/${projectId}`} className="text-primary-600 hover:underline">
           ← Retour au projet
         </Link>
@@ -190,7 +190,7 @@ export default function TaskCreate() {
       </div>
 
       {!canCreate && (
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-4">
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800  p-4">
           Vous devez être membre du projet pour créer des tâches.
         </div>
       )}

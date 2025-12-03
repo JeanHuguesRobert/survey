@@ -201,10 +201,7 @@ export default function Incidents() {
       : null;
 
     return (
-      <article
-        key={item.id}
-        className="border border-red-200 bg-white/80 p-4 rounded-lg shadow-sm space-y-3"
-      >
+      <article key={item.id} className="border border-red-200 bg-white/80 p-4  shadow-sm space-y-3">
         <header>
           <div className="text-xs uppercase tracking-wide text-red-700 font-semibold">
             {item.gazette ? `Gazette: ${item.gazette}` : "Incident interne"}
@@ -363,7 +360,7 @@ export default function Incidents() {
         ) : filteredIncidents.length === 0 ? (
           <div className="text-center italic">Aucun incident trouvé pour ce filtre.</div>
         ) : viewMode === "map" ? (
-          <div className="h-[600px] w-full border border-[#ebd1b5] rounded-lg overflow-hidden shadow-inner">
+          <div className="h-[600px] w-full border border-[#ebd1b5]  overflow-hidden shadow-inner">
             <CitizenMap center={mapCenter} zoom={mapZoom}>
               <IncidentsLayer incidents={filteredIncidents} />
             </CitizenMap>

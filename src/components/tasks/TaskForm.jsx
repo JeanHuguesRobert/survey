@@ -184,7 +184,7 @@ export default function TaskForm({
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+    <div className="bg-white  border border-gray-200 shadow-sm">
       <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
         <p className="text-sm text-gray-600">
           Vous travaillez sur{" "}
@@ -205,7 +205,7 @@ export default function TaskForm({
             type="text"
             value={formValues.title}
             onChange={handleChange("title")}
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+            className={`w-full px-4 py-2 border  focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
               errors.title ? "border-red-400" : "border-gray-300"
             }`}
             placeholder="Ex: Préparer le brief pour le conseil"
@@ -223,7 +223,7 @@ export default function TaskForm({
             rows={4}
             value={formValues.description}
             onChange={handleChange("description")}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-gray-300  focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             placeholder="Ajoutez du contexte, les étapes ou les liens utiles..."
           />
         </div>
@@ -237,7 +237,7 @@ export default function TaskForm({
               id="task-status"
               value={formValues.status}
               onChange={handleChange("status")}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300  focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >
               {statusOptions.length === 0 && <option value="">Aucun statut disponible</option>}
               {statusOptions.map((status) => (
@@ -256,7 +256,7 @@ export default function TaskForm({
               id="task-priority"
               value={formValues.priority}
               onChange={handleChange("priority")}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300  focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >
               {PRIORITY_VALUES.map((priority) => (
                 <option key={priority} value={priority}>
@@ -277,7 +277,7 @@ export default function TaskForm({
               type="date"
               value={formValues.dueDate}
               onChange={handleChange("dueDate")}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300  focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
 
@@ -290,7 +290,7 @@ export default function TaskForm({
               type="text"
               value={formValues.estimate}
               onChange={handleChange("estimate")}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300  focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               placeholder="Ex: 3h, 2j, Sprint 5"
             />
           </div>
@@ -305,7 +305,7 @@ export default function TaskForm({
             type="text"
             value={formValues.labelsInput}
             onChange={handleChange("labelsInput")}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-gray-300  focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             placeholder="Ex: bug, UX, sprint-2"
           />
           <p className="text-xs text-gray-500 mt-1">
@@ -336,7 +336,7 @@ export default function TaskForm({
               {assigneeOptions.map((member) => (
                 <label
                   key={member.id}
-                  className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:border-primary-300 cursor-pointer"
+                  className="flex items-center gap-3 p-3 border border-gray-200  hover:border-primary-300 cursor-pointer"
                 >
                   <input
                     type="checkbox"
@@ -358,7 +358,7 @@ export default function TaskForm({
           <button
             type="submit"
             disabled={submitting}
-            className="px-6 py-3 bg-primary-600 text-white rounded-lg font-bold hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-3 bg-primary-600 text-white  font-bold hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? "Enregistrement..." : submitLabel || "Enregistrer"}
           </button>

@@ -14,7 +14,7 @@ export default function MissionCreate() {
 
   if (!currentUser) {
     return (
-      <div className="max-w-md mx-auto mt-12 p-6 bg-white rounded-lg shadow-md text-center">
+      <div className="max-w-md mx-auto mt-12 p-6 bg-white  shadow-md text-center">
         <h2 className="text-xl font-bold mb-4">Connexion requise</h2>
         <p className="text-gray-600 mb-6">
           Vous devez être connecté pour créer une mission bénévole.

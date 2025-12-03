@@ -102,7 +102,7 @@ export default function LocationContributionModal({ post, onClose, onSuccess }) 
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000] p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+      <div className="bg-white  shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-xl font-bold text-gray-900">
             {post?.metadata?.location ? "Corriger la localisation" : "Indiquer la localisation"}
@@ -142,7 +142,7 @@ export default function LocationContributionModal({ post, onClose, onSuccess }) 
             </div>
           )}
 
-          <div className="h-96 rounded-lg overflow-hidden border border-gray-300">
+          <div className="h-96  overflow-hidden border border-gray-300">
             <CitizenMap>
               <LocationPicker
                 onLocationSelect={handleLocationSelect}

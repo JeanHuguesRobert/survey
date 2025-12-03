@@ -28,7 +28,7 @@ export default function TaskProjectCard({ project }) {
   return (
     <Link
       to={`/tasks/${project.id}`}
-      className="block bg-white rounded-lg border-2 shadow-sm hover:shadow-md transition-all hover:scale-[1.02] overflow-hidden"
+      className="block bg-white  border-2 shadow-sm hover:shadow-md transition-all hover:scale-[1.02] overflow-hidden"
       style={{ borderColor: color }}
     >
       {/* Header with color stripe */}

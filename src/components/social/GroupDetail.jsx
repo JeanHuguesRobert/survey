@@ -234,9 +234,9 @@ export default function GroupDetail({ currentUser }) {
         <div className="flex flex-col gap-6 md:flex-row md:items-start">
           <div className="flex gap-4 flex-1">
             {avatarUrl ? (
-              <img src={avatarUrl} alt={group.name} className="w-24 h-24 rounded-lg object-cover" />
+              <img src={avatarUrl} alt={group.name} className="w-24 h-24  object-cover" />
             ) : (
-              <div className="w-24 h-24 rounded-lg bg-primary-100 flex items-center justify-center text-4xl">
+              <div className="w-24 h-24  bg-primary-100 flex items-center justify-center text-4xl">
                 {groupType === "neighborhood" && "🏘️"}
                 {groupType === "association" && "🤝"}
                 {groupType === "community" && "👥"}

@@ -181,7 +181,7 @@ export default function Agenda() {
   const renderEventCard = (event) => (
     <article
       key={event.id}
-      className="border border-[#d4c49c] bg-white/70 p-4 rounded-lg shadow-sm space-y-2"
+      className="border border-[#d4c49c] bg-white/70 p-4  shadow-sm space-y-2"
     >
       <header>
         <div className="text-sm uppercase tracking-wide text-[#8f6d3f] font-semibold">
@@ -331,7 +331,7 @@ export default function Agenda() {
         ) : filteredEvents.length === 0 ? (
           <div className="text-center italic">Aucun événement trouvé pour ce filtre.</div>
         ) : viewMode === "map" ? (
-          <div className="h-[600px] w-full border border-[#d4c49c] rounded-lg overflow-hidden shadow-inner">
+          <div className="h-[600px] w-full border border-[#d4c49c]  overflow-hidden shadow-inner">
             <CitizenMap center={mapCenter} zoom={mapZoom}>
               <EventsLayer events={filteredEvents} />
             </CitizenMap>

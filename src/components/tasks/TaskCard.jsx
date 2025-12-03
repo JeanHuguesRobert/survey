@@ -45,7 +45,7 @@ export default function TaskCard({ task, projectId, compact = false, onClick, dr
     <Link
       to={taskUrl}
       onClick={handleClick}
-      className={`block bg-white rounded-lg border shadow-sm hover:shadow-md transition-all p-4 ${
+      className={`block bg-white  border shadow-sm hover:shadow-md transition-all p-4 ${
         draggable ? "cursor-move" : "cursor-pointer"
       } ${blocked ? "border-red-300 bg-red-50" : "border-gray-200 hover:border-primary-300"}`}
       draggable={draggable}

@@ -44,6 +44,7 @@ export default function ShareMenu({
   }, [isOpen]);
 
   // Clean URL (replace netlify with lepp.fr if needed)
+  // TODO: jhr, should use APP_URL from env
   const cleanUrl = url.includes(".netlify.app")
     ? url.replace(/https?:\/\/[^\/]+\.netlify\.app/, "https://lepp.fr")
     : url;
@@ -200,7 +201,7 @@ export default function ShareMenu({
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-white border-2 border-gray-900 shadow-xl z-50 rounded-lg overflow-hidden">
+        <div className="absolute right-0 mt-2 w-64 bg-white border-2 border-gray-900 shadow-xl z-50  overflow-hidden">
           <div className="py-1">
             {menuItems.map((item, index) => (
               <button
@@ -272,7 +273,7 @@ function GazetteShareDialog({ entityId, currentUserId, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg p-6 max-w-sm w-full">
+      <div className="bg-white  p-6 max-w-sm w-full">
         <h3 className="text-lg font-bold mb-4">Partager à une Gazette</h3>
         <select
           value={selected}
