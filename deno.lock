@@ -453,6 +453,7 @@
         "npm:stylelint-config-standard@^39.0.1",
         "npm:stylelint@^16.26.0",
         "npm:supabase@^2.63.1",
+        "npm:swagger-ui-react@^5.30.3",
         "npm:tailwindcss@^4.1.17",
         "npm:vite@^5.4.21"
       ]
