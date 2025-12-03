@@ -46,6 +46,7 @@ export default function AddressSearchControl({ onLocationSelect }) {
 
   const handleSearch = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!query.trim()) return;
 
     setIsSearching(true);

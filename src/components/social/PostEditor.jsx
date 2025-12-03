@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import {
@@ -21,8 +21,6 @@ import {
   isPinnedPost,
   isLockedPost,
 } from "../../lib/postPredicates";
-import CitizenMap from "../map/CitizenMap";
-import LocationPicker from "../map/LocationPicker";
 
 /**
  * Éditeur de post (nouveau ou édition)
@@ -31,6 +29,11 @@ export default function PostEditor({ post = null, currentUser }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isEditing = !!post;
+  const draftStorageKey = useMemo(
+    () => (post?.id ? `post-editor-${post.id}` : "post-editor-new"),
+    [post?.id]
+  );
+  const editorReturnPath = isEditing && post?.id ? `/posts/${post.id}/edit` : "/posts/new";
 
   // Récupérer groupId depuis URL si création depuis un groupe
   const groupIdFromUrl = searchParams.get("groupId");
@@ -68,6 +71,25 @@ export default function PostEditor({ post = null, currentUser }) {
   const [isEditor, setIsEditor] = useState(false);
 
   useEffect(() => {
+    if (typeof window === "undefined" || !draftStorageKey) return;
+    const savedDraft = window.sessionStorage.getItem(draftStorageKey);
+    if (!savedDraft) return;
+    try {
+      const parsed = JSON.parse(savedDraft);
+      if (parsed && typeof parsed === "object") {
+        setFormData((prev) => ({
+          ...prev,
+          ...parsed,
+        }));
+      }
+    } catch (err) {
+      console.warn("Erreur chargement brouillon localisation:", err);
+    } finally {
+      window.sessionStorage.removeItem(draftStorageKey);
+    }
+  }, [draftStorageKey]);
+
+  useEffect(() => {
     let mounted = true;
     async function check() {
       if (!currentUser) return setIsEditor(false);
@@ -86,6 +108,46 @@ export default function PostEditor({ post = null, currentUser }) {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+  }
+
+  function persistFormDraft() {
+    if (typeof window === "undefined" || !draftStorageKey) return;
+    try {
+      window.sessionStorage.setItem(draftStorageKey, JSON.stringify(formData));
+    } catch (err) {
+      console.warn("Impossible d'enregistrer le brouillon du post:", err);
+    }
+  }
+
+  function handleOpenLocationPage() {
+    persistFormDraft();
+    const params = new URLSearchParams({
+      draft: draftStorageKey,
+      returnTo: editorReturnPath,
+    });
+    navigate(`/posts/location-picker?${params.toString()}`, {
+      state: {
+        location: formData.location,
+        returnTo: editorReturnPath,
+        title: formData.title,
+        subtype: formData.subtype,
+      },
+    });
+  }
+
+  function handleUseMyLocation() {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition((pos) => {
+      setFormData((prev) => ({
+        ...prev,
+        location: {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          source: "gps",
+        },
+      }));
+    });
   }
 
   async function handleSubmit(e) {
@@ -439,53 +501,54 @@ export default function PostEditor({ post = null, currentUser }) {
         {/* Location Picker for Events and Incidents */}
         {(formData.subtype === "event" || formData.subtype === "incident") && (
           <div className="border-t pt-4 space-y-3">
-            <h3 className="text-sm font-medium text-gray-200">Localisation sur la carte</h3>
-            <div className="h-[400px] w-full border border-gray-300 rounded overflow-hidden">
-              <CitizenMap
-                center={
-                  formData.location ? [formData.location.lat, formData.location.lng] : undefined
-                }
-                zoom={formData.location ? 15 : 13}
+            <h3 className="text-sm font-medium text-gray-200">Localisation</h3>
+            <p className="text-xs text-gray-400">
+              Utilisez la page carte dédiée pour placer précisément l'adresse ou la position GPS de
+              votre {formData.subtype === "event" ? "événement" : "incident"}.
+            </p>
+            {formData.location ? (
+              <div className="text-xs text-gray-200 bg-gray-900/30 border border-gray-700 rounded p-3 space-y-1">
+                <p className="font-semibold text-green-300">Position enregistrée</p>
+                <p>
+                  Latitude : {formData.location.lat.toFixed(5)} · Longitude :{" "}
+                  {formData.location.lng.toFixed(5)}
+                </p>
+                {formData.location.address && <p>Adresse : {formData.location.address}</p>}
+                {formData.location.source && <p>Source : {formData.location.source}</p>}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-300">Aucune localisation sélectionnée.</p>
+            )}
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={handleOpenLocationPage}
+                className="px-3 py-2 text-sm bg-gray-900 text-white border border-gray-700 hover:bg-gray-800"
               >
-                <LocationPicker
-                  initialPosition={
-                    formData.location ? [formData.location.lat, formData.location.lng] : null
-                  }
-                  onLocationSelect={(loc) =>
+                {formData.location ? "Modifier sur la carte" : "Choisir sur la carte"}
+              </button>
+              <button
+                type="button"
+                onClick={handleUseMyLocation}
+                className="text-xs text-blue-500 underline"
+              >
+                📍 Me localiser automatiquement
+              </button>
+              {formData.location && (
+                <button
+                  type="button"
+                  onClick={() =>
                     setFormData((prev) => ({
                       ...prev,
-                      location: { ...loc, source: "manual" },
+                      location: null,
                     }))
                   }
-                />
-              </CitizenMap>
+                  className="text-xs text-red-500 underline"
+                >
+                  Effacer la localisation
+                </button>
+              )}
             </div>
-            {formData.location && (
-              <p className="text-xs text-green-600">
-                Position sélectionnée : {formData.location.lat.toFixed(5)},{" "}
-                {formData.location.lng.toFixed(5)}
-              </p>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                if (navigator.geolocation) {
-                  navigator.geolocation.getCurrentPosition((pos) => {
-                    setFormData((prev) => ({
-                      ...prev,
-                      location: {
-                        lat: pos.coords.latitude,
-                        lng: pos.coords.longitude,
-                        source: "gps",
-                      },
-                    }));
-                  });
-                }
-              }}
-              className="text-xs text-blue-600 underline"
-            >
-              📍 Me localiser
-            </button>
           </div>
         )}
 

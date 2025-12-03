@@ -52,6 +52,7 @@ import GroupEdit from "./pages/GroupEdit";
 import PostPage from "./pages/PostPage";
 import PostCreate from "./pages/PostCreate";
 import PostEdit from "./pages/PostEdit";
+import PostLocationPicker from "./pages/PostLocationPicker";
 import UserProfile from "./pages/UserProfile";
 import UserPage from "./pages/UserPage";
 import VotingDashboard from "./pages/VotingDashboard";
@@ -1317,6 +1318,7 @@ export function App() {
         <Route path="/posts/new" element={<PostCreate />} />
         <Route path="/posts/:id" element={<PostPage />} />
         <Route path="/posts/:id/edit" element={<PostEdit />} />
+        <Route path="/posts/location-picker" element={<PostLocationPicker />} />
         <Route
           path="/oauth/facebook/deletion-instructions"
           element={<FacebookDeletionInstructions />}
