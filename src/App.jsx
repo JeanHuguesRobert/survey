@@ -75,6 +75,7 @@ import OAuthConsent from "./pages/OAuthConsent";
 import DataCollector from "./pages/DataCollector";
 import DataReview from "./pages/admin/DataReview";
 import Entities from "./pages/admin/Entities";
+import AdminAPI from "./pages/admin/AdminAPI";
 import Admin from "./pages/Admin";
 import Gazette from "./pages/Gazette";
 import Agenda from "./pages/Agenda";
@@ -1306,6 +1307,7 @@ export function App() {
         <Route path="/user-profile" element={<UserProfile />} />
         <Route path="/profile" element={<UserProfile />} />
         <Route path="/admin/data-review" element={<DataReview />} />
+        <Route path="/admin/api" element={<AdminAPI />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/admin/entities" element={<Entities />} />
         <Route path="/subscriptions" element={<SubscriptionFeed />} />

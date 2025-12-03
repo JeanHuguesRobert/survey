@@ -1,13 +1,19 @@
+// netlify/edge-functions/rag_chatbot.js
+
 // ============================================================================
 // CONFIGURATION - Modèles et paramètres par défaut
 // ============================================================================
 // deno-lint-ignore-file no-import-prefix
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import postgres from "https://deno.land/x/postgresjs/mod.js";
+
 import OpenAI from "https://esm.sh/openai@4";
+
 const PROVIDER_META_PREFIX = "__PROVIDER_INFO__";
 import { providerMetrics } from "./lib/utils/provider-metrics.js";
 const PROVIDERS_STATUS_PREFIX = "__PROVIDERS_STATUS__";
+const TOOL_TRACE_PREFIX = "__TOOL_TRACE__";
 
 const MODEL_MODES = {
   mistral: {
@@ -57,6 +63,7 @@ const DEFAULT_MODEL_MODE = {
 };
 
 const MODEL_MODE_DIRECTIVE_REGEX = /model_mode\s*=\s*([^\s;]+)/i;
+
 const resolveModelForProvider = (provider, overrideMode) => {
   const providerModes = MODEL_MODES[provider];
   if (!providerModes) {
@@ -64,23 +71,19 @@ const resolveModelForProvider = (provider, overrideMode) => {
     return undefined;
   }
 
-  console.log(`[resolveModel] Resolving for provider=${provider}, overrideMode=${overrideMode}`);
-  console.log(`[resolveModel] Available modes:`, Object.keys(providerModes));
-  console.log(`[resolveModel] Default mode:`, DEFAULT_MODEL_MODE[provider]);
-
   const candidateMode =
     overrideMode && providerModes[overrideMode]
       ? overrideMode
       : DEFAULT_MODEL_MODE[provider] || Object.keys(providerModes)[0];
 
   const resolved = providerModes[candidateMode];
-  console.log(`[resolveModel] Resolved mode=${candidateMode} -> model=${resolved}`);
   return resolved;
 };
 
 // ============================================================================
 // OUTILS (TOOLS) - Définition centralisée
 // ============================================================================
+
 const TOOLS = {
   web_search: {
     name: "web_search",
@@ -143,7 +146,7 @@ const TOOLS = {
   sql_query: {
     name: "sql_query",
     description:
-      "Execute a read-only SQL query against the database for advanced data access. Only SELECT queries are allowed. The model should target the condensed schema below and return only requested columns. Avoid UPDATE/INSERT/DELETE.",
+      "Execute a read-only SQL query against the database for advanced data access. Only SELECT queries are allowed. The model should target the condensed schema below and return only requested columns. Avoid UPDATE/INSERT/DELETE. Responses are JSON by default unless you request markdown explicitly.",
     parameters: {
       type: "object",
       properties: {
@@ -155,8 +158,323 @@ const TOOLS = {
           type: "integer",
           description: "Maximum number of rows to return (default 100).",
         },
+        format: {
+          type: "string",
+          enum: ["json", "markdown"],
+          description:
+            "Output format. Defaults to 'json'. Set to 'markdown' only when a tabular rendition is explicitly required.",
+        },
       },
       required: ["query"],
+    },
+  },
+  create_post: {
+    name: "create_post",
+    description:
+      "Publie un nouveau message, une annonce ou une pensée. Ne PAS utiliser pour des tâches ou des propositions.",
+    parameters: {
+      type: "object",
+      properties: {
+        content: { type: "string", description: "Le contenu du message (Markdown supporté)." },
+        title: { type: "string", description: "Titre optionnel du message." },
+        group_id: { type: "string", description: "ID du groupe où publier (optionnel)." },
+        tags: {
+          type: "array",
+          items: { type: "string" },
+          description: "Liste de tags (ex: ['urgent', 'event']).",
+        },
+      },
+      required: ["content"],
+    },
+  },
+  update_post: {
+    name: "update_post",
+    description: "Modifie un message existant.",
+    parameters: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "ID du message à modifier." },
+        content: { type: "string", description: "Nouveau contenu." },
+        title: { type: "string", description: "Nouveau titre." },
+      },
+      required: ["id"],
+    },
+  },
+  list_posts: {
+    name: "list_posts",
+    description: "Liste les messages récents, filtrables par groupe ou type.",
+    parameters: {
+      type: "object",
+      properties: {
+        group_id: { type: "string", description: "Filtrer par groupe." },
+        limit: { type: "integer", description: "Nombre max de résultats (défaut 10)." },
+        query: { type: "string", description: "Recherche textuelle dans le contenu." },
+      },
+    },
+  },
+  create_task: {
+    name: "create_task",
+    description: "Crée une nouvelle tâche dans un projet ou un groupe.",
+    parameters: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Titre de la tâche." },
+        description: { type: "string", description: "Description détaillée." },
+        project_id: {
+          type: "string",
+          description: "ID du projet (groupe type task_project) ou groupe parent.",
+        },
+        status: {
+          type: "string",
+          enum: ["todo", "in_progress", "done", "blocked"],
+          description: "Statut initial.",
+        },
+        priority: { type: "string", enum: ["low", "medium", "high"], description: "Priorité." },
+        assignee_id: { type: "string", description: "ID de l'utilisateur assigné." },
+      },
+      required: ["title"],
+    },
+  },
+  update_task: {
+    name: "update_task",
+    description: "Met à jour une tâche (statut, assignation, détails).",
+    parameters: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "ID de la tâche." },
+        status: { type: "string", enum: ["todo", "in_progress", "done", "blocked"] },
+        title: { type: "string" },
+        description: { type: "string" },
+        priority: { type: "string" },
+      },
+      required: ["id"],
+    },
+  },
+  list_tasks: {
+    name: "list_tasks",
+    description: "Liste les tâches, filtrables par projet, statut ou assignation.",
+    parameters: {
+      type: "object",
+      properties: {
+        project_id: { type: "string", description: "ID du projet." },
+        status: { type: "string", description: "Filtrer par statut." },
+        assignee_id: { type: "string", description: "Filtrer par assigné (me = moi)." },
+        limit: { type: "integer", description: "Max résultats." },
+      },
+    },
+  },
+  create_mission: {
+    name: "create_mission",
+    description: "Crée une nouvelle mission (groupe d'action).",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Nom de la mission." },
+        description: { type: "string", description: "Objectif de la mission." },
+        location: { type: "string", description: "Lieu (optionnel)." },
+      },
+      required: ["name"],
+    },
+  },
+  update_mission: {
+    name: "update_mission",
+    description: "Met à jour une mission.",
+    parameters: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "ID de la mission." },
+        name: { type: "string" },
+        description: { type: "string" },
+        location: { type: "string" },
+        status: { type: "string", enum: ["active", "completed", "archived"] },
+      },
+      required: ["id"],
+    },
+  },
+  list_missions: {
+    name: "list_missions",
+    description: "Liste les missions disponibles.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Recherche par nom." },
+        limit: { type: "integer", description: "Max résultats." },
+      },
+    },
+  },
+  join_group: {
+    name: "join_group",
+    description: "Rejoint un groupe ou une mission.",
+    parameters: {
+      type: "object",
+      properties: {
+        group_id: { type: "string", description: "ID du groupe à rejoindre." },
+      },
+      required: ["group_id"],
+    },
+  },
+  leave_group: {
+    name: "leave_group",
+    description: "Quitte un groupe ou une mission.",
+    parameters: {
+      type: "object",
+      properties: {
+        group_id: { type: "string", description: "ID du groupe à quitter." },
+      },
+      required: ["group_id"],
+    },
+  },
+  list_my_groups: {
+    name: "list_my_groups",
+    description: "Liste les groupes dont je suis membre.",
+    parameters: {
+      type: "object",
+      properties: {},
+    },
+  },
+  create_proposition: {
+    name: "create_proposition",
+    description: "Crée une proposition pour le vote.",
+    parameters: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Titre de la proposition." },
+        description: { type: "string", description: "Description détaillée." },
+        tags: {
+          type: "array",
+          items: { type: "string" },
+          description: "Tags associés (ex: ['urbanisme', 'budget']).",
+        },
+      },
+      required: ["title"],
+    },
+  },
+  update_proposition: {
+    name: "update_proposition",
+    description: "Met à jour une proposition.",
+    parameters: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "ID de la proposition." },
+        status: { type: "string", enum: ["active", "closed", "draft"] },
+        title: { type: "string" },
+      },
+      required: ["id"],
+    },
+  },
+  list_propositions: {
+    name: "list_propositions",
+    description: "Liste les propositions actives.",
+    parameters: {
+      type: "object",
+      properties: {
+        status: { type: "string", description: "Filtrer par statut (défaut: active)." },
+        tag: { type: "string", description: "Filtrer par tag." },
+        limit: { type: "integer", description: "Max résultats." },
+      },
+    },
+  },
+  vote_proposition: {
+    name: "vote_proposition",
+    description: "Vote pour ou contre une proposition.",
+    parameters: {
+      type: "object",
+      properties: {
+        proposition_id: { type: "string", description: "ID de la proposition." },
+        value: {
+          type: "integer",
+          enum: [1, -1, 0],
+          description: "1 (Pour), -1 (Contre), 0 (Neutre/Retrait).",
+        },
+      },
+      required: ["proposition_id", "value"],
+    },
+  },
+  create_wiki_page: {
+    name: "create_wiki_page",
+    description: "Crée une nouvelle page Wiki.",
+    parameters: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Titre de la page." },
+        content: { type: "string", description: "Contenu (Markdown)." },
+        summary: { type: "string", description: "Résumé court." },
+      },
+      required: ["title", "content"],
+    },
+  },
+  update_wiki_page: {
+    name: "update_wiki_page",
+    description: "Met à jour une page Wiki.",
+    parameters: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "ID de la page." },
+        content: { type: "string" },
+        summary: { type: "string" },
+      },
+      required: ["id"],
+    },
+  },
+  get_wiki_page: {
+    name: "get_wiki_page",
+    description: "Récupère le contenu d'une page Wiki.",
+    parameters: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "ID de la page (optionnel si title fourni)." },
+        title: { type: "string", description: "Titre exact (optionnel si id fourni)." },
+      },
+    },
+  },
+  add_reaction: {
+    name: "add_reaction",
+    description: "Ajoute une réaction (emoji) à un post.",
+    parameters: {
+      type: "object",
+      properties: {
+        post_id: { type: "string", description: "ID du post." },
+        emoji: { type: "string", description: "Emoji (ex: '👍', '❤️')." },
+      },
+      required: ["post_id", "emoji"],
+    },
+  },
+  create_comment: {
+    name: "create_comment",
+    description: "Ajoute un commentaire à un post.",
+    parameters: {
+      type: "object",
+      properties: {
+        post_id: { type: "string", description: "ID du post." },
+        content: { type: "string", description: "Contenu du commentaire." },
+      },
+      required: ["post_id", "content"],
+    },
+  },
+  get_schema_info: {
+    name: "get_schema_info",
+    description: "Retourne des informations sur la structure de la base de données.",
+    parameters: {
+      type: "object",
+      properties: {
+        table: { type: "string", description: "Nom de la table (optionnel)." },
+      },
+    },
+  },
+  get_user_context: {
+    name: "get_user_context",
+    description: "Retourne les informations sur l'utilisateur actuel et le contexte de navigation.",
+    parameters: {
+      type: "object",
+      properties: {},
+    },
+  },
+  list_capabilities: {
+    name: "list_capabilities",
+    description: "Liste tous les outils disponibles pour l'agent.",
+    parameters: {
+      type: "object",
+      properties: {},
     },
   },
   // Ajoute d'autres outils ici (ex: search_local_db, weather, etc.)
@@ -165,6 +483,7 @@ const TOOLS = {
 // ============================================================================
 // GESTIONNAIRES D'OUTILS - Fonctions d'exécution
 // ============================================================================
+
 const TOOL_HANDLERS = {
   web_search({ query }) {
     return performWebSearch(query);
@@ -243,13 +562,37 @@ const TOOL_HANDLERS = {
       return `⚠️ Erreur de recherche wiki: ${err.message}`;
     }
   },
-  async sql_query({ query, limit = 100 }, { postgres, supabase }) {
+  async sql_query({ query, limit = 100, format = "json" }, { postgres, supabase }) {
     console.log(`[SqlQuery] ➜ query=${previewForLog(query)}`);
+
+    const normalizedFormat =
+      String(format || "json").toLowerCase() === "markdown" ? "markdown" : "json";
+    const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(limit, 500) : 100;
+    const buildResponse = (payload) =>
+      normalizedFormat === "markdown"
+        ? sqlResultToMarkdown(payload)
+        : JSON.stringify(payload, null, 2);
 
     // Basic validation: only allow SELECT
     const trimmed = String(query || "").trim();
     if (!trimmed || !/^(SELECT)\b/i.test(trimmed)) {
-      return `❌ Seules les requêtes SELECT sont autorisées.`;
+      return buildResponse(
+        createSqlPayload({
+          status: "error",
+          source: "validation",
+          rows: [],
+          columns: [],
+          rowCount: 0,
+          limitApplied: safeLimit,
+          error: { message: "Seules les requêtes SELECT sont autorisées." },
+          metadata: buildSqlMetadata({
+            query,
+            limit: safeLimit,
+            format: normalizedFormat,
+            notes: ["Validation blocked non-SELECT statement"],
+          }),
+        })
+      );
     }
 
     // Helper: try Supabase REST fallback for simple COUNT queries
@@ -262,10 +605,30 @@ const TOOL_HANDLERS = {
       try {
         console.log(`[SqlQuery] ℹ️ Attempting Supabase fallback for table=${table}`);
         // Use head + count to get exact count without rows
-        const res = await supabase.from(table).select("id", { count: "exact", head: true });
-        const count = res?.count ?? (Array.isArray(res?.data) ? res.data.length : null);
+        const { count, error } = await supabase
+          .from(table)
+          .select("*", { count: "exact", head: true });
+        if (error) {
+          console.warn("[SqlQuery] ⚠️ Supabase fallback returned error:", error.message || error);
+          return null;
+        }
         if (typeof count === "number") {
-          return `📊 Résultat (via Supabase REST): ${count} ligne(s).`;
+          return buildResponse(
+            createSqlPayload({
+              status: "ok",
+              source: "supabase-rest-count",
+              rows: [{ count }],
+              columns: ["count"],
+              rowCount: 1,
+              limitApplied: null,
+              metadata: buildSqlMetadata({
+                query,
+                limit: safeLimit,
+                format: normalizedFormat,
+                notes: ["Supabase REST head request", "Count inferred without row scan"],
+              }),
+            })
+          );
         }
       } catch (err) {
         console.warn("[SqlQuery] ⚠️ Supabase fallback failed:", err?.message || err);
@@ -276,40 +639,684 @@ const TOOL_HANDLERS = {
     // If postgres client is available, try executing directly
     if (postgres) {
       try {
-        const sql = `${query} LIMIT ${limit}`;
-        console.log(`[SqlQuery] 🗃️ Executing: ${previewForLog(sql)}`);
-        const result = await postgres.unsafe(sql);
+        const limitedSql = wrapSqlWithLimit(query, safeLimit);
+        console.log(`[SqlQuery] 🗃️ Executing (limited): ${previewForLog(limitedSql)}`);
+        const start = performance.now();
+        const result = await postgres.unsafe(limitedSql);
+        const durationMs = performance.now() - start;
         if (!result || result.length === 0) {
           // If no result rows, still try supabase for COUNT-like queries
           const fallback = await trySupabaseCount();
-          return fallback || "Aucun résultat trouvé.";
+          if (fallback) return fallback;
+          return buildResponse(
+            createSqlPayload({
+              status: "ok",
+              source: "postgres",
+              rows: [],
+              columns: [],
+              rowCount: 0,
+              limitApplied: safeLimit,
+              metadata: buildSqlMetadata({
+                query,
+                limit: safeLimit,
+                format: normalizedFormat,
+                notes: ["Query executed but returned 0 rows"],
+              }),
+            })
+          );
         }
 
         const columns = Object.keys(result[0] || {});
-        let response = `📊 Résultats (${result.length} lignes):\n\n`;
-        response += `| ${columns.join(" | ")} |\n`;
-        response += `| ${columns.map(() => "---").join(" | ")} |\n`;
-        result.forEach((row) => {
-          response += `| ${columns.map((col) => String(row[col] || "")).join(" | ")} |\n`;
-        });
         console.log(`[SqlQuery] ✅ ${result.length} rows returned`);
-        return response;
+        return buildResponse(
+          createSqlPayload({
+            status: "ok",
+            source: "postgres",
+            rows: sanitizeSqlRows(result, columns),
+            columns,
+            rowCount: result.length,
+            limitApplied: safeLimit,
+            durationMs,
+            metadata: buildSqlMetadata({
+              query,
+              limit: safeLimit,
+              format: normalizedFormat,
+              notes: ["Executed via Postgres client"],
+            }),
+          })
+        );
       } catch (error) {
         console.error(`[SqlQuery] ❌ Error executing Postgres query:`, error?.message || error);
         // Try Supabase REST fallback before returning error
         const fallback = await trySupabaseCount();
         if (fallback) return fallback;
-        return `⚠️ Erreur SQL: ${error?.message || String(error)}`;
+        return buildResponse(
+          createSqlPayload({
+            status: "error",
+            source: "postgres",
+            rows: [],
+            columns: [],
+            rowCount: 0,
+            limitApplied: safeLimit,
+            error: serializeSqlError(error),
+            metadata: buildSqlMetadata({
+              query,
+              limit: safeLimit,
+              format: normalizedFormat,
+              notes: ["Postgres execution error"],
+            }),
+          })
+        );
       }
     }
 
     // No Postgres client: attempt Supabase REST fallback
     const supaResult = await trySupabaseCount();
     if (supaResult) return supaResult;
-    return `Outil SQL non configuré (Postgres indisponible). Configurez SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY.`;
+    return buildResponse(
+      createSqlPayload({
+        status: "error",
+        source: "unavailable",
+        rows: [],
+        columns: [],
+        rowCount: 0,
+        limitApplied: safeLimit,
+        error: {
+          message:
+            "Outil SQL non configuré (Postgres indisponible). Configurez SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY.",
+        },
+        metadata: buildSqlMetadata({
+          query,
+          limit: safeLimit,
+          format: normalizedFormat,
+          notes: ["Postgres client missing", "Supabase REST fallback did not apply"],
+        }),
+      })
+    );
   },
+  async create_post({ content, title, group_id, tags = [] }, { supabase, user, context }) {
+    if (!user) return "⚠️ Vous devez être connecté pour publier.";
+    const groupId = group_id || context.groupId || null;
+
+    const { data, error } = await supabase
+      .from("posts")
+      .insert({
+        content,
+        title,
+        author_id: user.id,
+        metadata: {
+          type: "post",
+          groupId,
+          tags,
+          source: "agent",
+        },
+      })
+      .select()
+      .single();
+
+    if (error) return `❌ Erreur lors de la création du post : ${error.message}`;
+    return `✅ Post créé avec succès ! (ID: ${data.id})`;
+  },
+
+  async update_post({ id, content, title }, { supabase, user }) {
+    if (!user) return "⚠️ Connexion requise.";
+    const updates = {};
+    if (content) updates.content = content;
+    if (title) updates.title = title;
+
+    const { data, error } = await supabase
+      .from("posts")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) return `❌ Erreur modification : ${error.message}`;
+    return `✅ Post mis à jour.`;
+  },
+
+  async list_posts({ group_id, limit = 10, query }, { supabase, context }) {
+    let qb = supabase
+      .from("posts")
+      .select("id, title, content, created_at, author:users(display_name)")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    const targetGroupId = group_id || context.groupId;
+    if (targetGroupId) {
+      qb = qb.eq("metadata->>groupId", targetGroupId);
+    }
+    if (query) {
+      qb = qb.ilike("content", `%${query}%`);
+    }
+
+    const { data, error } = await qb;
+    if (error) return `❌ Erreur lecture : ${error.message}`;
+    if (!data.length) return "Aucun post trouvé.";
+
+    return data
+      .map(
+        (p) =>
+          `- [${p.created_at.slice(0, 10)}] ${p.title || "Sans titre"}: ${p.content.slice(0, 50)}... (par ${p.author?.display_name})`
+      )
+      .join("\n");
+  },
+
+  async create_task(
+    { title, description, project_id, status = "todo", priority = "medium", assignee_id },
+    { supabase, user, context }
+  ) {
+    if (!user) return "⚠️ Connexion requise.";
+    const projectId = project_id || context.groupId; // Tasks are often in the current group context
+
+    const { data, error } = await supabase
+      .from("posts")
+      .insert({
+        title,
+        content: description || "",
+        author_id: user.id,
+        metadata: {
+          type: "task",
+          status,
+          priority,
+          groupId: projectId,
+          assigneeId: assignee_id,
+          source: "agent",
+        },
+      })
+      .select()
+      .single();
+
+    if (error) return `❌ Erreur création tâche : ${error.message}`;
+    return `✅ Tâche "${title}" créée ! (ID: ${data.id})`;
+  },
+
+  async update_task({ id, status, title, description, priority }, { supabase }) {
+    const updates = {};
+    if (title) updates.title = title;
+    if (description) updates.content = description;
+
+    // For metadata updates, we need to fetch first to merge, or use jsonb_set (complex via js client)
+    // Simplified: fetch current metadata, merge, update.
+    if (status || priority) {
+      const { data: current } = await supabase
+        .from("posts")
+        .select("metadata")
+        .eq("id", id)
+        .single();
+      if (current) {
+        updates.metadata = {
+          ...current.metadata,
+          ...(status ? { status } : {}),
+          ...(priority ? { priority } : {}),
+        };
+      }
+    }
+
+    const { data, error } = await supabase
+      .from("posts")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) return `❌ Erreur mise à jour tâche : ${error.message}`;
+    return `✅ Tâche mise à jour.`;
+  },
+
+  async list_tasks({ project_id, status, assignee_id, limit = 20 }, { supabase, context, user }) {
+    let qb = supabase
+      .from("posts")
+      .select("id, title, metadata, created_at")
+      .eq("metadata->>type", "task")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    const targetProjectId = project_id || context.groupId;
+    if (targetProjectId) qb = qb.eq("metadata->>groupId", targetProjectId);
+    if (status) qb = qb.eq("metadata->>status", status);
+    if (assignee_id) {
+      const targetAssignee = assignee_id === "me" && user ? user.id : assignee_id;
+      qb = qb.eq("metadata->>assigneeId", targetAssignee);
+    }
+
+    const { data, error } = await qb;
+    if (error) return `❌ Erreur lecture tâches : ${error.message}`;
+    if (!data.length) return "Aucune tâche trouvée.";
+
+    return data
+      .map((t) => `- [${t.metadata.status?.toUpperCase() || "TODO"}] ${t.title} (ID: ${t.id})`)
+      .join("\n");
+  },
+
+  async create_mission({ name, description, location }, { supabase, user }) {
+    if (!user) return "⚠️ Connexion requise.";
+
+    const { data, error } = await supabase
+      .from("groups")
+      .insert({
+        name,
+        description,
+        created_by: user.id,
+        metadata: {
+          type: "mission",
+          location,
+          status: "active",
+          source: "agent",
+        },
+      })
+      .select()
+      .single();
+
+    if (error) return `❌ Erreur création mission : ${error.message}`;
+
+    // Auto-join creator
+    await supabase
+      .from("group_members")
+      .insert({ group_id: data.id, user_id: user.id, role: "admin" });
+
+    return `✅ Mission "${name}" créée ! (ID: ${data.id})`;
+  },
+
+  async update_mission({ id, name, description, location, status }, { supabase }) {
+    const updates = {};
+    if (name) updates.name = name;
+    if (description) updates.description = description;
+
+    if (location || status) {
+      const { data: current } = await supabase
+        .from("groups")
+        .select("metadata")
+        .eq("id", id)
+        .single();
+      if (current) {
+        updates.metadata = {
+          ...current.metadata,
+          ...(location ? { location } : {}),
+          ...(status ? { status } : {}),
+        };
+      }
+    }
+
+    const { error } = await supabase.from("groups").update(updates).eq("id", id);
+    if (error) return `❌ Erreur mise à jour : ${error.message}`;
+    return `✅ Mission mise à jour.`;
+  },
+
+  async list_missions({ query, limit = 10 }, { supabase }) {
+    let qb = supabase
+      .from("groups")
+      .select("id, name, description, metadata")
+      .eq("metadata->>type", "mission")
+      .limit(limit);
+    if (query) qb = qb.ilike("name", `%${query}%`);
+
+    const { data, error } = await qb;
+    if (error) return `❌ Erreur lecture : ${error.message}`;
+    if (!data.length) return "Aucune mission trouvée.";
+
+    return data
+      .map(
+        (m) =>
+          `- ${m.name}: ${m.description || "Pas de description"} (Lieu: ${m.metadata?.location || "N/A"})`
+      )
+      .join("\n");
+  },
+
+  async join_group({ group_id }, { supabase, user }) {
+    if (!user) return "⚠️ Connexion requise.";
+    const { error } = await supabase.from("group_members").insert({
+      group_id,
+      user_id: user.id,
+      role: "member",
+    });
+    if (error) {
+      if (error.code === "23505") return "ℹ️ Vous êtes déjà membre de ce groupe.";
+      return `❌ Erreur : ${error.message}`;
+    }
+    return "✅ Groupe rejoint avec succès !";
+  },
+
+  async leave_group({ group_id }, { supabase, user }) {
+    if (!user) return "⚠️ Connexion requise.";
+    const { error } = await supabase
+      .from("group_members")
+      .delete()
+      .match({ group_id, user_id: user.id });
+    if (error) return `❌ Erreur : ${error.message}`;
+    return "✅ Vous avez quitté le groupe.";
+  },
+
+  async list_my_groups({}, { supabase, user }) {
+    if (!user) return "⚠️ Connexion requise.";
+    const { data, error } = await supabase
+      .from("group_members")
+      .select("group:groups(id, name, metadata)")
+      .eq("user_id", user.id);
+
+    if (error) return `❌ Erreur : ${error.message}`;
+    if (!data.length) return "Vous n'êtes membre d'aucun groupe.";
+
+    return data
+      .map((item) => `- ${item.group.name} (${item.group.metadata?.type || "groupe"})`)
+      .join("\n");
+  },
+
+  async create_proposition({ title, description, tags = [] }, { supabase, user }) {
+    if (!user) return "⚠️ Connexion requise.";
+
+    // 1. Create proposition
+    const { data: prop, error } = await supabase
+      .from("propositions")
+      .insert({
+        title,
+        description,
+        author_id: user.id,
+        status: "active",
+      })
+      .select()
+      .single();
+
+    if (error) return `❌ Erreur création proposition : ${error.message}`;
+
+    // 2. Handle tags if any
+    if (tags.length > 0) {
+      // Resolve tag IDs (create if not exist)
+      const tagIds = [];
+      for (const tagName of tags) {
+        const cleanName = tagName.toLowerCase().trim();
+        let { data: tag } = await supabase.from("tags").select("id").eq("name", cleanName).single();
+        if (!tag) {
+          const { data: newTag } = await supabase
+            .from("tags")
+            .insert({ name: cleanName })
+            .select()
+            .single();
+          tag = newTag;
+        }
+        if (tag) tagIds.push(tag.id);
+      }
+
+      if (tagIds.length > 0) {
+        await supabase
+          .from("proposition_tags")
+          .insert(tagIds.map((tagId) => ({ proposition_id: prop.id, tag_id: tagId })));
+      }
+    }
+
+    return `✅ Proposition "${title}" créée ! (ID: ${prop.id})`;
+  },
+
+  async update_proposition({ id, status, title }, { supabase }) {
+    const updates = {};
+    if (status) updates.status = status;
+    if (title) updates.title = title;
+
+    const { error } = await supabase.from("propositions").update(updates).eq("id", id);
+    if (error) return `❌ Erreur mise à jour : ${error.message}`;
+    return `✅ Proposition mise à jour.`;
+  },
+
+  async list_propositions({ status = "active", tag, limit = 10 }, { supabase }) {
+    let qb = supabase
+      .from("propositions")
+      .select("id, title, status, created_at")
+      .eq("status", status)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    // Tag filtering is complex via simple join, simplified here to just list
+    // Ideally we'd use !inner join on proposition_tags
+
+    const { data, error } = await qb;
+    if (error) return `❌ Erreur lecture : ${error.message}`;
+    if (!data.length) return "Aucune proposition trouvée.";
+
+    return data.map((p) => `- [${p.status}] ${p.title} (ID: ${p.id})`).join("\n");
+  },
+
+  async vote_proposition({ proposition_id, value }, { supabase, user }) {
+    if (!user) return "⚠️ Connexion requise.";
+
+    if (value === 0) {
+      // Remove vote
+      const { error } = await supabase
+        .from("votes")
+        .delete()
+        .match({ proposition_id, user_id: user.id });
+      if (error) return `❌ Erreur suppression vote : ${error.message}`;
+      return "✅ Vote retiré.";
+    } else {
+      // Upsert vote
+      const { error } = await supabase.from("votes").upsert(
+        {
+          proposition_id,
+          user_id: user.id,
+          vote_value: value,
+        },
+        { onConflict: "proposition_id, user_id" }
+      );
+
+      if (error) return `❌ Erreur vote : ${error.message}`;
+      return `✅ A voté ${value > 0 ? "POUR" : "CONTRE"}.`;
+    }
+  },
+
+  async create_wiki_page({ title, content, summary }, { supabase, user }) {
+    if (!user) return "⚠️ Connexion requise.";
+
+    const { data, error } = await supabase
+      .from("wiki_pages")
+      .insert({
+        title,
+        content,
+        summary,
+        author_id: user.id,
+        status: "published",
+      })
+      .select()
+      .single();
+
+    if (error) return `❌ Erreur création wiki : ${error.message}`;
+    return `✅ Page Wiki "${title}" créée ! (ID: ${data.id})`;
+  },
+
+  async update_wiki_page({ id, content, summary }, { supabase }) {
+    const updates = {};
+    if (content) updates.content = content;
+    if (summary) updates.summary = summary;
+
+    const { error } = await supabase.from("wiki_pages").update(updates).eq("id", id);
+    if (error) return `❌ Erreur mise à jour : ${error.message}`;
+    return `✅ Page Wiki mise à jour.`;
+  },
+
+  async get_wiki_page({ id, title }, { supabase }) {
+    let qb = supabase.from("wiki_pages").select("*");
+    if (id) qb = qb.eq("id", id);
+    else if (title) qb = qb.eq("title", title);
+    else return "⚠️ ID ou Titre requis.";
+
+    const { data, error } = await qb.single();
+    if (error) return `❌ Erreur lecture : ${error.message}`;
+    return `📄 **${data.title}**\n\n${data.content}`;
+  },
+
+  async add_reaction({ post_id, emoji }, { supabase, user }) {
+    if (!user) return "⚠️ Connexion requise.";
+    const { error } = await supabase.from("reactions").insert({
+      post_id,
+      user_id: user.id,
+      emoji,
+    });
+    if (error) {
+      if (error.code === "23505") return "ℹ️ Réaction déjà ajoutée.";
+      return `❌ Erreur : ${error.message}`;
+    }
+    return `✅ Réaction ${emoji} ajoutée.`;
+  },
+
+  async create_comment({ post_id, content }, { supabase, user }) {
+    if (!user) return "⚠️ Connexion requise.";
+    const { error } = await supabase.from("comments").insert({
+      post_id,
+      user_id: user.id,
+      content,
+    });
+    if (error) return `❌ Erreur commentaire : ${error.message}`;
+    return "✅ Commentaire ajouté.";
+  },
+
+  async get_schema_info({ table }) {
+    const schema = {
+      posts:
+        "id, content, title, author_id, metadata (type, groupId, tags, status, priority, assigneeId)",
+      groups: "id, name, description, metadata (type, location, status)",
+      propositions: "id, title, description, status, author_id",
+      wiki_pages: "id, title, content, summary, status",
+      users: "id, display_name, metadata",
+      comments: "id, post_id, content, user_id",
+      reactions: "id, post_id, emoji, user_id",
+      votes: "id, proposition_id, user_id, vote_value",
+    };
+
+    if (table) {
+      return schema[table] ? `Table ${table}: ${schema[table]}` : "Table inconnue.";
+    }
+    return (
+      "Schéma simplifié :\n" +
+      Object.entries(schema)
+        .map(([k, v]) => `- ${k}: ${v}`)
+        .join("\n")
+    );
+  },
+
+  async get_user_context({}, { user, context }) {
+    if (!user) return "Utilisateur non connecté.";
+    return JSON.stringify(
+      {
+        user: { id: user.id, email: user.email },
+        context: context || {},
+      },
+      null,
+      2
+    );
+  },
+
+  async list_capabilities() {
+    return Object.values(TOOLS)
+      .map((t) => `- ${t.name}: ${t.description}`)
+      .join("\n");
+  },
+
   // Ajoute d'autres handlers ici
 };
+
+function wrapSqlWithLimit(query, limit) {
+  const trimmed = query.trim().replace(/;\s*$/, "");
+  if (/limit\s+\d+/i.test(trimmed)) {
+    return trimmed;
+  }
+  return `SELECT * FROM (${trimmed}) AS _limited_subquery LIMIT ${limit}`;
+}
+
+function sanitizeSqlRows(rows, columns) {
+  if (!Array.isArray(rows)) return [];
+  return rows.map((row) => {
+    const cleanRow = {};
+    columns.forEach((col) => {
+      const value = row?.[col];
+      cleanRow[col] = normalizeSqlValue(value);
+    });
+    return cleanRow;
+  });
+}
+
+function normalizeSqlValue(value) {
+  if (typeof value === "bigint") return value.toString();
+  if (value instanceof Date) return value.toISOString();
+  if (value && typeof Buffer !== "undefined" && Buffer.isBuffer?.(value)) {
+    return value.toString("utf-8");
+  }
+  return value;
+}
+
+function serializeSqlError(error) {
+  if (!error) return null;
+  return {
+    message: error.message || String(error),
+    code: error.code || null,
+    detail: error.detail || null,
+    hint: error.hint || null,
+    position: error.position || null,
+  };
+}
+
+function createSqlPayload({
+  status,
+  source,
+  rows,
+  columns,
+  rowCount,
+  limitApplied,
+  metadata = {},
+  error = null,
+  durationMs = null,
+}) {
+  return {
+    status,
+    source,
+    rows,
+    columns,
+    rowCount,
+    limitApplied,
+    durationMs,
+    metadata,
+    error,
+  };
+}
+
+function buildSqlMetadata({ query, limit, format, notes = [] }) {
+  return {
+    format,
+    introspection: {
+      allowedStatements: ["SELECT"],
+      defaultLimit: limit,
+      capabilities: ["json", "markdown", "supabase-count-fallback"],
+    },
+    limitRequested: limit,
+    queryPreview: previewForLog(query, 200),
+    notes,
+  };
+}
+
+function sqlResultToMarkdown(payload) {
+  const { status, rows, columns, rowCount, source, error } = payload;
+  if (status !== "ok") {
+    const err = error || { message: "Erreur inconnue" };
+    return `⚠️ Erreur SQL (${source || "n/a"}): ${err.message}`;
+  }
+  if (!rows || rows.length === 0) {
+    return `Aucun résultat (${source || "postgres"}).`;
+  }
+  let table = `📊 Résultats (${rowCount} lignes via ${source}):\n\n`;
+  table += `| ${columns.join(" | ")} |\n`;
+  table += `| ${columns.map(() => "---").join(" | ")} |\n`;
+  rows.forEach((row) => {
+    table += `| ${columns.map((col) => formatMarkdownCell(row[col])).join(" | ")} |\n`;
+  });
+  return table;
+}
+
+function formatMarkdownCell(value) {
+  if (value == null) return "";
+  if (typeof value === "object") {
+    try {
+      return `\`${JSON.stringify(value)}\``;
+    } catch {
+      return String(value);
+    }
+  }
+  return String(value);
+}
 
 // UTIL: small preview helper for logs
 function previewForLog(value, max = 400) {
@@ -337,6 +1344,7 @@ function cosineSimilarity(a, b) {
 // ============================================================================
 // BRAVE SEARCH - Outil de recherche web (amélioré)
 // ============================================================================
+
 async function performWebSearch(query) {
   console.log(`[WebSearch] ➜ request query=${previewForLog(query)}`);
   const apiKey = Deno.env.get("BRAVE_SEARCH_API_KEY");
@@ -421,7 +1429,9 @@ async function executeToolCalls(
   supabase,
   openai,
   postgres,
-  metaCollector = null
+  metaCollector = null,
+  toolEventEmitter = null,
+  debugMode = false
 ) {
   console.log(`[${provider}] 🔁 executeToolCalls called count=${toolCalls.length}`);
   const results = [];
@@ -473,9 +1483,37 @@ async function executeToolCalls(
         continue;
       }
 
+      if (toolName === "sql_query" && debugMode) {
+        const rawQuery = typeof args?.query === "string" ? args.query.trim() : "";
+        if (rawQuery) {
+          const preview = previewForLog(rawQuery, 800);
+          const debugMessage = `💡 SQL (debug) requête exécutée :\n${preview}`;
+          toolEventEmitter?.({
+            phase: "notice",
+            provider,
+            tool: toolName,
+            callId: call.id,
+            message: debugMessage,
+            timestamp: Date.now(),
+            debugSql: {
+              query: rawQuery,
+              preview,
+            },
+          });
+        }
+      }
+
       console.log(`[${provider}] 🛠 Exécution de ${toolName} avec:`, args);
+      toolEventEmitter?.({
+        phase: "start",
+        provider,
+        tool: toolName,
+        callId: call.id,
+        timestamp: Date.now(),
+        argumentsPreview: previewForLog(args, 200),
+      });
       const t0 = Date.now();
-      const output = await handler(args, { supabase, openai, postgres });
+      const output = await handler(args, { supabase, openai, postgres, debugMode });
       const t1 = Date.now();
       console.log(
         `[${provider}] ⬅ Tool result for ${toolName} preview: ${previewForLog(output, 400)}`
@@ -486,6 +1524,25 @@ async function executeToolCalls(
         name: toolName,
         content: output,
       });
+      toolEventEmitter?.({
+        phase: "finish",
+        provider,
+        tool: toolName,
+        callId: call.id,
+        durationMs: t1 - t0,
+        resultPreview: previewForLog(output, 200),
+        timestamp: Date.now(),
+      });
+      if (toolName === "sql_query") {
+        toolEventEmitter?.({
+          phase: "notice",
+          provider,
+          tool: toolName,
+          callId: call.id,
+          message: "🛠️ L'outil SQL a terminé, reprise de la réponse…",
+          timestamp: Date.now(),
+        });
+      }
       if (metaCollector) {
         metaCollector.tool_trace = metaCollector.tool_trace || [];
         metaCollector.tool_trace.push({
@@ -497,6 +1554,14 @@ async function executeToolCalls(
       }
     } catch (error) {
       console.error(`[${provider}] ❌ Erreur outil:`, error);
+      toolEventEmitter?.({
+        phase: "error",
+        provider,
+        tool: call.function?.name || call.name,
+        callId: call.id,
+        error: error?.message || String(error),
+        timestamp: Date.now(),
+      });
       results.push({
         role: "tool",
         tool_call_id: call.id,
@@ -897,6 +1962,7 @@ function processToolCallFragment(context, raw, provider) {
 const MODEL_DIRECTIVE_REGEX = /model\s*=\s*([^\s;]+)/i;
 const PROVIDER_DIRECTIVE_REGEX = /provider\s*=\s*(anthropic|openai|huggingface|mistral|google)/i;
 const MODE_DIRECTIVE_REGEX = /mode\s*=\s*(debug)/i;
+const DB_URL_DIRECTIVE_REGEX = /db(?:_url)?\s*=\s*([^\s;]+)/i;
 
 const MODEL_PROVIDER_PATTERNS = {
   anthropic: ["claude", "anthropic"],
@@ -918,6 +1984,7 @@ const parseDirectives = (rawQuestion = "") => {
       .replace(MODE_DIRECTIVE_REGEX, "")
       .replace(MODEL_DIRECTIVE_REGEX, "")
       .replace(PROVIDER_DIRECTIVE_REGEX, "")
+      .replace(DB_URL_DIRECTIVE_REGEX, "")
       .replace(MODEL_MODE_DIRECTIVE_REGEX, "")
       .trim();
   }
@@ -925,6 +1992,7 @@ const parseDirectives = (rawQuestion = "") => {
   const modelModeMatch = directiveSource.match(MODEL_MODE_DIRECTIVE_REGEX);
   const providerMatch = directiveSource.match(PROVIDER_DIRECTIVE_REGEX);
   const modelMatch = directiveSource.match(MODEL_DIRECTIVE_REGEX);
+  const dbUrlMatch = directiveSource.match(DB_URL_DIRECTIVE_REGEX);
 
   return {
     rawDirective: directiveSource,
@@ -933,6 +2001,7 @@ const parseDirectives = (rawQuestion = "") => {
     directiveModelMode: modelModeMatch ? modelModeMatch[1].toLowerCase() : null,
     directiveProvider: providerMatch ? providerMatch[1].toLowerCase() : null,
     directiveModel: modelMatch ? modelMatch[1].toLowerCase() : null,
+    directiveDbUrl: dbUrlMatch ? dbUrlMatch[1] : null,
   };
 };
 
@@ -968,16 +2037,67 @@ const shuffleProviders = (providers) => {
   return arr;
 };
 
-const buildProviderOrder = (modelProvider, failedProviders = new Set()) => {
+const shouldSkipProvider = ({
+  provider,
+  modelMode = null,
+  enforcedProvider = null,
+  resolvedModel = null,
+  quiet = false,
+}) => {
+  try {
+    if (enforcedProvider && provider === enforcedProvider) {
+      return false; // Respecter le choix explicite de l'utilisateur
+    }
+
+    const modelName = resolvedModel || resolveModelForProvider(provider, modelMode);
+    if (!modelName) return false;
+
+    const skip = providerMetrics.shouldSkip(provider, modelName);
+    if (skip && !quiet) {
+      const entry = providerMetrics.get(provider, modelName);
+      const status = entry?.status || "unknown";
+      const consecutiveErrors = entry?.metrics?.consecutiveErrors || 0;
+      const lastErrorMessage = entry?.metrics?.lastError?.message;
+      const reason = lastErrorMessage || `${consecutiveErrors} consecutive errors`;
+      console.log(
+        `[EdgeFunction] ⏭️ Skipping ${provider} (${modelName}) due to ${status}${
+          reason ? ` – ${reason}` : ""
+        }`
+      );
+    }
+    return skip;
+  } catch (err) {
+    console.warn(
+      `[EdgeFunction] ⚠️ Unable to consult provider metrics for ${provider}:`,
+      err?.message || err
+    );
+    return false;
+  }
+};
+
+const buildProviderOrder = ({
+  enforcedProvider = null,
+  failedProviders = new Set(),
+  modelMode = null,
+} = {}) => {
   const order = [...PROVIDERS];
-  if (modelProvider && order.includes(modelProvider)) {
-    return [modelProvider, ...order.filter((p) => p !== modelProvider)];
+  let prioritizedOrder;
+
+  if (enforcedProvider && order.includes(enforcedProvider)) {
+    prioritizedOrder = [enforcedProvider, ...order.filter((p) => p !== enforcedProvider)];
+  } else if (!failedProviders.has("openai") && order.includes("openai")) {
+    // Prioriser OpenAI si non échoué
+    prioritizedOrder = ["openai", ...order.filter((p) => p !== "openai")];
+  } else {
+    prioritizedOrder = order;
   }
-  // Prioriser OpenAI si non échoué
-  if (!failedProviders.has("openai") && order.includes("openai")) {
-    return ["openai", ...order.filter((p) => p !== "openai")];
-  }
-  return order; // Si OpenAI échoué, garder l'ordre par défaut (sera mélangé si SHOULD_RANDOMIZE)
+
+  const filteredOrder = prioritizedOrder.filter(
+    (provider) => !shouldSkipProvider({ provider, modelMode, enforcedProvider, quiet: true })
+  );
+
+  // Si tous les providers ont été filtrés, retomber sur l'ordre priorisé initial
+  return filteredOrder.length > 0 ? filteredOrder : prioritizedOrder;
 };
 
 const parseRetryAfter = (errorMessage) => {
@@ -1073,22 +2193,33 @@ function createDebugLogger() {
 // ============================================================================
 // SYSTEM PROMPT - Chargement dynamique
 // ============================================================================
+
 async function fetchPublicSystemPrompt(siteUrl) {
   if (!siteUrl) return null;
-  try {
-    const promptUrl = `${siteUrl}/prompts/bob-system.md`;
-    console.log(`[Prompt] ➜ fetching system prompt from ${promptUrl}`);
-    const response = await fetch(promptUrl);
-    console.log(`[Prompt] ⬅ status=${response.status}`);
-    if (response.ok) {
+
+  const promptFiles = ["bob-system.md", "bob-db-capabilities.md"];
+  const collected = [];
+
+  for (const fileName of promptFiles) {
+    const promptUrl = `${siteUrl}/prompts/${fileName}`;
+    try {
+      console.log(`[Prompt] ➜ fetching system prompt from ${promptUrl}`);
+      const response = await fetch(promptUrl);
+      console.log(`[Prompt] ⬅ ${fileName} status=${response.status}`);
+      if (!response.ok) continue;
+
       const content = await response.text();
-      console.log(`[Prompt] ⬅ content length=${content.length}`);
-      if (content.trim()) return content;
+      console.log(`[Prompt] ⬅ ${fileName} length=${content.length}`);
+      if (content.trim()) {
+        collected.push(`<!-- ${fileName} -->\n${content.trim()}`);
+      }
+    } catch (error) {
+      console.warn(`[SystemPrompt] Erreur fetch ${fileName}:`, error.message);
     }
-  } catch (error) {
-    console.warn("[SystemPrompt] Erreur fetch:", error.message);
   }
-  return null;
+
+  if (collected.length === 0) return null;
+  return collected.join("\n\n---\n\n");
 }
 
 async function _fetchCouncilContext(siteUrl) {
@@ -1148,30 +2279,6 @@ async function getSystemPrompt() {
       > - Samedi : 9h-12h
       > *(Source : [site de la mairie](#))*`;
     }
-    // 3. Ajoute le schéma de base de données pour les requêtes SQL
-    basePrompt += `
-
-🗄️ **Schéma de base de données (pour outil sql_query) — version condensée :**
-
-Utilise ces tables/colonnes quand tu construis des requêtes SELECT. Rappelle-toi : uniquement SELECT, pas de modifications.
-
-- **knowledge_chunks** (id, source_id, text, text_hash, type, status, source_type, domain, territory, info_date, layer, metadata, created_at)
-- **document_sources** (id, filename, content_hash, public_url, domain, source_type, metadata, created_at)
-- **cortideri_items** (id, post_id, title, content_text, content_html, url, tags, scraped_at)
-- **municipal_transparency** (id, commune_name, insee_code, population, agenda_mentions_location, livestreamed, minutes_published_under_week, deliberations_open_data, annual_calendar_published)
-- **wiki_pages** (id, slug, title, content, summary, author_id, created_at)
-- **propositions** (id, title, description, author_id, status, created_at)
-- **users** (id, display_name, neighborhood, interests, created_at)
-- **posts** (id, user_id, content, created_at)
-- **comments** (id, post_id, user_id, content, created_at)
-- **chat_interactions** (id, user_id, question, answer, sources, created_at)
-
-Exemples d'usage (modèle) :
-- "SELECT id, title, created_at FROM propositions WHERE status='active' ORDER BY created_at DESC LIMIT 5;"
-- "SELECT title, scraped_at, url FROM cortideri_items WHERE scraped_at > '2025-01-01' ORDER BY scraped_at DESC LIMIT 10;"
-
-Colonnes fréquemment utiles : 'id', 'created_at', 'meta'/'metadata', 'domain', 'source_type'.
-"meta" / "metadata" sont du JSONB — extraire des clés spécifiques si nécessaire (ex: meta->>'key').`;
   }
 
   // 4. Charge le wiki consolidé depuis Supabase
@@ -1379,8 +2486,14 @@ const handler = async (request) => {
   }
 
   // 5. Parse les directives (modèle, fournisseur, debug)
-  const { rawDirective, userQuestion, directiveModelMode, directiveProvider, directiveModel } =
-    parseDirectives(rawQuestion);
+  const {
+    rawDirective,
+    userQuestion,
+    directiveModelMode,
+    directiveProvider,
+    directiveModel,
+    directiveDbUrl,
+  } = parseDirectives(rawQuestion);
 
   const bodyModelMode =
     typeof body?.modelMode === "string" ? body.modelMode.trim().toLowerCase() : null;
@@ -1413,7 +2526,11 @@ const handler = async (request) => {
   // 8. Détermine l'ordre des fournisseurs
   const enforcedProvider = forcedProvider || modelProvider;
   const failedProviders = new Set(); // Suivi des échecs pendant la conversation
-  let providerOrder = buildProviderOrder(enforcedProvider, failedProviders);
+  let providerOrder = buildProviderOrder({
+    enforcedProvider,
+    failedProviders,
+    modelMode: effectiveModelMode,
+  });
   if (!enforcedProvider && SHOULD_RANDOMIZE_PROVIDERS) {
     providerOrder = shuffleProviders(providerOrder);
   }
@@ -1439,34 +2556,84 @@ const handler = async (request) => {
   // 11.5. Initialise les clients
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabaseAdmin = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+
+  // Extract user from Authorization header
+  let user = null;
+  let supabaseUser = null; // Scoped client for RLS
+  const authHeader = request.headers.get("Authorization");
+  if (authHeader && supabaseUrl && Deno.env.get("SUPABASE_ANON_KEY")) {
+    try {
+      const token = authHeader.replace("Bearer ", "");
+      // Create a client with the user's token to respect RLS
+      supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY"), {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+      });
+      const {
+        data: { user: authUser },
+        error: authError,
+      } = await supabaseUser.auth.getUser();
+      if (!authError && authUser) {
+        user = authUser;
+        console.log(`[EdgeFunction] 👤 Authenticated user: ${user.id}`);
+      } else {
+        console.warn("[EdgeFunction] ⚠️ Invalid auth token:", authError?.message);
+      }
+    } catch (e) {
+      console.warn("[EdgeFunction] ⚠️ Error parsing auth header:", e.message);
+    }
+  }
+
+  // Fallback to admin client for read-only / system operations if no user
+  const supabase = supabaseUser || supabaseAdmin;
+
   const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
 
-  // Construct postgres client safely. In some dev environments SUPABASE_URL may be local
-  // or missing; avoid throwing and mark postgres as unavailable when we cannot connect.
+  const sanitizePostgresUrl = (value) => {
+    if (!value || typeof value !== "string") return null;
+    const trimmed = value.trim();
+    if (!/^postgres(?:ql)?:\/\//i.test(trimmed)) return null;
+    return trimmed;
+  };
+
+  const configuredPostgresUrl = sanitizePostgresUrl(
+    Deno.env.get("POSTGRES_URL") || Deno.env.get("DATABASE_URL") || null
+  );
+  const requestPostgresUrl = sanitizePostgresUrl(
+    typeof body?.postgres_url === "string"
+      ? body.postgres_url
+      : typeof body?.postgresUrl === "string"
+        ? body.postgresUrl
+        : null
+  );
+  const directivePostgresUrl = sanitizePostgresUrl(directiveDbUrl);
+  if (directiveDbUrl && !directivePostgresUrl) {
+    console.warn(
+      "[EdgeFunction] ⚠️ Ignoring db= directive because it is not a valid postgres connection string"
+    );
+  }
+
+  const effectivePostgresUrl = directivePostgresUrl || requestPostgresUrl || configuredPostgresUrl;
+
+  const postgresSource = directivePostgresUrl
+    ? "directive"
+    : requestPostgresUrl
+      ? "request"
+      : configuredPostgresUrl
+        ? "env"
+        : null;
+
+  // Construct postgres client safely based on resolved URL.
   let postgresClient = null;
   try {
-    if (
-      supabaseUrl &&
-      typeof supabaseUrl === "string" &&
-      supabaseUrl.includes(".supabase.co") &&
-      supabaseKey
-    ) {
-      const projectRef = supabaseUrl
-        .replace("https://", "")
-        .replace("http://", "")
-        .replace(".supabase.co", "");
-      const postgresConnectionString = `postgresql://postgres:${supabaseKey}@db.${projectRef}.supabase.co:5432/postgres`;
-      try {
-        postgresClient = new postgres(postgresConnectionString);
-        console.log("[EdgeFunction] ℹ️ Postgres client initialized");
-      } catch (err) {
-        console.error("[EdgeFunction] ❌ Failed to create Postgres client:", err?.message || err);
-        postgresClient = null;
-      }
+    if (effectivePostgresUrl) {
+      postgresClient = new postgres(effectivePostgresUrl);
+      console.log(
+        `[EdgeFunction] ℹ️ Postgres client initialized (${postgresSource || "env"} connection string)`
+      );
     } else {
       console.warn(
-        "[EdgeFunction] ⚠️ SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing or not a hosted supabase URL, skipping Postgres client initialization"
+        "[EdgeFunction] ⚠️ No POSTGRES_URL provided; SQL tooling will fall back to Supabase REST"
       );
     }
   } catch (err) {
@@ -1505,6 +2672,14 @@ const handler = async (request) => {
       debugLogger?.attachStream(controller, encoder);
       const emitProviderMeta = (meta) =>
         controller.enqueue(encoder.encode(`${PROVIDER_META_PREFIX}${JSON.stringify(meta)}\n`));
+      const emitToolTrace = (trace) => {
+        if (!trace) return;
+        try {
+          controller.enqueue(encoder.encode(`${TOOL_TRACE_PREFIX}${JSON.stringify(trace)}\n`));
+        } catch (err) {
+          console.warn("[EdgeFunction] ⚠️ Failed to emit tool trace:", err?.message || err);
+        }
+      };
 
       // Préfixes pour les logs
       const _logPrefix = "📜 [LOG] ";
@@ -1517,6 +2692,19 @@ const handler = async (request) => {
       // 13. Essaie chaque fournisseur dans l'ordre
       for (let providerIndex = 0; providerIndex < providerOrder.length; providerIndex++) {
         const provider = providerOrder[providerIndex];
+        const resolvedModel = resolveModelForProvider(provider, effectiveModelMode);
+
+        if (
+          shouldSkipProvider({
+            provider,
+            modelMode: effectiveModelMode,
+            enforcedProvider,
+            resolvedModel,
+          })
+        ) {
+          continue;
+        }
+
         let providerRetries = 0;
         const maxProviderRetries = 2;
 
@@ -1540,7 +2728,6 @@ const handler = async (request) => {
               // break the retry loop to move to the next provider
               break;
             }
-            const resolvedModel = resolveModelForProvider(provider, effectiveModelMode);
             console.log(
               `[EdgeFunction] 🔍 Model resolution: provider=${provider}, mode=${effectiveModelMode}, resolved=${resolvedModel}`
             );
@@ -1573,6 +2760,10 @@ const handler = async (request) => {
                 openai,
                 postgres: postgresClient,
                 metaCollector: agentMeta,
+                toolTraceEmitter: emitToolTrace,
+                debugMode,
+                user, // Pass authenticated user
+                context: body.context || {}, // Pass frontend context
               })) {
                 // If the generator yields an object, serialize it as provider metadata
                 try {
@@ -1611,11 +2802,17 @@ const handler = async (request) => {
             const rateLimitError = provider === "openai" && isRateLimitError(error);
 
             if (capacityError && !isForcedProvider) {
-              const fallbackMessage = `${errorPrefix}${provider} indisponible (crédit/limite atteinte). Tentative avec un autre fournisseur...\n\n`;
               console.warn(
                 `[EdgeFunction] ⚠️ ${provider} capacité atteinte, passage au fournisseur suivant.`
               );
-              controller.enqueue(encoder.encode(fallbackMessage));
+              // In debug mode, show fallback info in UI
+              if (debugMode) {
+                controller.enqueue(
+                  encoder.encode(
+                    `[DEBUG] ${provider} capacité atteinte, tentative avec un autre fournisseur...\n\n`
+                  )
+                );
+              }
               failedProviders.add(provider);
               break; // Passe immédiatement au provider suivant
             } else if (rateLimitError && providerRetries < maxProviderRetries) {
@@ -1628,27 +2825,33 @@ const handler = async (request) => {
               continue; // retry same provider
             } else {
               const errorDetail = error.message || String(error);
-              const errorMessage = `⚠️ **${provider.toUpperCase()} FAILED**: ${errorDetail}\n\n`;
               console.error(`[EdgeFunction] ❌ ${provider} error:`, errorDetail);
 
-              // Emit error as a visible message
-              controller.enqueue(encoder.encode(errorMessage));
-
-              // If this is a forced provider, don't fallback
+              // If this is a forced provider, show error to user (no fallback available)
               if (isForcedProvider) {
+                const errorMessage = `⚠️ Le fournisseur ${provider} que vous avez demandé n'est pas disponible actuellement.\n\n**Détails** : ${errorDetail}\n\n`;
                 console.error(
                   `[EdgeFunction] 🛑 Forced provider ${provider} failed, not falling back`
                 );
-                controller.enqueue(
-                  encoder.encode(
-                    `\n\n**Error**: You requested ${provider} specifically, but it failed. Please try a different provider or check your configuration.\n\n`
-                  )
-                );
+                controller.enqueue(encoder.encode(errorMessage));
                 handled = true;
                 break;
               }
 
-              controller.enqueue(encoder.encode(`Trying next provider...\n\n`));
+              // For automatic fallback: log in backend, don't show in UI (unless debug mode)
+              console.warn(`[EdgeFunction] ⚠️ ${provider} failed, trying next provider...`);
+
+              // In debug mode, show fallback info in UI
+              if (debugMode) {
+                const truncatedError =
+                  errorDetail.length > 100 ? errorDetail.slice(0, 100) + "..." : errorDetail;
+                controller.enqueue(
+                  encoder.encode(
+                    `[DEBUG] ${provider} failed: ${truncatedError} — Fallback activé.\n\n`
+                  )
+                );
+              }
+
               failedProviders.add(provider);
               break; // move to next provider
             }
@@ -1659,47 +2862,56 @@ const handler = async (request) => {
 
       // 14. Gestion des erreurs
       if (!handled) {
-        const message = lastError?.message || "Aucun fournisseur disponible.";
-        controller.enqueue(encoder.encode(`${errorPrefix}${message}\n\n`));
+        const message = `❌ Désolé, le service est temporairement indisponible.\n\nNos fournisseurs d'IA rencontrent actuellement des difficultés. Veuillez réessayer dans quelques instants.\n\n`;
+        controller.enqueue(encoder.encode(`${message}`));
       }
       // Emit final providers status (frontend reads metrics from this stream end)
       try {
         const providersList = (PROVIDERS || []).map((provider) => {
           const configured = isProviderAvailable(provider);
-          // Get all model keys for this provider
           const modelModes = MODEL_MODES[provider] || {};
-          const modelNames = Object.values(modelModes);
-          const models = modelNames.map((modelName) => {
+          const models = Object.entries(modelModes).map(([mode, modelName]) => {
             const metricEntry = providerMetrics.get(provider, modelName);
-            const m = metricEntry?.metrics || {};
+            const metrics = metricEntry?.metrics || {};
             const successRate =
-              m.requestCount && m.requestCount > 0
-                ? Math.round((m.successCount / m.requestCount) * 100)
+              metrics.requestCount && metrics.requestCount > 0
+                ? Math.round((metrics.successCount / metrics.requestCount) * 100)
                 : null;
             let retryAfter = null;
-            if (
-              metricEntry?.status === "rate_limited" &&
-              metricEntry.metrics.lastError?.retryAfter
-            ) {
-              const retryTime =
-                metricEntry.metrics.lastError.timestamp +
-                metricEntry.metrics.lastError.retryAfter * 1000;
+            const lastError = metricEntry?.metrics?.lastError;
+            if (metricEntry?.status === "rate_limited" && lastError?.retryAfter) {
+              const retryTime = lastError.timestamp + lastError.retryAfter * 1000;
               const secondsUntilRetry = Math.max(0, Math.ceil((retryTime - Date.now()) / 1000));
               if (secondsUntilRetry > 0) retryAfter = secondsUntilRetry;
             }
             return {
               name: modelName,
-              avgResponseTime: m.avgResponseTime ?? null,
-              successRate: successRate,
-              recentlyUsed: Boolean(m.lastUsed && Date.now() - m.lastUsed < 30000),
-              retryAfter: retryAfter,
-              consecutiveErrors: m.consecutiveErrors || 0,
+              mode,
+              avgResponseTime: metrics.avgResponseTime ?? null,
+              successRate,
+              recentlyUsed: Boolean(metrics.lastUsed && Date.now() - metrics.lastUsed < 30000),
+              retryAfter,
+              consecutiveErrors: metrics.consecutiveErrors || 0,
               status: metricEntry?.status || (configured ? "available" : "not_configured"),
             };
           });
+
+          let providerStatus = "available";
+          if (!configured) {
+            providerStatus = "not_configured";
+          } else if (models.length === 0 || models.every((m) => m.status === "unknown")) {
+            providerStatus = "unknown";
+          } else if (
+            models.some((m) => ["error", "quota_exceeded"].includes((m.status || "").toLowerCase()))
+          ) {
+            providerStatus = "degraded";
+          } else if (models.every((m) => m.status === "rate_limited")) {
+            providerStatus = "rate_limited";
+          }
+
           return {
             name: provider,
-            status: configured ? "available" : "not_configured",
+            status: providerStatus,
             models,
           };
         });
@@ -1741,6 +2953,10 @@ async function* runConversationalAgent({
   openai,
   postgres,
   metaCollector = null,
+  toolTraceEmitter = null,
+  debugMode = false,
+  user = null,
+  context = {},
 }) {
   let toolCallCount = 0;
   const idleTimeoutMs = Number(Deno.env.get("LLM_STREAM_TIMEOUT_MS")) || 30000;
@@ -1801,7 +3017,11 @@ async function* runConversationalAgent({
             supabase,
             openai,
             postgres,
-            metaCollector
+            metaCollector,
+            toolTraceEmitter,
+            debugMode,
+            user,
+            context
           );
           messages = [
             ...messages,
@@ -1828,6 +3048,7 @@ async function* runConversationalAgent({
     let eventToolExecuted = false;
     let streamTimedOut = false;
     let finalStreamResult = undefined;
+    let lastStreamToolInfo = null;
 
     try {
       while (true) {
@@ -1889,6 +3110,7 @@ async function* runConversationalAgent({
           }
 
           console.log(`[${provider}] 🛠 Executing tool now: ${fnName} (id=${call.id})`);
+          lastStreamToolInfo = { name: fnName, id: call?.id };
           const toolMessages = await executeToolCalls(
             [call],
             provider,
@@ -1899,7 +3121,11 @@ async function* runConversationalAgent({
             supabase,
             openai,
             postgres,
-            metaCollector
+            metaCollector,
+            toolTraceEmitter,
+            debugMode,
+            user,
+            context
           );
 
           messages = [
@@ -1928,6 +3154,9 @@ async function* runConversationalAgent({
       console.log(
         `[${provider}] 🔄 Completed a tool call cycle during streaming, restarting LLM loop`
       );
+      console.info(
+        `[${provider}] ℹ️ Tool ${lastStreamToolInfo?.name || "(unknown)"} terminé, reprise du flux utilisateur (call id=${lastStreamToolInfo?.id || "n/a"}).`
+      );
       continue;
     }
 
@@ -1953,7 +3182,11 @@ async function* runConversationalAgent({
         supabase,
         openai,
         postgres,
-        metaCollector
+        metaCollector,
+        toolTraceEmitter,
+        debugMode,
+        user,
+        context
       );
       messages = [
         ...messages,
@@ -2088,7 +3321,11 @@ async function* runConversationalAgent({
             supabase,
             openai,
             postgres,
-            metaCollector
+            metaCollector,
+            toolTraceEmitter,
+            debugMode,
+            user,
+            context
           );
           messages = [
             ...messages,

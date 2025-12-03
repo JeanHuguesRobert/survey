@@ -50,6 +50,7 @@ export default function Admin() {
   ];
 
   const adminLinks = [
+    { label: "API Testing", to: "/admin/api" },
     { label: "Entities editor", to: "/admin/entities" },
     { label: "Data review", to: "/admin/data-review" },
   ];
