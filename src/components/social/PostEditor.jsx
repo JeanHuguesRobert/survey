@@ -10,6 +10,7 @@ import {
   getPostType,
   getPostSubtype,
   getPostIncident,
+  appendOrMergeLastModifiedBy,
 } from "../../lib/socialMetadata";
 import { isAnonymous } from "../../lib/permissions";
 import { getMetadata } from "../../lib/metadata";
@@ -197,7 +198,7 @@ export default function PostEditor({ post = null, currentUser }) {
             }
           : null;
 
-      const metadata = createPostMetadata(formData.postType, formData.title, {
+      let metadata = createPostMetadata(formData.postType, formData.title, {
         subtitle: formData.subtitle || null,
         subtype: formData.subtype || null,
         event: eventData,
@@ -211,6 +212,12 @@ export default function PostEditor({ post = null, currentUser }) {
         gazette: formData.gazette || null,
         sourceUrl: formData.sourceUrl || null,
         location: formData.location || null,
+      });
+
+      // Stamp lastModifiedBy (append/merge) for audit trail
+      metadata = appendOrMergeLastModifiedBy(metadata, {
+        id: currentUser.id,
+        displayName: currentUser.display_name || currentUser.displayName || null,
       });
 
       if (isEditing) {
@@ -376,16 +383,33 @@ export default function PostEditor({ post = null, currentUser }) {
           <label className="block text-sm font-medium text-gray-200 mb-2">
             Type spécial (optionnel)
           </label>
-          <select
-            name="subtype"
-            value={formData.subtype}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 "
-          >
-            <option value="">Aucun</option>
-            <option value="event">Événement</option>
-            <option value="incident">Incident</option>
-          </select>
+          <div className="flex items-center gap-3">
+            <select
+              name="subtype"
+              value={formData.subtype}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 "
+            >
+              <option value="">Aucun</option>
+              <option value="event">Événement</option>
+              <option value="incident">Incident</option>
+            </select>
+            <button
+              type="button"
+              onClick={() => {
+                const params = formData.groupId
+                  ? `groupId=${encodeURIComponent(formData.groupId)}`
+                  : "";
+                const path = isEditing
+                  ? `/incidents/${post.id}/edit`
+                  : `/incidents/new${params ? `?${params}` : ""}`;
+                navigate(path);
+              }}
+              className="text-sm underline text-primary-600"
+            >
+              Basculer vers l'éditeur incidents
+            </button>
+          </div>
         </div>
 
         {/* Event fields shown when subtype=event */}

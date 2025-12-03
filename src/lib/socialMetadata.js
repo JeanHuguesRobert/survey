@@ -132,6 +132,98 @@ export function getPostIncident(post) {
   return getMetadata(post, "incident", null);
 }
 
+// ============ LAST MODIFIED BY HISTORY ============
+
+/**
+ * Normalise une entrée de modification en objet { id, displayName, timestampISO }
+ * @param {Object} entry
+ */
+export function normalizeModifierEntry(entry) {
+  if (!entry) return null;
+  return {
+    id: entry.id || null,
+    displayName: entry.displayName || entry.display_name || null,
+    timestampISO: entry.timestampISO || entry.timestamp || entry.time || null,
+  };
+}
+
+/**
+ * Retourne la liste `lastModifiedBy` depuis metadata (array, latest first)
+ * Toujours retourne un tableau (vide si absent)
+ */
+export function getLastModifiedByList(metadata) {
+  const list = getMetadata({ metadata }, "lastModifiedBy", null);
+  if (!list || !Array.isArray(list)) return [];
+  // Ensure normalised entries and sort most-recent-first
+  const normalised = list
+    .map(normalizeModifierEntry)
+    .filter(Boolean)
+    .sort((a, b) => ((b.timestampISO || "") > (a.timestampISO || "") ? 1 : -1));
+  return normalised;
+}
+
+/**
+ * Retourne l'entrée la plus récente ou null
+ */
+export function getLatestModifier(metadata, fallback) {
+  const list = getLastModifiedByList(metadata);
+  if (list.length > 0) return list[0];
+  // fallback can be a post object or explicit fallback entry
+  if (fallback) {
+    if (fallback.author_id) {
+      return {
+        id: fallback.author_id,
+        displayName: fallback.author_display_name || null,
+        timestampISO: fallback.created_at || null,
+      };
+    }
+    return normalizeModifierEntry(fallback);
+  }
+  return null;
+}
+
+/**
+ * Append or merge a lastModifiedBy entry in metadata
+ * - metadata param is the raw metadata object or the parent post
+ * - user is { id, displayName }
+ * - nowISO is string timestamp (new Date().toISOString())
+ * - mergeWindowMs defaults to 1 hour
+ * Returns a new metadata object (cloned) with lastModifiedBy updated
+ */
+export function appendOrMergeLastModifiedBy(
+  metadata,
+  user,
+  nowISO,
+  mergeWindowMs = 60 * 60 * 1000
+) {
+  if (!user || !user.id) return metadata;
+
+  const raw = { ...(metadata || {}) };
+  const existing = Array.isArray(raw.lastModifiedBy) ? [...raw.lastModifiedBy] : [];
+
+  const last = existing.length > 0 ? normalizeModifierEntry(existing[0]) : null;
+  const userEntry = {
+    id: user.id,
+    displayName: user.displayName || user.display_name || null,
+    timestampISO: nowISO || new Date().toISOString(),
+  };
+
+  if (last && last.id === userEntry.id && last.timestampISO) {
+    const lastTime = new Date(last.timestampISO).getTime();
+    const nowTime = new Date(userEntry.timestampISO).getTime();
+    if (!Number.isNaN(lastTime) && nowTime - lastTime <= mergeWindowMs) {
+      // merge: update timestamp of the latest entry
+      existing[0] = { ...existing[0], timestampISO: userEntry.timestampISO };
+      raw.lastModifiedBy = existing;
+      return raw;
+    }
+  }
+
+  // prepend (most-recent-first)
+  raw.lastModifiedBy = [userEntry, ...existing];
+  return raw;
+}
+
 /**
  * Récupère le groupId d'un article (null si pas dans un groupe)
  */
@@ -178,6 +270,143 @@ export function isLocked(post) {
 export function incrementViewCount(post) {
   const currentCount = getMetadata(post, "viewCount", 0);
   return setMetadata(post, { viewCount: currentCount + 1 });
+}
+
+// ============ HIERARCHICAL POSTS (FORUM THREADS) ============
+
+/**
+ * Get parent ID from metadata (reusable for any entity type)
+ * @param {Object} entity - Post, comment, or any entity with metadata
+ * @returns {string|null} Parent entity ID
+ */
+export function getParentId(entity) {
+  return getMetadata(entity, "parent_id", null);
+}
+
+/**
+ * Set parent ID in metadata
+ * @param {Object} entity - Entity to update
+ * @param {string|null} parentId - Parent entity ID
+ * @returns {Object} Updated entity with metadata
+ */
+export function setParentId(entity, parentId) {
+  return setMetadata(entity, { parent_id: parentId });
+}
+
+/**
+ * Check if entity is a root (has no parent)
+ * @param {Object} entity
+ * @returns {boolean}
+ */
+export function isRootEntity(entity) {
+  return !getParentId(entity);
+}
+
+/**
+ * Check if post is a root thread (no parent, marked as root)
+ * @param {Object} post
+ * @returns {boolean}
+ */
+export function isRootThread(post) {
+  return getMetadata(post, "isRootThread", false) || isRootEntity(post);
+}
+
+/**
+ * Check if post is a sub-post (has parent)
+ * @param {Object} post
+ * @returns {boolean}
+ */
+export function isSubPost(post) {
+  return !!getParentId(post);
+}
+
+/**
+ * Get thread depth (how many levels deep in the hierarchy)
+ * @param {Object} post
+ * @returns {number}
+ */
+export function getThreadDepth(post) {
+  return getMetadata(post, "threadDepth", 0);
+}
+
+/**
+ * Get root post ID of a thread
+ * @param {Object} post
+ * @returns {string} Root post ID (or own ID if is root)
+ */
+export function getRootThreadId(post) {
+  return getMetadata(post, "rootPostId") || post.id;
+}
+
+/**
+ * Get thread statistics
+ * @param {Object} post
+ * @returns {Object} Thread stats
+ */
+export function getThreadStats(post) {
+  return getMetadata(post, "threadStats", {
+    directReplies: 0,
+    totalReplies: 0,
+    totalComments: 0,
+    maxDepth: 0,
+    lastActivityAt: null,
+  });
+}
+
+/**
+ * Create metadata for a sub-post (reply to another post)
+ * @param {string} postType - Type of post
+ * @param {string} title - Post title
+ * @param {string} parentPostId - ID of parent post
+ * @param {Object} parentPost - Full parent post object (to extract context)
+ * @param {Object} options - Additional options
+ * @returns {Object} Metadata object
+ */
+export function createSubPostMetadata(postType, title, parentPostId, parentPost, options = {}) {
+  const parentDepth = getThreadDepth(parentPost);
+  const rootId = getRootThreadId(parentPost);
+
+  return createPostMetadata(postType, title, {
+    ...options,
+    parent_id: parentPostId,
+    threadDepth: parentDepth + 1,
+    rootPostId: rootId,
+    isRootThread: false,
+    replyToAuthor: parentPost.author_id
+      ? {
+          id: parentPost.author_id,
+          displayName: parentPost.users?.display_name || null,
+        }
+      : null,
+  });
+}
+
+/**
+ * Update thread statistics (call after adding/removing posts/comments)
+ * @param {Object} rootPost - Root post to update
+ * @param {Array} allThreadPosts - All posts in the thread
+ * @param {Object} commentCounts - Map of postId -> comment count
+ * @returns {Object} Updated metadata object
+ */
+export function updateThreadStats(rootPost, allThreadPosts, commentCounts = {}) {
+  const directReplies = allThreadPosts.filter((p) => getParentId(p) === rootPost.id).length;
+  const totalReplies = allThreadPosts.length - 1; // Exclude root
+  const totalComments = Object.values(commentCounts).reduce((sum, count) => sum + count, 0);
+  const maxDepth = Math.max(...allThreadPosts.map((p) => getThreadDepth(p)), 0);
+  const lastActivity = allThreadPosts.reduce((latest, p) => {
+    const updated = new Date(p.updated_at || p.created_at);
+    return updated > latest ? updated : latest;
+  }, new Date(rootPost.created_at));
+
+  const threadStats = {
+    directReplies,
+    totalReplies,
+    totalComments,
+    maxDepth,
+    lastActivityAt: lastActivity.toISOString(),
+  };
+
+  return setMetadata(rootPost, { threadStats });
 }
 
 // ============ SHARES ============

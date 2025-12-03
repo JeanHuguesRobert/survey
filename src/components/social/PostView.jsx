@@ -12,6 +12,12 @@ import {
   incrementViewCount,
   POST_TYPES,
   getPostIncident,
+  getLatestModifier,
+  getLastModifiedByList,
+  getParentId,
+  isSubPost,
+  getThreadDepth,
+  getThreadStats,
 } from "../../lib/socialMetadata";
 import {
   isPinnedPost,
@@ -35,6 +41,8 @@ import { enrichUserMetadata } from "../../lib/userTransform";
 import SubscribeButton from "../common/SubscribeButton";
 import EventInfo from "./EventInfo";
 import IncidentInfo from "./IncidentInfo";
+import SubPostEditor from "./SubPostEditor";
+import SubPostCard from "./SubPostCard";
 
 /**
  * Vue détaillée d'un article avec commentaires
@@ -48,11 +56,15 @@ export default function PostView({ currentUser }) {
   const [linkedEntity, setLinkedEntity] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [subPosts, setSubPosts] = useState([]);
+  const [showSubPostEditor, setShowSubPostEditor] = useState(false);
 
   useEffect(() => {
     if (id) {
       loadPost();
       trackView();
+      loadSubPosts();
     }
   }, [id]);
 
@@ -139,6 +151,35 @@ export default function PostView({ currentUser }) {
     }
   }
 
+  async function loadSubPosts() {
+    try {
+      const { data, error: fetchError } = await supabase
+        .from("posts")
+        .select("*, users(id, display_name, metadata), comments(count)")
+        .eq("metadata->>parent_id", id)
+        .order("created_at", { ascending: true });
+
+      if (fetchError) throw fetchError;
+
+      // Filter soft-deleted and enrich metadata
+      const activePosts = (data || [])
+        .filter((p) => !isDeleted(p))
+        .map((p) => ({
+          ...p,
+          users: enrichUserMetadata(p.users),
+        }));
+
+      setSubPosts(activePosts);
+    } catch (err) {
+      console.error("Error loading sub-posts:", err);
+    }
+  }
+
+  function handleSubPostSubmit(newPost) {
+    setShowSubPostEditor(false);
+    loadSubPosts(); // Reload sub-posts to show the new one
+  }
+
   async function handleDelete() {
     if (!confirm("Êtes-vous sûr de vouloir supprimer ce post ?")) return;
 
@@ -198,6 +239,8 @@ export default function PostView({ currentUser }) {
   const isPostAuthor = isAuthor(post, currentUser);
   const canEdit = canEditPost(post, currentUser);
   const canDelete = canDeletePost(post, currentUser);
+  const lastModifiedList = getLastModifiedByList(post.metadata);
+  const latestModifier = getLatestModifier(post.metadata, post);
 
   const typeIcons = {
     [POST_TYPES.BLOG]: "📝",
@@ -397,8 +440,71 @@ export default function PostView({ currentUser }) {
           <span>
             👁️ {viewCount} vue{viewCount !== 1 ? "s" : ""}
           </span>
+          {latestModifier && latestModifier.id !== post.author_id && (
+            <span>
+              • Dernière mise à jour par {latestModifier.displayName || "--"} le{" "}
+              {new Date(latestModifier.timestampISO).toLocaleString("fr-FR")}
+            </span>
+          )}
+          {lastModifiedList.length > 0 && (
+            <button onClick={() => setShowHistory((s) => !s)} className="text-xs ml-2 underline">
+              Historique
+            </button>
+          )}
         </div>
       </article>
+
+      {showHistory && lastModifiedList.length > 0 && (
+        <div className="mt-3 text-sm text-gray-400 max-w-4xl mx-auto px-4">
+          <strong>Historique des modifications:</strong>
+          <ul className="ml-3 list-disc">
+            {lastModifiedList.map((entry, idx) => (
+              <li key={idx}>
+                {entry.displayName || entry.id} —{" "}
+                {new Date(entry.timestampISO).toLocaleString("fr-FR")}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Reply with Post Button */}
+      {currentUser && !locked && (
+        <div className="my-6">
+          <button
+            onClick={() => setShowSubPostEditor(!showSubPostEditor)}
+            className="px-4 py-2 bg-primary-600 text-bauhaus-white rounded hover:bg-primary-700 font-semibold transition-colors flex items-center gap-2"
+          >
+            📝 {showSubPostEditor ? "Annuler" : "Répondre avec un post"}
+          </button>
+        </div>
+      )}
+
+      {/* Sub-Post Editor */}
+      {showSubPostEditor && currentUser && post && (
+        <div className="mb-6">
+          <SubPostEditor
+            parentPost={post}
+            currentUser={currentUser}
+            onSubmit={handleSubPostSubmit}
+            onCancel={() => setShowSubPostEditor(false)}
+          />
+        </div>
+      )}
+
+      {/* Sub-Posts List */}
+      {subPosts.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-xl font-semibold text-gray-200 mb-4">
+            {subPosts.length} Réponse{subPosts.length > 1 ? "s" : ""}
+          </h3>
+          <div className="space-y-4">
+            {subPosts.map((subPost) => (
+              <SubPostCard key={subPost.id} post={subPost} currentUser={currentUser} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Commentaires */}
       {!locked ? (
