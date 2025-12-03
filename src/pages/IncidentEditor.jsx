@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { isDeleted } from "../lib/metadata";
 import IncidentEditorForm from "../components/incidents/IncidentEditorForm";
+import SiteFooter from "../components/layout/SiteFooter";
 import { enrichUserMetadata } from "../lib/userTransform";
 
 export default function IncidentEditor() {
@@ -84,5 +85,10 @@ export default function IncidentEditor() {
       </div>
     );
 
-  return <IncidentEditorForm post={post} currentUser={currentUser} />;
+  return (
+    <>
+      <IncidentEditorForm post={post} currentUser={currentUser} />
+      <SiteFooter />
+    </>
+  );
 }

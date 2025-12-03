@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import CitizenMap from "../components/map/CitizenMap";
 import LocationPicker from "../components/map/LocationPicker";
+import SiteFooter from "../components/layout/SiteFooter";
 
 export default function PostLocationPicker() {
   const navigate = useNavigate();
@@ -174,6 +175,7 @@ export default function PostLocationPicker() {
           </button>
         </div>
       </div>
+      <SiteFooter />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useCurrentUser } from "../lib/useCurrentUser";
 import PostEditor from "../components/social/PostEditor";
+import SiteFooter from "../components/layout/SiteFooter";
 
 /**
  * Page création de post
@@ -25,5 +26,10 @@ export default function PostCreate() {
     );
   }
 
-  return <PostEditor currentUser={currentUser} />;
+  return (
+    <>
+      <PostEditor currentUser={currentUser} />
+      <SiteFooter />
+    </>
+  );
 }
