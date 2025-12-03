@@ -1,6 +1,8 @@
 // src/components/social/GroupDetail.jsx
 
 import { useState, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { isDeleted, getMetadata } from "../../lib/metadata";
@@ -288,7 +290,14 @@ export default function GroupDetail({ currentUser }) {
                 </div>
               )}
 
-              <p className="text-gray-300 mb-4 whitespace-pre-line">{group.description}</p>
+              {group.description && (
+                <ReactMarkdown
+                  className="markdown-content prose prose-invert max-w-none text-gray-300 mb-4"
+                  remarkPlugins={[remarkGfm]}
+                >
+                  {group.description}
+                </ReactMarkdown>
+              )}
 
               <Link
                 to={`/social?tab=posts&groupId=${id}`}
