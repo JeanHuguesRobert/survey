@@ -19,20 +19,30 @@ function previewForLog(value, max = 400) {
  */
 async function fetchPublicSystemPrompt(siteUrl) {
   if (!siteUrl) return null;
-  try {
-    const promptUrl = `${siteUrl}/prompts/bob-system.md`;
-    console.log(`[Prompt] ➜ fetching system prompt from ${promptUrl}`);
-    const response = await fetch(promptUrl);
-    console.log(`[Prompt] ⬅ status=${response.status}`);
-    if (response.ok) {
+
+  const promptFiles = ["bob-system.md", "OPHELIA_DB_CAPABILITIES.md"];
+  const collected = [];
+
+  for (const fileName of promptFiles) {
+    const promptUrl = `${siteUrl}/prompts/${fileName}`;
+    try {
+      console.log(`[Prompt] ➜ fetching system prompt from ${promptUrl}`);
+      const response = await fetch(promptUrl);
+      console.log(`[Prompt] ⬅ ${fileName} status=${response.status}`);
+      if (!response.ok) continue;
+
       const content = await response.text();
-      console.log(`[Prompt] ⬅ content length=${content.length}`);
-      if (content.trim()) return content;
+      console.log(`[Prompt] ⬅ ${fileName} length=${content.length}`);
+      if (content.trim()) {
+        collected.push(`<!-- ${fileName} -->\n${content.trim()}`);
+      }
+    } catch (error) {
+      console.warn(`[SystemPrompt] Erreur fetch ${fileName}:`, error.message);
     }
-  } catch (error) {
-    console.warn("[SystemPrompt] Erreur fetch:", error.message);
   }
-  return null;
+
+  if (collected.length === 0) return null;
+  return collected.join("\n\n---\n\n");
 }
 
 /**
