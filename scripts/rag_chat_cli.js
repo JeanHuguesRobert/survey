@@ -2,27 +2,219 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import fs from "node:fs/promises";
 import { createClient } from "@supabase/supabase-js";
 
 const OPENAI_KEY = process.env.OPENAI_API_KEY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!OPENAI_KEY) {
-  console.error("Missing OPENAI_API_KEY in environment");
-  process.exit(1);
+let supabaseClient = null;
+function getSupabaseClient() {
+  if (supabaseClient) return supabaseClient;
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in environment");
+  }
+  supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false },
+  });
+  return supabaseClient;
 }
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in environment");
-  process.exit(1);
-}
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false },
-});
 
 const EMBEDDING_MODEL = process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small";
 const CHAT_MODEL = process.env.OPENAI_CHAT_MODEL || "gpt-3.5-turbo";
+const DEFAULT_SQL_LIMIT = 100;
+const DEFAULT_SQL_FORMAT = "json";
+const DEFAULT_CHAT_PATH = "/api/chat-stream";
+
+function parseCliArgs(argv) {
+  const opts = {
+    question: null,
+    json: false,
+    top: 5,
+    fetchLimit: 1000,
+    sql: null,
+    sqlFile: null,
+    sqlLimit: null,
+    sqlFormat: DEFAULT_SQL_FORMAT,
+    sqlEndpoint: null,
+    cliToken: null,
+    authToken: null,
+  };
+
+  for (let i = 0; i < argv.length; i++) {
+    const token = argv[i];
+    switch (token) {
+      case "--json":
+        opts.json = true;
+        break;
+      case "--top":
+        opts.top = Number(argv[i + 1]) || opts.top;
+        i++;
+        break;
+      case "--fetch-limit":
+        opts.fetchLimit = Number(argv[i + 1]) || opts.fetchLimit;
+        i++;
+        break;
+      case "--sql":
+        opts.sql = argv[i + 1] || "";
+        i++;
+        break;
+      case "--sql-file":
+        opts.sqlFile = argv[i + 1] || "";
+        i++;
+        break;
+      case "--limit":
+      case "--sql-limit":
+        opts.sqlLimit = Number(argv[i + 1]);
+        i++;
+        break;
+      case "--format":
+      case "--sql-format":
+        opts.sqlFormat = (argv[i + 1] || DEFAULT_SQL_FORMAT).toLowerCase();
+        i++;
+        break;
+      case "--endpoint":
+      case "--sql-endpoint":
+        opts.sqlEndpoint = argv[i + 1] || "";
+        i++;
+        break;
+      case "--cli-token":
+        opts.cliToken = argv[i + 1] || "";
+        i++;
+        break;
+      case "--auth":
+      case "--auth-token":
+        opts.authToken = argv[i + 1] || "";
+        i++;
+        break;
+      default:
+        if (!token.startsWith("--") && !opts.question) {
+          opts.question = token;
+        } else if (!token.startsWith("--") && opts.question) {
+          opts.question += " " + token;
+        } else {
+          console.warn(`Unknown argument: ${token}`);
+        }
+    }
+  }
+
+  if (opts.sqlFormat !== "json" && opts.sqlFormat !== "markdown") {
+    opts.sqlFormat = DEFAULT_SQL_FORMAT;
+  }
+  return opts;
+}
+
+function resolveSqlEndpoint(cliOverride) {
+  const source =
+    (cliOverride && cliOverride.trim()) ||
+    (process.env.RAG_SQL_ENDPOINT || "").trim() ||
+    (process.env.RAG_CHAT_ENDPOINT || "").trim() ||
+    (process.env.URL || "").trim();
+  if (!source) {
+    throw new Error(
+      "Missing SQL endpoint. Set RAG_SQL_ENDPOINT, RAG_CHAT_ENDPOINT, or URL environment variable."
+    );
+  }
+  if (/\/api\/chat-stream/i.test(source)) {
+    return source;
+  }
+  return source.replace(/\/$/, "") + DEFAULT_CHAT_PATH;
+}
+
+function buildSqlHeaders(cliTokenOverride, authTokenOverride) {
+  const headers = { "Content-Type": "application/json" };
+  const cliToken = (cliTokenOverride || process.env.CLI_TOKEN || "").trim();
+  if (cliToken) headers["x-cli-token"] = cliToken;
+  const bearer = (
+    authTokenOverride ||
+    process.env.SQL_AUTH_TOKEN ||
+    process.env.SUPABASE_JWT ||
+    ""
+  ).trim();
+  if (bearer) headers.Authorization = `Bearer ${bearer}`;
+  return headers;
+}
+
+function prettyPrintSqlResult(result) {
+  const { status, source, rowCount, limitApplied, durationMs, columns, rows, error, metadata } =
+    result || {};
+  console.log(`[SQL] Status: ${status || "unknown"} via ${source || "n/a"}`);
+  if (typeof rowCount === "number") {
+    console.log(`[SQL] Rows: ${rowCount} ${limitApplied ? `(limit ${limitApplied})` : ""}`);
+  }
+  if (typeof durationMs === "number") {
+    console.log(`[SQL] Duration: ${durationMs.toFixed(2)}ms`);
+  }
+  if (columns && columns.length > 0 && Array.isArray(rows) && rows.length > 0) {
+    console.table(rows);
+  } else {
+    console.log("[SQL] No rows returned.");
+  }
+  if (error) {
+    console.log("[SQL] Error:", error);
+  }
+  if (metadata) {
+    console.log("[SQL] Metadata:", JSON.stringify(metadata, null, 2));
+  }
+}
+
+async function runSqlWorkflow(options) {
+  let sql = options.sql;
+  if ((!sql || !sql.trim()) && options.sqlFile) {
+    const fileContents = await fs.readFile(options.sqlFile, "utf-8");
+    sql = fileContents;
+  }
+  if (!sql || !sql.trim()) {
+    throw new Error("No SQL provided. Use --sql or --sql-file to supply a SELECT statement.");
+  }
+  const endpoint = resolveSqlEndpoint(options.sqlEndpoint);
+  const format = options.sqlFormat === "markdown" ? "markdown" : DEFAULT_SQL_FORMAT;
+  const limit =
+    Number.isFinite(options.sqlLimit) && options.sqlLimit > 0
+      ? options.sqlLimit
+      : DEFAULT_SQL_LIMIT;
+
+  console.log(`[SQL] Endpoint: ${endpoint}`);
+  console.log(`[SQL] Limit: ${limit} | Format: ${format}`);
+
+  const body = { sql, limit, format };
+  const resp = await fetch(endpoint, {
+    method: "POST",
+    headers: buildSqlHeaders(options.cliToken, options.authToken),
+    body: JSON.stringify(body),
+  });
+
+  const text = await resp.text();
+  if (!resp.ok) {
+    let detail = text;
+    try {
+      detail = JSON.parse(text);
+    } catch {
+      // ignore
+    }
+    const message = typeof detail === "string" ? detail : JSON.stringify(detail, null, 2);
+    throw new Error(`[SQL] Request failed (${resp.status}): ${message}`);
+  }
+
+  if (format === "markdown") {
+    console.log(text.trim());
+    return;
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (err) {
+    throw new Error(`[SQL] Unable to parse JSON response: ${err.message}`);
+  }
+
+  if (options.json) {
+    console.log(JSON.stringify(parsed, null, 2));
+  } else {
+    prettyPrintSqlResult(parsed);
+  }
+}
 
 async function getEmbedding(text) {
   const res = await fetch("https://api.openai.com/v1/embeddings", {
@@ -54,7 +246,8 @@ function cosine(a, b) {
 }
 
 async function fetchChunks(limit = 1000) {
-  const { data, error } = await supabase
+  const client = getSupabaseClient();
+  const { data, error } = await client
     .from("knowledge_chunks")
     .select("id,text,embedding,metadata,source_id")
     .limit(limit);
@@ -106,17 +299,46 @@ function buildSystemPrompt(snippets) {
   return intro + "\n\n" + ctx.join("\n\n");
 }
 
+function printUsage() {
+  console.log(`Usage:
+  # RAG mode (default)
+  node scripts/rag_chat_cli.js "Your question" [--top N] [--fetch-limit N] [--json]
+
+  # Direct SQL mode (bypasses embeddings)
+  node scripts/rag_chat_cli.js --sql "SELECT * FROM example" [--limit N] [--format markdown|json]
+    [--endpoint https://site/api/chat-stream] [--cli-token token] [--auth jwt] [--json]
+`);
+}
+
 async function main() {
-  const args = process.argv.slice(2);
-  if (args.length === 0) {
-    console.log('Usage: node scripts/rag_chat_cli.js "Your question" [--top N] [--json]');
+  const options = parseCliArgs(process.argv.slice(2));
+  const sqlMode = Boolean(options.sql || options.sqlFile);
+
+  if (!sqlMode && !options.question) {
+    printUsage();
     process.exit(0);
   }
 
-  const jsonOut = args.includes("--json");
-  const rawQuery = args[0];
-  const topIdx = args.indexOf("--top");
-  const topK = topIdx >= 0 && args[topIdx + 1] ? Number(args[topIdx + 1]) : 5;
+  if (sqlMode) {
+    await runSqlWorkflow(options);
+    return;
+  }
+
+  if (!OPENAI_KEY) {
+    console.error("Missing OPENAI_API_KEY in environment");
+    process.exit(1);
+  }
+  try {
+    getSupabaseClient();
+  } catch (err) {
+    console.error(err.message);
+    process.exit(1);
+  }
+
+  const rawQuery = options.question;
+  const topK = options.top || 5;
+  const fetchLimit = options.fetchLimit || 1000;
+  const jsonOut = options.json;
 
   const requestId = globalThis.crypto && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}`;
   const timestamp = new Date().toISOString();
@@ -127,7 +349,7 @@ async function main() {
   console.log("Chat model:", CHAT_MODEL);
 
   console.log("Embedding query and fetching top", topK, "chunks...");
-  const matches = await getTopMatches(rawQuery, topK, 1000);
+  const matches = await getTopMatches(rawQuery, topK, fetchLimit);
 
   const systemPrompt = buildSystemPrompt(matches);
   const userPrompt = `Question: ${rawQuery}\n\nAnswer concisely and list sources (file names or IDs).`;
@@ -147,7 +369,7 @@ async function main() {
   const matchesMeta = matches.map((m) => ({
     chunk_id: m.chunk.id,
     source_id: m.chunk.source_id || null,
-    canonical: m.chunk.meta?.canonical_pdf_path || null,
+    canonical: m.chunk.metadata?.canonical_pdf_path || null,
     score: m.score,
   }));
 

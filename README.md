@@ -135,6 +135,48 @@ L'application sera accessible sur `http://localhost:8888`
 
 ---
 
+### CLI : Tests RAG & SQL
+
+Le script `scripts/rag_chat_cli.js` fournit deux modes utiles pour les développeurs :
+
+- **Mode RAG (par défaut)** :
+
+  ```bash
+  node scripts/rag_chat_cli.js "Question pour Ophélia" --top 8 --fetch-limit 1500 --json
+  ```
+
+  - Requiert `OPENAI_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
+  - `--top` ajuste le nombre de chunks retournés (5 par défaut).
+  - `--fetch-limit` limite le nombre total de chunks téléchargés depuis Supabase.
+  - `--json` affiche une réponse structurée (sinon le script rend un format humain).
+
+- **Mode SQL direct** :
+
+  ```bash
+  RAG_SQL_ENDPOINT=https://<votre-site>/api/chat-stream \
+  CLI_TOKEN=<token aligné sur Netlify> \
+  node scripts/rag_chat_cli.js --sql "SELECT id, title FROM wiki_pages ORDER BY updated_at DESC" --limit 50 --json
+  ```
+
+  - Utilise le short-cut `?sql=` de l'edge function pour exécuter `sql_query` sans passer par le
+    LLM.
+  - Variables utiles :
+    - `RAG_SQL_ENDPOINT` (URL complète) ou `RAG_CHAT_ENDPOINT`/`URL` (base, `/api/chat-stream` sera
+      ajouté).
+    - `CLI_TOKEN` pour l'entête `x-cli-token` (doit correspondre à `CLI_TOKEN` côté Netlify).
+    - `SQL_AUTH_TOKEN` ou `SUPABASE_JWT` si l'autorisation doit se faire via
+      `Authorization: Bearer`.
+  - Options :
+    - `--sql "SELECT …"` ou `--sql-file ./ma-requete.sql`.
+    - `--limit 200` pour surcharger la limite côté outil (100 par défaut).
+    - `--format markdown` pour un tableau prêt à copier-coller (sinon JSON).
+    - `--endpoint`, `--cli-token`, `--auth` pour surcharger l'environnement sans modifier `.env`.
+
+Ce flux permet de valider localement le format JSON enrichi de `sql_query` (métadonnées, comptage,
+erreurs détaillées) sans démarrer d'interface web.
+
+---
+
 ## 🛠️ Technologies utilisées
 
 **Pour les curieux et les développeurs :**
