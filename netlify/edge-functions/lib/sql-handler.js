@@ -63,8 +63,8 @@ export async function handleExplicitSql(request, body, TOOL_HANDLERS) {
             const isAdminMetadata = Boolean(
               (userInfo.user_metadata &&
                 (userInfo.user_metadata.is_admin || userInfo.user_metadata.role === "admin")) ||
-                (userInfo.app_metadata &&
-                  (userInfo.app_metadata.is_admin || userInfo.app_metadata.role === "admin"))
+              (userInfo.app_metadata &&
+                (userInfo.app_metadata.is_admin || userInfo.app_metadata.role === "admin"))
             );
             if (isAdminMetadata) {
               authorized = true;
@@ -122,9 +122,10 @@ export async function handleExplicitSql(request, body, TOOL_HANDLERS) {
     }
 
     const limit = Number(body?.limit) || 100;
+    const format = typeof body?.format === "string" ? body.format : undefined;
     try {
       const out = await TOOL_HANDLERS.sql_query(
-        { query: rawSql, limit },
+        { query: rawSql, limit, format },
         { postgres: postgresClient, supabase }
       );
       return new Response(String(out), {
