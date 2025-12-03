@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "../../lib/supabase";
-import { createSubPostMetadata, getPostTitle, getMetadata } from "../../lib/socialMetadata";
+import { createSubPostMetadata, getPostTitle } from "../../lib/socialMetadata";
+import { getMetadata } from "../../lib/metadata";
 import { getDisplayName } from "../../lib/userDisplay";
 
 /**

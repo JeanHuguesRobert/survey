@@ -22,6 +22,14 @@ function = "root-redirect"
   path = "/api/chat-stream"
   function = "rag_chatbot"
 
+[[edge_functions]]
+  path = "/api/fil/items"
+  function = "fil-create-item"
+
+[[edge_functions]]
+  path = "/api/fil/vote"
+  function = "fil-vote"
+
 [[redirects]]
   from = "/docs/*"
   to = "/docs/:splat"

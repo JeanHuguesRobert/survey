@@ -560,6 +560,9 @@ export default function SiteFooter({
             <Link to="/" style={styles.link}>
               Accueil
             </Link>
+            <Link to="/fil" style={styles.link}>
+              Fil
+            </Link>
             <Link to="/bob" style={styles.link}>
               IA
             </Link>

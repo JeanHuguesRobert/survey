@@ -94,6 +94,8 @@ import TaskProjectDetail from "./pages/TaskProjectDetail";
 import TaskCreate from "./pages/TaskCreate";
 import TaskEdit from "./pages/TaskEdit";
 import TaskDetail from "./pages/TaskDetail";
+import FilFeed from "./components/fil/FilFeed";
+import FilSubmissionForm from "./components/fil/FilSubmissionForm";
 
 export default function Consultation() {
   // Feature flag for gesture header menu
@@ -1339,6 +1341,9 @@ export function App() {
         <Route path="/tasks/:projectId/task/new" element={<TaskCreate />} />
         <Route path="/tasks/:projectId/task/:taskId" element={<TaskDetail />} />
         <Route path="/tasks/:projectId/task/:taskId/edit" element={<TaskEdit />} />
+        <Route path="/tasks/:projectId/task/:taskId/edit" element={<TaskEdit />} />
+        <Route path="/fil" element={<FilFeed />} />
+        <Route path="/fil/new" element={<FilSubmissionForm />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>

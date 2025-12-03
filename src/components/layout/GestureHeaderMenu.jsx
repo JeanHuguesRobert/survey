@@ -417,6 +417,23 @@ export default function GestureHeaderMenu({ activeEdges = ["top"] }) {
                 </li>
                 <li>
                   <Link
+                    to="/fil"
+                    onClick={closeMenu}
+                    style={{
+                      color: "var(--color-content-primary)",
+                      textDecoration: "none",
+                      fontWeight: 500,
+                      fontSize: "0.95em",
+                      padding: "2px 8px",
+                      transition: "background var(--duration-fast) ease",
+                      display: "inline-block",
+                    }}
+                  >
+                    Le Fil
+                  </Link>
+                </li>
+                <li>
+                  <Link
                     to="/missions"
                     onClick={closeMenu}
                     style={{
@@ -454,7 +471,6 @@ export default function GestureHeaderMenu({ activeEdges = ["top"] }) {
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
-                      gap: "6px", // reduced
                     }}
                   >
                     <Link
@@ -466,8 +482,8 @@ export default function GestureHeaderMenu({ activeEdges = ["top"] }) {
                         fontWeight: 500,
                         fontSize: "0.90em",
                         padding: "2px 8px",
-                        transition: "background var(--duration-fast) ease",
-                        display: "inline-block",
+                        width: "100%",
+                        textAlign: "center",
                       }}
                     >
                       🔔 Vos abonnements
