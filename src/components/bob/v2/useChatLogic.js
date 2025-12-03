@@ -1,3 +1,5 @@
+// src/components/bob/v2/useChatLogic.js
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../../../lib/supabase";
 import { canWrite } from "../../../lib/permissions";
@@ -39,6 +41,11 @@ export default function useChatLogic(initial = {}) {
 
   const [providersStatus, setProvidersStatus] = useState(null);
   const messagesRef = useRef([]);
+  const providerStatusBufferRef = useRef("");
+  const providerMetaBufferRef = useRef("");
+  const cacheMetaBufferRef = useRef("");
+  const toolTraceBufferRef = useRef("");
+  const toolTraceSeenRef = useRef(new Set());
   // Status hooks must be called at top-level of this hook (Rules of Hooks)
   const loadSettingsOp = useDataLoader();
   const loadChatHistoryOp = useDataLoader();
@@ -112,11 +119,15 @@ export default function useChatLogic(initial = {}) {
   const PROVIDER_META_PREFIX = "__PROVIDER_INFO__";
   const PROVIDERS_STATUS_PREFIX = "__PROVIDERS_STATUS__";
   const CACHED_PREFIX = "__CACHED__";
+  const TOOL_TRACE_PREFIX = "__TOOL_TRACE__";
   const [hasConsent, setHasConsent] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
 
   useEffect(() => {
     messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
     return () => {
       if (sendTimerRef.current) clearTimeout(sendTimerRef.current);
       if (timerRef.current) clearInterval(timerRef.current);
@@ -294,15 +305,15 @@ export default function useChatLogic(initial = {}) {
 
   // Select provider directly (bind to provider badges) — sets provider, default mode and updates directivePrefix
   const selectProvider = useCallback(
-    (provider) => {
+    (provider, preferredMode = null) => {
       if (!provider) return;
+      const providerModes = MODEL_MODES[provider] || {};
+      const resolvedMode =
+        preferredMode || DEFAULT_MODEL_MODE[provider] || Object.keys(providerModes)[0] || "";
       setModalProvider(provider);
-      const mode =
-        DEFAULT_MODEL_MODE[provider] ||
-        (MODEL_MODES[provider] ? Object.keys(MODEL_MODES[provider])[0] : "");
-      setModalMode(mode);
-      const prefix = buildDirective({ provider, mode });
-      setDirectivePrefix(prefix);
+      setModalMode(resolvedMode);
+      const prefix = buildDirective({ provider, mode: resolvedMode });
+      if (prefix) setDirectivePrefix(prefix);
     },
     [buildDirective]
   );
@@ -353,12 +364,25 @@ export default function useChatLogic(initial = {}) {
 
           const response = await fetch("/api/chat-stream", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              ...(user?.access_token ? { Authorization: `Bearer ${user.access_token}` } : {}),
+            },
             body: JSON.stringify({
               question: directivePrefix ? `${directivePrefix} ; ${text}` : text,
               user_id: user?.id ?? null,
               modelMode: modalMode,
               conversation_history: conv,
+              context: {
+                url: window.location.href,
+                pathname: window.location.pathname,
+                search: window.location.search,
+                // Try to extract IDs from URL if possible, though backend can also parse URL
+                groupId:
+                  (window.location.pathname.match(/\/groups\/([a-f0-9-]+)/) || [])[1] || null,
+                missionId:
+                  (window.location.search.match(/missionId=([a-f0-9-]+)/) || [])[1] || null,
+              },
             }),
             signal: abortControllerRef.current.signal,
           });
@@ -377,36 +401,39 @@ export default function useChatLogic(initial = {}) {
           let isCachedResponse = false;
           let cacheKey = null;
 
-          // create placeholder bot message
-          const botMessageId = Date.now() + 1;
-          setMessages((prev) => [
-            ...prev,
-            { id: botMessageId, text: "", sender: "bot", timestamp: new Date(), isStreaming: true },
-          ]);
+          const stripPrefixedPayloads = (incomingChunk, prefix, bufferRef, handler) => {
+            let working = (bufferRef.current || "") + incomingChunk;
+            while (true) {
+              const idx = working.indexOf(prefix);
+              if (idx === -1) break;
+              const payloadStart = idx + prefix.length;
+              const newlineIdx = working.indexOf("\n", payloadStart);
+              if (newlineIdx === -1) {
+                bufferRef.current = working.slice(idx);
+                return working.slice(0, idx);
+              }
+              const payload = working.slice(payloadStart, newlineIdx);
+              handler(payload);
+              working = working.slice(0, idx) + working.slice(newlineIdx + 1);
+            }
+            bufferRef.current = "";
+            return working;
+          };
 
-          // Try to find related propositions before streaming (wrapped)
-          // (already wrapped above) nothing to do here
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            let chunk = decoder.decode(value, { stream: true });
-
-            // strip provider/meta prefixes if present (preserve text)
-            while (chunk.includes(PROVIDERS_STATUS_PREFIX)) {
-              const [before, rest] = chunk.split(PROVIDERS_STATUS_PREFIX, 2);
+          const handleProvidersStatusPayload = (payload) => {
+            try {
+              const data = JSON.parse(payload);
+              setProvidersStatus(data);
               try {
-                const newline = rest.indexOf("\n");
-                const payload = newline >= 0 ? rest.slice(0, newline) : rest;
-                const data = JSON.parse(payload);
-                setProvidersStatus(data);
-                try {
-                  console.debug("[Chat] Received providers status metadata", data);
-                } catch (_) {}
-                try {
-                  const serialized = JSON.stringify(data);
-                  if (lastProvidersStatusRef.current !== serialized) {
-                    lastProvidersStatusRef.current = serialized;
+                console.debug("[Chat] Received providers status metadata", data);
+              } catch (_) {}
+              try {
+                const serialized = JSON.stringify(data);
+                if (lastProvidersStatusRef.current !== serialized) {
+                  const hasExistingStatus = lastProvidersStatusRef.current !== null;
+                  lastProvidersStatusRef.current = serialized;
+                  // Only show notification if we had a previous status (not on first load)
+                  if (hasExistingStatus) {
                     const summary = (data.providers || [])
                       .map((p) => {
                         const s = p.status || "unknown";
@@ -434,112 +461,220 @@ export default function useChatLogic(initial = {}) {
                       },
                     ]);
                   }
-                } catch (_) {}
-              } catch (e) {
-                // ignore
-              }
-              chunk = ""; // drop meta
+                }
+              } catch (_) {}
+            } catch (e) {
+              console.warn("[Chat] Failed to parse providers status payload", e);
             }
+          };
 
-            while (chunk.includes(PROVIDER_META_PREFIX)) {
-              const [before, rest] = chunk.split(PROVIDER_META_PREFIX, 2);
+          const handleProviderMetaPayload = (payload) => {
+            try {
+              const meta = JSON.parse(payload);
+              const normalized =
+                meta && typeof meta === "object" && meta.__agent_metadata__
+                  ? { ...meta.__agent_metadata__ }
+                  : meta;
+              if (!normalized || typeof normalized !== "object") return;
+              setProviderMeta((prev) => ({ ...(prev || {}), ...normalized }));
               try {
-                const newline = rest.indexOf("\n");
-                const payload = newline >= 0 ? rest.slice(0, newline) : rest;
-                const meta = JSON.parse(payload);
-                setProviderMeta(meta);
-                try {
-                  console.debug("[Chat] Received provider meta", meta);
-                } catch (_) {}
-                try {
-                  const serialized = JSON.stringify(meta);
-                  if (lastProviderMetaRef.current !== serialized) {
-                    lastProviderMetaRef.current = serialized;
-                    const providerName = meta.provider || meta.name || "fournisseur inconnu";
-                    const modelName = meta.model || meta.modelName || "—";
-                    const hintParts = [];
-                    if (meta.avgResponseTime != null)
-                      hintParts.push(`latence ${Math.round(Number(meta.avgResponseTime))}ms`);
-                    if (meta.successRate != null)
-                      hintParts.push(`taux de succès ${Math.round(Number(meta.successRate))}%`);
-                    const hint = hintParts.length ? ` (${hintParts.join(", ")})` : "";
-                    console.log("[Chat] Provider meta detected", {
-                      providerName,
-                      modelName,
-                      hintParts,
-                    });
-                    // setMessages((m) => [...m, { id: `sys-${Date.now()+2}`, text: `Réponse fournie par ${providerName} — modèle: ${modelName}${hint}`, sender: 'system', isNotification: true }]);
-                  }
-                } catch (_) {}
-                try {
-                  console.debug("[Chat] Received provider meta", meta);
-                } catch (_) {}
-              } catch (e) {
-                // ignore
-              }
-              chunk = "";
-            }
-
-            // detect cached marker
-            while (chunk.includes(CACHED_PREFIX)) {
-              const [before, rest] = chunk.split(CACHED_PREFIX, 2);
+                console.debug("[Chat] Received provider meta", normalized);
+              } catch (_) {}
               try {
-                const newline = rest.indexOf("\n");
-                const payload = newline >= 0 ? rest.slice(0, newline) : rest;
-                const cacheInfo = JSON.parse(payload);
-                isCachedResponse = true;
-                cacheKey = cacheInfo.key || null;
-                try {
-                  console.debug("[Chat] Received cached response metadata", cacheInfo);
-                } catch (_) {}
-                try {
-                  if (cacheKey && lastCacheKeyRef.current !== cacheKey) {
-                    lastCacheKeyRef.current = cacheKey;
-                    setMessages((m) => [
-                      ...m,
-                      {
-                        id: `sys-${Date.now() + 3}`,
-                        text: `Réponse servie depuis le cache.`,
-                        sender: "system",
-                        isNotification: true,
-                      },
-                    ]);
-                  }
-                } catch (_) {}
-                try {
-                  console.debug("[Chat] Received cached response metadata", cacheInfo);
-                } catch (_) {}
-              } catch (e) {
-                // ignore
-              }
-              chunk = "";
+                const serialized = JSON.stringify(normalized);
+                if (lastProviderMetaRef.current !== serialized) {
+                  lastProviderMetaRef.current = serialized;
+                  const providerName =
+                    normalized.provider || normalized.name || "fournisseur inconnu";
+                  const modelName = normalized.model || normalized.modelName || "—";
+                  const hintParts = [];
+                  if (normalized.avgResponseTime != null)
+                    hintParts.push(`latence ${Math.round(Number(normalized.avgResponseTime))}ms`);
+                  if (normalized.successRate != null)
+                    hintParts.push(`taux de succès ${Math.round(Number(normalized.successRate))}%`);
+                  const hint = hintParts.length ? ` (${hintParts.join(", ")})` : "";
+                  console.log("[Chat] Provider meta detected", {
+                    providerName,
+                    modelName,
+                    hintParts,
+                  });
+                  // Optional: surface notification to user here if needed.
+                }
+              } catch (_) {}
+            } catch (e) {
+              console.warn("[Chat] Failed to parse provider meta payload", e);
             }
+          };
 
-            // Detect and display error/warning messages from backend
-            if (
-              chunk.includes("⚠️") ||
-              chunk.includes("FAILED") ||
-              chunk.includes("[ERREUR]") ||
-              chunk.includes("**Error**")
-            ) {
-              // Extract the error message
-              const errorMatch = chunk.match(/⚠️[^]*?(?=\n\n|$)/);
-              if (errorMatch) {
-                const errorText = errorMatch[0].trim();
+          const handleCachePayload = (payload) => {
+            try {
+              const cacheInfo = JSON.parse(payload);
+              isCachedResponse = true;
+              cacheKey = cacheInfo.key || null;
+              try {
+                console.debug("[Chat] Received cached response metadata", cacheInfo);
+              } catch (_) {}
+              try {
+                if (cacheKey && lastCacheKeyRef.current !== cacheKey) {
+                  lastCacheKeyRef.current = cacheKey;
+                  setMessages((m) => [
+                    ...m,
+                    {
+                      id: `sys-${Date.now() + 3}`,
+                      text: `Réponse servie depuis le cache.`,
+                      sender: "system",
+                      isNotification: true,
+                    },
+                  ]);
+                }
+              } catch (_) {}
+            } catch (e) {
+              console.warn("[Chat] Failed to parse cache payload", e);
+            }
+          };
+
+          const handleToolTracePayload = (payload) => {
+            try {
+              const trace = JSON.parse(payload);
+              const {
+                phase,
+                tool,
+                provider: toolProvider,
+                message,
+                durationMs,
+                error,
+                callId,
+                debugSql,
+              } = trace || {};
+              try {
+                console.info("[Chat] Tool trace", trace);
+              } catch (_) {}
+              const key = [phase, callId, tool, trace?.timestamp].filter(Boolean).join(":");
+              if (key) {
+                if (toolTraceSeenRef.current.size > 200) {
+                  toolTraceSeenRef.current = new Set(
+                    Array.from(toolTraceSeenRef.current).slice(100)
+                  );
+                }
+                if (toolTraceSeenRef.current.has(key)) return;
+                toolTraceSeenRef.current.add(key);
+              }
+              if (debugSql?.query) {
+                try {
+                  console.info(`[SQL Debug] ${debugSql.query}`);
+                } catch (_) {}
+              }
+              let text = null;
+              if (phase === "start") {
+                text = `🛠️ L'outil ${tool || "inconnu"} démarre (${toolProvider || "n/a"}).`;
+              } else if (phase === "finish") {
+                const suffix =
+                  typeof durationMs === "number" ? ` (${Math.round(durationMs)} ms)` : "";
+                text = `✅ L'outil ${tool || "inconnu"} est terminé${suffix}.`;
+              } else if (phase === "notice" && message) {
+                text = message;
+              } else if (phase === "error") {
+                text = `⚠️ L'outil ${tool || "inconnu"} a échoué : ${error || "erreur inconnue"}.`;
+              }
+              if (text) {
+                const toolIdSuffix = callId
+                  ? `${callId}-${phase || "event"}`
+                  : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
                 setMessages((m) => [
                   ...m,
                   {
-                    id: `error-${Date.now()}`,
+                    id: `tool-${toolIdSuffix}`,
+                    text,
+                    sender: "system",
+                    isNotification: true,
+                  },
+                ]);
+              }
+            } catch (e) {
+              console.warn("[Chat] Failed to parse tool trace payload", e);
+            }
+          };
+
+          // create placeholder bot message
+          const botMessageId = Date.now() + 1;
+          setMessages((prev) => [
+            ...prev,
+            { id: botMessageId, text: "", sender: "bot", timestamp: new Date(), isStreaming: true },
+          ]);
+
+          // Try to find related propositions before streaming (wrapped)
+          // (already wrapped above) nothing to do here
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            let chunk = decoder.decode(value, { stream: true });
+
+            chunk = stripPrefixedPayloads(
+              chunk,
+              PROVIDERS_STATUS_PREFIX,
+              providerStatusBufferRef,
+              handleProvidersStatusPayload
+            );
+            chunk = stripPrefixedPayloads(
+              chunk,
+              PROVIDER_META_PREFIX,
+              providerMetaBufferRef,
+              handleProviderMetaPayload
+            );
+            chunk = stripPrefixedPayloads(
+              chunk,
+              TOOL_TRACE_PREFIX,
+              toolTraceBufferRef,
+              handleToolTracePayload
+            );
+            chunk = stripPrefixedPayloads(
+              chunk,
+              CACHED_PREFIX,
+              cacheMetaBufferRef,
+              handleCachePayload
+            );
+
+            // Forward ALL backend messages to console for debugging (F12)
+            if (
+              chunk.includes("[EdgeFunction]") ||
+              chunk.includes("FAILED") ||
+              chunk.includes("⚠️") ||
+              chunk.includes("Trying next provider") ||
+              chunk.includes("[resolveModel]") ||
+              chunk.includes("[LLM]")
+            ) {
+              try {
+                console.log(`[Backend Stream] ${chunk.trim()}`);
+              } catch (_) {}
+            }
+
+            // Detect ONLY critical errors for UI display (not fallback warnings)
+            // Critical errors start with ❌ or are user-facing warnings containing "indisponible"
+            if (
+              chunk.startsWith("❌") ||
+              (chunk.includes("⚠️") && chunk.includes("indisponible")) ||
+              chunk.includes("[DEBUG]") // Show debug messages in UI when debug mode is active
+            ) {
+              // Extract and display the error/debug message in the UI
+              const errorMatch = chunk.match(/[❌⚠️\[DEBUG\]][^]*?(?=\n\n|$)/);
+              if (errorMatch) {
+                const errorText = errorMatch[0].trim();
+                const isDebug = errorText.startsWith("[DEBUG]");
+                setMessages((m) => [
+                  ...m,
+                  {
+                    id: `${isDebug ? "debug" : "error"}-${Date.now()}`,
                     text: errorText,
                     sender: "system",
                     isNotification: true,
-                    error: true,
+                    error: !isDebug,
                   },
                 ]);
               }
 
               // If we had a placeholder bot message, finalize it with the error text
-              if (errorMatch && botMessageId) {
+              if (errorMatch && botMessageId && !chunk.includes("[DEBUG]")) {
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === botMessageId
@@ -548,17 +683,6 @@ export default function useChatLogic(initial = {}) {
                   )
                 );
               }
-            }
-
-            // Forward backend debug logs to frontend console
-            if (
-              chunk.includes("[EdgeFunction]") ||
-              chunk.includes("[resolveModel]") ||
-              chunk.includes("[LLM]")
-            ) {
-              try {
-                console.log(`[Backend] ${chunk.trim()}`);
-              } catch (_) {}
             }
 
             full += chunk;
@@ -1294,6 +1418,7 @@ export default function useChatLogic(initial = {}) {
     setShowAuthModal,
     handleNotUsefulClick,
     openModelModal,
+    selectProvider,
     // Provider / presets surface
     quickPresets,
     MODEL_MODES,

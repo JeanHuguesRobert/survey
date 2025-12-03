@@ -97,7 +97,12 @@ const ProviderStatus = ({ providersData, onSelectProvider }) => {
                 {/* Quick select button */}
                 <button
                   className="provider-item__use"
-                  onClick={() => selectProvider(provider.name, provider.models?.[0]?.mode || null)}
+                  onClick={() =>
+                    selectProvider(
+                      provider.name,
+                      provider.models?.[0]?.mode || provider.models?.[0]?.name || null
+                    )
+                  }
                   title={
                     provider.status === "not_configured"
                       ? "Non configuré"
@@ -123,14 +128,14 @@ const ProviderStatus = ({ providersData, onSelectProvider }) => {
                 <div className="provider-item__models">
                   {provider.models.map((model) => (
                     <div
-                      key={model.name}
+                      key={model.name || model.mode}
                       className={`model-item model-item--${model.status} ${model.recentlyUsed ? "model-item--recent" : ""}`}
                       onClick={() =>
-                        onSelectProvider && onSelectProvider(provider.name, model.mode)
+                        onSelectProvider && onSelectProvider(provider.name, model.mode || null)
                       }
                     >
                       <div className="model-item__header">
-                        <span className="model-item__name">{model.mode}</span>
+                        <span className="model-item__name">{model.mode || model.name}</span>
                         {model.recentlyUsed && <span className="model-item__badge">🔥</span>}
                       </div>
 
