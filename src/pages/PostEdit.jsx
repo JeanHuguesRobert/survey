@@ -4,6 +4,36 @@ import { supabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { isDeleted } from "../lib/metadata";
 import PostEditor from "../components/social/PostEditor";
+import SiteFooter from "../components/layout/SiteFooter";
+
+// Helper to check if a user is an editor for a given gazette (copied from PostEditor)
+async function checkEditorForGazette(gazetteName, userId) {
+  if (!gazetteName) return false;
+  // Use the same mapping as Gazette.jsx for global
+  let targetGroupName = gazetteName;
+  if (gazetteName === "global") {
+    targetGroupName = import.meta.env.VITE_GLOBAL_GAZETTE_EDITOR_GROUP || "La Gazette";
+  }
+  try {
+    const { data: group } = await supabase
+      .from("groups")
+      .select("id")
+      .eq("name", targetGroupName)
+      .single();
+    if (!group) return false;
+    // Check membership for current user
+    if (!userId) return false;
+    const { data: member } = await supabase
+      .from("group_members")
+      .select("id")
+      .eq("group_id", group.id)
+      .eq("user_id", userId)
+      .single();
+    return !!member;
+  } catch (err) {
+    return false;
+  }
+}
 
 /**
  * Page d'édition de post
@@ -39,9 +69,13 @@ export default function PostEdit() {
           throw new Error("Ce post a été supprimé");
         }
 
-        // Vérifier que l'utilisateur est l'auteur
+        // Vérifier que l'utilisateur est l'auteur ou éditeur de la gazette
         if (postData.author_id !== currentUser.id) {
-          throw new Error("Vous n'êtes pas autorisé à modifier ce post");
+          const gaz = postData?.metadata?.gazette || null;
+          const isEditor = await checkEditorForGazette(gaz, currentUser?.id);
+          if (!isEditor) {
+            throw new Error("Vous n'êtes pas autorisé à modifier ce post");
+          }
         }
 
         setPost(postData);
@@ -96,5 +130,10 @@ export default function PostEdit() {
 
   if (!post) return null;
 
-  return <PostEditor post={post} currentUser={currentUser} />;
+  return (
+    <>
+      <PostEditor post={post} currentUser={currentUser} />
+      <SiteFooter />
+    </>
+  );
 }
