@@ -196,6 +196,55 @@ export default function Proposition() {
           </div>
         )}
 
+        {/* Petition Link */}
+        {proposition.metadata?.petition_url && (
+          <div className="bg-orange-50 border border-orange-200 p-4 mb-6 rounded-lg">
+            <div className="flex items-center gap-3">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-orange-600"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                <path
+                  fillRule="evenodd"
+                  d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-orange-800">
+                  Une pétition est associée à cette proposition
+                </p>
+                <p className="text-xs text-orange-600 mt-1">
+                  Soutenez cette initiative en signant la pétition sur la plateforme externe.
+                </p>
+              </div>
+              <a
+                href={proposition.metadata.petition_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 text-white font-semibold rounded hover:bg-orange-700 transition-colors"
+              >
+                Signer la pétition
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </a>
+            </div>
+          </div>
+        )}
+
         {/* Résultats des votes */}
         <div className="  p-4 mb-6">
           <h3 className="text-lg font-semibold mb-3">Résultats des votes</h3>
