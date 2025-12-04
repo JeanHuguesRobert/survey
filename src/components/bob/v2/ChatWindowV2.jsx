@@ -35,6 +35,19 @@ export default function ChatWindowV2({ useV2 = true, ...props }) {
     logic.selectProvider?.(providerName, mode);
   };
 
+  const [isMobileState, setIsMobileState] = React.useState(props.isMobile || false);
+
+  useEffect(() => {
+    if (props.isMobile !== undefined) {
+      setIsMobileState(props.isMobile);
+      return;
+    }
+    const checkMobile = () => setIsMobileState(window.innerWidth <= 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, [props.isMobile]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [logic.messages]);
@@ -44,7 +57,7 @@ export default function ChatWindowV2({ useV2 = true, ...props }) {
       <Header
         botName={props.botName}
         welcomeMessage={props.welcomeMessage}
-        isMobile={props.isMobile}
+        isMobile={isMobileState}
         user={props.user}
         onSignIn={() => logic.openAuthModal()}
         onSignOut={async () => {
@@ -97,7 +110,7 @@ export default function ChatWindowV2({ useV2 = true, ...props }) {
         onClearHistory={logic.handleClearHistory}
         onPublish={logic.handlePublishWiki}
         hasConversation={logic.hasConversation}
-        isMobile={props.isMobile}
+        isMobile={isMobileState}
         messagesLength={logic.messages.length}
         exampleQuestions={displayedQuestions}
         onExampleClick={(q) => logic.setInput(q)}

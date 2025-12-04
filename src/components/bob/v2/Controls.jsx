@@ -58,17 +58,8 @@ export default function Controls({
           aria-label="Message"
         />
 
-        <div
-          className="controls-actions"
-          style={{
-            display: "flex",
-            gap: 12,
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginTop: 10,
-          }}
-        >
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div className="controls-actions">
+          <div className="controls-group">
             {onOpenModelModal && (
               <button
                 type="button"
@@ -106,7 +97,7 @@ export default function Controls({
             )}
           </div>
 
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div className="controls-group">
             <button
               type="button"
               className="send-btn"

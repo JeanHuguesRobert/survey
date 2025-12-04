@@ -369,6 +369,55 @@
   .chat-controls-area {
     padding: var(--space-3) var(--space-4);
   }
+
+  /* Mobile controls adjustments */
+  .controls-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .controls-group {
+    gap: 4px;
+  }
+
+  .btn-label {
+    display: none;
+  }
+
+  .send-btn .btn-label {
+    display: inline; /* Keep "Envoyer" label visible if space permits, or hide if preferred */
+  }
+
+  /* Adjust buttons for touch targets */
+  .btn.btn-ghost,
+  .send-btn {
+    padding: 8px 12px;
+  }
+}
+
+/* Controls Layout Classes */
+.controls-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.controls-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.send-btn-abort {
+  background-color: var(--color-status-error);
+  border-color: var(--color-status-error);
+  color: white;
+}
+
+.send-btn-abort:hover {
+  background-color: color-mix(in srgb, var(--color-status-error), black 10%);
 }
 
 /* Reduced Motion */
