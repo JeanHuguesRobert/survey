@@ -10,6 +10,14 @@ import postgres from "https://deno.land/x/postgresjs/mod.js";
 
 import OpenAI from "https://esm.sh/openai@4";
 
+// Import civic acts tools for municipal transparency system
+import {
+  CIVIC_TOOLS,
+  CIVIC_TOOL_HANDLERS,
+  mergeCivicTools,
+  mergeCivicHandlers,
+} from "./lib/civic-tools.js";
+
 const PROVIDER_META_PREFIX = "__PROVIDER_INFO__";
 import { providerMetrics } from "./lib/utils/provider-metrics.js";
 const PROVIDERS_STATUS_PREFIX = "__PROVIDERS_STATUS__";
@@ -1210,6 +1218,22 @@ const TOOL_HANDLERS = {
   // Ajoute d'autres handlers ici
 };
 
+// ============================================================================
+// MERGE CIVIC TOOLS - Integration of municipal transparency system tools
+// ============================================================================
+
+// Merge civic acts tools into TOOLS object
+Object.assign(TOOLS, CIVIC_TOOLS);
+
+// Merge civic acts handlers into TOOL_HANDLERS object
+Object.assign(TOOL_HANDLERS, CIVIC_TOOL_HANDLERS);
+
+console.log(
+  `[RAGChatbot] 📋 Loaded ${Object.keys(CIVIC_TOOLS).length} civic tools: ${Object.keys(CIVIC_TOOLS).join(", ")}`
+);
+
+// ============================================================================
+
 function wrapSqlWithLimit(query, limit) {
   const trimmed = query.trim().replace(/;\s*$/, "");
   if (/limit\s+\d+/i.test(trimmed)) {
@@ -2197,7 +2221,13 @@ function createDebugLogger() {
 async function fetchPublicSystemPrompt(siteUrl) {
   if (!siteUrl) return null;
 
-  const promptFiles = ["bob-system.md", "bob-db-capabilities.md"];
+  // Include civic acts system prompt for municipal transparency features
+  const promptFiles = [
+    "bob-system.md",
+    "bob-db-capabilities.md",
+    "civic-acts-system.md",
+    "civic-db-schema.md",
+  ];
   const collected = [];
 
   for (const fileName of promptFiles) {

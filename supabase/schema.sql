@@ -1,6 +1,37 @@
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
 
+CREATE TABLE public.acte (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  collectivite_id uuid NOT NULL,
+  type_acte USER-DEFINED NOT NULL,
+  numero_interne text,
+  numero_actes text,
+  objet_court text NOT NULL,
+  objet_complet text,
+  date_acte date NOT NULL,
+  date_seance date,
+  organe text,
+  rapporteur text,
+  exec_declared boolean NOT NULL DEFAULT false,
+  exec_declared_date date,
+  exec_confirmed boolean NOT NULL DEFAULT false,
+  exec_confirmed_date date,
+  exec_proof_id uuid,
+  version integer NOT NULL DEFAULT 1 CHECK (version > 0),
+  valid_from timestamp with time zone NOT NULL DEFAULT now(),
+  valid_to timestamp with time zone,
+  supersedes_id uuid,
+  metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  created_by uuid,
+  CONSTRAINT acte_pkey PRIMARY KEY (id),
+  CONSTRAINT acte_collectivite_id_fkey FOREIGN KEY (collectivite_id) REFERENCES public.collectivite(id),
+  CONSTRAINT acte_supersedes_id_fkey FOREIGN KEY (supersedes_id) REFERENCES public.acte(id),
+  CONSTRAINT acte_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id),
+  CONSTRAINT acte_exec_proof_fkey FOREIGN KEY (exec_proof_id) REFERENCES public.proof(id)
+);
 CREATE TABLE public.chat_interactions (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   user_id uuid,
@@ -26,6 +57,80 @@ CREATE TABLE public.chatbot_settings (
   metadata jsonb DEFAULT '{"schemaVersion": 1}'::jsonb,
   CONSTRAINT chatbot_settings_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.civic_audit_log (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  actor_type USER-DEFINED NOT NULL DEFAULT 'HUMAIN'::civic_actor_type,
+  action USER-DEFINED NOT NULL,
+  entity_type USER-DEFINED NOT NULL,
+  entity_id uuid NOT NULL,
+  payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+  ip_address inet,
+  user_agent text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT civic_audit_log_pkey PRIMARY KEY (id),
+  CONSTRAINT civic_audit_log_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.civic_rag_document (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  source_type USER-DEFINED NOT NULL,
+  source_id uuid,
+  collectivite_id uuid,
+  title text NOT NULL,
+  content text NOT NULL,
+  summary text,
+  index_type USER-DEFINED NOT NULL DEFAULT 'PROBATOIRE'::rag_index_type,
+  domain text,
+  keywords ARRAY,
+  metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
+  embedding USER-DEFINED,
+  is_current boolean NOT NULL DEFAULT true,
+  version integer NOT NULL DEFAULT 1,
+  supersedes_id uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT civic_rag_document_pkey PRIMARY KEY (id),
+  CONSTRAINT civic_rag_document_collectivite_id_fkey FOREIGN KEY (collectivite_id) REFERENCES public.collectivite(id),
+  CONSTRAINT civic_rag_document_supersedes_id_fkey FOREIGN KEY (supersedes_id) REFERENCES public.civic_rag_document(id)
+);
+CREATE TABLE public.civic_stats_snapshot (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  collectivite_id uuid NOT NULL,
+  snapshot_date date NOT NULL,
+  snapshot_type text NOT NULL CHECK (snapshot_type = ANY (ARRAY['MONTHLY'::text, 'QUARTERLY'::text, 'YEARLY'::text])),
+  total_actes integer NOT NULL DEFAULT 0,
+  transmis_confirmes integer NOT NULL DEFAULT 0,
+  taux_transmission numeric,
+  delai_moyen_transmission integer,
+  total_demandes integer NOT NULL DEFAULT 0,
+  demandes_repondues integer NOT NULL DEFAULT 0,
+  refus_implicites integer NOT NULL DEFAULT 0,
+  taux_reponse numeric,
+  delai_moyen_reponse integer,
+  total_recours integer NOT NULL DEFAULT 0,
+  recours_favorables integer NOT NULL DEFAULT 0,
+  taux_succes_recours numeric,
+  score_transparence numeric,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT civic_stats_snapshot_pkey PRIMARY KEY (id),
+  CONSTRAINT civic_stats_snapshot_collectivite_id_fkey FOREIGN KEY (collectivite_id) REFERENCES public.collectivite(id)
+);
+CREATE TABLE public.civic_user_profile (
+  id uuid NOT NULL,
+  display_name text NOT NULL DEFAULT ''::text,
+  role USER-DEFINED NOT NULL DEFAULT 'CITIZEN_REVIEWER'::civic_user_role,
+  organisation USER-DEFINED NOT NULL DEFAULT 'CITOYEN'::civic_organisation,
+  organisation_name text,
+  collectivite_id uuid,
+  email_notifications boolean NOT NULL DEFAULT false,
+  metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT civic_user_profile_pkey PRIMARY KEY (id),
+  CONSTRAINT civic_user_profile_id_fkey FOREIGN KEY (id) REFERENCES public.users(id),
+  CONSTRAINT civic_user_profile_collectivite_fkey FOREIGN KEY (collectivite_id) REFERENCES public.collectivite(id)
+);
 CREATE TABLE public.collected_data (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid,
@@ -38,6 +143,24 @@ CREATE TABLE public.collected_data (
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT collected_data_pkey PRIMARY KEY (id),
   CONSTRAINT collected_data_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.collectivite (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  type USER-DEFINED NOT NULL DEFAULT 'COMMUNE'::collectivite_type,
+  code_insee text NOT NULL UNIQUE,
+  nom_officiel text NOT NULL,
+  nom_courant text,
+  departement text NOT NULL,
+  region text NOT NULL,
+  siren text UNIQUE,
+  site_web text,
+  email_contact text,
+  date_activation_systeme date,
+  population integer CHECK (population IS NULL OR population >= 0),
+  metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT collectivite_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.comments (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -78,6 +201,47 @@ CREATE TABLE public.cortideri_items (
   synced_at timestamp with time zone,
   CONSTRAINT cortideri_items_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.deadline_instance (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  entity_type USER-DEFINED NOT NULL,
+  entity_id uuid NOT NULL,
+  template_id uuid NOT NULL,
+  start_date date NOT NULL,
+  due_date date NOT NULL,
+  status USER-DEFINED NOT NULL DEFAULT 'OUVERTE'::deadline_status,
+  closed_at timestamp with time zone,
+  closed_by_user_id uuid,
+  closed_proof_id uuid,
+  closed_reason text,
+  generated_status_id uuid,
+  metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT deadline_instance_pkey PRIMARY KEY (id),
+  CONSTRAINT deadline_instance_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.deadline_template(id),
+  CONSTRAINT deadline_instance_closed_by_user_id_fkey FOREIGN KEY (closed_by_user_id) REFERENCES public.users(id),
+  CONSTRAINT deadline_instance_closed_proof_id_fkey FOREIGN KEY (closed_proof_id) REFERENCES public.proof(id),
+  CONSTRAINT deadline_instance_generated_status_id_fkey FOREIGN KEY (generated_status_id) REFERENCES public.legal_status_instance(id)
+);
+CREATE TABLE public.deadline_template (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  entity_type USER-DEFINED NOT NULL,
+  code text NOT NULL,
+  libelle text NOT NULL,
+  trigger_event USER-DEFINED NOT NULL,
+  delay_days integer NOT NULL CHECK (delay_days > 0),
+  delay_type USER-DEFINED NOT NULL DEFAULT 'JOURS_CALENDAIRES'::delay_type,
+  base_legale text NOT NULL,
+  action_attendue text NOT NULL,
+  action_responsable text,
+  consequence_depassement USER-DEFINED,
+  consequence_description text,
+  is_active boolean NOT NULL DEFAULT true,
+  metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT deadline_template_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.delegations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   delegator_id uuid NOT NULL,
@@ -90,6 +254,30 @@ CREATE TABLE public.delegations (
   CONSTRAINT delegations_delegator_id_fkey FOREIGN KEY (delegator_id) REFERENCES public.users(id),
   CONSTRAINT delegations_delegate_id_fkey FOREIGN KEY (delegate_id) REFERENCES public.users(id),
   CONSTRAINT delegations_tag_id_fkey FOREIGN KEY (tag_id) REFERENCES public.tags(id)
+);
+CREATE TABLE public.demande_admin (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  collectivite_id uuid NOT NULL,
+  acte_id uuid,
+  type_demande USER-DEFINED NOT NULL,
+  destinataire_org text NOT NULL,
+  destinataire_contact text,
+  destinataire_email text,
+  date_envoi date NOT NULL CHECK (date_envoi <= (CURRENT_DATE + '1 day'::interval)),
+  mode_envoi USER-DEFINED NOT NULL,
+  objet text NOT NULL,
+  texte_envoye text,
+  status USER-DEFINED NOT NULL DEFAULT 'EN_ATTENTE'::demande_status,
+  reference_interne text,
+  reference_admin text,
+  metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  created_by uuid,
+  CONSTRAINT demande_admin_pkey PRIMARY KEY (id),
+  CONSTRAINT demande_admin_acte_id_fkey FOREIGN KEY (acte_id) REFERENCES public.acte(id),
+  CONSTRAINT demande_admin_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id),
+  CONSTRAINT demande_admin_collectivite_id_fkey FOREIGN KEY (collectivite_id) REFERENCES public.collectivite(id)
 );
 CREATE TABLE public.document_sources (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -177,6 +365,37 @@ CREATE TABLE public.knowledge_chunks (
   CONSTRAINT knowledge_chunks_pkey PRIMARY KEY (id),
   CONSTRAINT knowledge_chunks_source_id_fkey FOREIGN KEY (source_id) REFERENCES public.document_sources(id)
 );
+CREATE TABLE public.legal_status_instance (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  entity_type USER-DEFINED NOT NULL,
+  entity_id uuid NOT NULL,
+  status_code USER-DEFINED NOT NULL,
+  date_debut date NOT NULL,
+  date_fin date,
+  justification text,
+  base_legale text,
+  proof_id uuid,
+  created_by_user_id uuid,
+  created_by_actor_type USER-DEFINED NOT NULL DEFAULT 'HUMAIN'::civic_actor_type,
+  metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT legal_status_instance_pkey PRIMARY KEY (id),
+  CONSTRAINT legal_status_instance_proof_id_fkey FOREIGN KEY (proof_id) REFERENCES public.proof(id),
+  CONSTRAINT legal_status_instance_created_by_user_id_fkey FOREIGN KEY (created_by_user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.legal_status_registry (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  entity_type USER-DEFINED NOT NULL,
+  status_code USER-DEFINED NOT NULL,
+  libelle text NOT NULL,
+  base_legale text,
+  effets_juridiques text,
+  delay_trigger boolean NOT NULL DEFAULT false,
+  metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT legal_status_registry_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.municipal_transparency (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   commune_name text NOT NULL,
@@ -195,6 +414,45 @@ CREATE TABLE public.municipal_transparency (
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT municipal_transparency_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.outgoing_action (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  collectivite_id uuid NOT NULL,
+  acte_id uuid,
+  demande_admin_id uuid,
+  action_type USER-DEFINED NOT NULL,
+  status USER-DEFINED NOT NULL DEFAULT 'PENDING'::outgoing_action_status,
+  destinataire_nom text,
+  destinataire_email text,
+  destinataire_adresse text,
+  sujet text NOT NULL,
+  corps text NOT NULL,
+  pieces_jointes jsonb DEFAULT '[]'::jsonb,
+  priority integer DEFAULT 5,
+  date_butoir date,
+  motif text,
+  created_by uuid NOT NULL,
+  validated_by uuid,
+  validated_at timestamp with time zone,
+  validation_note text,
+  sent_at timestamp with time zone,
+  sent_by uuid,
+  send_method text,
+  send_reference text,
+  confirmed_at timestamp with time zone,
+  confirmation_proof_id uuid,
+  failure_reason text,
+  retry_count integer DEFAULT 0,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT outgoing_action_pkey PRIMARY KEY (id),
+  CONSTRAINT outgoing_action_collectivite_id_fkey FOREIGN KEY (collectivite_id) REFERENCES public.collectivite(id),
+  CONSTRAINT outgoing_action_acte_id_fkey FOREIGN KEY (acte_id) REFERENCES public.acte(id),
+  CONSTRAINT outgoing_action_demande_admin_id_fkey FOREIGN KEY (demande_admin_id) REFERENCES public.demande_admin(id),
+  CONSTRAINT outgoing_action_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id),
+  CONSTRAINT outgoing_action_validated_by_fkey FOREIGN KEY (validated_by) REFERENCES auth.users(id),
+  CONSTRAINT outgoing_action_sent_by_fkey FOREIGN KEY (sent_by) REFERENCES auth.users(id),
+  CONSTRAINT outgoing_action_confirmation_proof_id_fkey FOREIGN KEY (confirmation_proof_id) REFERENCES public.proof(id)
+);
 CREATE TABLE public.posts (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   author_id uuid NOT NULL,
@@ -204,6 +462,42 @@ CREATE TABLE public.posts (
   metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
   CONSTRAINT posts_pkey PRIMARY KEY (id),
   CONSTRAINT posts_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.proof (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  type USER-DEFINED NOT NULL,
+  source_org USER-DEFINED NOT NULL,
+  date_emission date,
+  date_reception date,
+  hash_sha256 text NOT NULL CHECK (length(hash_sha256) = 64),
+  storage_url text NOT NULL,
+  original_filename text,
+  file_size_bytes bigint,
+  mime_type text,
+  probative_force USER-DEFINED NOT NULL DEFAULT 'FAIBLE'::probative_force,
+  verified_by_human boolean NOT NULL DEFAULT false,
+  verified_by_user_id uuid,
+  verified_at timestamp with time zone,
+  verification_notes text,
+  metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  created_by uuid,
+  CONSTRAINT proof_pkey PRIMARY KEY (id),
+  CONSTRAINT proof_verified_by_user_id_fkey FOREIGN KEY (verified_by_user_id) REFERENCES public.users(id),
+  CONSTRAINT proof_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.proof_link (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  proof_id uuid NOT NULL,
+  entity_type USER-DEFINED NOT NULL,
+  entity_id uuid NOT NULL,
+  role USER-DEFINED NOT NULL DEFAULT 'PIECE_PRINCIPALE'::proof_role,
+  piece_number integer,
+  metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT proof_link_pkey PRIMARY KEY (id),
+  CONSTRAINT proof_link_proof_id_fkey FOREIGN KEY (proof_id) REFERENCES public.proof(id)
 );
 CREATE TABLE public.proposition_tags (
   proposition_id uuid NOT NULL,
@@ -224,6 +518,38 @@ CREATE TABLE public.propositions (
   CONSTRAINT propositions_pkey PRIMARY KEY (id),
   CONSTRAINT propositions_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.publication_citoyenne (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  collectivite_id uuid NOT NULL,
+  acte_id uuid,
+  demande_admin_id uuid,
+  publication_type USER-DEFINED NOT NULL,
+  status USER-DEFINED NOT NULL DEFAULT 'DRAFT'::publication_status,
+  titre text NOT NULL,
+  resume text,
+  contenu text NOT NULL,
+  tags ARRAY DEFAULT '{}'::text[],
+  author_id uuid NOT NULL,
+  author_pseudonym text,
+  is_anonymous boolean DEFAULT false,
+  moderated_by uuid,
+  moderated_at timestamp with time zone,
+  moderation_note text,
+  rejection_reason text,
+  views_count integer DEFAULT 0,
+  likes_count integer DEFAULT 0,
+  shares_count integer DEFAULT 0,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  published_at timestamp with time zone,
+  CONSTRAINT publication_citoyenne_pkey PRIMARY KEY (id),
+  CONSTRAINT publication_citoyenne_collectivite_id_fkey FOREIGN KEY (collectivite_id) REFERENCES public.collectivite(id),
+  CONSTRAINT publication_citoyenne_acte_id_fkey FOREIGN KEY (acte_id) REFERENCES public.acte(id),
+  CONSTRAINT publication_citoyenne_demande_admin_id_fkey FOREIGN KEY (demande_admin_id) REFERENCES public.demande_admin(id),
+  CONSTRAINT publication_citoyenne_author_id_fkey FOREIGN KEY (author_id) REFERENCES auth.users(id),
+  CONSTRAINT publication_citoyenne_moderated_by_fkey FOREIGN KEY (moderated_by) REFERENCES auth.users(id)
+);
 CREATE TABLE public.reactions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
@@ -235,6 +561,75 @@ CREATE TABLE public.reactions (
   CONSTRAINT reactions_pkey PRIMARY KEY (id),
   CONSTRAINT reactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.recours (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  collectivite_id uuid NOT NULL,
+  type USER-DEFINED NOT NULL,
+  demande_id uuid,
+  acte_id uuid,
+  date_envoi date,
+  date_reception_ack date,
+  date_instruction date,
+  date_audience date,
+  date_decision date,
+  destinataire_org text NOT NULL,
+  destinataire_adresse text,
+  numero_dossier text,
+  status USER-DEFINED NOT NULL DEFAULT 'EN_PREPARATION'::recours_status,
+  issue USER-DEFINED,
+  resume_objet text,
+  moyens text,
+  conclusions text,
+  proof_id_envoi uuid,
+  proof_id_decision uuid,
+  metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  created_by uuid,
+  CONSTRAINT recours_pkey PRIMARY KEY (id),
+  CONSTRAINT recours_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id),
+  CONSTRAINT recours_collectivite_id_fkey FOREIGN KEY (collectivite_id) REFERENCES public.collectivite(id),
+  CONSTRAINT recours_demande_id_fkey FOREIGN KEY (demande_id) REFERENCES public.demande_admin(id),
+  CONSTRAINT recours_acte_id_fkey FOREIGN KEY (acte_id) REFERENCES public.acte(id),
+  CONSTRAINT recours_proof_id_envoi_fkey FOREIGN KEY (proof_id_envoi) REFERENCES public.proof(id),
+  CONSTRAINT recours_proof_id_decision_fkey FOREIGN KEY (proof_id_decision) REFERENCES public.proof(id)
+);
+CREATE TABLE public.reponse_admin (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  demande_id uuid NOT NULL,
+  date_reception date NOT NULL,
+  type_reponse USER-DEFINED NOT NULL,
+  resume text,
+  proof_id uuid,
+  metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  created_by uuid,
+  CONSTRAINT reponse_admin_pkey PRIMARY KEY (id),
+  CONSTRAINT reponse_admin_demande_id_fkey FOREIGN KEY (demande_id) REFERENCES public.demande_admin(id),
+  CONSTRAINT reponse_admin_proof_id_fkey FOREIGN KEY (proof_id) REFERENCES public.proof(id),
+  CONSTRAINT reponse_admin_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.responsibility_log (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  actor_id uuid NOT NULL,
+  actor_role text NOT NULL,
+  responsibility_type USER-DEFINED NOT NULL,
+  action_description text NOT NULL,
+  entity_type text NOT NULL,
+  entity_id uuid NOT NULL,
+  collectivite_id uuid,
+  before_state jsonb,
+  after_state jsonb,
+  reason text,
+  ip_address inet,
+  user_agent text,
+  checksum text,
+  logged_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT responsibility_log_pkey PRIMARY KEY (id),
+  CONSTRAINT responsibility_log_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES auth.users(id),
+  CONSTRAINT responsibility_log_collectivite_id_fkey FOREIGN KEY (collectivite_id) REFERENCES public.collectivite(id)
+);
 CREATE TABLE public.tags (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   name text NOT NULL UNIQUE,
@@ -243,6 +638,24 @@ CREATE TABLE public.tags (
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
   CONSTRAINT tags_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.teletransmission (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  acte_id uuid NOT NULL UNIQUE,
+  date_declared date,
+  heure_declared time without time zone,
+  date_confirmed date,
+  heure_confirmed time without time zone,
+  proof_id_ar_ctes uuid,
+  numero_ctes text,
+  statut_technique USER-DEFINED NOT NULL DEFAULT 'INCONNU'::teletransmission_status,
+  motif_rejet text,
+  metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT teletransmission_pkey PRIMARY KEY (id),
+  CONSTRAINT teletransmission_acte_id_fkey FOREIGN KEY (acte_id) REFERENCES public.acte(id),
+  CONSTRAINT teletransmission_proof_id_ar_ctes_fkey FOREIGN KEY (proof_id_ar_ctes) REFERENCES public.proof(id)
 );
 CREATE TABLE public.users (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -255,6 +668,24 @@ CREATE TABLE public.users (
   updated_at timestamp with time zone DEFAULT now(),
   metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
   CONSTRAINT users_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.verification_queue (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  proof_id uuid NOT NULL,
+  status text NOT NULL DEFAULT 'PENDING'::text CHECK (status = ANY (ARRAY['PENDING'::text, 'IN_PROGRESS'::text, 'VERIFIED'::text, 'REJECTED'::text])),
+  priority integer DEFAULT 5,
+  assigned_to uuid,
+  assigned_at timestamp with time zone,
+  verified_by uuid,
+  verified_at timestamp with time zone,
+  verification_note text,
+  rejection_reason text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT verification_queue_pkey PRIMARY KEY (id),
+  CONSTRAINT verification_queue_proof_id_fkey FOREIGN KEY (proof_id) REFERENCES public.proof(id),
+  CONSTRAINT verification_queue_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES auth.users(id),
+  CONSTRAINT verification_queue_verified_by_fkey FOREIGN KEY (verified_by) REFERENCES auth.users(id)
 );
 CREATE TABLE public.votes (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -281,3 +712,4 @@ CREATE TABLE public.wiki_pages (
   CONSTRAINT wiki_pages_pkey PRIMARY KEY (id),
   CONSTRAINT wiki_pages_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.users(id)
 );
+

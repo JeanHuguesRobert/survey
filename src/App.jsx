@@ -100,6 +100,28 @@ import FilNewsFeed from "./components/fil/FilNewsFeed";
 import FilGuidelines from "./components/fil/FilGuidelines";
 import FilFAQ from "./components/fil/FilFAQ";
 
+// Civic Acts System - Contrôle citoyen des actes municipaux
+import ActesHome from "./pages/actes/ActesHome";
+import ActesDashboard from "./pages/actes/ActesDashboard";
+import ActesList from "./pages/actes/ActesList";
+import ActeDetail from "./pages/actes/ActeDetail";
+import ActeForm from "./pages/actes/ActeForm";
+import DemandesList from "./pages/actes/DemandesList";
+import DemandeDetail from "./pages/actes/DemandeDetail";
+import DemandeForm from "./pages/actes/DemandeForm";
+import ProofUpload from "./pages/actes/ProofUpload";
+import GuideActes from "./pages/actes/GuideActes";
+// Phase 3 - Human-in-the-Loop Components
+import OutgoingActionsQueue from "./pages/actes/OutgoingActionsQueue";
+import VerificationQueue from "./pages/actes/VerificationQueue";
+import PublicationModeration from "./pages/actes/PublicationModeration";
+import ResponsibilityLog from "./pages/actes/ResponsibilityLog";
+// Phase 7 - Exports et indicateurs
+import ExportPDF from "./pages/actes/ExportPDF";
+import ExportCSV from "./pages/actes/ExportCSV";
+import ActeTimeline from "./pages/actes/ActeTimeline";
+import StatsDashboard from "./pages/actes/StatsDashboard";
+
 export default function Consultation() {
   // Feature flag for gesture header menu
   const USE_GESTURE_HEADER_MENU = true; // Set to false to revert to modal hamburger
@@ -1350,6 +1372,34 @@ export function App() {
         <Route path="/fil/new" element={<FilSubmissionForm />} />
         <Route path="/fil/guidelines" element={<FilGuidelines />} />
         <Route path="/fil/faq" element={<FilFAQ />} />
+
+        {/* Système citoyen de contrôle des actes municipaux */}
+        <Route path="/actes/accueil" element={<ActesHome />} />
+        <Route path="/actes" element={<ActesDashboard />} />
+        <Route path="/actes/liste" element={<ActesList />} />
+        <Route path="/actes/nouveau" element={<ActeForm />} />
+        <Route path="/actes/:id" element={<ActeDetail />} />
+        <Route path="/actes/:id/modifier" element={<ActeForm />} />
+        <Route path="/demandes" element={<DemandesList />} />
+        <Route path="/demandes/nouvelle" element={<DemandeForm />} />
+        <Route path="/demandes/:id" element={<DemandeDetail />} />
+        <Route path="/demandes/:id/modifier" element={<DemandeForm />} />
+        <Route path="/preuves/ajouter" element={<ProofUpload />} />
+        <Route path="/docs/guide-citoyen" element={<GuideActes />} />
+
+        {/* Phase 3: Human-in-the-Loop - Modération et validation */}
+        <Route path="/moderation/actions" element={<OutgoingActionsQueue />} />
+        <Route path="/moderation/preuves" element={<VerificationQueue />} />
+        <Route path="/moderation/publications" element={<PublicationModeration />} />
+        <Route path="/moderation/responsabilites" element={<ResponsibilityLog />} />
+
+        {/* Phase 7: Exports et indicateurs */}
+        <Route path="/exports/pdf" element={<ExportPDF />} />
+        <Route path="/exports/csv" element={<ExportCSV />} />
+        <Route path="/actes/chronologie" element={<ActeTimeline />} />
+        <Route path="/actes/:id/chronologie" element={<ActeTimeline />} />
+        <Route path="/actes/stats" element={<StatsDashboard />} />
+
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>
