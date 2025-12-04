@@ -283,7 +283,6 @@ export default function useChatLogic(initial = {}) {
   const handleModelSelection = useCallback(
     ({ provider, mode, manualModel }) => {
       const prefix = buildDirective({ provider, mode, manualModel });
-      if (!prefix) return;
       setDirectivePrefix(prefix);
       setModalMode(manualModel ? "" : mode || DEFAULT_MODEL_MODE[provider] || "");
       setCustomModel("");

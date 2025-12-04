@@ -1,16 +1,7 @@
 import React, { useState } from "react";
 
-const ProviderStatus = ({ providersData, onSelectProvider }) => {
-  const [displayMode, setDisplayMode] = useState("compact"); // hidden | compact | detailed
+const ProviderStatus = ({ providersData, onSelectProvider, displayMode = "compact" }) => {
   const [expandedProviders, setExpandedProviders] = useState(new Set());
-
-  // Cycle entre les modes d'affichage
-  const cycleDisplayMode = () => {
-    const modes = ["hidden", "compact", "detailed"];
-    const currentIndex = modes.indexOf(displayMode);
-    const nextIndex = (currentIndex + 1) % modes.length;
-    setDisplayMode(modes[nextIndex]);
-  };
 
   // Toggle expansion d'un provider
   const toggleProvider = (providerName) => {
@@ -51,38 +42,98 @@ const ProviderStatus = ({ providersData, onSelectProvider }) => {
   // Format temps
   const formatTime = (ms) => {
     if (!ms) return "";
-    return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`;
+    return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`;
   };
 
-  if (displayMode === "hidden") return null;
+  // Get status label
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case "available":
+        return "Disponible";
+      case "degraded":
+        return "Dégradé";
+      case "rate_limited":
+        return "Limité";
+      case "error":
+        return "Erreur";
+      case "not_configured":
+        return "Non configuré";
+      default:
+        return "Inconnu";
+    }
+  };
 
+  if (!providersData?.providers || providersData.providers.length === 0) {
+    return <div className="provider-status-empty">Aucun fournisseur disponible</div>;
+  }
+
+  // Grid mode for modal
+  if (displayMode === "grid") {
+    return (
+      <div className="provider-grid">
+        {providersData.providers.map((provider) => {
+          const mainModel = provider.models?.[0];
+          const isAvailable = provider.status === "available";
+          const isConfigured = provider.status !== "not_configured";
+
+          return (
+            <button
+              key={provider.name}
+              className={`provider-card provider-card--${provider.status} ${!isConfigured ? "provider-card--disabled" : ""}`}
+              onClick={() => isConfigured && selectProvider(provider.name)}
+              disabled={!isConfigured}
+              title={isConfigured ? `Sélectionner ${provider.name}` : "Non configuré"}
+            >
+              <div className="provider-card__header">
+                <span className="provider-card__icon">{getStatusIcon(provider.status)}</span>
+                <span className="provider-card__name">{provider.name}</span>
+              </div>
+
+              <div className="provider-card__status">{getStatusLabel(provider.status)}</div>
+
+              {isConfigured && mainModel && (
+                <div className="provider-card__metrics">
+                  {mainModel.avgResponseTime && (
+                    <div className="metric">
+                      <span className="metric-icon">⚡</span>
+                      <span className="metric-value">{formatTime(mainModel.avgResponseTime)}</span>
+                    </div>
+                  )}
+                  {mainModel.successRate !== undefined && (
+                    <div className="metric">
+                      <span className="metric-icon">✓</span>
+                      <span className="metric-value">{Math.round(mainModel.successRate)}%</span>
+                    </div>
+                  )}
+                  {mainModel.recentlyUsed && (
+                    <div className="metric metric--hot">
+                      <span className="metric-icon">🔥</span>
+                      <span className="metric-value">Récent</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // Compact/List mode (legacy)
   return (
     <div className={`provider-status provider-status--${displayMode}`}>
-      {/* Header avec toggle */}
-      <div className="provider-status__header" onClick={cycleDisplayMode}>
-        <span className="provider-status__title">
-          Providers (
-          {providersData?.providers?.filter((p) => p.status !== "not_configured").length || 0})
-        </span>
-        <button className="provider-status__toggle" title="Changer l'affichage">
-          {displayMode === "compact" ? "▼" : "▲"}
-        </button>
-      </div>
-
-      {/* Liste des providers */}
       <div className="provider-status__list">
-        {providersData?.providers?.map((provider) => {
+        {providersData.providers.map((provider) => {
           const isExpanded = expandedProviders.has(provider.name);
           const hasModels = provider.models && provider.models.length > 0;
 
           return (
             <div key={provider.name} className={`provider-item provider-item--${provider.status}`}>
-              {/* Nom du provider */}
               <div className="provider-item__header">
                 <span className="provider-item__icon">{getStatusIcon(provider.status)}</span>
                 <span className="provider-item__name">{provider.name}</span>
 
-                {/* Compact mode: show quick stats */}
                 {displayMode === "compact" && hasModels && (
                   <span className="provider-item__quick-stats">
                     {provider.models.find((m) => m.recentlyUsed) && "🔥"}
@@ -94,7 +145,6 @@ const ProviderStatus = ({ providersData, onSelectProvider }) => {
                   </span>
                 )}
 
-                {/* Quick select button */}
                 <button
                   className="provider-item__use"
                   onClick={() =>
@@ -123,7 +173,6 @@ const ProviderStatus = ({ providersData, onSelectProvider }) => {
                 )}
               </div>
 
-              {/* Models list (detailed mode or when expanded) */}
               {hasModels && (displayMode === "detailed" || isExpanded) && (
                 <div className="provider-item__models">
                   {provider.models.map((model) => (
@@ -169,7 +218,6 @@ const ProviderStatus = ({ providersData, onSelectProvider }) => {
                 </div>
               )}
 
-              {/* Not configured message */}
               {provider.status === "not_configured" && displayMode === "detailed" && (
                 <div className="provider-item__not-configured">API key manquante</div>
               )}
