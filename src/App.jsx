@@ -96,6 +96,9 @@ import TaskEdit from "./pages/TaskEdit";
 import TaskDetail from "./pages/TaskDetail";
 import FilFeed from "./components/fil/FilFeed";
 import FilSubmissionForm from "./components/fil/FilSubmissionForm";
+import FilNewsFeed from "./components/fil/FilNewsFeed";
+import FilGuidelines from "./components/fil/FilGuidelines";
+import FilFAQ from "./components/fil/FilFAQ";
 
 export default function Consultation() {
   // Feature flag for gesture header menu
@@ -550,6 +553,7 @@ export default function Consultation() {
 
               {isFormOpen && isCorte && (
                 <div id="mainContent" className="landing-card-body">
+                  <FilNewsFeed limit={5} />
                   <h1 className="page-title">
                     Consultation {getCommunityLabels().citizens} sur la démocratie locale
                   </h1>
@@ -1344,6 +1348,8 @@ export function App() {
         <Route path="/tasks/:projectId/task/:taskId/edit" element={<TaskEdit />} />
         <Route path="/fil" element={<FilFeed />} />
         <Route path="/fil/new" element={<FilSubmissionForm />} />
+        <Route path="/fil/guidelines" element={<FilGuidelines />} />
+        <Route path="/fil/faq" element={<FilFAQ />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>

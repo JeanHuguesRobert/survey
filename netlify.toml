@@ -30,6 +30,18 @@ function = "root-redirect"
   path = "/api/fil/vote"
   function = "fil-vote"
 
+[[edge_functions]]
+  path = "/api/fil/stories"
+  function = "fil-stories"
+
+[[edge_functions]]
+  path = "/api/fil/item/*"
+  function = "fil-item"
+
+[[edge_functions]]
+  path = "/api/rag/ingest"
+  function = "rag-ingest"
+
 [[redirects]]
   from = "/docs/*"
   to = "/docs/:splat"

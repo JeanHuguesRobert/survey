@@ -2,31 +2,80 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { useCurrentUser } from "../../lib/useCurrentUser";
+import { isAdmin } from "../../lib/permissions";
+import AuthModal from "../common/AuthModal";
+import SiteFooter from "../layout/SiteFooter";
 
 export default function FilSubmissionForm() {
-  const { user } = useCurrentUser();
+  const { currentUser, userStatus } = useCurrentUser();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [duplicateWarning, setDuplicateWarning] = useState(null);
   const [formData, setFormData] = useState({
     title: "",
     content: "",
-    type: "fil_link", // fil_link, fil_doc, fil_alert, fil_event, fil_testimony
-    source_type: "external",
     external_url: "",
   });
 
+  // Auto-infer source_type from URL
+  const inferSourceType = (url) => {
+    if (!url) return "internal";
+    try {
+      const urlObj = new URL(url);
+      const currentHost = window.location.hostname;
+      return urlObj.hostname === currentHost ? "internal" : "external";
+    } catch {
+      return "external";
+    }
+  };
+
+  // Check for duplicates (same URL in last 24h)
+  const checkDuplicate = async (url) => {
+    if (!url) return null;
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data } = await supabase
+      .from("posts")
+      .select("id, metadata, created_at")
+      .ilike("metadata->>type", "fil_%")
+      .eq("metadata->>external_url", url)
+      .gte("created_at", yesterday)
+      .limit(1);
+    return data && data.length > 0 ? data[0] : null;
+  };
+
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!user) return alert("Connectez-vous pour soumettre");
+
+    // Auth check - show modal instead of alert
+    if (!currentUser) {
+      setShowAuthModal(true);
+      return;
+    }
+
+    // Validate: need either title or URL
+    if (!formData.title.trim() && !formData.external_url.trim()) {
+      alert("Veuillez fournir un titre ou une URL.");
+      return;
+    }
 
     setLoading(true);
     try {
+      // Duplicate check
+      const duplicate = await checkDuplicate(formData.external_url);
+      if (duplicate && !duplicateWarning) {
+        setDuplicateWarning(duplicate);
+        setLoading(false);
+        return; // Show warning, user can click again to override
+      }
+
       const {
         data: { session },
       } = await supabase.auth.getSession();
       const token = session?.access_token;
+      if (!token) throw new Error("Session expirée. Reconnectez-vous.");
 
-      if (!token) throw new Error("No access token found");
+      const source_type = inferSourceType(formData.external_url);
 
       const response = await fetch("/api/fil/items", {
         method: "POST",
@@ -35,112 +84,192 @@ export default function FilSubmissionForm() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          title: formData.title,
+          title: formData.title.trim() || null, // Optional
           content: formData.content,
-          type: formData.type,
-          source_type: formData.source_type,
+          type: "fil_link",
+          source_type,
           external_url: formData.external_url || null,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Submission failed");
+        throw new Error(errorData.error || "Échec de la soumission");
       }
 
       navigate("/fil");
     } catch (err) {
       console.error("Submission error:", err);
-      alert("Erreur lors de la soumission: " + err.message);
+      alert("Erreur: " + err.message);
     } finally {
       setLoading(false);
     }
   }
 
+  const handleAuthSuccess = () => {
+    setShowAuthModal(false);
+    // User is now logged in, they can click submit again
+  };
+
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md mt-10">
-      <h2 className="text-2xl font-bold mb-6 font-bauhaus text-bauhaus-black">Soumettre au Fil</h2>
+    <>
+      <div
+        style={{
+          maxWidth: 600,
+          margin: "2rem auto",
+          padding: "1.5rem",
+          background: "var(--color-bg-app)",
+          border: "2px solid var(--color-border-strong)",
+        }}
+      >
+        <h2
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "1.5rem",
+            fontWeight: 700,
+            marginBottom: "1rem",
+            color: "var(--color-content-primary)",
+          }}
+        >
+          Ajouter au Fil
+        </h2>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1">
-            Titre de l'information
-          </label>
-          <input
-            type="text"
-            required
-            className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500"
-            value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            placeholder="Ex: Fermeture du pont du Fango..."
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
+        <form
+          onSubmit={handleSubmit}
+          style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+        >
+          {/* URL Field - Primary */}
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">Type</label>
-            <select
-              className="w-full p-2 border border-gray-300 rounded"
-              value={formData.type}
-              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+            <label
+              style={{
+                display: "block",
+                fontWeight: 600,
+                marginBottom: 4,
+                color: "var(--color-content-primary)",
+              }}
             >
-              <option value="fil_link">Lien / Article</option>
-              <option value="fil_doc">Document Officiel</option>
-              <option value="fil_alert">Alerte / Urgence</option>
-              <option value="fil_event">Événement</option>
-              <option value="fil_testimony">Témoignage</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">Source</label>
-            <select
-              className="w-full p-2 border border-gray-300 rounded"
-              value={formData.source_type}
-              onChange={(e) => setFormData({ ...formData, source_type: e.target.value })}
-            >
-              <option value="external">Externe (URL)</option>
-              <option value="internal">Interne (Texte seul)</option>
-            </select>
-          </div>
-        </div>
-
-        {formData.source_type === "external" && (
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">URL de la source</label>
+              Lien (URL)
+            </label>
             <input
               type="url"
-              required
-              className="w-full p-2 border border-gray-300 rounded"
+              style={{
+                width: "100%",
+                padding: "0.5rem",
+                border: "1px solid var(--color-border-medium)",
+                fontFamily: "var(--font-body)",
+              }}
               value={formData.external_url}
-              onChange={(e) => setFormData({ ...formData, external_url: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, external_url: e.target.value });
+                setDuplicateWarning(null);
+              }}
               placeholder="https://..."
             />
           </div>
-        )}
 
-        <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1">
-            Description / Contenu
-          </label>
-          <textarea
-            className="w-full p-2 border border-gray-300 rounded h-32"
-            value={formData.content}
-            onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-            placeholder="Détails supplémentaires..."
-          />
-        </div>
+          {/* Title Field - Optional */}
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontWeight: 600,
+                marginBottom: 4,
+                color: "var(--color-content-primary)",
+              }}
+            >
+              Titre{" "}
+              <span style={{ fontWeight: 400, color: "var(--color-content-secondary)" }}>
+                (optionnel, l'URL sera utilisée si vide)
+              </span>
+            </label>
+            <input
+              type="text"
+              style={{
+                width: "100%",
+                padding: "0.5rem",
+                border: "1px solid var(--color-border-medium)",
+                fontFamily: "var(--font-body)",
+              }}
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              placeholder="Ex: Fermeture du pont..."
+            />
+          </div>
 
-        <div className="pt-4">
+          {/* Content Field - Optional */}
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontWeight: 600,
+                marginBottom: 4,
+                color: "var(--color-content-primary)",
+              }}
+            >
+              Description{" "}
+              <span style={{ fontWeight: 400, color: "var(--color-content-secondary)" }}>
+                (optionnel)
+              </span>
+            </label>
+            <textarea
+              style={{
+                width: "100%",
+                padding: "0.5rem",
+                border: "1px solid var(--color-border-medium)",
+                fontFamily: "var(--font-body)",
+                minHeight: 80,
+                resize: "vertical",
+              }}
+              value={formData.content}
+              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+              placeholder="Détails supplémentaires..."
+            />
+          </div>
+
+          {/* Duplicate Warning */}
+          {duplicateWarning && (
+            <div
+              style={{
+                padding: "0.75rem",
+                background: "#FFF3CD",
+                border: "1px solid #FFECB5",
+                color: "#856404",
+              }}
+            >
+              ⚠️ Ce lien a déjà été publié récemment.{" "}
+              {isAdmin(currentUser) ? (
+                <span>Cliquez à nouveau pour publier quand même.</span>
+              ) : (
+                <span>Veuillez vérifier le Fil avant de republier.</span>
+              )}
+            </div>
+          )}
+
+          {/* Submit */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-bauhaus-black text-white font-bold py-3 rounded hover:bg-gray-800 transition-colors"
+            style={{
+              padding: "0.75rem 1.5rem",
+              background: "var(--color-action-primary)",
+              color: "var(--color-bg-app)",
+              fontWeight: 700,
+              border: "2px solid var(--color-border-strong)",
+              cursor: loading ? "wait" : "pointer",
+              fontFamily: "var(--font-display)",
+            }}
           >
-            {loading ? "Envoi..." : "Publier sur Le Fil"}
+            {loading ? "Publication..." : "Publier sur Le Fil"}
           </button>
-        </div>
-      </form>
-    </div>
+        </form>
+      </div>
+
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <AuthModal onClose={() => setShowAuthModal(false)} onSuccess={handleAuthSuccess} />
+      )}
+
+      <SiteFooter />
+    </>
   );
 }

@@ -563,6 +563,18 @@ export default function SiteFooter({
             <Link to="/fil" style={styles.link}>
               Fil
             </Link>
+            <Link
+              to="/fil/new"
+              style={{
+                ...styles.link,
+                background: "var(--color-action-primary)",
+                color: "var(--color-bg-app)",
+                padding: "2px 6px",
+                fontWeight: 700,
+              }}
+            >
+              + Ajouter au Fil
+            </Link>
             <Link to="/bob" style={styles.link}>
               IA
             </Link>

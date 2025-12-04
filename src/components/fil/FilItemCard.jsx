@@ -1,21 +1,48 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useState } from "react";
-import ReactMarkdown from "react-markdown";
 import { supabase } from "../../lib/supabase";
 import { getDisplayName } from "../../lib/userDisplay";
+import { useCurrentUser } from "../../lib/useCurrentUser";
+import { isAdmin } from "../../lib/permissions";
+import FilConvertMenu from "./FilConvertMenu";
 
-export default function FilItemCard({ post, currentUserId, onVote }) {
+export default function FilItemCard({ post, rank, currentUserId, onVote }) {
+  const { currentUser } = useCurrentUser();
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   const metadata = post.metadata || {};
-  const title = metadata.title || "Sans titre";
+  const title = metadata.title || metadata.external_url || "Sans titre";
   const score = metadata.fil_score || 0;
-  const type = metadata.type || "fil_link";
   const commentCount = metadata.fil_comment_count || 0;
+  const externalUrl = metadata.external_url;
 
   const [localScore, setLocalScore] = useState(score);
-  const [userVote, setUserVote] = useState(post.user_vote || 0); // 0, 1, -1
+  const [userVote, setUserVote] = useState(post.user_vote || 0);
+
+  // Extract domain from URL
+  const getDomain = (url) => {
+    if (!url) return null;
+    try {
+      return new URL(url).hostname.replace("www.", "");
+    } catch {
+      return null;
+    }
+  };
+
+  const domain = getDomain(externalUrl);
+
+  // Time ago helper
+  const timeAgo = (dateStr) => {
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 60) return `${diffMins} min`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}j`;
+  };
 
   async function handleVote(value) {
     if (!currentUserId) return alert("Connectez-vous pour voter");
@@ -25,8 +52,7 @@ export default function FilItemCard({ post, currentUserId, onVote }) {
         data: { session },
       } = await supabase.auth.getSession();
       const token = session?.access_token;
-
-      if (!token) throw new Error("No access token found");
+      if (!token) throw new Error("Session expirée");
 
       const response = await fetch("/api/fil/vote", {
         method: "POST",
@@ -36,121 +62,113 @@ export default function FilItemCard({ post, currentUserId, onVote }) {
         },
         body: JSON.stringify({
           postId: post.id,
-          voteValue: value,
+          voteValue: userVote === value ? 0 : value, // Toggle
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Vote failed");
+        const err = await response.json();
+        throw new Error(err.error || "Vote failed");
       }
 
       const data = await response.json();
-
       setLocalScore(data.score);
-      // Optimistic update for user vote is tricky without returning it from API,
-      // but we know what the user clicked.
-      // However, the API doesn't return the new user_vote status directly,
-      // but we can infer it or just update local state.
-      // For now, let's assume success means the vote is applied.
-      // Toggle logic: if clicking same vote, it removes it (value 0 sent? No, UI sends 1 or -1).
-      // Wait, my API logic handles 0 to remove, but UI sends 1 or -1.
-      // The API logic says: "if voteValue === 0 ... else ... Upsert".
-      // The UI logic currently doesn't toggle off in the handler call, it just sends 1 or -1.
-      // I should probably implement toggle logic here or in the API.
-      // For simplicity, let's assume the button click enforces the value.
-      // If I want toggle, I need to check current `userVote`.
-
-      let newVote = value;
-      if (userVote === value) {
-        // If clicking same, we might want to unvote?
-        // The current UI doesn't seem to support unvoting explicitly via 0,
-        // but let's stick to simple up/down for now.
-        // Actually, let's support toggle:
-        // If I click +1 and I am already +1, I want to remove vote.
-      }
-
-      // Refined logic:
-      // If user clicks +1 and is already +1 -> send 0
-      // If user clicks +1 and is -1 or 0 -> send 1
-
-      // But wait, the `handleVote` function receives `value` (1 or -1).
-      // I need to change the logic slightly to support unvoting if I want to be perfect.
-      // But for now, let's just set it.
-
-      setUserVote(value);
+      setUserVote(userVote === value ? 0 : value);
       if (onVote) onVote(post.id, data);
     } catch (err) {
       console.error("Vote error:", err);
-      alert("Erreur lors du vote: " + err.message);
+      alert("Erreur: " + err.message);
     } finally {
       setLoading(false);
     }
   }
 
-  return (
-    <div className="flex gap-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-      {/* Vote Column */}
-      <div className="flex flex-col items-center gap-1 min-w-[40px]">
-        <button
-          onClick={() => handleVote(1)}
-          className={`p-1 rounded hover:bg-gray-100 ${userVote === 1 ? "text-orange-600 font-bold" : "text-gray-400"}`}
-          disabled={loading}
-        >
-          ▲
-        </button>
-        <span
-          className={`font-bold ${localScore > 0 ? "text-orange-600" : localScore < 0 ? "text-blue-600" : "text-gray-600"}`}
-        >
-          {localScore}
-        </span>
-        <button
-          onClick={() => handleVote(-1)}
-          className={`p-1 rounded hover:bg-gray-100 ${userVote === -1 ? "text-blue-600 font-bold" : "text-gray-400"}`}
-          disabled={loading}
-        >
-          ▼
-        </button>
-      </div>
+  const styles = {
+    row: {
+      display: "flex",
+      alignItems: "baseline",
+      gap: 4,
+      padding: "4px 0",
+      borderBottom: "1px solid var(--color-border-light)",
+      fontSize: "0.85rem",
+    },
+    rank: {
+      minWidth: 24,
+      textAlign: "right",
+      color: "var(--color-content-secondary)",
+      fontSize: "0.75rem",
+    },
+    vote: {
+      cursor: "pointer",
+      color: userVote === 1 ? "var(--color-action-primary)" : "var(--color-content-tertiary)",
+      fontSize: "0.7rem",
+      padding: 2,
+    },
+    title: {
+      color: "var(--color-content-primary)",
+      textDecoration: "none",
+      fontFamily: "var(--font-body)",
+    },
+    domain: {
+      fontSize: "0.7rem",
+      color: "var(--color-content-secondary)",
+      marginLeft: 4,
+    },
+    meta: {
+      fontSize: "0.7rem",
+      color: "var(--color-content-secondary)",
+      marginLeft: 28,
+      paddingBottom: 4,
+    },
+    metaLink: {
+      color: "var(--color-content-secondary)",
+      textDecoration: "none",
+    },
+  };
 
-      {/* Content Column */}
-      <div className="flex-1">
-        <h3 className="text-lg font-bold text-gray-900 mb-1">
-          <Link to={`/posts/${post.id}`} className="hover:underline">
+  return (
+    <div>
+      {/* Main Row: Rank | Vote | Title (Domain) */}
+      <div style={styles.row}>
+        <span style={styles.rank}>{rank}.</span>
+        <span style={styles.vote} onClick={() => !loading && handleVote(1)} title="Voter pour">
+          ▲
+        </span>
+        {externalUrl ? (
+          <a href={externalUrl} target="_blank" rel="noopener noreferrer" style={styles.title}>
+            {title}
+          </a>
+        ) : (
+          <Link to={`/posts/${post.id}`} style={styles.title}>
             {title}
           </Link>
-          {metadata.external_url && (
-            <a
-              href={metadata.external_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ml-2 text-xs text-gray-500 hover:text-blue-600"
-            >
-              (Source ↗)
-            </a>
-          )}
-        </h3>
-
-        <div className="text-sm text-gray-500 mb-2">
-          Par {getDisplayName(post.users)} • {new Date(post.created_at).toLocaleDateString()}
-        </div>
-
-        {/* Preview Content */}
-        {post.content && (
-          <div className="text-sm text-gray-700 line-clamp-2 mb-2">
-            <ReactMarkdown>{post.content}</ReactMarkdown>
-          </div>
         )}
+        {domain && <span style={styles.domain}>({domain})</span>}
+      </div>
 
-        {/* Footer */}
-        <div className="flex items-center gap-4 text-xs text-gray-500 font-bold">
-          <span className="bg-gray-100 px-2 py-1 rounded uppercase tracking-wider">
-            {type.replace("fil_", "")}
-          </span>
-          <Link to={`/posts/${post.id}`} className="hover:text-gray-800">
-            {commentCount} commentaires
-          </Link>
-        </div>
+      {/* Meta Row: Score | User | Time | Comments */}
+      <div style={styles.meta}>
+        {localScore} point{localScore !== 1 ? "s" : ""} | par{" "}
+        <Link to={`/users/${post.users?.id}`} style={styles.metaLink}>
+          {getDisplayName(post.users)}
+        </Link>{" "}
+        | {timeAgo(post.created_at)} |{" "}
+        <Link to={`/posts/${post.id}`} style={styles.metaLink}>
+          {commentCount} commentaire{commentCount !== 1 ? "s" : ""}
+        </Link>
+        {isAdmin(currentUser) && (
+          <>
+            {" "}
+            |{" "}
+            <span
+              style={{ color: "var(--color-action-accent)", cursor: "pointer" }}
+              title="Admin: Supprimer"
+            >
+              suppr
+            </span>{" "}
+            | <FilConvertMenu post={post} />
+          </>
+        )}
       </div>
     </div>
   );
