@@ -13,6 +13,7 @@ import SiteFooter from "../layout/SiteFooter";
 import { getDisplayName, getUserInitials } from "../../lib/userDisplay";
 import { enrichUserMetadata } from "../../lib/userTransform";
 import { isAdmin, isAnonymous, canWrite } from "../../lib/permissions";
+import SubscribeButton from "../common/SubscribeButton";
 
 /**
  * Page détail d'un groupe avec membres et posts
@@ -344,6 +345,13 @@ export default function GroupDetail({ currentUser }) {
                 Gérer le groupe
               </button>
             )}
+
+            <SubscribeButton
+              contentType="group"
+              contentId={id}
+              currentUser={currentUser}
+              className="w-full"
+            />
 
             <button onClick={() => navigate("/social")} className="btn btn-ghost text-sm border">
               ← Retour au Café

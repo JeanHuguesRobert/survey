@@ -11,6 +11,7 @@ import SubscribeButton from "../components/common/SubscribeButton";
 import FacebookShareButton from "../components/common/FacebookShareButton";
 import ShareMenu from "../components/common/ShareMenu";
 import { supabase } from "../lib/supabase";
+import SiteFooter from "../components/layout/SiteFooter";
 
 export default function Proposition() {
   // const { supabase } = useSupabase();
@@ -332,6 +333,8 @@ export default function Proposition() {
         currentUser={currentUser}
         defaultExpanded={false}
       />
+
+      <SiteFooter />
     </div>
   );
 }

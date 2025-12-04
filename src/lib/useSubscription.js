@@ -2,8 +2,23 @@ import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 
 /**
+ * Types de contenu supportés pour les abonnements
+ */
+export const SUBSCRIBABLE_TYPES = [
+  "post",
+  "proposition",
+  "wiki_page",
+  "user",
+  "group",
+  "mission",
+  "task_project",
+  "fil_item",
+  "tag",
+];
+
+/**
  * Hook pour gérer les abonnements à n'importe quel type de contenu
- * @param {string} contentType - Type de contenu ('post', 'proposition', 'wiki_page')
+ * @param {string} contentType - Type de contenu (voir SUBSCRIBABLE_TYPES)
  * @param {string} contentId - ID du contenu
  * @param {object} currentUser - Utilisateur connecté
  * @returns {object} { isSubscribed, loading, subscriberCount, subscribe, unsubscribe }

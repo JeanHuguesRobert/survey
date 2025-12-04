@@ -7,6 +7,7 @@ import { getTaskTitleFromPost, getTaskStatus } from "../lib/taskHelpers";
 import { TASK_STATUS_LABELS } from "../lib/taskMetadata";
 import { getDisplayName } from "../lib/userDisplay";
 import SiteFooter from "../components/layout/SiteFooter";
+import SubscribeButton from "../components/common/SubscribeButton";
 
 export default function MissionDetail() {
   const { id } = useParams();
@@ -351,6 +352,16 @@ export default function MissionDetail() {
                   </Link>
                 </div>
               )}
+
+              {/* Subscribe Button */}
+              <div className="mt-4">
+                <SubscribeButton
+                  contentType="mission"
+                  contentId={id}
+                  currentUser={currentUser}
+                  className="w-full justify-center"
+                />
+              </div>
             </div>
           </div>
 

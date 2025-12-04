@@ -7,6 +7,7 @@ import { DEFAULT_WORKFLOW_STATES, PROJECT_VIEW_MODES } from "../lib/taskMetadata
 import KanbanBoard from "../components/tasks/KanbanBoard";
 import TaskCard from "../components/tasks/TaskCard";
 import SiteFooter from "../components/layout/SiteFooter";
+import SubscribeButton from "../components/common/SubscribeButton";
 
 /**
  * Task Project Detail Page
@@ -198,7 +199,10 @@ export default function TaskProjectDetail() {
             </div>
           </div>
 
-          {/* Actions d'administration à venir */}
+          {/* Actions */}
+          <div className="flex items-center gap-3">
+            <SubscribeButton contentType="task_project" contentId={id} currentUser={currentUser} />
+          </div>
         </div>
       </div>
 
