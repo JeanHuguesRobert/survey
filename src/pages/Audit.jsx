@@ -1,34 +1,24 @@
-import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Link } from "react-router-dom";
 import { MOVEMENT_NAME, CITY_NAME, BOT_NAME, PARTY_NAME, HASHTAG } from "../constants";
 import SiteFooter from "../components/layout/SiteFooter";
+import { useMarkdownDoc } from "../hooks/useMarkdownDoc";
+import { useMemo } from "react";
 
 export default function Audit() {
-  const [auditContent, setAuditContent] = useState("");
+  const replacements = useMemo(
+    () => ({
+      MOVEMENT_NAME,
+      CITY_NAME,
+      BOT_NAME,
+      PARTY_NAME,
+      HASHTAG,
+    }),
+    []
+  );
 
-  useEffect(() => {
-    fetch("/docs/audit-ethique.md?raw=1")
-      .then((res) => res.text())
-      .then((raw) => {
-        const replacements = {
-          "{{MOVEMENT_NAME}}": MOVEMENT_NAME,
-          "{{CITY_NAME}}": CITY_NAME,
-          "{{BOT_NAME}}": BOT_NAME,
-          "{{PARTY_NAME}}": PARTY_NAME,
-          "{{HASHTAG}}": HASHTAG,
-        };
-        let parsed = raw;
-        Object.entries(replacements).forEach(([key, value]) => {
-          if (value) {
-            parsed = parsed.split(key).join(value);
-          }
-        });
-        setAuditContent(parsed);
-      })
-      .catch(() => setAuditContent(null));
-  }, []);
+  const { content, loading, error } = useMarkdownDoc("audit-ethique.md", replacements);
 
   return (
     <div className="min-h-screen py-12">
@@ -46,9 +36,16 @@ export default function Audit() {
         </div>
 
         <div className=" shadow rounded-xl p-8">
-          {auditContent ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{auditContent}</ReactMarkdown>
-          ) : (
+          {loading && (
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto" />
+            </div>
+          )}
+          {error && <div className="text-center text-red-600">Erreur: {error}</div>}
+          {!loading && !error && content && (
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+          )}
+          {!loading && !error && !content && (
             <div className="text-center">No content available</div>
           )}
         </div>

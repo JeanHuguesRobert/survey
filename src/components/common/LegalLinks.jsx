@@ -1,57 +1,37 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { linkifyWardWiki } from "../../lib/wikiLinks";
+import { useMarkdownDoc } from "../../hooks/useMarkdownDoc";
 
+/**
+ * Composant pour afficher un fichier Markdown depuis /docs/
+ * @param {string} file - Chemin du fichier (ex: "/docs/privacy-policy.md" ou "privacy-policy.md")
+ */
 export function LegalMarkdown({ file }) {
-  const [content, setContent] = useState("");
-  const [error, setError] = useState(null);
-  useEffect(() => {
-    let isMounted = true;
+  // Normaliser le chemin : enlever /docs/ si présent
+  const docPath = file?.replace(/^\/docs\//, "") || "";
 
-    async function loadMarkdown() {
-      if (!file) return;
-      try {
-        const urlWithRaw = appendRawParam(file);
-        const res = await fetch(urlWithRaw, {
-          headers: { Accept: "text/plain, text/markdown" },
-        });
-        if (!res.ok) throw new Error(`Impossible de charger ${file}`);
-        const text = await res.text();
-        if (isMounted) {
-          setContent(text);
-          setError(null);
-        }
-      } catch (err) {
-        console.error("Markdown fetch error:", err);
-        if (isMounted) {
-          setError(err.message || "Erreur de chargement");
-        }
-      }
-    }
+  const { content, loading, error } = useMarkdownDoc(docPath);
 
-    loadMarkdown();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [file]);
+  if (loading) {
+    return (
+      <div className="flex justify-center p-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500" />
+      </div>
+    );
+  }
 
   if (error) {
     return <div className="text-red-500">{error}</div>;
   }
+
   return (
     // apply site markdown typography (Tailwind Typography / prose) while keeping legacy "markdown-content"
     <div className="markdown-content prose max-w-none">
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{linkifyWardWiki(content)}</ReactMarkdown>
     </div>
   );
-}
-
-function appendRawParam(path) {
-  if (!path) return path;
-  if (path.includes("raw=1")) return path;
-  return path.includes("?") ? `${path}&raw=1` : `${path}?raw=1`;
 }
 
 // Utilisation dans une page ou un footer :
@@ -80,7 +60,7 @@ export default function LegalLinks() {
 
 // Ou pour affichage intégré Markdown :
 export function LegalPage({ type }) {
-  const file = type === "privacy" ? "/docs/privacy-policy.md" : "/docs/terms-of-use.md";
+  const file = type === "privacy" ? "privacy-policy.md" : "terms-of-use.md";
   return (
     <>
       <LegalMarkdown file={file} />

@@ -1,33 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { APP_VERSION, DEPLOY_DATE } from "../../constants";
 import { linkifyWardWiki } from "../../lib/wikiLinks";
+import { useMarkdownDoc } from "../../hooks/useMarkdownDoc";
 
 export default function AuditContent() {
-  const [markdownContent, setMarkdownContent] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    // Charger le fichier Markdown
-    fetch("/docs/audit-ethique.md?raw=1")
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Erreur lors du chargement du rapport: ${response.status}`);
-        }
-        return response.text();
-      })
-      .then((text) => {
-        setMarkdownContent(text);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Erreur lors du chargement du rapport:", err);
-        setError(err.message);
-        setLoading(false);
-      });
-  }, []);
+  const { content, loading, error } = useMarkdownDoc("audit-ethique.md");
 
   if (loading) {
     return (
@@ -49,9 +27,7 @@ export default function AuditContent() {
   return (
     <div className="prose prose-blue max-w-none">
       <div className="markdown-content">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-          {linkifyWardWiki(markdownContent)}
-        </ReactMarkdown>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{linkifyWardWiki(content)}</ReactMarkdown>
       </div>
 
       <hr />
