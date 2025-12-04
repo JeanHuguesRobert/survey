@@ -9,13 +9,60 @@ import { supabase } from "../../lib/supabase";
 import FacebookPagePlugin from "../common/FacebookPagePlugin";
 
 // This component replaces the modal hamburger menu with a gesture-revealed header menu
+// On mobile: disabled auto-trigger, shows a small hamburger button instead
+// On desktop: auto-triggers after repeated scroll attempts at edge
 
 // Directions supported: top, bottom, left, right
 const DIRECTIONS = ["top", "bottom", "left", "right"];
 
+// Detect if device is mobile (touch-primary device with small screen)
+function isMobileDevice() {
+  if (typeof window === "undefined") return false;
+  const hasTouchScreen = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+  const isSmallScreen = window.innerWidth < 768;
+  return hasTouchScreen && isSmallScreen;
+}
+
 export default function GestureHeaderMenu({ activeEdges = ["top"] }) {
   const [openDirection, setOpenDirection] = useState(null); // null or "top"/"bottom"/"left"/"right"
+  const [isMobile, setIsMobile] = useState(false);
+  const [showMobileButton, setShowMobileButton] = useState(false);
   const { currentUser } = useCurrentUser();
+
+  // Check if mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(isMobileDevice());
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // On mobile: show hamburger button when user scrolls to top
+  useEffect(() => {
+    if (!isMobile) {
+      setShowMobileButton(false);
+      return;
+    }
+
+    let lastScrollY = window.scrollY;
+    let scrollingUp = false;
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      scrollingUp = currentScrollY < lastScrollY;
+      lastScrollY = currentScrollY;
+
+      // Show button when near top and scrolling up, or at very top
+      if (currentScrollY < 100 && scrollingUp) {
+        setShowMobileButton(true);
+      } else if (currentScrollY > 200) {
+        setShowMobileButton(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isMobile]);
 
   // Gesture detection refs
   const touchStart = useRef({ x: null, y: null });
@@ -126,6 +173,9 @@ export default function GestureHeaderMenu({ activeEdges = ["top"] }) {
   };
 
   useEffect(() => {
+    // On mobile, disable automatic gesture triggers
+    if (isMobile) return;
+
     window.addEventListener("touchstart", handleTouchStart, { passive: true });
     window.addEventListener("touchmove", handleTouchMove, { passive: true });
     window.addEventListener("touchend", handleTouchEnd, { passive: true });
@@ -137,9 +187,12 @@ export default function GestureHeaderMenu({ activeEdges = ["top"] }) {
         if (touchTimeoutRef.current[dir]) clearTimeout(touchTimeoutRef.current[dir]);
       });
     };
-  }, [openDirection, activeEdges]);
+  }, [openDirection, activeEdges, isMobile]);
 
   useEffect(() => {
+    // On mobile, disable automatic wheel triggers
+    if (isMobile) return;
+
     const handleWheel = (e) => {
       if (openDirection) return;
 
@@ -216,14 +269,61 @@ export default function GestureHeaderMenu({ activeEdges = ["top"] }) {
         if (wheelTimeoutRef.current[dir]) clearTimeout(wheelTimeoutRef.current[dir]);
       });
     };
-  }, [openDirection, activeEdges]);
+  }, [openDirection, activeEdges, isMobile]);
 
   // Close menu logic
   const closeMenu = () => setOpenDirection(null);
 
+  // Mobile hamburger button handler
+  const handleMobileMenuOpen = () => {
+    setOpenDirection("top");
+    setShowMobileButton(false);
+  };
+
   // Render panel for open direction using Portal to escape parent container constraints
   return createPortal(
     <>
+      {/* Mobile hamburger button - appears on scroll up near top */}
+      {isMobile && showMobileButton && !openDirection && (
+        <button
+          onClick={handleMobileMenuOpen}
+          aria-label="Ouvrir le menu"
+          style={{
+            position: "fixed",
+            top: 8,
+            left: 8,
+            zIndex: 999,
+            width: 40,
+            height: 40,
+            borderRadius: 8,
+            background: "var(--color-bg-app)",
+            border: "1px solid var(--color-border-medium)",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            transition: "opacity 0.2s ease, transform 0.2s ease",
+            opacity: 0.9,
+          }}
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--color-content-primary)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+      )}
+
       {DIRECTIONS.map((dir) => (
         <div
           key={dir}
