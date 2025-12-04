@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
-import { createGroupMetadata } from "../../lib/socialMetadata";
+import { createGroupMetadata, appendOrMergeLastModifiedBy } from "../../lib/socialMetadata";
+import { getDisplayName } from "../../lib/userDisplay";
 
 /**
  * Formulaire de création/édition de mission (basé sur les groupes)
@@ -61,10 +62,16 @@ export default function MissionForm({ mission = null, currentUser }) {
         status: "open", // Default status
       };
 
-      const metadata = createGroupMetadata("mission", {
+      let metadata = createGroupMetadata("mission", {
         location: formData.location,
         tags: tagsArray,
         mission_details: missionDetails,
+      });
+
+      // Stamp lastModifiedBy for audit trail
+      metadata = appendOrMergeLastModifiedBy(metadata, {
+        id: currentUser.id,
+        displayName: getDisplayName(currentUser),
       });
 
       if (isEditing) {

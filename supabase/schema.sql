@@ -174,6 +174,19 @@ CREATE TABLE public.comments (
   CONSTRAINT comments_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.posts(id),
   CONSTRAINT comments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.consent_audit_log (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  consent_type text NOT NULL,
+  previous_value boolean,
+  new_value boolean NOT NULL,
+  change_reason text,
+  consent_version text NOT NULL,
+  source text NOT NULL,
+  changed_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT consent_audit_log_pkey PRIMARY KEY (id),
+  CONSTRAINT consent_audit_log_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.content_subscriptions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
@@ -656,6 +669,23 @@ CREATE TABLE public.teletransmission (
   CONSTRAINT teletransmission_pkey PRIMARY KEY (id),
   CONSTRAINT teletransmission_acte_id_fkey FOREIGN KEY (acte_id) REFERENCES public.acte(id),
   CONSTRAINT teletransmission_proof_id_ar_ctes_fkey FOREIGN KEY (proof_id_ar_ctes) REFERENCES public.proof(id)
+);
+CREATE TABLE public.user_consents (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  consent_type text NOT NULL CHECK (consent_type = ANY (ARRAY['rgpd_general'::text, 'public_profile'::text, 'ia_analysis'::text, 'newsletter'::text, 'notification_email'::text])),
+  granted boolean NOT NULL DEFAULT false,
+  consent_version text NOT NULL DEFAULT '1.0'::text,
+  consent_text_hash text,
+  source text NOT NULL CHECK (source = ANY (ARRAY['web'::text, 'mobile'::text, 'api'::text, 'admin'::text])),
+  ip_hash text,
+  user_agent_category text,
+  granted_at timestamp with time zone,
+  revoked_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT user_consents_pkey PRIMARY KEY (id),
+  CONSTRAINT user_consents_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.users (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

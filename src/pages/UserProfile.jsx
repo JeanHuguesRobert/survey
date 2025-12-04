@@ -7,6 +7,7 @@ import { CurrentUserContext } from "../contexts/CurrentUserContext";
 import { canWrite, getUserRole, ROLE_ADMIN } from "../lib/permissions";
 import SiteFooter from "../components/layout/SiteFooter";
 import SocialAvatarButton from "../components/SocialAvatarButton";
+import RGPDSettings from "../components/rgpd/RGPDSettings";
 
 export default function UserProfile() {
   const { currentUser, loading: authLoading, updateProfile } = useContext(CurrentUserContext);
@@ -427,6 +428,12 @@ export default function UserProfile() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Section RGPD - Gestion des données personnelles */}
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-50 mb-4">🔒 Confidentialité et données</h2>
+          <RGPDSettings />
         </div>
       </div>
 

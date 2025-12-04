@@ -6,6 +6,7 @@ import { getMetadata } from "../lib/metadata";
 import { getTaskTitleFromPost, getTaskStatus } from "../lib/taskHelpers";
 import { TASK_STATUS_LABELS } from "../lib/taskMetadata";
 import { getDisplayName } from "../lib/userDisplay";
+import { getLatestModifier } from "../lib/socialMetadata";
 import SiteFooter from "../components/layout/SiteFooter";
 import SubscribeButton from "../components/common/SubscribeButton";
 
@@ -227,6 +228,23 @@ export default function MissionDetail() {
               </h1>
               <p className="text-gray-500 text-sm">
                 Organisé par <span className="font-semibold">{getDisplayName(mission.users)}</span>
+                {(() => {
+                  const latestModifier = getLatestModifier(mission.metadata, mission);
+                  if (latestModifier && latestModifier.id !== mission.created_by) {
+                    return (
+                      <span className="ml-2">
+                        • Dernière modification par{" "}
+                        <Link
+                          to={`/users/${latestModifier.id}`}
+                          className="font-semibold hover:underline"
+                        >
+                          {latestModifier.displayName || "Utilisateur inconnu"}
+                        </Link>
+                      </span>
+                    );
+                  }
+                  return null;
+                })()}
               </p>
             </div>
 

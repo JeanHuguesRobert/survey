@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { appendOrMergeLastModifiedBy } from "./socialMetadata";
 
 /**
  * Validates a petition URL (optional field)
@@ -52,6 +53,7 @@ export function validatePetitionUrl(url) {
 
 export async function createPropositionWithTags({
   userId,
+  userDisplayName = null,
   title,
   description,
   status = "active",
@@ -69,8 +71,8 @@ export async function createPropositionWithTags({
     }
   }
 
-  // Build metadata object
-  const metadata = {
+  // Build metadata object with lastModifiedBy
+  let metadata = {
     schemaVersion: 1,
   };
 
@@ -78,6 +80,12 @@ export async function createPropositionWithTags({
   if (petitionUrl && petitionUrl.trim()) {
     metadata.petition_url = petitionUrl.trim();
   }
+
+  // Stamp lastModifiedBy for audit trail
+  metadata = appendOrMergeLastModifiedBy(metadata, {
+    id: userId,
+    displayName: userDisplayName,
+  });
 
   const { data: proposition, error: propError } = await supabase
     .from("propositions")

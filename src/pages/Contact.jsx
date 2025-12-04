@@ -5,8 +5,9 @@ import CommentSection from "../components/common/CommentSection";
 import { useCurrentUser } from "../lib/useCurrentUser";
 
 export default function Contact() {
+  // Email de l'éditeur du site - Information légale obligatoire (LCEN)
+  // Affiché publiquement sur la page de contact
   const email = import.meta.env.VITE_CONTACT_EMAIL || "jeanhuguesrobert@gmail.com";
-  console.log("Contact page: using contact email", email);
   const { currentUser } = useCurrentUser();
 
   const isAdmin = currentUser?.email === email;

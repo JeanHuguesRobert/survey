@@ -82,7 +82,8 @@ const EXPORT_ENTITIES = {
       { key: "entity_type", label: "Entité" },
       { key: "entity_id", label: "ID entité" },
       { key: "summary", label: "Résumé" },
-      { key: "ip_address", label: "IP" },
+      // Note RGPD: ip_address exclu par défaut - donnée personnelle selon CNIL
+      // { key: "ip_address", label: "IP" }, // Désactivé pour conformité RGPD
       { key: "created_at", label: "Date" },
     ],
   },

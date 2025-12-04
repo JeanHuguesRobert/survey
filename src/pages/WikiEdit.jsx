@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { useCurrentUser } from "../lib/useCurrentUser";
+import { appendOrMergeLastModifiedBy, getLatestModifier } from "../lib/socialMetadata";
+import { getDisplayName } from "../lib/userDisplay";
 
 export default function WikiEdit() {
   const { slug: initialSlug } = useParams();
   const navigate = useNavigate();
+  const { currentUser } = useCurrentUser();
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState(initialSlug);
   const [content, setContent] = useState("");
   const [pageId, setPageId] = useState(null);
+  const [pageMetadata, setPageMetadata] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,6 +34,7 @@ export default function WikiEdit() {
       setTitle(data.title || "");
       setSlug(data.slug || "");
       setContent(data.content || "");
+      setPageMetadata(data.metadata || {});
       setLoading(false);
     };
 
@@ -54,9 +60,15 @@ export default function WikiEdit() {
         return;
       }
 
+      // Update lastModifiedBy in metadata
+      const updatedMetadata = appendOrMergeLastModifiedBy(
+        pageMetadata,
+        currentUser ? { id: currentUser.id, displayName: getDisplayName(currentUser) } : null
+      );
+
       const { error } = await supabase
         .from("wiki_pages")
-        .update({ title, content, slug, updated_at: new Date() })
+        .update({ title, content, slug, metadata: updatedMetadata, updated_at: new Date() })
         .eq("id", pageId);
 
       if (error) {

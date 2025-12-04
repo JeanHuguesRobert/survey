@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { createPropositionWithTags, validatePetitionUrl } from "../../lib/propositions";
+import { getDisplayName } from "../../lib/userDisplay";
 
 export default function CreateProposition({ user }) {
   const [title, setTitle] = useState("");
@@ -88,6 +89,7 @@ export default function CreateProposition({ user }) {
 
       const proposition = await createPropositionWithTags({
         userId: user.id,
+        userDisplayName: getDisplayName(user),
         title: title.trim(),
         description: description.trim(),
         status: "active",

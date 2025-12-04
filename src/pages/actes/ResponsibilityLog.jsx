@@ -162,11 +162,14 @@ const LogEntry = ({ entry }) => {
               </div>
             )}
 
-            {/* IP and signature info */}
+            {/* IP and signature info - Masqué pour conformité RGPD */}
+            {/* Note: IP et User-Agent stockés pour audit mais non affichés publiquement */}
             <div className="flex items-center gap-4 text-xs text-slate-400">
-              {entry.ip_address && <span>🌐 IP: {entry.ip_address}</span>}
+              {entry.ip_address && (
+                <span title="Adresse IP masquée pour la vie privée">🌐 IP: ***.***.***</span>
+              )}
               {entry.user_agent && (
-                <span title={entry.user_agent}>💻 {entry.user_agent?.slice(0, 30)}...</span>
+                <span title="User-Agent masqué pour la vie privée">💻 Navigateur enregistré</span>
               )}
             </div>
 

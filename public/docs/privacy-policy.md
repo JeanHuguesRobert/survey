@@ -42,6 +42,33 @@ https://opensource.org/licenses/MIT
 Éditeur du site : Jean Hugues Noël Robert, particulier, initiative citoyenne bénévole. Contact :
 jeanhuguesrobert@gmail.com Aucune activité commerciale, hébergement sur Netlify/GitHub Pages.
 
+## 9. Stockage local (cookies et localStorage)
+
+Cette plateforme utilise le stockage local de votre navigateur uniquement pour des finalités
+**strictement nécessaires** au fonctionnement du service :
+
+- **Session d'authentification** : Permet de maintenir votre connexion (Supabase)
+- **Préférences d'affichage** : Mémorise vos choix d'interface (tri, disposition) de manière anonyme
+- **Brouillons** : Sauvegarde temporaire de vos contributions en cours de rédaction
+
+Ces données sont stockées localement sur votre appareil, ne sont pas transmises à des tiers, et ne
+servent à aucun profilage publicitaire. Conformément à la directive ePrivacy et aux recommandations
+de la CNIL, ces usages strictement nécessaires ne requièrent pas de consentement préalable.
+
+## 10. Vos droits RGPD
+
+Conformément au Règlement Général sur la Protection des Données (RGPD), vous disposez des droits
+suivants :
+
+- **Droit d'accès** : Consulter vos données personnelles
+- **Droit de rectification** : Corriger vos informations via votre profil
+- **Droit à la portabilité** : Exporter vos données au format JSON depuis votre profil
+- **Droit à l'effacement** : Supprimer votre compte et vos données personnelles
+- **Droit d'opposition** : Vous opposer à certains traitements via les paramètres de confidentialité
+
+Pour exercer ces droits, rendez-vous dans la section "Confidentialité et données" de votre profil
+utilisateur, ou contactez l'éditeur du site.
+
 ---
 
 ## Problèmes potentiels à signaler

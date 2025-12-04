@@ -25,6 +25,7 @@ import {
   TASK_PRIORITY_ICONS,
   TASK_STATUS_COLORS,
 } from "../lib/taskMetadata";
+import { getLatestModifier } from "../lib/socialMetadata";
 
 function formatDate(value) {
   if (!value) return null;
@@ -307,6 +308,8 @@ export default function TaskDetail() {
   const statusLabel = TASK_STATUS_LABELS[status] || status;
   const priorityLabel = TASK_PRIORITY_LABELS[priority] || priority;
   const statusColor = TASK_STATUS_COLORS[status] || "bg-gray-100 text-gray-600 border-gray-200";
+  const latestModifier = getLatestModifier(task.metadata, task);
+  const showModifier = latestModifier && latestModifier.id !== task.author_id;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
@@ -474,6 +477,28 @@ export default function TaskDetail() {
                 </div>
               )}
             </div>
+
+            {showModifier && latestModifier && (
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Dernière modification
+                </label>
+                <p className="mt-1 text-sm text-gray-700">
+                  Par{" "}
+                  <Link
+                    to={`/users/${latestModifier.id}`}
+                    className="text-primary-600 hover:underline"
+                  >
+                    {latestModifier.displayName || "Utilisateur"}
+                  </Link>
+                  {latestModifier.timestampISO && (
+                    <span className="text-gray-500 ml-1">
+                      le {new Date(latestModifier.timestampISO).toLocaleString("fr-FR")}
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
 
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">

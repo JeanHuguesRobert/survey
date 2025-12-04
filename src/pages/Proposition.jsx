@@ -12,6 +12,7 @@ import FacebookShareButton from "../components/common/FacebookShareButton";
 import ShareMenu from "../components/common/ShareMenu";
 import { supabase } from "../lib/supabase";
 import SiteFooter from "../components/layout/SiteFooter";
+import { getLatestModifier } from "../lib/socialMetadata";
 
 export default function Proposition() {
   // const { supabase } = useSupabase();
@@ -125,6 +126,24 @@ export default function Proposition() {
             <p className="text-sm text-gray-400">
               Par {proposition.author?.display_name || "Anonyme"} •{" "}
               {new Date(proposition.created_at).toLocaleDateString("fr-FR")}
+              {(() => {
+                const latestModifier = getLatestModifier(proposition.metadata, proposition);
+                const showModifier = latestModifier && latestModifier.id !== proposition.author_id;
+                if (showModifier) {
+                  return (
+                    <>
+                      {" • "}
+                      <span className="text-gray-500">
+                        Modifié par{" "}
+                        <Link to={`/users/${latestModifier.id}`} className="hover:underline">
+                          {latestModifier.displayName || "Utilisateur"}
+                        </Link>
+                      </span>
+                    </>
+                  );
+                }
+                return null;
+              })()}
             </p>
           </div>
           <ShareMenu

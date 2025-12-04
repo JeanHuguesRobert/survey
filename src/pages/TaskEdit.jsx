@@ -11,6 +11,8 @@ import {
   getTaskDetails,
   getTaskTitleFromPost,
 } from "../lib/taskHelpers";
+import { appendOrMergeLastModifiedBy } from "../lib/socialMetadata";
+import { getDisplayName } from "../lib/userDisplay";
 
 function toIsoDate(dateString) {
   if (!dateString) {
@@ -151,7 +153,7 @@ export default function TaskEdit() {
         ];
       }
 
-      const updatedMetadata = {
+      let updatedMetadata = {
         ...task.metadata,
         status_history: statusHistory,
         task_details: {
@@ -164,6 +166,12 @@ export default function TaskEdit() {
           estimate: formValues.estimate || null,
         },
       };
+
+      // Stamp lastModifiedBy for audit trail
+      updatedMetadata = appendOrMergeLastModifiedBy(updatedMetadata, {
+        id: currentUser.id,
+        displayName: getDisplayName(currentUser),
+      });
 
       const content = buildTaskContent(formValues.title, formValues.description);
 

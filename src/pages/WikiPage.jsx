@@ -16,9 +16,13 @@ import { useCurrentUser } from "../lib/useCurrentUser";
 import { getDisplayName } from "../lib/userDisplay";
 import { useSyncOperation, useDataLoader } from "../lib/useStatusOperations";
 import { canWrite } from "../lib/permissions";
+import { getLatestModifier } from "../lib/socialMetadata";
 
 // Component to display page metadata
 function PageMetadata({ page, syncHistory }) {
+  const latestModifier = getLatestModifier(page.metadata, page);
+  const showModifier = latestModifier && latestModifier.id !== page.author_id;
+
   return (
     <div className="wiki-metadata">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
@@ -46,6 +50,16 @@ function PageMetadata({ page, syncHistory }) {
             <span className="wiki-metadata-label">✍️ Auteur :</span>
             <Link to={`/users/${page.author?.id}`} className="hover:underline">
               {getDisplayName(page.author)}
+            </Link>
+          </div>
+        )}
+
+        {/* Last Modified By (if different from author) */}
+        {showModifier && (
+          <div className="wiki-metadata-item">
+            <span className="wiki-metadata-label">✏️ Dernière modification par :</span>
+            <Link to={`/users/${latestModifier.id}`} className="hover:underline">
+              {latestModifier.displayName || "Utilisateur inconnu"}
             </Link>
           </div>
         )}
