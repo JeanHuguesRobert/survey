@@ -2,7 +2,7 @@
 
 ## Documentation Technique v1.0
 
-### Commune de Corte - Collectif Cortinese
+### Commune de Corte
 
 ---
 
@@ -53,35 +53,35 @@ administratif français.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        Frontend React                        │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  ActesDashboard │ ActesList │ ActeDetail │ Forms...  │  │
-│  └──────────────────────────────────────────────────────┘  │
+│                        Frontend React                       │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  ActesDashboard │ ActesList │ ActeDetail │ Forms...  │   │
+│  └──────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                    Netlify Edge Functions                    │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  actes-api.js │ demandes-api.js │ update-deadlines   │  │
-│  └──────────────────────────────────────────────────────┘  │
+│                    Netlify Edge Functions                   │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  actes-api.js │ demandes-api.js │ update-deadlines   │   │
+│  └──────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                    Supabase PostgreSQL                       │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  acte │ demande_admin │ proof │ knowledge_chunks      │  │
-│  │  acte_version │ outgoing_action │ responsibility_log  │  │
-│  └──────────────────────────────────────────────────────┘  │
+│                    Supabase PostgreSQL                      │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  acte │ demande_admin │ proof │ knowledge_chunks     │   │
+│  │  acte_version │ outgoing_action │ responsibility_log │   │
+│  └──────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                      RAG / Ophelia                           │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  sync-actes-rag.js │ civic-tools.js │ rag_chatbot    │  │
-│  └──────────────────────────────────────────────────────┘  │
+│                      RAG / Ophelia                          │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  sync-actes-rag.js │ civic-tools.js │ rag_chatbot    │   │
+│  └──────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -117,6 +117,9 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 OPENAI_API_KEY=sk-...
 ```
 
+> **Note** : Le projet utilise un système de configuration centralisé ("vault"). Voir
+> [CONFIGURATION_VAULT.md](./CONFIGURATION_VAULT.md) pour plus de détails.
+
 3. **Déployer les Edge Functions** :
 
 Les fichiers dans `netlify/edge-functions/` sont automatiquement déployés.
@@ -134,38 +137,38 @@ npm run dev
 
 ```
 src/pages/actes/
-├── ActesHome.jsx           # Page d'accueil du module
-├── ActesDashboard.jsx      # Dashboard principal
-├── ActesList.jsx           # Liste paginée des actes
-├── ActeDetail.jsx          # Détail d'un acte
-├── ActeForm.jsx            # Création/modification acte
-├── ActeTimeline.jsx        # Chronologie interactive
-├── DemandesList.jsx        # Liste des demandes
-├── DemandeDetail.jsx       # Détail d'une demande
-├── DemandeForm.jsx         # Création/modification demande
-├── ProofUpload.jsx         # Upload de preuves
-├── OutgoingActionsQueue.jsx # File actions sortantes (HITL)
-├── VerificationQueue.jsx   # File vérification preuves
+├── ActesHome.jsx             # Page d'accueil du module
+├── ActesDashboard.jsx        # Dashboard principal
+├── ActesList.jsx             # Liste paginée des actes
+├── ActeDetail.jsx            # Détail d'un acte
+├── ActeForm.jsx              # Création/modification acte
+├── ActeTimeline.jsx          # Chronologie interactive
+├── DemandesList.jsx          # Liste des demandes
+├── DemandeDetail.jsx         # Détail d'une demande
+├── DemandeForm.jsx           # Création/modification demande
+├── ProofUpload.jsx           # Upload de preuves
+├── OutgoingActionsQueue.jsx  # File actions sortantes (HITL)
+├── VerificationQueue.jsx     # File vérification preuves
 ├── PublicationModeration.jsx # Modération publications
-├── ResponsibilityLog.jsx   # Journal des responsabilités
-├── ExportPDF.jsx           # Export PDF
-├── ExportCSV.jsx           # Export CSV
-└── StatsDashboard.jsx      # Tableau de bord stats
+├── ResponsibilityLog.jsx     # Journal des responsabilités
+├── ExportPDF.jsx             # Export PDF
+├── ExportCSV.jsx             # Export CSV
+└── StatsDashboard.jsx        # Tableau de bord stats
 
 supabase/migrations/
-├── 20251204_001_civic_acts_core.sql     # Phase 1: Tables core
+├── 20251204_001_civic_acts_core.sql      # Phase 1: Tables core
 ├── 20251204_002_civic_acts_deadlines.sql # Phase 2: Délais/statuts
-├── 20251204_003_civic_acts_rag.sql      # Phase 5: Intégration RAG
-└── 20251204_004_civic_acts_hitl.sql     # Phase 3: HITL
+├── 20251204_003_civic_acts_rag.sql       # Phase 5: Intégration RAG
+└── 20251204_004_civic_acts_hitl.sql      # Phase 3: HITL
 
 netlify/edge-functions/
-├── actes-api.js            # CRUD actes
-├── demandes-api.js         # CRUD demandes
+├── actes-api.js             # CRUD actes
+├── demandes-api.js          # CRUD demandes
 └── update-deadlines-cron.js # Cron mise à jour statuts
 
 scripts/
-├── sync-actes-rag.js       # Sync vers knowledge_chunks
-└── civic-tools.js          # Outils RAG pour Ophelia
+├── sync-actes-rag.js        # Sync vers knowledge_chunks
+└── civic-tools.js           # Outils RAG pour Ophelia
 ```
 
 ---
@@ -403,9 +406,9 @@ Entités exportables :
 ### Modération
 
 ```text
-/moderation/actions       # Actions externes
-/moderation/preuves       # Vérification preuves
-/moderation/publications  # Modération publications
+/moderation/actions         # Actions externes
+/moderation/preuves         # Vérification preuves
+/moderation/publications    # Modération publications
 /moderation/responsabilites # Journal audit
 ```
 
@@ -466,9 +469,9 @@ Entités exportables :
 
 ## 📝 Licence
 
-Ce système est développé pour le Collectif Cortinese dans le cadre du contrôle citoyen des actes
-municipaux de la ville de Corte.
+Ce système est développé pour l'association C.O.R.S.I.C.A. dans le cadre du contrôle citoyen des
+actes municipaux de la ville de Corte.
 
 ---
 
-**Dernière mise à jour :** Décembre 2024
+**Dernière mise à jour :** Décembre 2025
