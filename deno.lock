@@ -434,6 +434,7 @@
         "npm:dotenv@^17.2.3",
         "npm:eslint-config-prettier@^10.1.8",
         "npm:eslint-plugin-prettier@^5.5.4",
+        "npm:geoportal-extensions-leaflet@^2.4.3",
         "npm:husky@^9.1.7",
         "npm:leaflet@^1.9.4",
         "npm:lint-staged@^16.2.7",
@@ -454,6 +455,7 @@
         "npm:stylelint@^16.26.0",
         "npm:supabase@^2.63.1",
         "npm:swagger-ui-react@^5.30.3",
+        "npm:swr@^2.3.7",
         "npm:tailwindcss@^4.1.17",
         "npm:vite@^5.4.21"
       ]
