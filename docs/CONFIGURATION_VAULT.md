@@ -295,6 +295,8 @@ DELETE FROM instance_config WHERE key = 'city_name';
 - `city_name`, `party_name`, `assistant_name`
 - Configurations d'affichage
 - Paramètres de modèles IA (noms, pas clés)
+- parent_hub_api_key (clé API du hub parent, stockez-la dans le vault si vous souhaitez autoriser le
+  forwarding depuis ce hub)
 
 ---
 
