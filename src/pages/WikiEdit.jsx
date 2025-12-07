@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { appendOrMergeLastModifiedBy, getLatestModifier } from "../lib/socialMetadata";
+import wikiFederation from "../lib/wikiFederation";
 import { getDisplayName } from "../lib/userDisplay";
 
 export default function WikiEdit() {
@@ -14,6 +15,7 @@ export default function WikiEdit() {
   const [content, setContent] = useState("");
   const [pageId, setPageId] = useState(null);
   const [pageMetadata, setPageMetadata] = useState({});
+  const [federated, setFederated] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,6 +37,7 @@ export default function WikiEdit() {
       setSlug(data.slug || "");
       setContent(data.content || "");
       setPageMetadata(data.metadata || {});
+      setFederated(data.metadata?.federated === "true"); // Check string 'true'
       setLoading(false);
     };
 
@@ -66,13 +69,20 @@ export default function WikiEdit() {
         currentUser ? { id: currentUser.id, displayName: getDisplayName(currentUser) } : null
       );
 
-      const { error } = await supabase
-        .from("wiki_pages")
-        .update({ title, content, slug, metadata: updatedMetadata, updated_at: new Date() })
-        .eq("id", pageId);
+      updatedMetadata.federated = federated ? "true" : "false";
 
-      if (error) {
-        console.error("Erreur mise à jour :", error);
+      const res = await wikiFederation.upsertLocalPage({
+        pageKey: slug,
+        slug,
+        title,
+        content,
+        authorId: currentUser?.id || null,
+        status: updatedMetadata?.wiki_page?.status || "active",
+        parent_revision_global_id: updatedMetadata?.wiki_page?.parent_revision_global_id || null,
+        extraMetadata: updatedMetadata,
+      });
+      if (!res?.success) {
+        console.error("Erreur mise à jour :", res?.error);
         alert("Une erreur est survenue lors de la mise à jour.");
         return;
       }
@@ -107,13 +117,50 @@ export default function WikiEdit() {
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          rows={20}
+          rows={16}
           placeholder="Contenu de la page..."
           className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
         />
+
+        <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded">
+          <input
+            type="checkbox"
+            id="federated"
+            checked={federated}
+            onChange={(e) => setFederated(e.target.checked)}
+            className="h-5 w-5 text-blue-600 rounded"
+          />
+          <label
+            htmlFor="federated"
+            className="text-sm font-semibold text-blue-900 cursor-pointer select-none"
+          >
+            Propager vers le haut (Fédérer ce savoir)
+          </label>
+        </div>
         <div className="flex gap-4">
           <button onClick={handleSave} className="btn btn-success px-6 py-2 ">
             Enregistrer
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                const response = await fetch("/api/wiki-propose", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ slug }),
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || "Propose failed");
+                alert(
+                  "Proposition envoyée au parent" + (data.forwarded ? " (envoyée au parent)" : "")
+                );
+              } catch (err) {
+                alert("Erreur lors de la proposition: " + (err.message || err));
+              }
+            }}
+            className="btn btn-outline"
+          >
+            Proposer au parent
           </button>
           <button
             onClick={() => navigate(`/wiki/${initialSlug}`)}

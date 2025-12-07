@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { supabase } from "../lib/supabase";
+import wikiFederation from "../lib/wikiFederation";
 import ErrorBoundary from "../components/common/ErrorBoundary";
 import { linkifyWardWiki } from "../lib/wikiLinks";
 import { marked } from "marked";
@@ -138,6 +139,8 @@ const WikiPage = () => {
   const [page, setPage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [resolvedFrom, setResolvedFrom] = useState(null);
+  const [resolvedHubInfo, setResolvedHubInfo] = useState(null);
   const [pages, setPages] = useState([]); // Déclaration de l'état 'pages'
   const [syncHistory, setSyncHistory] = useState([]); // État pour l'historique de synchronisation
   const { currentUser } = useCurrentUser(); // Hook pour l'utilisateur connecté
@@ -160,14 +163,10 @@ const WikiPage = () => {
 
   useEffect(() => {
     loadPageData(async () => {
-      // Fetch page data first
-      const { data: pageData, error: pageError } = await supabase
-        .from("wiki_pages")
-        .select("*")
-        .eq("slug", slug)
-        .single();
-
-      if (pageError) throw pageError;
+      // Resolve page via federation (local -> parent)
+      const resolved = await wikiFederation.resolvePage({ pageKey: slug });
+      const pageData = resolved?.page || null;
+      if (!pageData) throw new Error("Page not found");
 
       // Try to fetch author information separately if author_id exists
       if (pageData && pageData.author_id) {
@@ -196,6 +195,8 @@ const WikiPage = () => {
       }
 
       setPage(pageData || null);
+      setResolvedFrom(resolved?.resolvedFrom || null);
+      setResolvedHubInfo(resolved?.hubInfo || null);
 
       // Fetch sync history if page exists
       if (pageData) {
@@ -220,6 +221,27 @@ const WikiPage = () => {
         setLoading(false);
       });
   }, [slug, loadPageData]);
+
+  const forkLocally = async () => {
+    if (!page) return;
+    const subdomain = (window && new URL(window.location.origin).hostname.split(".")[0]) || "local";
+    const parentGlobalId = page.metadata?.wiki_page?.global_id || null;
+    const res = await wikiFederation.upsertLocalPage({
+      pageKey: page.slug,
+      slug: page.slug,
+      title: page.title,
+      content: page.content,
+      authorId: page.author_id || null,
+      status: "active",
+      parent_revision_global_id: parentGlobalId,
+      extraMetadata: page.metadata || {},
+    });
+    if (res?.success) {
+      navigate(`/wiki/${page.slug}/edit`);
+    } else {
+      alert(`Erreur lors du fork local: ${res?.error || "unknown"}`);
+    }
+  };
 
   const { prev, next } = useMemo(() => {
     if (!page || pages.length === 0) return { prev: null, next: null };
@@ -289,6 +311,15 @@ const WikiPage = () => {
             </h1>
             <p className="text-sm text-gray-500 mt-2">Adresse de la page : /wiki/{page.slug}</p>
           </div>
+          {resolvedFrom && resolvedFrom !== "local" && (
+            <div className="text-sm bg-yellow-50 rounded p-3 border border-yellow-200">
+              <strong>Page fournie par un hub parent :</strong>{" "}
+              {resolvedHubInfo?.url || resolvedHubInfo?.subdomain}
+              <button onClick={forkLocally} className="btn btn-secondary ml-3 text-sm">
+                Copier localement
+              </button>
+            </div>
+          )}
           <div className="flex gap-3">
             <ShareMenu
               entityType="wiki_page"
@@ -316,6 +347,27 @@ const WikiPage = () => {
                 </button>
 
                 <ArchiveButton slug={page.slug} />
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch("/api/wiki-propose", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ slug: page.slug }),
+                      });
+                      const data = await response.json();
+                      if (!response.ok) throw new Error(data.error || "Propose failed");
+                      alert(
+                        "Proposition envoyée au parent" + (data.forwarded ? " (forwarded)" : "")
+                      );
+                    } catch (err) {
+                      alert("Erreur lors de la proposition: " + (err.message || err));
+                    }
+                  }}
+                  className="btn btn-primary ml-2 text-sm"
+                >
+                  Proposer au parent
+                </button>
               </>
             )}
           </div>

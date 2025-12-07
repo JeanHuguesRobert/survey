@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import wikiFederation from "../lib/wikiFederation";
 
 export default function WikiCreate() {
   const { slug: initialSlugParam } = useParams();
@@ -30,6 +31,7 @@ export default function WikiCreate() {
   const [content, setContent] = useState("");
   const [allowSlugEdit, setAllowSlugEdit] = useState(!initialSlugParam);
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
+  const [federated, setFederated] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -38,6 +40,7 @@ export default function WikiCreate() {
     setSlug(prefilledSlug);
     setAllowSlugEdit(!initialSlugParam);
     setIsSlugManuallyEdited(false);
+    setFederated(false);
   }, [prefilledSlug, initialSlugParam]);
 
   const handleTitleChange = (e) => {
@@ -63,19 +66,21 @@ export default function WikiCreate() {
         return;
       }
 
-      const { data, error } = await supabase
-        .from("wiki_pages")
-        .insert([{ title, content, slug }])
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Erreur création page :", error);
+      const res = await wikiFederation.upsertLocalPage({
+        pageKey: slug,
+        slug,
+        title,
+        content,
+        authorId: null,
+        status: "active",
+        extraMetadata: { federated: federated ? "true" : "false" },
+      });
+      if (!res?.success) {
+        console.error("Erreur création page :", res?.error);
         alert("Une erreur est survenue lors de la création.");
         return;
       }
-
-      navigate(`/wiki/${data.slug}`);
+      navigate(`/wiki/${slug}`);
     } catch (err) {
       console.error("Erreur inattendue :", err);
       alert("Une erreur inattendue est survenue.");
@@ -120,6 +125,23 @@ export default function WikiCreate() {
           placeholder="Contenu de la page..."
           className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
         />
+
+        <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded">
+          <input
+            type="checkbox"
+            id="federated"
+            checked={federated}
+            onChange={(e) => setFederated(e.target.checked)}
+            className="h-5 w-5 text-blue-600 rounded"
+          />
+          <label
+            htmlFor="federated"
+            className="text-sm font-semibold text-blue-900 cursor-pointer select-none"
+          >
+            Propager vers le haut (Fédérer ce savoir)
+          </label>
+        </div>
+
         <div className="flex gap-4">
           <button onClick={handleSave} className="btn btn-success px-6 py-2 ">
             Enregistrer
