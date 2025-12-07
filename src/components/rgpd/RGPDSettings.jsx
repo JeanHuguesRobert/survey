@@ -8,6 +8,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { useCurrentUser } from "../../lib/useCurrentUser";
+import { useInstanceConfig } from "../../lib/instanceConfig";
 
 const CONSENT_TYPES = {
   rgpd_general: {
@@ -50,6 +51,11 @@ export default function RGPDSettings() {
   const [message, setMessage] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [exporting, setExporting] = useState(false);
+
+  // Utiliser le vault pour l'email de contact
+  const { config } = useInstanceConfig();
+  const contactEmail =
+    config?.contact_email || import.meta.env.VITE_CONTACT_EMAIL || "jean_hugues_robert@yahoo.com";
 
   useEffect(() => {
     if (currentUser?.id) {
@@ -139,7 +145,7 @@ export default function RGPDSettings() {
         throw new Error("Session expirée");
       }
 
-      const response = await fetch("/.netlify/functions/rgpd-export", {
+      const response = await fetch("/api/rgpd-export", {
         headers: {
           Authorization: `Bearer ${session.session.access_token}`,
         },
@@ -180,7 +186,7 @@ export default function RGPDSettings() {
         throw new Error("Session expirée");
       }
 
-      const response = await fetch("/.netlify/functions/rgpd-delete", {
+      const response = await fetch("/api/rgpd-delete", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${session.session.access_token}`,
@@ -326,19 +332,16 @@ export default function RGPDSettings() {
       <div className="text-sm text-gray-500">
         <p>
           Pour toute question concernant vos données personnelles, contactez l'éditeur du site :{" "}
-          <a
-            href={`mailto:${import.meta.env.VITE_CONTACT_EMAIL || "contact@example.com"}`}
-            className="text-blue-600 hover:underline"
-          >
-            {import.meta.env.VITE_CONTACT_EMAIL || "contact@example.com"}
+          <a href={`mailto:${contactEmail}`} className="text-blue-600 hover:underline">
+            {contactEmail}
           </a>
         </p>
         <p className="mt-2">
-          <Link to="/privacy" className="text-blue-600 hover:underline">
+          <Link to="/legal/privacy" className="text-blue-600 hover:underline">
             Politique de confidentialité
           </Link>
           {" • "}
-          <Link to="/terms" className="text-blue-600 hover:underline">
+          <Link to="/legal/terms" className="text-blue-600 hover:underline">
             Conditions d'utilisation
           </Link>
         </p>
