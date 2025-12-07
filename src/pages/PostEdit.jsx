@@ -5,6 +5,7 @@ import { useCurrentUser } from "../lib/useCurrentUser";
 import { isDeleted } from "../lib/metadata";
 import PostEditor from "../components/social/PostEditor";
 import SiteFooter from "../components/layout/SiteFooter";
+import { getConfig } from "../lib/instanceConfig";
 
 // Helper to check if a user is an editor for a given gazette (copied from PostEditor)
 async function checkEditorForGazette(gazetteName, userId) {
@@ -12,7 +13,10 @@ async function checkEditorForGazette(gazetteName, userId) {
   // Use the same mapping as Gazette.jsx for global
   let targetGroupName = gazetteName;
   if (gazetteName === "global") {
-    targetGroupName = import.meta.env.VITE_GLOBAL_GAZETTE_EDITOR_GROUP || "La Gazette";
+    targetGroupName = getConfig(
+      "global_gazette_editor_group",
+      import.meta.env.VITE_GLOBAL_GAZETTE_EDITOR_GROUP || "La Gazette"
+    );
   }
   try {
     const { data: group } = await supabase
