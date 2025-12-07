@@ -1,55 +1,8 @@
 import { supabase } from "./supabase";
 import { appendOrMergeLastModifiedBy } from "./socialMetadata";
 
-/**
- * Validates a petition URL (optional field)
- * Accepts URLs from known petition platforms or any valid https URL
- * @param {string} url - The URL to validate
- * @returns {{ valid: boolean, warning?: string }} Validation result
- */
-export function validatePetitionUrl(url) {
-  if (!url || !url.trim()) {
-    return { valid: true }; // Empty is valid (optional field)
-  }
-
-  const trimmed = url.trim();
-
-  // Basic URL format validation
-  try {
-    const parsed = new URL(trimmed);
-    if (!["http:", "https:"].includes(parsed.protocol)) {
-      return { valid: false, error: "L'URL doit commencer par http:// ou https://" };
-    }
-  } catch {
-    return { valid: false, error: "Format d'URL invalide" };
-  }
-
-  // Check for recommended platforms
-  const recommendedDomains = [
-    "change.org",
-    "www.change.org",
-    "mesopinions.com",
-    "www.mesopinions.com",
-  ];
-
-  try {
-    const parsed = new URL(trimmed);
-    const isRecommended = recommendedDomains.some(
-      (domain) => parsed.hostname === domain || parsed.hostname.endsWith("." + domain)
-    );
-
-    if (!isRecommended) {
-      return {
-        valid: true,
-        warning: "Conseil : Change.org et MesOpinions.com sont les plateformes recommandées",
-      };
-    }
-  } catch {
-    // Already validated above
-  }
-
-  return { valid: true };
-}
+// Réexport de validatePetitionUrl depuis le module centralisé pour compatibilité
+export { validatePetitionUrl } from "./petitions";
 
 export async function createPropositionWithTags({
   userId,
