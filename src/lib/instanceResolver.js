@@ -1,0 +1,367 @@
+// src/lib/instanceResolver.js
+// Résolution dynamique de l'instance Supabase selon l'URL
+//
+// STRATÉGIE DE ROUTAGE :
+// 1. Paramètre URL ?instance=xxx (dev/test, priorité max)
+// 2. Sous-domaine : corte.transparence.corsica → instance "corte"
+// 3. Fallback : variables d'environnement (instance par défaut)
+//
+// En développement local (localhost), utiliser ?instance=xxx
+// En production, les sous-domaines sont résolus automatiquement
+
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
+
+// Domaine de base pour la détection des sous-domaines
+const BASE_DOMAINS = [
+  "transparence.corsica",
+  "transparence-corte.fr",
+  "transparence-commune.fr",
+  "kudocracy.org",
+];
+
+// Sous-domaines à ignorer (pas des instances)
+const IGNORED_SUBDOMAINS = ["www", "app", "api", "admin", "staging", "preview"];
+
+// ============================================================================
+// REGISTRE STATIQUE (fallback si registre central indisponible)
+// ============================================================================
+
+// Ce registre peut être généré au build ou chargé dynamiquement
+// Format : { subdomain: { supabaseUrl, supabaseAnonKey, displayName, metadata } }
+const STATIC_REGISTRY = {
+  // Instance par défaut (Corte)
+  corte: {
+    subdomain: "corte",
+    displayName: "Ville de Corte",
+    supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+    supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+    metadata: {
+      insee: "2B096",
+      type: "municipality",
+      region: "COR",
+    },
+  },
+  // Ajouter d'autres instances ici ou charger dynamiquement
+};
+
+// ============================================================================
+// ÉTAT GLOBAL
+// ============================================================================
+
+let currentInstance = null;
+let resolvePromise = null;
+
+// ============================================================================
+// DÉTECTION DU SOUS-DOMAINE
+// ============================================================================
+
+/**
+ * Extrait le sous-domaine de l'URL actuelle
+ * @returns {string|null} - Le sous-domaine ou null
+ */
+export function extractSubdomain() {
+  const hostname = window.location.hostname;
+
+  // Localhost ou IP = pas de sous-domaine
+  if (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    /^\d+\.\d+\.\d+\.\d+$/.test(hostname)
+  ) {
+    return null;
+  }
+
+  // Vérifier chaque domaine de base
+  for (const baseDomain of BASE_DOMAINS) {
+    if (hostname.endsWith(`.${baseDomain}`)) {
+      const subdomain = hostname.replace(`.${baseDomain}`, "");
+      // Ignorer les sous-domaines système
+      if (!IGNORED_SUBDOMAINS.includes(subdomain)) {
+        return subdomain;
+      }
+    }
+  }
+
+  // Netlify preview URLs : deploy-preview-123--site-name.netlify.app
+  if (hostname.includes(".netlify.app")) {
+    // Extraire le paramètre instance si présent dans l'URL
+    return null;
+  }
+
+  return null;
+}
+
+/**
+ * Récupère le paramètre ?instance= de l'URL
+ * @returns {string|null}
+ */
+export function getInstanceParam() {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get("instance");
+}
+
+// ============================================================================
+// RÉSOLUTION D'INSTANCE
+// ============================================================================
+
+/**
+ * Résout l'instance Supabase à utiliser
+ * Priorité : paramètre URL > sous-domaine > env vars
+ *
+ * @returns {Promise<InstanceConfig>}
+ */
+export async function resolveInstance() {
+  // Éviter les résolutions multiples simultanées
+  if (resolvePromise) {
+    return resolvePromise;
+  }
+
+  // Si déjà résolu, retourner le cache
+  if (currentInstance) {
+    return currentInstance;
+  }
+
+  resolvePromise = doResolveInstance();
+  currentInstance = await resolvePromise;
+  resolvePromise = null;
+
+  return currentInstance;
+}
+
+/**
+ * Logique de résolution interne
+ */
+async function doResolveInstance() {
+  // 1. Priorité max : paramètre URL (dev/test)
+  const instanceParam = getInstanceParam();
+  if (instanceParam) {
+    console.log(`🔧 Instance depuis URL param: ${instanceParam}`);
+    const instance = await lookupInstance(instanceParam);
+    if (instance) {
+      return { ...instance, source: "url-param" };
+    }
+  }
+
+  // 2. Sous-domaine
+  const subdomain = extractSubdomain();
+  if (subdomain) {
+    console.log(`🌐 Instance depuis sous-domaine: ${subdomain}`);
+    const instance = await lookupInstance(subdomain);
+    if (instance) {
+      return { ...instance, source: "subdomain" };
+    }
+  }
+
+  // 3. Fallback : variables d'environnement (instance par défaut)
+  console.log("📋 Instance par défaut (env vars)");
+  return getDefaultInstance();
+}
+
+/**
+ * Recherche une instance dans le registre
+ * @param {string} subdomain
+ * @returns {Promise<InstanceConfig|null>}
+ */
+async function lookupInstance(subdomain) {
+  // 1. D'abord essayer le registre central (API)
+  const remoteInstance = await lookupRemoteRegistry(subdomain);
+  if (remoteInstance) {
+    return remoteInstance;
+  }
+
+  // 2. Fallback sur le registre statique
+  if (STATIC_REGISTRY[subdomain]) {
+    console.log(`📦 Instance trouvée dans registre statique: ${subdomain}`);
+    return STATIC_REGISTRY[subdomain];
+  }
+
+  // 3. Non trouvé
+  console.warn(`⚠️ Instance non trouvée: ${subdomain}`);
+  return null;
+}
+
+/**
+ * Recherche dans le registre central (API)
+ * @param {string} subdomain
+ * @returns {Promise<InstanceConfig|null>}
+ */
+async function lookupRemoteRegistry(subdomain) {
+  const registryUrl = import.meta.env.VITE_REGISTRY_URL;
+
+  if (!registryUrl) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(`${registryUrl}/api/instance/${subdomain}`, {
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    console.log(`🌐 Instance trouvée dans registre central: ${subdomain}`);
+    return {
+      subdomain: data.subdomain,
+      displayName: data.display_name,
+      supabaseUrl: data.supabase_url,
+      supabaseAnonKey: data.supabase_anon_key,
+      metadata: data.metadata || {},
+    };
+  } catch (error) {
+    console.debug("Registre central non disponible:", error.message);
+    return null;
+  }
+}
+
+/**
+ * Retourne l'instance par défaut (depuis env vars)
+ * @returns {InstanceConfig}
+ */
+function getDefaultInstance() {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error("❌ VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY requis");
+    return {
+      subdomain: "default",
+      displayName: "Instance par défaut",
+      supabaseUrl: null,
+      supabaseAnonKey: null,
+      isDefault: true,
+      isConfigured: false,
+      source: "default",
+    };
+  }
+
+  return {
+    subdomain: "default",
+    displayName: import.meta.env.VITE_COMMUNITY_NAME || "Ma Communauté",
+    supabaseUrl,
+    supabaseAnonKey,
+    isDefault: true,
+    isConfigured: true,
+    source: "env-vars",
+    metadata: {
+      insee: import.meta.env.VITE_COMMUNE_INSEE,
+      type: import.meta.env.VITE_COMMUNITY_TYPE || "municipality",
+    },
+  };
+}
+
+// ============================================================================
+// ACCESSEURS
+// ============================================================================
+
+/**
+ * Récupère l'instance actuelle (doit être résolue avant)
+ * @returns {InstanceConfig|null}
+ */
+export function getInstance() {
+  return currentInstance;
+}
+
+/**
+ * Vérifie si on est sur l'instance par défaut
+ * @returns {boolean}
+ */
+export function isDefaultInstance() {
+  return currentInstance?.isDefault === true;
+}
+
+/**
+ * Récupère le sous-domaine actuel
+ * @returns {string}
+ */
+export function getSubdomain() {
+  return currentInstance?.subdomain || "default";
+}
+
+/**
+ * Génère l'URL pour une autre instance
+ * @param {string} subdomain
+ * @param {string} path - Chemin optionnel
+ * @returns {string}
+ */
+export function getInstanceUrl(subdomain, path = "/") {
+  // En dev, utiliser le paramètre
+  if (window.location.hostname === "localhost") {
+    const url = new URL(window.location.origin);
+    url.pathname = path;
+    url.searchParams.set("instance", subdomain);
+    return url.toString();
+  }
+
+  // En prod, utiliser le sous-domaine
+  const baseDomain = BASE_DOMAINS[0]; // transparence.corsica
+  return `https://${subdomain}.${baseDomain}${path}`;
+}
+
+// ============================================================================
+// UTILITAIRES
+// ============================================================================
+
+/**
+ * Réinitialise l'instance (pour tests)
+ */
+export function resetInstance() {
+  currentInstance = null;
+  resolvePromise = null;
+}
+
+/**
+ * Définit manuellement une instance (pour tests)
+ * @param {InstanceConfig} instance
+ */
+export function setInstance(instance) {
+  currentInstance = instance;
+}
+
+/**
+ * Ajoute une instance au registre statique (runtime)
+ * @param {string} subdomain
+ * @param {InstanceConfig} config
+ */
+export function registerInstance(subdomain, config) {
+  STATIC_REGISTRY[subdomain] = { ...config, subdomain };
+}
+
+// ============================================================================
+// TYPES (pour documentation)
+// ============================================================================
+
+/**
+ * @typedef {Object} InstanceConfig
+ * @property {string} subdomain - Identifiant de l'instance
+ * @property {string} displayName - Nom affiché
+ * @property {string} supabaseUrl - URL Supabase
+ * @property {string} supabaseAnonKey - Clé anonyme Supabase
+ * @property {Object} [metadata] - Métadonnées (insee, type, etc.)
+ * @property {boolean} [isDefault] - Instance par défaut ?
+ * @property {boolean} [isConfigured] - Correctement configurée ?
+ * @property {string} [source] - Source de résolution
+ */
+
+// ============================================================================
+// EXPORT
+// ============================================================================
+
+export default {
+  resolveInstance,
+  getInstance,
+  isDefaultInstance,
+  getSubdomain,
+  getInstanceUrl,
+  extractSubdomain,
+  getInstanceParam,
+  resetInstance,
+  setInstance,
+  registerInstance,
+};
