@@ -6,6 +6,7 @@ import { isDeleted } from "../lib/metadata";
 import IncidentEditorForm from "../components/incidents/IncidentEditorForm";
 import SiteFooter from "../components/layout/SiteFooter";
 import { enrichUserMetadata } from "../lib/userTransform";
+import { getConfig } from "../lib/instanceConfig";
 
 export default function IncidentEditor() {
   const { id } = useParams();
@@ -44,7 +45,10 @@ export default function IncidentEditor() {
             .eq(
               "name",
               gaz === "global"
-                ? import.meta.env.VITE_GLOBAL_GAZETTE_EDITOR_GROUP || "La Gazette"
+                ? getConfig(
+                    "global_gazette_editor_group",
+                    import.meta.env.VITE_GLOBAL_GAZETTE_EDITOR_GROUP || "La Gazette"
+                  )
                 : gaz
             )
             .single();
