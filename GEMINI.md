@@ -35,7 +35,8 @@ forum, a proposal and voting system, and an AI assistant named Ophélia.
     ```
 
 3.  **Configure environment variables:** Copy the `.env.example` file to `.env` and fill in the
-    required API keys and other configuration values.
+    required API keys and other configuration values. The project uses a centralized configuration
+    system ("vault") - see `docs/CONFIGURATION_VAULT.md` for details.
 
     ```bash
     cp .env.example .env
