@@ -9,6 +9,7 @@ import { getDisplayName } from "../lib/userDisplay";
 import { getLatestModifier } from "../lib/socialMetadata";
 import SiteFooter from "../components/layout/SiteFooter";
 import SubscribeButton from "../components/common/SubscribeButton";
+import AuthModal from "../components/common/AuthModal";
 
 export default function MissionDetail() {
   const { id } = useParams();
@@ -23,6 +24,7 @@ export default function MissionDetail() {
   const [linkedProjects, setLinkedProjects] = useState([]);
   const [tasksByProject, setTasksByProject] = useState({});
   const [tasksLoading, setTasksLoading] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   useEffect(() => {
     loadMissionDetails();
@@ -365,9 +367,13 @@ export default function MissionDetail() {
               ) : (
                 <div className="text-center p-4 bg-gray-50 rounded border border-gray-200">
                   <p className="text-sm text-gray-600 mb-2">Connectez-vous pour participer</p>
-                  <Link to="/login" className="text-primary-600 font-bold hover:underline">
+                  <button
+                    type="button"
+                    onClick={() => setShowAuthModal(true)}
+                    className="text-primary-600 font-bold hover:underline"
+                  >
                     Se connecter
-                  </Link>
+                  </button>
                 </div>
               )}
 
@@ -491,6 +497,13 @@ export default function MissionDetail() {
         </div>
       </div>
       <SiteFooter />
+      {showAuthModal && (
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={() => setShowAuthModal(false)}
+        />
+      )}
     </div>
   );
 }
