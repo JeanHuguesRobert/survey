@@ -76,7 +76,7 @@ export default function PublishToFilCheckbox({ url, title, description, checked,
  * Helper function to create a Fil post from other content.
  * Call this after successfully creating/updating content.
  */
-export async function publishToFil({ url, title, description, token }) {
+export async function publishToFil({ url, title, description, token, federated = false }) {
   if (!token) {
     console.warn("publishToFil: No token provided");
     return null;
@@ -95,6 +95,7 @@ export async function publishToFil({ url, title, description, token }) {
         type: "fil_link",
         source_type: url?.includes(window.location.hostname) ? "internal" : "external",
         external_url: url,
+        federated: federated,
       }),
     });
 
