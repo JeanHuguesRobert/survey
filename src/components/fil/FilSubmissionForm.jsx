@@ -16,6 +16,7 @@ export default function FilSubmissionForm() {
     title: "",
     content: "",
     external_url: "",
+    federated: false,
   });
 
   // Auto-infer source_type from URL
@@ -89,6 +90,7 @@ export default function FilSubmissionForm() {
           type: "fil_link",
           source_type,
           external_url: formData.external_url || null,
+          federated: formData.federated,
         }),
       });
 
@@ -224,6 +226,49 @@ export default function FilSubmissionForm() {
               onChange={(e) => setFormData({ ...formData, content: e.target.value })}
               placeholder="Détails supplémentaires..."
             />
+          </div>
+
+          {/* Federation Toggle - Ascending Subsidiarity */}
+          <div
+            style={{
+              padding: "1rem",
+              background: "var(--color-surface-secondary)",
+              border: "1px solid var(--color-border-medium)",
+              display: "flex",
+              gap: "0.5rem",
+              alignItems: "flex-start",
+            }}
+          >
+            <input
+              type="checkbox"
+              id="federated_check"
+              checked={formData.federated}
+              onChange={(e) => setFormData({ ...formData, federated: e.target.checked })}
+              style={{ marginTop: 4, transform: "scale(1.2)" }}
+            />
+            <label htmlFor="federated_check" style={{ cursor: "pointer" }}>
+              <div
+                style={{
+                  fontWeight: 700,
+                  color: "var(--color-action-primary)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                }}
+              >
+                <span>🌍</span> Diffuser sur le réseau fédéré ?
+              </div>
+              <div
+                style={{
+                  fontSize: "0.85rem",
+                  color: "var(--color-content-secondary)",
+                  marginTop: 4,
+                }}
+              >
+                Si coché, ce post pourra être relayé vers d'autres instances (Ascending
+                Subsidiarity). Sinon, il restera strictement local.
+              </div>
+            </label>
           </div>
 
           {/* Duplicate Warning */}
