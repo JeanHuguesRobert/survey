@@ -14,9 +14,19 @@
 [functions.public_browser]
   included_files = ["public/**"]
 
+# ============================================================================
+# EDGE FUNCTIONS
+# ============================================================================
+
+# Instance resolver - Doit être AVANT root-redirect pour intercepter les sous-domaines
 [[edge_functions]]
-path = "/*"
-function = "root-redirect"
+  path = "/*"
+  function = "instance-resolver"
+  excludedPath = ["/assets/*", "/images/*", "/fonts/*", "/_next/*", "/api/*"]
+
+[[edge_functions]]
+  path = "/*"
+  function = "root-redirect"
 
 [[edge_functions]]
   path = "/api/chat-stream"
@@ -41,6 +51,31 @@ function = "root-redirect"
 [[edge_functions]]
   path = "/api/rag/ingest"
   function = "rag-ingest"
+
+[[edge_functions]]
+  path = "/api/feed/*"
+  function = "feed-endpoints"
+
+[[edge_functions]]
+  path = "/api/tally/*"
+  function = "proposition-tally"
+
+[[edge_functions]]
+  path = "/api/cafe/*"
+  function = "cafe-api"
+
+[[edge_functions]]
+  path = "/api/municipal/*"
+  function = "api_municipal_data"
+
+[[edge_functions]]
+  path = "/api/cafe/sse"
+  function = "cafe-sse"
+
+[[redirects]]
+  from = "/api/instances"
+  to = "/.netlify/functions/instances-list"
+  status = 200
 
 [[redirects]]
   from = "/docs/*"
@@ -77,4 +112,6 @@ function = "root-redirect"
   [headers.values]
     X-Frame-Options = "DENY"
     X-XSS-Protection = "1; mode=block"
+    # Exposer les headers d'instance au JavaScript
+    Access-Control-Expose-Headers = "X-Ophelia-Instance, X-Ophelia-Instance-Name, X-Ophelia-Supabase-URL, X-Ophelia-Supabase-Anon-Key"
     Content-Security-Policy = "default-src 'self' 'unsafe-inline' 'unsafe-eval' *.netlify.app *.google.com *.googleusercontent.com *.facebook.com https://cdn.tailwindcss.com fonts.googleapis.com fonts.gstatic.com *.w3.org data:; img-src 'self' data: https://platform-lookaside.fbsbx.com https://*.fbx.com https://*.facebook.com https://*.tile.openstreetmap.org https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' *.facebook.com connect.facebook.net; connect-src 'self' *.google.com *.googleusercontent.com *.supabase.co wss://*.supabase.co *.facebook.com https://nominatim.openstreetmap.org; frame-src 'self' *.facebook.com connect.facebook.net"
