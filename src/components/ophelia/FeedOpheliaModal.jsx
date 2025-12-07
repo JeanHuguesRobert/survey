@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Brain, Check, Trash, Plus, Sparkle } from "@phosphor-icons/react";
 import { useCurrentUser } from "../../lib/useCurrentUser";
+import { getConfig } from "../../lib/instanceConfig";
 
 export default function FeedOpheliaModal({
   isOpen,
@@ -12,7 +13,7 @@ export default function FeedOpheliaModal({
   url,
 }) {
   const { currentUser } = useCurrentUser();
-  const botName = import.meta.env.VITE_BOT_NAME || "Ophélia";
+  const botName = getConfig("bot_name", import.meta.env.VITE_BOT_NAME || "Ophélia");
   const [step, setStep] = useState("initial"); // initial, analyzing, review, ingesting, success
   const [analysis, setAnalysis] = useState(null);
   const [error, setError] = useState(null);
@@ -30,7 +31,7 @@ export default function FeedOpheliaModal({
     setStep("analyzing");
     setError(null);
     try {
-      const response = await fetch("/.netlify/functions/analyze-content", {
+      const response = await fetch("/api/analyze-content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -54,7 +55,7 @@ export default function FeedOpheliaModal({
     setStep("ingesting");
     setError(null);
     try {
-      const response = await fetch("/.netlify/functions/ingest-content", {
+      const response = await fetch("/api/ingest-content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
