@@ -1,13 +1,16 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { HASHTAG, CITY_NAME } from "../constants";
+import { HASHTAG, CITY_NAME, getDynamicConfig } from "../constants";
 import CommentSection from "../components/common/CommentSection";
 import { useCurrentUser } from "../lib/useCurrentUser";
+import { useInstanceConfig } from "../lib/instanceConfig";
 
 export default function Contact() {
+  const { config } = useInstanceConfig();
   // Email de l'éditeur du site - Information légale obligatoire (LCEN)
-  // Affiché publiquement sur la page de contact
-  const email = import.meta.env.VITE_CONTACT_EMAIL || "jeanhuguesrobert@gmail.com";
+  // Utilise le vault si disponible, sinon fallback sur env vars
+  const email =
+    config?.contact_email || import.meta.env.VITE_CONTACT_EMAIL || "jean_hugues_robert@yahoo.com";
   const { currentUser } = useCurrentUser();
 
   const isAdmin = currentUser?.email === email;
@@ -44,12 +47,6 @@ export default function Contact() {
                 </a>
                 .
               </p>
-              {!import.meta.env.VITE_CONTACT_EMAIL && (
-                <p className="text-gray-400 text-sm mt-2">
-                  Configurable via la variable d'environnement <code>VITE_CONTACT_EMAIL</code> dans
-                  votre fichier <code>.env</code>.
-                </p>
-              )}
             </section>
           </div>
 
@@ -59,11 +56,8 @@ export default function Contact() {
               <h2 className="text-xl font-semibold text-blue-800 mb-4">Admin</h2>
               <ul className="space-y-2">
                 <li>
-                  <Link
-                    to="/admin/document-management"
-                    className="text-blue-600 hover:underline font-medium"
-                  >
-                    Gérer les documents (Document Management)
+                  <Link to="/admin" className="text-blue-600 hover:underline font-medium">
+                    Administration
                   </Link>
                 </li>
               </ul>
