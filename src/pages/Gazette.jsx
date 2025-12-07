@@ -7,6 +7,7 @@ import { useCurrentUser } from "../lib/useCurrentUser";
 import GazetteLayout from "../components/gazette/GazetteLayout";
 import GazettePost from "../components/gazette/GazettePost";
 import { isEventPost, getPostEvent } from "../lib/postPredicates";
+import { getConfig } from "../lib/instanceConfig";
 
 // Collapsible help banner for editors
 function CollapsibleHelpBanner({ gazetteName }) {
@@ -104,7 +105,10 @@ export default function Gazette() {
       // Determine target group name
       let targetGroupName = gazetteName;
       if (gazetteName === "global") {
-        targetGroupName = import.meta.env.VITE_GLOBAL_GAZETTE_EDITOR_GROUP || "La Gazette";
+        targetGroupName = getConfig(
+          "global_gazette_editor_group",
+          import.meta.env.VITE_GLOBAL_GAZETTE_EDITOR_GROUP || "La Gazette"
+        );
       }
 
       // Find group by name (case insensitive matching could be better but let's stick to exact for now as per request)
