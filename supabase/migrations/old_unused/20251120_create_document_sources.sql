@@ -1,6 +1,6 @@
 -- Migration: Create document_sources table for tracking ingested documents
 -- Purpose: Track all documents uploaded to Supabase Storage and indexed in Gemini Context Cache
--- Date: 2024-11-20
+-- Date: 2025-11-20
 
 -- Create table for document source tracking
 CREATE TABLE IF NOT EXISTS document_sources (
