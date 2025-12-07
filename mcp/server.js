@@ -1,13 +1,20 @@
 // mcp/server.js
 // Prototype minimal de serveur MCP pour Ophélia
 
-const express = require("express");
-const cors = require("cors");
-const { ask } = require("../packages/ophelia");
+import express from "express";
+import cors from "cors";
+import { ask } from "../packages/ophelia";
+import copRouter from "./cop/index.js";
+import MCPscheduler from "./scheduler.js";
+import opheliaAgent from "./agents/opheliaAgent.js";
+import ragAgent from "./agents/ragAgent.js";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Mount COP router
+app.use("/cop", copRouter);
 
 // MCP: expose /resources, /tools, /prompts, /ask
 
@@ -47,6 +54,16 @@ app.post("/ask", async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3030;
+
+(async () => {
+  try {
+    const scheduler = new MCPscheduler({ agents: [opheliaAgent, ragAgent] });
+    await scheduler.start();
+  } catch (e) {
+    console.error("Failed to start MCP scheduler", e);
+  }
+})();
+
 app.listen(PORT, () => {
   console.log(`MCP server running on http://localhost:${PORT}`);
 });
