@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { APP_VERSION, DEPLOY_DATE, VOLUNTEER_URL } from "../../constants";
 import { supabase } from "../../lib/supabase";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import { getUserRole, ROLE_ADMIN } from "../../lib/permissions";
 import { getDisplayName } from "../../lib/userDisplay";
 import AuthModal from "../common/AuthModal";
+import cafeApi from "../../services/cafe-api";
 
 export default function SiteFooter({
   showWiki = true,
@@ -44,6 +45,47 @@ export default function SiteFooter({
   // Suppress immediate auto-close after an auto-open (wheel or touch)
   const suppressAutoCloseRef = useRef(false);
   const suppressAutoCloseTimeoutRef = useRef(null);
+
+  const navigate = useNavigate();
+
+  // Handler pour le bouton Oral (Café Ophélia)
+  const handleOralClick = async (e) => {
+    e.preventDefault();
+    try {
+      // 1. Check for recent active session
+      const { data: latestSession } = await supabase
+        .from("cop_conversations")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (latestSession) {
+        const created = new Date(latestSession.created_at);
+        const now = new Date();
+        const diffHours = (now - created) / (1000 * 60 * 60);
+
+        if (diffHours < 24 && latestSession.status !== "ended") {
+          navigate(`/cafe/${latestSession.id}`);
+          return;
+        }
+      }
+
+      // 2. Create new if none found
+      const newSession = await cafeApi.createSession({
+        title: "Session Spontanée",
+        session_purpose: "Discussion rapide depuis le footer",
+      });
+
+      if (newSession.host_secret) {
+        localStorage.setItem(`cop_host_secret_${newSession.id}`, newSession.host_secret);
+      }
+      navigate(`/cafe/${newSession.id}`);
+    } catch (err) {
+      console.error("Error accessing oral session:", err);
+      alert("Impossible de rejoindre le Café Ophélia pour le moment.");
+    }
+  };
 
   // Touch drag handlers for mobile
   // Improved mobile drag logic
@@ -519,6 +561,25 @@ export default function SiteFooter({
       {/* Collapsible panel */}
       <div style={styles.panel}>
         <div style={styles.inner}>
+          {/* Bouton Oral - Café Ophélia */}
+          <a
+            href="#"
+            onClick={handleOralClick}
+            style={{
+              ...styles.link,
+              background: "linear-gradient(135deg, #7C3AED, #4F46E5)",
+              color: "white",
+              padding: "2px 8px",
+              borderRadius: "9999px",
+              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              boxShadow: "0 2px 4px rgba(124, 58, 237, 0.3)",
+            }}
+          >
+            <span>🎙️</span> Oral
+          </a>
           {/* Auth section */}
           <div style={styles.auth}>
             {loading ? (
