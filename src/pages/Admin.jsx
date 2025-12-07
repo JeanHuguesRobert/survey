@@ -4,6 +4,7 @@ import SiteFooter from "../components/layout/SiteFooter";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { getUserRole, ROLE_ADMIN } from "../lib/permissions";
 import SiteConfigEditor from "../components/admin/SiteConfigEditor";
+import { getConfig } from "../lib/instanceConfig";
 
 export default function Admin() {
   const { currentUser, loading } = useCurrentUser();
@@ -29,7 +30,7 @@ export default function Admin() {
       }
     } catch (err) {
       // Fallback: prompt to contact the admin
-      const contact = import.meta.env.VITE_CONTACT_EMAIL || import.meta.env.CONTACT_EMAIL || "";
+      const contact = getConfig("contact_email", import.meta.env.VITE_CONTACT_EMAIL || "");
       if (contact) {
         window.location.href = `mailto:${contact}?subject=Export%20request&body=Please%20export%20my%20data%20for%20user%20id%20${currentUser.id}`;
       } else {
@@ -50,9 +51,12 @@ export default function Admin() {
   ];
 
   const adminLinks = [
+    { label: "🔐 Configuration Vault", to: "/admin/vault" },
     { label: "API Testing", to: "/admin/api" },
     { label: "Entities editor", to: "/admin/entities" },
     { label: "Data review", to: "/admin/data-review" },
+    { label: "🏛️ Gestion Instances (Communes)", to: "/admin/saas" },
+    { label: "📊 Leads Transparence", to: "/admin/leads" },
   ];
 
   const filterLinks = (links) =>
@@ -96,7 +100,7 @@ export default function Admin() {
             </div>
             <div>
               <a
-                href={`mailto:${import.meta.env.VITE_CONTACT_EMAIL || import.meta.env.CONTACT_EMAIL || ""}?subject=Support%20request`}
+                href={`mailto:${getConfig("contact_email", "")}?subject=Support%20request`}
                 className="block text-sm text-gray-500"
               >
                 Contacter le support
