@@ -8,16 +8,27 @@ import { canWrite, getUserRole, ROLE_ADMIN } from "../lib/permissions";
 import SiteFooter from "../components/layout/SiteFooter";
 import SocialAvatarButton from "../components/SocialAvatarButton";
 import RGPDSettings from "../components/rgpd/RGPDSettings";
+import CivicPortfolio from "../components/user/CivicPortfolio";
 
 export default function UserProfile() {
   const { currentUser, loading: authLoading, updateProfile } = useContext(CurrentUserContext);
   const navigate = useNavigate();
+
+  // Debug: vérifier les infos de rôle
+  console.log("[UserProfile] currentUser:", currentUser);
+  console.log("[UserProfile] email:", currentUser?.email);
+  console.log("[UserProfile] role:", currentUser?.role);
+  console.log(
+    "[UserProfile] getUserRole result:",
+    currentUser ? getUserRole(currentUser) : "no user"
+  );
 
   const [formData, setFormData] = useState({
     display_name: "",
     neighborhood: "",
     interests: "",
     avatarUrl: "",
+    public_profile: true,
   });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
@@ -39,6 +50,7 @@ export default function UserProfile() {
         neighborhood: currentUser.neighborhood || "",
         interests: currentUser.interests || "",
         avatarUrl: currentUser?.metadata?.avatarUrl || "",
+        public_profile: currentUser.public_profile !== false, // Default to true
       });
     } else {
       console.log("[UserProfile] No current user, redirecting to home");
@@ -47,8 +59,11 @@ export default function UserProfile() {
   }, [currentUser, navigate]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -360,6 +375,27 @@ export default function UserProfile() {
             </p>
           </div>
 
+          {/* Public Profile Toggle */}
+          <div className="bg-gray-800 p-4 rounded border border-gray-700">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                name="public_profile"
+                checked={formData.public_profile}
+                onChange={handleChange}
+                disabled={!canWrite(currentUser)}
+                className="w-5 h-5 text-orange-600 rounded focus:ring-orange-500"
+              />
+              <div>
+                <div className="font-medium text-gray-200">Profil Public</div>
+                <div className="text-xs text-gray-400">
+                  Si désactivé, vous ne pourrez pas publier de contenu. Votre activité passée reste
+                  visible.
+                </div>
+              </div>
+            </label>
+          </div>
+
           {/* RGPD Info */}
           <div className="bg-blue-50 border border-blue-200 p-4">
             <h3 className="text-sm font-semibold text-blue-900 mb-2">🔒 Confidentialité</h3>
@@ -434,6 +470,11 @@ export default function UserProfile() {
         <div className="mt-8 pt-6 border-t border-gray-200">
           <h2 className="text-lg font-semibold text-gray-50 mb-4">🔒 Confidentialité et données</h2>
           <RGPDSettings />
+        </div>
+
+        {/* Civic Portfolio */}
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <CivicPortfolio userId={currentUser.id} />
         </div>
       </div>
 
