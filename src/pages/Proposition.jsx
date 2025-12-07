@@ -10,9 +10,11 @@ import VoteButton from "../components/kudocracy/VoteButton";
 import SubscribeButton from "../components/common/SubscribeButton";
 import FacebookShareButton from "../components/common/FacebookShareButton";
 import ShareMenu from "../components/common/ShareMenu";
+import { PetitionLinkCard } from "../components/common/PetitionLink";
 import { supabase } from "../lib/supabase";
 import SiteFooter from "../components/layout/SiteFooter";
 import { getLatestModifier } from "../lib/socialMetadata";
+import { useVoteRecommendation } from "../hooks/useVoteRecommendation";
 
 export default function Proposition() {
   // const { supabase } = useSupabase();
@@ -23,6 +25,16 @@ export default function Proposition() {
   const { currentUser } = useCurrentUser(); // Hook pour l'utilisateur connecté
   const [votes, setVotes] = useState({ approve: 0, disapprove: 0, blank: 0 });
   const [userVote, setUserVote] = useState(null);
+  const [showAnalysis, setShowAnalysis] = useState(false);
+  const [analysisData, setAnalysisData] = useState(null);
+  const [analyzing, setAnalyzing] = useState(false);
+
+  // Vote Recommendation Hook
+  const { recommendation } = useVoteRecommendation(
+    id,
+    currentUser?.id,
+    proposition?.proposition_tags
+  );
 
   useEffect(() => {
     if (!supabase || !id) return;
@@ -67,16 +79,55 @@ export default function Proposition() {
   }, [id, currentUser]);
 
   const loadVotes = async () => {
-    if (!supabase) return;
-    const { data, error } = await supabase
-      .from("votes")
-      .select("vote_value")
-      .eq("proposition_id", id);
-    if (!error && data) {
-      const approve = data.filter((v) => v.vote_value === true).length;
-      const disapprove = data.filter((v) => v.vote_value === false).length;
-      const blank = data.filter((v) => v.vote_value === null).length;
-      setVotes({ approve, disapprove, blank });
+    try {
+      const res = await fetch(`/api/tally/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setVotes(data);
+      }
+    } catch (e) {
+      console.error("Failed to load votes", e);
+    }
+  };
+
+  const handleAnalyzeConsensus = async () => {
+    if (analyzing) return;
+    setAnalyzing(true);
+    setAnalysisData(null);
+    setShowAnalysis(true);
+
+    try {
+      // Fetch comments for context
+      const { data: comments } = await supabase
+        .from("comments")
+        .select("content")
+        .eq("proposition_id", id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      const commentTexts = comments?.map((c) => c.content) || [];
+
+      const payload = {
+        title: proposition.title,
+        description: proposition.description,
+        refusalReasons: votes.refusalReasons,
+        comments: commentTexts,
+      };
+
+      const res = await fetch("/api/analyze-consensus", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("Erreur API");
+      const result = await res.json();
+      setAnalysisData(result);
+    } catch (e) {
+      console.error(e);
+      setAnalysisData({ error: "Impossible de générer l'analyse." });
+    } finally {
+      setAnalyzing(false);
     }
   };
 
@@ -216,127 +267,62 @@ export default function Proposition() {
           </div>
         )}
 
-        {/* Petition Link */}
-        {proposition.metadata?.petition_url && (
-          <div className="bg-orange-50 border border-orange-200 p-4 mb-6 rounded-lg">
-            <div className="flex items-center gap-3">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 text-orange-600"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-                <path
-                  fillRule="evenodd"
-                  d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-orange-800">
-                  Une pétition est associée à cette proposition
-                </p>
-                <p className="text-xs text-orange-600 mt-1">
-                  Soutenez cette initiative en signant la pétition sur la plateforme externe.
-                </p>
+        {/* Vote Recommendation - Liquid Democracy */}
+        {currentUser && recommendation && !userVote && (
+          <div className="mb-4 p-4 border border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800 rounded-lg flex items-start gap-4">
+            <div className="flex-1">
+              <h4 className="font-bold text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                🗳️ Recommandation de votre délégué
+              </h4>
+              <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">
+                Votre délégué <strong>{recommendation.delegateName}</strong> (pour le sujet{" "}
+                <em>#{recommendation.tagName}</em>) a voté :
+              </p>
+              <div className="mt-2 font-bold text-lg">
+                {recommendation.voteValue === "approve" && (
+                  <span className="text-green-600">POUR</span>
+                )}
+                {recommendation.voteValue === "disapprove" && (
+                  <span className="text-red-600">CONTRE</span>
+                )}
+                {recommendation.voteValue === "neutral" && (
+                  <span className="text-gray-500">NEUTRE</span>
+                )}
+                {recommendation.voteValue === "false_choice" && (
+                  <span className="text-purple-600">FAUX DILEMME</span>
+                )}
+                {recommendation.voteValue === true && <span className="text-green-600">POUR</span>}
+                {recommendation.voteValue === false && <span className="text-red-600">CONTRE</span>}
               </div>
-              <a
-                href={proposition.metadata.petition_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 text-white font-semibold rounded hover:bg-orange-700 transition-colors"
-              >
-                Signer la pétition
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </a>
+              <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
+                Si vous ne votez pas, ce vote sera comptabilisé automatiquement à la fin de la
+                période (Auto-Voting).
+              </p>
             </div>
           </div>
         )}
 
-        {/* Résultats des votes */}
-        <div className="  p-4 mb-6">
-          <h3 className="text-lg font-semibold mb-3">Résultats des votes</h3>
-          <div className="flex justify-between text-sm font-semibold mb-2">
-            <span className="text-green-700">{votes.approve} Pour</span>
-            <span className="text-gray-200">{votes.blank} Blanc</span>
-            <span className="text-red-700">{votes.disapprove} Contre</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden flex mb-4">
-            {votes.approve + votes.disapprove + votes.blank > 0 ? (
-              <>
-                <div
-                  className="bg-green-600 h-full transition-all duration-300"
-                  style={{
-                    width: `${(votes.approve / (votes.approve + votes.disapprove + votes.blank)) * 100}%`,
-                  }}
-                ></div>
-                <div
-                  className="bg-gray-400 h-full transition-all duration-300"
-                  style={{
-                    width: `${(votes.blank / (votes.approve + votes.disapprove + votes.blank)) * 100}%`,
-                  }}
-                ></div>
-                <div
-                  className="bg-red-600 h-full transition-all duration-300"
-                  style={{
-                    width: `${(votes.disapprove / (votes.approve + votes.disapprove + votes.blank)) * 100}%`,
-                  }}
-                ></div>
-              </>
-            ) : (
-              <div className="w-full text-center text-sm text-gray-400 py-1">Aucun vote</div>
-            )}
-          </div>
-
-          {/* Afficher le vote de l'utilisateur */}
-          {userVote && (
-            <div className="bg-blue-50 border border-blue-200 p-3 mb-3">
-              <p className="text-sm text-blue-800">
-                Vous avez voté :{" "}
-                <strong>
-                  {userVote.vote_value === true && "Pour"}
-                  {userVote.vote_value === false && "Contre"}
-                  {userVote.vote_value === null && "Blanc"}
-                </strong>
-              </p>
-            </div>
-          )}
-
-          {/* Bouton d'abonnement */}
-          <div className="mb-4">
-            <SubscribeButton contentType="proposition" contentId={id} currentUser={currentUser} />
-          </div>
-
-          {/* Boutons de vote */}
-          {currentUser ? (
-            <VoteButton
-              propositionId={id}
-              userId={currentUser.id}
-              currentVote={userVote}
-              onVoteChange={handleVoteChange}
-            />
-          ) : (
-            <div className=" border border-gray-200 p-3 text-center">
-              <p className="text-sm text-gray-300">
-                <Link to="/kudocracy" className="text-blue-900 hover:underline">
-                  Connectez-vous pour voter
-                </Link>
-              </p>
-            </div>
-          )}
+        <div className="mb-4">
+          <SubscribeButton contentType="proposition" contentId={id} currentUser={currentUser} />
         </div>
+
+        {/* Boutons de vote */}
+        {currentUser ? (
+          <VoteButton
+            propositionId={id}
+            userId={currentUser.id}
+            currentVote={userVote}
+            onVoteChange={handleVoteChange}
+          />
+        ) : (
+          <div className=" border border-gray-200 p-3 text-center">
+            <p className="text-sm text-gray-300">
+              <Link to="/kudocracy" className="text-blue-900 hover:underline">
+                Connectez-vous pour voter
+              </Link>
+            </p>
+          </div>
+        )}
 
         <div className="mt-6">
           <Link to="/kudocracy" className="text-blue-900 hover:underline">
