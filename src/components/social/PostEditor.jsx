@@ -22,6 +22,7 @@ import {
   isPinnedPost,
   isLockedPost,
 } from "../../lib/postPredicates";
+import { getConfig } from "../../lib/instanceConfig";
 
 /**
  * Éditeur de post (nouveau ou édition)
@@ -723,7 +724,10 @@ async function checkEditorForGazette(gazetteName, userId) {
   // Use the same mapping as Gazette.jsx for global
   let targetGroupName = gazetteName;
   if (gazetteName === "global") {
-    targetGroupName = import.meta.env.VITE_GLOBAL_GAZETTE_EDITOR_GROUP || "La Gazette";
+    targetGroupName = getConfig(
+      "global_gazette_editor_group",
+      import.meta.env.VITE_GLOBAL_GAZETTE_EDITOR_GROUP || "La Gazette"
+    );
   }
   try {
     const { data: group } = await supabase
