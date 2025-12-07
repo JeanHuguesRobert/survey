@@ -500,7 +500,7 @@ export default function GestureHeaderMenu({ activeEdges = ["top"] }) {
                 </li>
                 <li>
                   <Link
-                    to="/social"
+                    to="/cafe"
                     onClick={closeMenu}
                     style={{
                       color: "var(--color-content-primary)",
@@ -547,6 +547,40 @@ export default function GestureHeaderMenu({ activeEdges = ["top"] }) {
                     }}
                   >
                     Missions
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/civic-network"
+                    onClick={closeMenu}
+                    style={{
+                      color: "var(--color-content-primary)",
+                      textDecoration: "none",
+                      fontWeight: 500,
+                      fontSize: "0.95em",
+                      padding: "2px 8px",
+                      transition: "background var(--duration-fast) ease",
+                      display: "inline-block",
+                    }}
+                  >
+                    Réseau Citoyen
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/fractal-feed"
+                    onClick={closeMenu}
+                    style={{
+                      color: "var(--color-content-primary)",
+                      textDecoration: "none",
+                      fontWeight: 500,
+                      fontSize: "0.95em",
+                      padding: "2px 8px",
+                      transition: "background var(--duration-fast) ease",
+                      display: "inline-block",
+                    }}
+                  >
+                    Flux Fractal
                   </Link>
                 </li>
               </ul>
