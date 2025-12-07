@@ -8,6 +8,7 @@ import { useCurrentUser } from "../lib/useCurrentUser";
 import SubscribeButton from "../components/common/SubscribeButton";
 import SiteFooter from "../components/layout/SiteFooter";
 import { useSubscription } from "../lib/useSubscription";
+import { getConfig } from "../lib/instanceConfig";
 
 export default function UserPage() {
   const { id } = useParams();
@@ -161,11 +162,11 @@ export default function UserPage() {
             <SubscribeButton contentType="user" contentId={id} currentUser={currentUser} />
             {/* If this profile is the contact/admin account, show link to Admin landing only to admin viewers */}
             {user?.email &&
-              import.meta.env.VITE_CONTACT_EMAIL &&
+              getConfig("contact_email") &&
               currentUser &&
               getUserRole(currentUser) === ROLE_ADMIN &&
               String(user.email).toLowerCase() ===
-                String(import.meta.env.VITE_CONTACT_EMAIL).toLowerCase() && (
+                String(getConfig("contact_email")).toLowerCase() && (
                 <Link
                   to="/admin"
                   className="ml-3 px-3 py-1 border text-sm bg-primary-600 text-bauhaus-white"
