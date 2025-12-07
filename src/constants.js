@@ -1,7 +1,7 @@
 // centralised app version (single source of truth)
 // hardcoded value is the canonical version; CI/CD can override by setting process.env.APP_VERSION at build time
-export const APP_VERSION = import.meta.env.APP_VERSION ?? "1.5.2";
-export const DEPLOY_DATE = import.meta.env.DEPLOY_DATE ?? "2025-12-04";
+export const APP_VERSION = import.meta.env.APP_VERSION ?? "1.5.7";
+export const DEPLOY_DATE = import.meta.env.DEPLOY_DATE ?? "2025-12-07";
 
 // Palette Bauhaus sombre harmonisée avec le thème CSS
 // Voir src/index.css pour la correspondance exacte
@@ -21,7 +21,26 @@ export const SECONDARY_COLOR = "#3B4E6B"; // bauhaus-blue
 export const GOOGLE_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwyzcR0hiou7CiQTv35Jek8CWgHTBPptps65v76YqISjE64J5tC1PkPVOb_QaIdZ5Vc/exec";
 
+// ============================================================================
+// CONFIGURATION DYNAMIQUE (depuis vault ou env vars)
+// ============================================================================
+// Ces valeurs sont les FALLBACKS utilisés au chargement initial.
+// Une fois loadInstanceConfig() appelé, utiliser getConfig() pour les valeurs à jour.
+
+import { getConfig as _getConfig } from "./lib/instanceConfig";
+
+// Helper pour récupérer une config avec fallback sur la valeur initiale
+const getConfigValue = (key, envValue) => {
+  try {
+    const val = _getConfig(key);
+    return val !== null && val !== undefined ? val : envValue;
+  } catch {
+    return envValue;
+  }
+};
+
 // Configuration générique (commune, mouvement, liste)
+// Ces exports restent pour la rétrocompatibilité
 export const CITY_NAME = import.meta.env.VITE_CITY_NAME || "Corte";
 export const CITY_TAGLINE = import.meta.env.VITE_CITY_TAGLINE || "CAPITALE";
 export const MOVEMENT_NAME = import.meta.env.VITE_MOVEMENT_NAME || "Pertitellu";
@@ -34,6 +53,67 @@ export const VOLUNTEER_URL =
 // Configuration type de communauté
 export const COMMUNITY_NAME = import.meta.env.VITE_COMMUNITY_NAME || CITY_NAME;
 export const COMMUNITY_TYPE = import.meta.env.VITE_COMMUNITY_TYPE || "municipality";
+
+// Configuration fédération nationale (consultations)
+export const NATIONAL_API_URL = import.meta.env.VITE_NATIONAL_API_URL || null;
+export const NATIONAL_API_KEY = import.meta.env.VITE_NATIONAL_API_KEY || null;
+export const COMMUNE_INSEE = import.meta.env.VITE_COMMUNE_INSEE || null;
+export const REGION_NAME = import.meta.env.VITE_REGION_NAME || "Corse";
+export const REGION_CODE = import.meta.env.VITE_REGION_CODE || "COR";
+
+// Si NATIONAL_API_URL === SUPABASE_URL, on est le hub national (Corte)
+export const IS_NATIONAL_HUB =
+  NATIONAL_API_URL && NATIONAL_API_URL === import.meta.env.VITE_SUPABASE_URL;
+
+// ============================================================================
+// FONCTIONS DYNAMIQUES (préférées aux constantes statiques)
+// ============================================================================
+
+/**
+ * Récupère les valeurs de configuration dynamiques depuis le vault
+ * Utiliser ces fonctions plutôt que les constantes statiques quand possible
+ */
+export const getDynamicConfig = () => ({
+  cityName: getConfigValue("community_name", CITY_NAME),
+  cityTagline: getConfigValue("community_tagline", CITY_TAGLINE),
+  movementName: getConfigValue("movement_name", MOVEMENT_NAME),
+  partyName: getConfigValue("party_name", PARTY_NAME),
+  hashtag: getConfigValue("hashtag", HASHTAG),
+  botName: getConfigValue("bot_name", BOT_NAME),
+  communityName: getConfigValue("community_name", COMMUNITY_NAME),
+  communityType: getConfigValue("community_type", COMMUNITY_TYPE),
+  regionName: getConfigValue("region_name", REGION_NAME),
+  regionCode: getConfigValue("region_code", REGION_CODE),
+  contactEmail: getConfigValue(
+    "contact_email",
+    import.meta.env.VITE_CONTACT_EMAIL || "jean_hugues_robert@yahoo.com"
+  ),
+});
+
+// Niveaux de portée des consultations
+export const CONSULTATION_SCOPES = {
+  local: {
+    id: "local",
+    label: "Locale",
+    description: "Consultation à l'échelle de la commune",
+    icon: "🏘️",
+    color: "#4caf50",
+  },
+  regional: {
+    id: "regional",
+    label: "Régionale",
+    description: "Consultation à l'échelle de la région",
+    icon: "🗺️",
+    color: "#ff9800",
+  },
+  national: {
+    id: "national",
+    label: "Nationale",
+    description: "Consultation à l'échelle nationale",
+    icon: "🇫🇷",
+    color: "#2196f3",
+  },
+};
 
 // Configuration des libellés par type de communauté
 export const COMMUNITY_LABELS = {
@@ -63,6 +143,20 @@ export const COMMUNITY_LABELS = {
     representative: "représentant",
     citizens: "communauté éducative",
     transparency: "transparence scolaire",
+  },
+  university: {
+    name: "université",
+    governance: "conseil d'administration",
+    meeting: "séance du CA",
+    decision: "délibération",
+    representative: "élu",
+    citizens: "communauté universitaire",
+    transparency: "transparence universitaire",
+    // Spécifique université
+    council: "CA",
+    student_council: "CVU",
+    student_union: "BDE",
+    staff: "personnels",
   },
   company: {
     name: "entreprise",
@@ -100,6 +194,24 @@ export const COMMUNITY_LABELS = {
     citizens: "habitants",
     transparency: "transparence de quartier",
   },
+  copropriete: {
+    name: "copropriété",
+    governance: "conseil syndical",
+    meeting: "assemblée générale",
+    decision: "résolution",
+    representative: "syndic",
+    citizens: "copropriétaires",
+    transparency: "transparence de la copropriété",
+  },
+  cse: {
+    name: "CSE",
+    governance: "bureau du CSE",
+    meeting: "réunion plénière",
+    decision: "délibération",
+    representative: "élu du personnel",
+    citizens: "salariés",
+    transparency: "transparence sociale",
+  },
   professional: {
     name: "organisation professionnelle",
     governance: "conseil professionnel",
@@ -130,8 +242,15 @@ export const COMMUNITY_LABELS = {
 };
 
 // Fonction utilitaire pour obtenir les libellés de la communauté actuelle
-export const getCommunityLabels = () =>
-  COMMUNITY_LABELS[COMMUNITY_TYPE] || COMMUNITY_LABELS.municipality;
+export const getCommunityLabels = () => {
+  const type = getConfigValue("community_type", COMMUNITY_TYPE);
+  return COMMUNITY_LABELS[type] || COMMUNITY_LABELS.municipality;
+};
 
 // Contact email
-export const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || "jeanhuguesrobert@gmail.com";
+export const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || "jean_hugues_robert@yahoo.com";
+
+// ============================================================================
+// RE-EXPORT du module instanceConfig pour faciliter l'accès
+// ============================================================================
+export { getConfig as getInstanceConfig } from "./lib/instanceConfig";
