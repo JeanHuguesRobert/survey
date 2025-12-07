@@ -187,6 +187,70 @@ CREATE TABLE public.consent_audit_log (
   CONSTRAINT consent_audit_log_pkey PRIMARY KEY (id),
   CONSTRAINT consent_audit_log_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.consultation_imports (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  local_consultation_id uuid NOT NULL,
+  source_instance text NOT NULL,
+  source_consultation_id uuid NOT NULL,
+  source_slug text NOT NULL,
+  imported_at timestamp with time zone NOT NULL DEFAULT now(),
+  imported_by uuid,
+  auto_sync boolean NOT NULL DEFAULT true,
+  sync_interval_hours integer DEFAULT 1,
+  status text NOT NULL DEFAULT 'active'::text CHECK (status = ANY (ARRAY['active'::text, 'paused'::text, 'revoked'::text])),
+  last_check_at timestamp with time zone,
+  CONSTRAINT consultation_imports_pkey PRIMARY KEY (id),
+  CONSTRAINT consultation_imports_local_fkey FOREIGN KEY (local_consultation_id) REFERENCES public.consultations(id)
+);
+CREATE TABLE public.consultation_responses (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  consultation_id uuid NOT NULL,
+  user_id uuid,
+  session_id text,
+  responses jsonb NOT NULL DEFAULT '{}'::jsonb,
+  schema_version integer NOT NULL DEFAULT 1,
+  is_complete boolean NOT NULL DEFAULT false,
+  ip_hash text,
+  user_agent_category text,
+  source text DEFAULT 'web'::text,
+  started_at timestamp with time zone DEFAULT now(),
+  completed_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  sync_status text DEFAULT 'pending'::text CHECK (sync_status = ANY (ARRAY['pending'::text, 'synced'::text, 'failed'::text, 'not_applicable'::text])),
+  synced_at timestamp with time zone,
+  source_response_id uuid,
+  sync_attempts integer NOT NULL DEFAULT 0,
+  sync_error text,
+  CONSTRAINT consultation_responses_pkey PRIMARY KEY (id),
+  CONSTRAINT consultation_responses_consultation_id_fkey FOREIGN KEY (consultation_id) REFERENCES public.consultations(id)
+);
+CREATE TABLE public.consultations (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  slug text NOT NULL UNIQUE,
+  title text NOT NULL,
+  description text,
+  starts_at timestamp with time zone DEFAULT now(),
+  ends_at timestamp with time zone,
+  schema jsonb NOT NULL DEFAULT '{}'::jsonb,
+  response_count integer NOT NULL DEFAULT 0,
+  status text NOT NULL DEFAULT 'active'::text CHECK (status = ANY (ARRAY['draft'::text, 'active'::text, 'closed'::text, 'archived'::text])),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  created_by uuid,
+  scope text NOT NULL DEFAULT 'local'::text CHECK (scope = ANY (ARRAY['local'::text, 'regional'::text, 'national'::text, 'custom'::text])),
+  source_instance text,
+  source_consultation_id uuid,
+  sync_endpoint text,
+  sync_api_key text,
+  federation_config jsonb DEFAULT '{}'::jsonb,
+  last_synced_at timestamp with time zone,
+  synced_response_count integer NOT NULL DEFAULT 0,
+  petition_local text,
+  petition_regional text,
+  petition_national text,
+  petitions_metadata jsonb DEFAULT '{}'::jsonb,
+  CONSTRAINT consultations_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.content_subscriptions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
@@ -312,6 +376,26 @@ CREATE TABLE public.document_sources (
   external_id text,
   CONSTRAINT document_sources_pkey PRIMARY KEY (id),
   CONSTRAINT document_sources_ingested_by_fkey FOREIGN KEY (ingested_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.federation_registry (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  instance_url text NOT NULL UNIQUE,
+  instance_name text NOT NULL,
+  instance_type text NOT NULL DEFAULT 'commune'::text CHECK (instance_type = ANY (ARRAY['commune'::text, 'region'::text, 'national'::text, 'custom'::text])),
+  commune_name text,
+  commune_insee text,
+  region_name text,
+  region_code text,
+  api_endpoint text,
+  api_key_hash text,
+  is_hub boolean NOT NULL DEFAULT false,
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'active'::text, 'suspended'::text, 'revoked'::text])),
+  verified_at timestamp with time zone,
+  last_seen_at timestamp with time zone,
+  federation_config jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT federation_registry_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.git_sync_log (
   page_id uuid NOT NULL,
@@ -697,6 +781,7 @@ CREATE TABLE public.users (
   rgpd_consent_date timestamp with time zone,
   updated_at timestamp with time zone DEFAULT now(),
   metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
+  role text NOT NULL DEFAULT 'user'::text CHECK (role = ANY (ARRAY['user'::text, 'moderator'::text, 'admin'::text])),
   CONSTRAINT users_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.verification_queue (
@@ -742,4 +827,3 @@ CREATE TABLE public.wiki_pages (
   CONSTRAINT wiki_pages_pkey PRIMARY KEY (id),
   CONSTRAINT wiki_pages_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.users(id)
 );
-
