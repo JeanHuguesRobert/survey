@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import PropositionList from "../components/kudocracy/PropositionList";
 import CreateProposition from "../components/kudocracy/CreateProposition";
 import DelegationManager from "../components/kudocracy/DelegationManager";
+import GovernanceSettings from "../components/kudocracy/GovernanceSettings";
 import VotingDashboard from "../components/kudocracy/VotingDashboard";
 import AuthModal from "../components/common/AuthModal";
 import { Link } from "react-router-dom";
@@ -116,7 +117,10 @@ export default function Kudocracy() {
             ))}
           {activeTab === "delegations" &&
             (currentUser ? (
-              <DelegationManager user={currentUser} />
+              <div className="space-y-8">
+                <GovernanceSettings user={currentUser} />
+                <DelegationManager user={currentUser} />
+              </div>
             ) : (
               <AuthRequired onAuth={() => setShowAuthModal(true)} />
             ))}
