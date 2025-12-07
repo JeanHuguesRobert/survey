@@ -10,6 +10,7 @@ import {
 } from "@phosphor-icons/react";
 import { sharePost } from "../../lib/sharePost";
 import FeedOpheliaModal from "../ophelia/FeedOpheliaModal";
+import { getConfig } from "../../lib/instanceConfig";
 
 /**
  * Enhanced ShareMenu - Mobile-first dropdown for sharing content
@@ -23,7 +24,7 @@ export default function ShareMenu({
   description = "",
   currentUserId,
 }) {
-  const botName = import.meta.env.VITE_BOT_NAME || "Ophélia";
+  const botName = getConfig("bot_name", import.meta.env.VITE_BOT_NAME || "Ophélia");
   const [isOpen, setIsOpen] = useState(false);
   const [showGazetteDialog, setShowGazetteDialog] = useState(false);
   const [showOpheliaModal, setShowOpheliaModal] = useState(false);
