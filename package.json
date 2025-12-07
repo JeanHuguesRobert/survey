@@ -3,8 +3,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "test": "node scripts/test-social-metadata.js",
+    "backfill:lastModifiedBy": "node scripts/backfill-lastmodifiedby.js",
+    "dev": "node scripts/generate-meta-init.js && vite",
+    "build": "node scripts/generate-meta-init.js && vite build",
     "lint:css": "stylelint \"src/**/*.css\" --allow-empty-input",
     "preview": "vite preview",
     "extract:tw": "node scripts/extract-classes.js --tailwind",
@@ -22,7 +24,11 @@
     "check:deno": "deno check netlify/edge-functions/**/*.js",
     "check:node": "node scripts/check_node_syntax.js",
     "check": "npm run check:deno && npm run check:node",
-    "set-ngrok": "node scripts/set-ngrok.js"
+    "set-ngrok": "node scripts/set-ngrok.js",
+    "provision": "node scripts/provision-instance.js",
+    "schema:check": "node scripts/check-schema-versions.js",
+    "schema:sync": "node scripts/check-schema-versions.js --sync",
+    "schema:update": "node scripts/check-schema-versions.js --update"
   },
   "lint-staged": {
     "*.{js,jsx,css,md}": "prettier --write"
@@ -42,6 +48,7 @@
     "cheerio": "^1.1.2",
     "dompurify": "^3.3.0",
     "dotenv": "^17.2.3",
+    "geoportal-extensions-leaflet": "^2.4.3",
     "leaflet": "^1.9.4",
     "marked": "^16.4.1",
     "openai": "^4.104.0",
@@ -53,7 +60,8 @@
     "recharts": "^2.5.0",
     "remark-gfm": "^4.0.1",
     "supabase": "^2.63.1",
-    "swagger-ui-react": "^5.30.3"
+    "swagger-ui-react": "^5.30.3",
+    "swr": "^2.3.7"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.0.0",
