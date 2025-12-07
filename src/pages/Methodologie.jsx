@@ -109,10 +109,10 @@ export default function Methodologie() {
               <p className="text-gray-300">
                 Pour toute question sur la méthodologie ou pour signaler un problème :
                 <a
-                  href="mailto:jeanhuguesrobert@gmail.com"
+                  href="mailto:jean_hugues_robert@yahoo.com"
                   className="text-blue-600 hover:underline ml-2"
                 >
-                  jeanhuguesrobert@gmail.com
+                  jean_hugues_robert@yahoo.com
                 </a>
               </p>
             </section>
