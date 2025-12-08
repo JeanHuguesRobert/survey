@@ -777,22 +777,22 @@ export default function GlobalDashboard() {
           <div className="mt-6 pt-6 border-t border-gray-200">
             <div className="flex flex-wrap gap-3">
               <Link
-                to="/kudocracy/create"
+                to="/kudocracy?tab=create"
                 className="px-4 py-2 bg-blue-600 text-bauhaus-white hover:bg-blue-700 transition-colors"
               >
                 New Proposition
               </Link>
               <Link
-                to="/wiki/create"
+                to="/wiki/new"
                 className="px-4 py-2 bg-green-600 text-bauhaus-white hover:bg-green-700 transition-colors"
               >
-                New Wiki Page
+                Nouvelle page
               </Link>
               <Link
-                to="/social/create"
+                to="/posts/new"
                 className="px-4 py-2 bg-purple-600 text-bauhaus-white hover:bg-purple-700 transition-colors"
               >
-                New Post
+                Nouvelle publication
               </Link>
               <Link
                 to="/missions"
