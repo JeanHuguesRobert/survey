@@ -3,11 +3,12 @@
 // POST /api/ophelia
 
 import { getOpheliaAnswer } from "../lib/getOpheliaAnswer.js";
-
-// Clé API simple (à stocker dans une variable d'environnement en prod)
-const API_KEY = process.env.OPHELIA_API_KEY || "dev-demo-key";
+import { loadInstanceConfig, getConfigValue } from "../lib/instanceConfig.js";
 
 export default async (req, context) => {
+  // Charger la configuration
+  await loadInstanceConfig();
+
   // 1. Vérifier la méthode
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
@@ -17,6 +18,7 @@ export default async (req, context) => {
   }
 
   // 2. Authentification par clé API (header: x-api-key)
+  const API_KEY = getConfigValue("ophelia_api_key", "dev-demo-key");
   const apiKey = req.headers.get("x-api-key");
   if (!apiKey || apiKey !== API_KEY) {
     return new Response(JSON.stringify({ error: "Unauthorized: invalid or missing API key" }), {
