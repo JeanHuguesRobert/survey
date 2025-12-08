@@ -107,7 +107,7 @@ Le Café Pertitellu complète nos autres services :
 
 ### ❓ BESOIN D'AIDE ?
 
-📧 Contact : jeanhuguesrobert@gmail.com 👥 Groupe Facebook :
+📧 Contact : jean_hugues_robert@yahoo.com 👥 Groupe Facebook :
 https://www.facebook.com/groups/1269635707349220
 
 ---
