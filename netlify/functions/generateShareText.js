@@ -4,10 +4,24 @@ import { InferenceClient } from "@huggingface/inference";
 import fs from "fs";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
+import {
+  getBranding,
+  getOpenAIConfig,
+  loadInstanceConfig,
+  getConfigValue,
+} from "../lib/instanceConfig.js";
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-
-const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
+// Supabase client initialisé de façon lazy
+let _supabase = null;
+function getSupabase() {
+  if (!_supabase) {
+    _supabase = createClient(
+      getConfigValue("supabase_url"),
+      getConfigValue("supabase_service_role_key")
+    );
+  }
+  return _supabase;
+}
 
 const MODEL_ALIASES = {
   "mistral-7b-instruct-v0.1": "mistralai/Mistral-7B-Instruct-v0.1",
@@ -21,34 +35,34 @@ const MODEL_ALIASES = {
 const resolveModel = (alias) => MODEL_ALIASES[alias] || alias;
 
 async function getShareSystemPrompt() {
-  const bot = process.env.BOT_NAME || "Ophélia";
-  const city = process.env.CITY_NAME || "Corte";
-  const movement = process.env.MOVEMENT_NAME || "Pertitellu";
-  const party = process.env.PARTY_NAME || "Petit Parti";
-  const hashtag = process.env.HASHTAG || "#PERTITELLU";
+  // Utiliser le vault pour les valeurs de branding
+  const branding = await getBranding();
+  const { botName, cityName, movementName, partyName, hashtag } = branding;
 
-  return `Tu es l'assistant citoyen ${bot} du mouvement/parti ${movement} (${party}) ${hashtag} pour la commune de ${city}. Ton rôle est d'aider à rédiger des messages de partage concis et engageants pour les réseaux sociaux. Le message doit être adapté à la plateforme de destination et au contenu de la page Wiki. Réponds uniquement avec le texte de partage généré, sans fioritures ni explications supplémentaires.`;
+  return `Tu es l'assistant citoyen ${botName} du mouvement/parti ${movementName} (${partyName}) ${hashtag} pour la commune de ${cityName}. Ton rôle est d'aider à rédiger des messages de partage concis et engageants pour les réseaux sociaux. Le message doit être adapté à la plateforme de destination et au contenu de la page Wiki. Réponds uniquement avec le texte de partage généré, sans fioritures ni explications supplémentaires.`;
 }
 
 async function runOpenAIAgent({ prompt }) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  console.log("OpenAI API Key (first 5 chars):", apiKey ? apiKey.substring(0, 5) : "Not set"); // Log de la clé API (partiel)
+  // Utiliser le vault pour la config OpenAI
+  const openaiConfig = await getOpenAIConfig();
+  const apiKey = openaiConfig.apiKey;
+  console.log("OpenAI API Key (first 5 chars):", apiKey ? apiKey.substring(0, 5) : "Not set");
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY manquant");
   }
 
-  const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
-  console.log("OpenAI Model:", model); // Log du modèle OpenAI
+  const model = openaiConfig.model;
+  console.log("OpenAI Model:", model);
 
   console.log(`[OpenAI] Démarrage avec modèle: ${model}`);
 
-  const client = new OpenAI({ apiKey });
+  const client = new OpenAI({ apiKey, baseURL: openaiConfig.baseUrl });
 
   try {
     const response = await client.chat.completions.create({
       model,
-      max_tokens: 500, // Limite de tokens pour un message de partage
-      temperature: 0.7, // Température plus élevée pour plus de créativité
+      max_tokens: 500,
+      temperature: 0.7,
       messages: [
         { role: "system", content: await getShareSystemPrompt() },
         { role: "user", content: prompt },
@@ -62,8 +76,8 @@ async function runOpenAIAgent({ prompt }) {
 
     return fullResponse;
   } catch (error) {
-    console.error("Error in runOpenAIAgent:", error); // Log d'erreur spécifique à runOpenAIAgent
-    throw error; // Rejeter l'erreur pour qu'elle soit gérée par le handler
+    console.error("Error in runOpenAIAgent:", error);
+    throw error;
   }
 }
 
