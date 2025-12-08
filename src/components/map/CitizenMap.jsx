@@ -1,18 +1,35 @@
 import React, { useEffect, useState } from "react";
-import { MapContainer, TileLayer, ZoomControl, useMap } from "react-leaflet";
+import { MapContainer, LayersControl, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import LocateControl from "./LocateControl";
-import AddressSearchControl from "./AddressSearchControl";
+import GeoportalControls from "./GeoportalControls";
+import MunicipalPoiLayer from "./layers/MunicipalPoiLayer";
+import MunicipalEventsLayer from "./layers/MunicipalEventsLayer";
+import { getConfig } from "../../lib/instanceConfig";
 
 // Fix pour les icônes Leaflet manquantes
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
 
+// Coordonnées par défaut (Corte)
 const DEFAULT_COORDS = [42.3094, 9.149];
-const ENV_COORDS = import.meta.env.VITE_MAP_DEFAULT_CENTER
-  ? import.meta.env.VITE_MAP_DEFAULT_CENTER.split(",").map(Number)
-  : null;
+
+// Helper pour obtenir les coordonnées depuis le vault ou env
+function getDefaultCenter() {
+  // Essayer le vault d'abord
+  const lat = getConfig("map_default_lat");
+  const lng = getConfig("map_default_lng");
+  if (lat && lng) {
+    return [lat, lng];
+  }
+  // Fallback sur env var
+  const envCenter = import.meta.env.VITE_MAP_DEFAULT_CENTER;
+  if (envCenter && envCenter.includes(",")) {
+    return envCenter.split(",").map(Number);
+  }
+  return DEFAULT_COORDS;
+}
 
 let DefaultIcon = L.icon({
   iconUrl: icon,
@@ -34,25 +51,30 @@ function MapController({ center, zoom }) {
 }
 
 export default function CitizenMap({ center, zoom = 13, children, className = "h-full w-full" }) {
-  const defaultCenter = (import.meta.env.VITE_MAP_DEFAULT_CENTER || "42.3094,9.1490")
-    .split(",")
-    .map(Number);
+  const defaultCenter = getDefaultCenter();
+  const defaultZoom = getConfig("map_default_zoom", zoom);
 
   return (
     <MapContainer
       center={center || defaultCenter}
-      zoom={zoom}
+      zoom={defaultZoom}
       scrollWheelZoom={true}
       className={className}
       style={{ minHeight: "400px", width: "100%", height: "100%" }}
     >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      <MapController center={center} zoom={zoom} />
+      <GeoportalControls />
+      <MapController center={center} zoom={defaultZoom} />
+
+      <LayersControl position="topright">
+        <LayersControl.Overlay checked name="Points d'intérêt">
+          <MunicipalPoiLayer />
+        </LayersControl.Overlay>
+        <LayersControl.Overlay checked name="Événements">
+          <MunicipalEventsLayer />
+        </LayersControl.Overlay>
+      </LayersControl>
+
       <LocateControl />
-      <AddressSearchControl />
       {children}
     </MapContainer>
   );
