@@ -14,7 +14,7 @@ Transforms `cortideri_items` into `knowledge_chunks` with:
 ## Prerequisites
 
 - ✅ Migration `001_rag_infrastructure.sql` applied
-- ✅ `OPENAI_API_KEY` in `.env`
+- ✅ `OPENAI_API_KEY` in `.env` or configured via vault (see `docs/CONFIGURATION_VAULT.md`)
 - ✅ `cortideri_items` table populated (run `npm run scrape:cortideri` first)
 
 ## Usage
@@ -66,7 +66,7 @@ For each article in `cortideri_items`:
 
 ### Error: "OPENAI_API_KEY not found"
 
-→ Add to `.env` file
+→ Add to `.env` file or configure via the vault system (see `docs/CONFIGURATION_VAULT.md`)
 
 ### Chunks not appearing
 
