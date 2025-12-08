@@ -1,8 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { loadInstanceConfig, getConfigValue } from "../edge-functions/lib/instanceConfig.js";
 
 export default async (request, context) => {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  // Charger la configuration
+  await loadInstanceConfig();
+  const supabaseUrl = getConfigValue("supabase_url");
+  const supabaseAnonKey = getConfigValue("supabase_anon_key");
 
   // CORS headers
   const headers = {
