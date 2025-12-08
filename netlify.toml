@@ -69,6 +69,18 @@
   function = "api_municipal_data"
 
 [[edge_functions]]
+  path = "/api/actes/*"
+  function = "actes-api"
+
+[[edge_functions]]
+  path = "/api/demandes/*"
+  function = "demandes-api"
+
+[[edge_functions]]
+  path = "/api/update-deadlines"
+  function = "update-deadlines-cron"
+
+[[edge_functions]]
   path = "/api/cafe/sse"
   function = "cafe-sse"
 
