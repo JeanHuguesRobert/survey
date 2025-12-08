@@ -500,7 +500,7 @@ export default function Social() {
                   Voir tout →
                 </Link>
               </h2>
-              <GroupList currentUserId={currentUser?.id} />
+              <GroupList currentUserId={currentUser?.id} gazette={selectedGazette} />
             </div>
             <div>
               <h2 className="text-2xl font-bold mb-4 flex items-center justify-between text-gray-100">
@@ -526,7 +526,11 @@ export default function Social() {
         )}
 
         {activeTab === "groups" && (
-          <GroupList filterType={filterType} currentUserId={currentUser?.id} />
+          <GroupList
+            filterType={filterType}
+            currentUserId={currentUser?.id}
+            gazette={selectedGazette}
+          />
         )}
 
         {activeTab === "posts" && (
