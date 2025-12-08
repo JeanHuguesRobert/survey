@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import { isAdmin } from "../../lib/permissions";
+import { getFederationConfig } from "../../lib/instanceConfig";
 import AuthModal from "../common/AuthModal";
 import SiteFooter from "../layout/SiteFooter";
 
@@ -228,48 +229,50 @@ export default function FilSubmissionForm() {
             />
           </div>
 
-          {/* Federation Toggle - Ascending Subsidiarity */}
-          <div
-            style={{
-              padding: "1rem",
-              background: "var(--color-surface-secondary)",
-              border: "1px solid var(--color-border-medium)",
-              display: "flex",
-              gap: "0.5rem",
-              alignItems: "flex-start",
-            }}
-          >
-            <input
-              type="checkbox"
-              id="federated_check"
-              checked={formData.federated}
-              onChange={(e) => setFormData({ ...formData, federated: e.target.checked })}
-              style={{ marginTop: 4, transform: "scale(1.2)" }}
-            />
-            <label htmlFor="federated_check" style={{ cursor: "pointer" }}>
-              <div
-                style={{
-                  fontWeight: 700,
-                  color: "var(--color-action-primary)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                }}
-              >
-                <span>🌍</span> Diffuser sur le réseau fédéré ?
-              </div>
-              <div
-                style={{
-                  fontSize: "0.85rem",
-                  color: "var(--color-content-secondary)",
-                  marginTop: 4,
-                }}
-              >
-                Si coché, ce post pourra être relayé vers d'autres instances (Ascending
-                Subsidiarity). Sinon, il restera strictement local.
-              </div>
-            </label>
-          </div>
+          {/* Federation Toggle - Ascending Subsidiarity (only show if there's a parent hub) */}
+          {getFederationConfig().parentHubUrl && (
+            <div
+              style={{
+                padding: "1rem",
+                background: "var(--color-surface-secondary)",
+                border: "1px solid var(--color-border-medium)",
+                display: "flex",
+                gap: "0.5rem",
+                alignItems: "flex-start",
+              }}
+            >
+              <input
+                type="checkbox"
+                id="federated_check"
+                checked={formData.federated}
+                onChange={(e) => setFormData({ ...formData, federated: e.target.checked })}
+                style={{ marginTop: 4, transform: "scale(1.2)" }}
+              />
+              <label htmlFor="federated_check" style={{ cursor: "pointer" }}>
+                <div
+                  style={{
+                    fontWeight: 700,
+                    color: "var(--color-action-primary)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                  }}
+                >
+                  <span>🌍</span> Diffuser sur le réseau fédéré ?
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.85rem",
+                    color: "var(--color-content-secondary)",
+                    marginTop: 4,
+                  }}
+                >
+                  Si coché, ce post pourra être relayé vers d'autres instances (Ascending
+                  Subsidiarity). Sinon, il restera strictement local.
+                </div>
+              </label>
+            </div>
+          )}
 
           {/* Duplicate Warning */}
           {duplicateWarning && (
