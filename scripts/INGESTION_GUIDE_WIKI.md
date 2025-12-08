@@ -3,7 +3,13 @@
 This document explains how to use the `scripts/ingest_wiki_pages.js` script to index Markdown pages
 from `public/docs` into the `knowledge_chunks` table.
 
-Examples:
+## Prerequisites
+
+- `OPENAI_API_KEY` configured (via `.env` or vault - see `docs/CONFIGURATION_VAULT.md`)
+- `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` configured
+- Migration `001_rag_infrastructure.sql` applied
+
+## Examples
 
 ```bash
 node scripts/ingest_wiki_pages.js --dir public/docs --dry-run
