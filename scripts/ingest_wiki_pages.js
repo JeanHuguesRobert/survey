@@ -4,18 +4,24 @@
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
-import dotenv from "dotenv";
-import { createClient } from "@supabase/supabase-js";
-import OpenAI from "openai";
-dotenv.config();
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+import {
+  loadConfig,
+  getConfigValue,
+  createSupabaseClient,
+  createOpenAIClient,
+} from "./lib/config.js";
+
+// Charger la configuration
+await loadConfig();
+
+const supabase = createSupabaseClient();
+const openai = await createOpenAIClient();
 const EMBEDDING_MODEL = "text-embedding-3-small";
 const EMBEDDING_BATCH_SIZE = 20;
 const MAX_TOKENS_PER_CHUNK = 1500;
 const MAX_EMBEDDING_TOKENS = 8000;
 const argv = process.argv.slice(2);
-const DRY_RUN = argv.includes("--dry-run") || process.env.DRY_RUN === "1";
+const DRY_RUN = argv.includes("--dry-run") || getConfigValue("dry_run") === "1";
 const FORCE = argv.includes("--force");
 const RECURSIVE = argv.includes("--recursive");
 const LIMIT_IDX = argv.indexOf("--limit");
@@ -352,6 +358,21 @@ async function processDbPage(page) {
     updated_at: page.updated_at,
     page_metadata: page.metadata || null,
   };
+  // Ensure global_id and origin_hub_id exist in page_metadata
+  try {
+    const subdomain = process.env.VITE_COMMUNITY_NAME || process.env.VITE_COMMUNITY_SLUG || "local";
+    const hubType = process.env.VITE_HUB_TYPE || "commune";
+    const isGlobalRoot = hubType === "national" || process.env.VITE_IS_HUB === "true";
+    const globalId = isGlobalRoot ? `global:${page.slug}` : `instance:${subdomain}:${page.slug}`;
+    if (!extraMeta.page_metadata) extraMeta.page_metadata = {};
+    extraMeta.page_metadata.wiki_page = extraMeta.page_metadata.wiki_page || {};
+    if (!extraMeta.page_metadata.wiki_page.global_id)
+      extraMeta.page_metadata.wiki_page.global_id = globalId;
+    if (!extraMeta.page_metadata.wiki_page.origin_hub_id)
+      extraMeta.page_metadata.wiki_page.origin_hub_id = subdomain;
+  } catch (e) {
+    // ignore
+  }
   const source = await upsertSource(slug, publicPath, content, title, extraMeta, true);
   if (!source.changed) return { processed: false, inserted: 0 };
   if (FORCE && !DRY_RUN) {
