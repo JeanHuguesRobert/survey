@@ -19,7 +19,24 @@ import {
 let nationalSupabase = null;
 if (NATIONAL_API_URL && NATIONAL_API_KEY && !IS_NATIONAL_HUB) {
   try {
-    nationalSupabase = createClient(NATIONAL_API_URL, NATIONAL_API_KEY);
+    // create remote client with isolated auth to avoid conflicting GoTrue instances
+    const hostKey = (() => {
+      try {
+        return new URL(NATIONAL_API_URL).host.replace(/[:]/g, "-");
+      } catch (e) {
+        return "national";
+      }
+    })();
+
+    nationalSupabase = createClient(NATIONAL_API_URL, NATIONAL_API_KEY, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false,
+        storageKey: `sb-remote-${hostKey}`,
+        storage: typeof window !== "undefined" ? window.localStorage : undefined,
+      },
+    });
   } catch (err) {
     console.warn("Impossible de créer le client national:", err);
   }
@@ -493,8 +510,23 @@ async function syncResponseToSource(consultation, localResponseId, responses, me
   }
 
   try {
-    // Créer le client pour l'instance source
-    const sourceClient = createClient(consultation.source_instance, consultation.sync_api_key);
+    // Créer le client pour l'instance source (utiliser client isolé pour éviter conflits d'auth)
+    const _host = (() => {
+      try {
+        return new URL(consultation.source_instance).host.replace(/[:]/g, "-");
+      } catch (e) {
+        return "remote";
+      }
+    })();
+    const sourceClient = createClient(consultation.source_instance, consultation.sync_api_key, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false,
+        storageKey: `sb-remote-${_host}`,
+        storage: typeof window !== "undefined" ? window.localStorage : undefined,
+      },
+    });
 
     // Préparer les données pour la source
     const sourceData = {

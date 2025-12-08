@@ -29,8 +29,26 @@ function getLocalSubdomainSafe() {
 
 async function createRemoteClientForUrl(url, apiKey = null) {
   const anonKey = apiKey || null;
-  // If no anonKey provided, rely on public policies
-  return createClient(url, anonKey || "");
+  // Create remote client with isolated auth settings so we don't conflict
+  // with the main app auth client (avoid multiple GoTrueClient warnings)
+  const hostKey = (() => {
+    try {
+      return new URL(url).host.replace(/[:]/g, "-");
+    } catch (e) {
+      return "remote";
+    }
+  })();
+
+  return createClient(url, anonKey || "", {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+      detectSessionInUrl: false,
+      // unique storage key per remote host
+      storageKey: `sb-remote-${hostKey}`,
+      storage: typeof window !== "undefined" ? window.localStorage : undefined,
+    },
+  });
 }
 
 async function findPageInClient({ client, pageKey, extended = false }) {

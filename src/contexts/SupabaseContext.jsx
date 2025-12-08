@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
 
 const SupabaseContext = createContext(undefined);
@@ -22,11 +22,19 @@ export function SupabaseProvider({ children }) {
   // Job monitoring state
   const [activeJobs, setActiveJobs] = useState(new Map());
 
+  // Resolve client (use getSupabase to obtain the initialized instance)
+  let client;
+  try {
+    client = getSupabase();
+  } catch (e) {
+    client = null;
+  }
+
   // Job monitoring functions
   const createJob = async (type, payload = {}) => {
     console.log("SupabaseContext: Creating job:", type, payload);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from("jobs")
         .insert({
           type,
@@ -49,7 +57,7 @@ export function SupabaseProvider({ children }) {
   const updateJobProgress = async (jobId, progress, message, status) => {
     console.log("SupabaseContext: Updating job progress:", jobId, progress, status);
     try {
-      const { error } = await supabase.rpc("update_job_progress", {
+      const { error } = await client.rpc("update_job_progress", {
         job_id: jobId,
         new_progress: progress,
         new_message: message,
@@ -65,7 +73,7 @@ export function SupabaseProvider({ children }) {
 
   const getJob = async (jobId) => {
     try {
-      const { data, error } = await supabase.from("jobs").select("*").eq("id", jobId).single();
+      const { data, error } = await client.from("jobs").select("*").eq("id", jobId).single();
 
       if (error) throw error;
       return data;
@@ -78,7 +86,7 @@ export function SupabaseProvider({ children }) {
   const cancelJob = async (jobId) => {
     console.log("SupabaseContext: Cancelling job:", jobId);
     try {
-      const { error } = await supabase.from("jobs").update({ status: "cancelled" }).eq("id", jobId);
+      const { error } = await client.from("jobs").update({ status: "cancelled" }).eq("id", jobId);
 
       if (error) throw error;
     } catch (err) {
@@ -94,14 +102,14 @@ export function SupabaseProvider({ children }) {
       import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 20) + "..."
     );
 
-    if (!supabase) {
+    if (!client) {
       console.error("SupabaseContext: Supabase client is null");
       setLoading(false);
       return;
     }
 
     // Monitor realtime connection state with detailed status tracking
-    const channel = supabase.channel("connection-monitor");
+    const channel = client.channel("connection-monitor");
 
     channel.subscribe((status, err) => {
       console.log("SupabaseContext: Realtime channel status:", status, err);
@@ -133,7 +141,7 @@ export function SupabaseProvider({ children }) {
     });
 
     // Initialize session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
+    client.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
         console.error("Error getting session:", error);
         setError(error);
@@ -146,7 +154,7 @@ export function SupabaseProvider({ children }) {
     // Listen for auth changes with detailed event tracking
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = client.auth.onAuthStateChange((event, session) => {
       console.log(
         "SupabaseContext: Auth state change:",
         event,
@@ -161,12 +169,12 @@ export function SupabaseProvider({ children }) {
 
     return () => {
       subscription.unsubscribe();
-      supabase.removeChannel(channel);
+      if (client) client.removeChannel(channel);
     };
   }, []);
 
   const value = {
-    supabase,
+    supabase: client ? client : null,
     session,
     user,
     currentUser,

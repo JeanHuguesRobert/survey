@@ -76,6 +76,27 @@ export async function getRegisteredInstances(options = {}) {
   return data || [];
 }
 
+// Helper: create a remote client with isolated auth (no session persistence)
+function createRemoteClient(url, key) {
+  const hostKey = (() => {
+    try {
+      return new URL(url).host.replace(/[:]/g, "-");
+    } catch (e) {
+      return "remote";
+    }
+  })();
+
+  return createClient(url, key || "", {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+      detectSessionInUrl: false,
+      storageKey: `sb-remote-${hostKey}`,
+      storage: typeof window !== "undefined" ? window.localStorage : undefined,
+    },
+  });
+}
+
 /**
  * Enregistre cette instance dans le réseau fédéré d'un hub
  * @param {string} hubUrl - URL du hub (régional ou national)
@@ -84,7 +105,7 @@ export async function getRegisteredInstances(options = {}) {
  */
 export async function registerWithHub(hubUrl, apiKey) {
   try {
-    const hubClient = createClient(hubUrl, apiKey);
+    const hubClient = createRemoteClient(hubUrl, apiKey);
 
     const { data, error } = await hubClient
       .from("federation_registry")
@@ -135,7 +156,7 @@ export async function discoverRemoteConsultations(instanceUrl, apiKey = null, fi
   try {
     // Si on a une clé API, créer un client Supabase
     if (apiKey) {
-      const remoteClient = createClient(instanceUrl, apiKey);
+      const remoteClient = createRemoteClient(instanceUrl, apiKey);
 
       let query = remoteClient
         .from("consultations")
@@ -195,7 +216,7 @@ export async function discoverRemoteConsultations(instanceUrl, apiKey = null, fi
  */
 export async function fetchRemoteConsultation(instanceUrl, consultationId, apiKey) {
   try {
-    const remoteClient = createClient(instanceUrl, apiKey);
+    const remoteClient = createRemoteClient(instanceUrl, apiKey);
 
     const { data, error } = await remoteClient
       .from("consultations")
@@ -351,7 +372,10 @@ export async function syncResponsesToSource(consultationId) {
     }
 
     // Créer le client pour l'instance source
-    const sourceClient = createClient(consultation.source_instance, consultation.sync_api_key);
+    const sourceClient = createRemoteClient(
+      consultation.source_instance,
+      consultation.sync_api_key
+    );
 
     let synced = 0;
     let failed = 0;
