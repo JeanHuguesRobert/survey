@@ -377,7 +377,11 @@ export default function PostView({ currentUser }) {
               <div className="flex gap-2">
                 {canEdit && (
                   <button
-                    onClick={() => navigate(`/posts/${id}/edit`)}
+                    onClick={() =>
+                      navigate(
+                        subtype === "incident" ? `/incidents/${id}/edit` : `/posts/${id}/edit`
+                      )
+                    }
                     className="text-sm px-3 py-1 bg-gray-100 hover:bg-gray-200 "
                   >
                     Modifier
