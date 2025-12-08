@@ -9,20 +9,19 @@
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
-import { createClient } from "@supabase/supabase-js";
-import dotenv from "dotenv";
 import crypto from "crypto";
+import { loadConfig, getConfigValue, createSupabaseClient } from "./lib/config.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables
-dotenv.config({ path: path.join(__dirname, "..", ".env") });
+// Charger la configuration
+await loadConfig();
 
 // Supabase client
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+const supabase = createSupabaseClient();
 
-const STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || "public-documents";
+const STORAGE_BUCKET = getConfigValue("supabase_storage_bucket", "public-documents");
 const SUPPORTED_EXTENSIONS = [
   ".txt",
   ".md",
