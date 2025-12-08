@@ -30,8 +30,8 @@ export default function FacebookDeletionInstructions() {
 
       <p className="mt-4">
         Si vous ne recevez pas de code ou si vous avez besoin d'assistance, contactez-nous à
-        <a href="mailto:privacy@example.com" className="ml-1 text-primary underline">
-          privacy@example.com
+        <a href="mailto:jean_hugues_robert@yahoo.com" className="ml-1 text-primary underline">
+          jean_hugues_robert@yahoo.com
         </a>
         .
       </p>
