@@ -5,7 +5,7 @@ COP core types and scheduler (v0.1).
 This package provides minimal TypeScript types and runtime interfaces for the Cognitive
 Orchestration Protocol core:
 
-- `COPEvent`, `Topic`, `Job`, `Step`, `Artifact`
+- `Event`, `Topic`, `Job`, `Step`, `Artifact`
 - `COPBus`, `COPStore`
 - `COPAgent`, `AgentContext`
 - `COPScheduler` with periodic `onTick` support

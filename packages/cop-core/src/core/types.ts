@@ -3,7 +3,7 @@
  * v0.1 minimal implementation.
  */
 
-export type COPEventType =
+export type EventType =
   | "user_message"
   | "assistant_reflex"
   | "assistant_update"
@@ -12,10 +12,10 @@ export type COPEventType =
   | "artifact_created"
   | (string & {});
 
-export interface COPEvent {
+export interface Event {
   id: string;
   topicId: string;
-  type: COPEventType;
+  type: EventType;
   createdAt: string; // ISO 8601
   payload: unknown;
   meta?: Record<string, unknown>;

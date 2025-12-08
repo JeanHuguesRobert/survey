@@ -1,18 +1,18 @@
-import { COPEvent } from "./types";
+import { Event } from "./types";
 
 /** Abstraction of event bus used by COP core. */
 export interface COPBus {
-  publish(event: COPEvent): Promise<void>;
+  publish(event: Event): Promise<void>;
 
   fetchSince(params: {
     topicId: string;
     since?: string;
     limit?: number;
-  }): Promise<COPEvent[]>;
+  }): Promise<Event[]>;
 
   // Optional: subscribe for real-time capable environments
   subscribe?: (
     params: { topicId: string },
-    onEvent: (event: COPEvent) => void
+    onEvent: (event: Event) => void
   ) => () => void;
 }
