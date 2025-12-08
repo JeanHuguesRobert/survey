@@ -79,7 +79,16 @@ export default function SiteFooter({
       });
 
       if (newSession.host_secret) {
-        localStorage.setItem(`cop_host_secret_${newSession.id}`, newSession.host_secret);
+        try {
+          // Do NOT persist host_secret in localStorage — copy it to clipboard and show an alert.
+          await navigator.clipboard.writeText(newSession.host_secret);
+          alert(
+            "Host secret copied to clipboard. Please store it safely; it will not be saved by this app."
+          );
+        } catch (e) {
+          // Fall back to showing it in an alert if clipboard is unavailable
+          alert("Host secret (copy and store it safely): " + newSession.host_secret);
+        }
       }
       navigate(`/cafe/${newSession.id}`);
     } catch (err) {
