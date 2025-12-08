@@ -54,6 +54,59 @@ export function CurrentUserProvider({ children }) {
     }
   }
 
+  /**
+   * Crée un profil utilisateur depuis les métadonnées OAuth
+   * Gère Facebook, GitHub et Google
+   */
+  const createProfileFromOAuth = useCallback(async (authUser) => {
+    if (!authUser?.id) return null;
+
+    const metadata = authUser.user_metadata || {};
+    const provider = metadata.provider || "unknown";
+
+    // Extraire l'avatar selon le provider
+    let avatarUrl = metadata.avatar_url || metadata.picture;
+
+    // Extraire le nom d'affichage
+    let displayName = metadata.full_name || metadata.name;
+    if (!displayName && authUser.email) {
+      displayName = authUser.email.split("@")[0];
+    }
+
+    const profileData = {
+      id: authUser.id,
+      email: authUser.email,
+      display_name: displayName,
+      metadata: {
+        avatarUrl: avatarUrl,
+        provider: provider,
+        schemaVersion: 1,
+        oauth_metadata: metadata, // Conserver pour référence
+      },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    try {
+      const { data, error } = await supabase
+        .from("users")
+        .upsert(profileData, { onConflict: ["id"] })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("[CurrentUserContext] Error creating profile from OAuth:", error);
+        return null;
+      }
+
+      console.log("[CurrentUserContext] Profile created from OAuth:", data);
+      return data;
+    } catch (err) {
+      console.error("[CurrentUserContext] Exception creating profile:", err);
+      return null;
+    }
+  }, []);
+
   // Centralized profile fetch logic
   const handleProfileFetch = useCallback(
     async (authUser) => {
@@ -162,59 +215,6 @@ export function CurrentUserProvider({ children }) {
     },
     [createProfileFromOAuth]
   );
-
-  /**
-   * Crée un profil utilisateur depuis les métadonnées OAuth
-   * Gère Facebook, GitHub et Google
-   */
-  const createProfileFromOAuth = useCallback(async (authUser) => {
-    if (!authUser?.id) return null;
-
-    const metadata = authUser.user_metadata || {};
-    const provider = metadata.provider || "unknown";
-
-    // Extraire l'avatar selon le provider
-    let avatarUrl = metadata.avatar_url || metadata.picture;
-
-    // Extraire le nom d'affichage
-    let displayName = metadata.full_name || metadata.name;
-    if (!displayName && authUser.email) {
-      displayName = authUser.email.split("@")[0];
-    }
-
-    const profileData = {
-      id: authUser.id,
-      email: authUser.email,
-      display_name: displayName,
-      metadata: {
-        avatarUrl: avatarUrl,
-        provider: provider,
-        schemaVersion: 1,
-        oauth_metadata: metadata, // Conserver pour référence
-      },
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    try {
-      const { data, error } = await supabase
-        .from("users")
-        .upsert(profileData, { onConflict: ["id"] })
-        .select()
-        .single();
-
-      if (error) {
-        console.error("[CurrentUserContext] Error creating profile from OAuth:", error);
-        return null;
-      }
-
-      console.log("[CurrentUserContext] Profile created from OAuth:", data);
-      return data;
-    } catch (err) {
-      console.error("[CurrentUserContext] Exception creating profile:", err);
-      return null;
-    }
-  }, []);
 
   // Auth state management
   useEffect(() => {
