@@ -349,7 +349,7 @@ export default function ActeDetail() {
                   {demandes.map((d) => (
                     <Link
                       key={d.id}
-                      to={`/actes/demandes/${d.id}`}
+                      to={`/demandes/${d.id}`}
                       className="block p-3 rounded border border-slate-200 hover:bg-slate-50 transition"
                     >
                       <div className="flex items-center justify-between">

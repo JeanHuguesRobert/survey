@@ -298,7 +298,7 @@ export default function ActesDashboard() {
             </div>
             <div className="flex gap-3">
               <Link
-                to="/actes/demandes"
+                to="/demandes"
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
               >
                 📩 Demandes CRPA
@@ -407,7 +407,7 @@ export default function ActesDashboard() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-slate-800">📩 Demandes en Attente</h2>
               <Link
-                to="/actes/demandes"
+                to="/demandes"
                 className="text-blue-600 hover:text-blue-800 text-sm font-medium"
               >
                 Voir toutes →
@@ -427,7 +427,7 @@ export default function ActesDashboard() {
                   {pendingDemandes.map((d) => (
                     <tr key={d.id} className="hover:bg-slate-50 border-b border-slate-100">
                       <td className="px-4 py-3 font-medium text-blue-600">
-                        <Link to={`/actes/demandes/${d.id}`}>
+                        <Link to={`/demandes/${d.id}`}>
                           {d.reference_interne || d.id.slice(0, 8)}
                         </Link>
                       </td>
@@ -494,7 +494,7 @@ export default function ActesDashboard() {
           <h2 className="text-xl font-semibold text-slate-800 mb-4">🚀 Actions Rapides</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Link
-              to="/actes/nouvelle-demande"
+              to="/demandes/nouvelle"
               className="bg-white border border-slate-200 rounded-lg p-5 hover:shadow-md transition-shadow flex items-center gap-4"
             >
               <span className="text-3xl">📝</span>
@@ -514,7 +514,7 @@ export default function ActesDashboard() {
               </div>
             </Link>
             <Link
-              to="/actes/recours"
+              to="/demandes"
               className="bg-white border border-slate-200 rounded-lg p-5 hover:shadow-md transition-shadow flex items-center gap-4"
             >
               <span className="text-3xl">⚖️</span>
