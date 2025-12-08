@@ -2,7 +2,6 @@
 // Variable d'env requise : OPENAI_API_KEY
 // Optionnelles : OCR_ENABLED, CANON_MODEL, EMBED_MODEL, JUDGE_MODEL, LOW_SIM, HIGH_SIM
 
-import 'dotenv/config';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import https from 'node:https';
@@ -13,6 +12,10 @@ import OpenAI from 'openai';
 import { convertPdfToMarkdown } from '../src/lib/pdfToMarkdown.js';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { loadConfig, getConfigValue, createOpenAIClient } from './lib/config.js';
+
+// Charger la configuration
+await loadConfig();
 
 // Prompts
 const PROMPT_CANON_SYSTEM_FR_OPHELIA = `
@@ -23,13 +26,13 @@ Règles générales
 - Neutralité stricte. Rien n’est inventé. Si une info manque: "" ou [].
 - Conserver l’ordre d’apparition. Si aucun numéro explicite: numéroter 1,2,3...
 - Nettoyer le bruit OCR (», }, >, ligatures, césures). Ignorer en-têtes/pieds « Page N ».
-- Toujours remplir: 
-  • order (entier) 
-  • raw (le passage source le plus représentatif du point) 
-  • title (court, informatif) 
-  • topic (sujet principal, 4–8 mots) 
-  • action (voir liste) 
-  • domain (voir liste) 
+- Toujours remplir:
+  • order (entier)
+  • raw (le passage source le plus représentatif du point)
+  • title (court, informatif)
+  • topic (sujet principal, 4–8 mots)
+  • action (voir liste)
+  • domain (voir liste)
   • keywords (3–8 termes utiles: montants, votes, lots, sigles, noms propres)
 
 Détection par type de document (automatique)
@@ -109,8 +112,8 @@ Normalisation :
 - Aliases : regrouper les variantes nominales et sigles.
 - sources/source : renseigner au moins le chemin de fichier du Markdown traité si rien d’autre.
 
-Champs à remplir conformément au schéma : 
-- people : name, role, org, aliases[], summary, sources[] 
+Champs à remplir conformément au schéma :
+- people : name, role, org, aliases[], summary, sources[]
 - orgs   : name, type, aliases[], summary, sources[]
 - places : name, kind, address, aliases[], summary, sources[]
 - projects : name, owner, status, budget_eur, tags[], summary, sources[]
@@ -146,15 +149,15 @@ const CONSEILS_MD_DIR = path.join(process.cwd(), 'public', 'docs', 'conseils'); 
 await fs.mkdir(CONSEIL_DIR, { recursive: true });
 await fs.mkdir(CONSEILS_MD_DIR, { recursive: true });
 
-const USE_MARKITDOWN = (process.env.USE_MARKITDOWN ?? '1') !== '0';
-const CANON_MODEL = process.env.CANON_MODEL || 'gpt-5';
-const JUDGE_MODEL = process.env.JUDGE_MODEL || CANON_MODEL;
-const EMBED_MODEL = process.env.EMBED_MODEL || 'text-embedding-3-large';
+const USE_MARKITDOWN = getConfigValue('use_markitdown', '1') !== '0';
+const CANON_MODEL = getConfigValue('canon_model', 'gpt-5');
+const JUDGE_MODEL = getConfigValue('judge_model', CANON_MODEL);
+const EMBED_MODEL = getConfigValue('embed_model', 'text-embedding-3-large');
 
 function chunkText(txt, max=14000){ const o=[]; for(let i=0;i<txt.length;i+=max) o.push(txt.slice(i,i+max)); return o; }
 function normKey(s){ return String(s||'').trim().toLowerCase(); }
 
-const OCR_SAMPLE_PAGES = Number(process.env.OCR_SAMPLE_PAGES || 3);
+const OCR_SAMPLE_PAGES = Number(getConfigValue('ocr_sample_pages', 3));
 
 async function collectPdfStats(pdfPath, standardFontDataUrl) {
   const bytes = (await fs.stat(pdfPath)).size;
@@ -195,12 +198,12 @@ async function collectPdfStats(pdfPath, standardFontDataUrl) {
   return { bytes, pages: Math.max(pages,1), textChars: Math.max(textChars,0), imageMarkers };
 }
 
-const HI_BPP   = Number(process.env.OCR_SIZE_PPX_HI || 250_000); // 250 kB/page
-const LO_BPP   = Number(process.env.OCR_SIZE_PPX_LO || 120_000); // 120 kB/page
-const MIN_TPP  = Number(process.env.OCR_TEXT_PER_PAGE_MIN || 150);
-const MIN_TXT  = Number(process.env.OCR_TEXT_MIN || 800);
-const HI_IMGPP = Number(process.env.OCR_IMG_PER_PAGE_HI || 1.0);
-const LO_IMGPP = Number(process.env.OCR_IMG_PER_PAGE_LO || 0.5);
+const HI_BPP   = Number(getConfigValue('ocr_size_ppx_hi', 250_000)); // 250 kB/page
+const LO_BPP   = Number(getConfigValue('ocr_size_ppx_lo', 120_000)); // 120 kB/page
+const MIN_TPP  = Number(getConfigValue('ocr_text_per_page_min', 150));
+const MIN_TXT  = Number(getConfigValue('ocr_text_min', 800));
+const HI_IMGPP = Number(getConfigValue('ocr_img_per_page_hi', 1.0));
+const LO_IMGPP = Number(getConfigValue('ocr_img_per_page_lo', 0.5));
 
 function shouldOCR({ bytes, pages, textChars, imageMarkers }) {
   const bpp  = bytes / Math.max(1,pages);
@@ -226,15 +229,15 @@ function shouldOCR({ bytes, pages, textChars, imageMarkers }) {
  * @returns {[string, string[]]} [cmd, preArgs]
  */
 export function pythonLauncher() {
-  const envCmd = process.env.PYTHON_EXE || process.env.PYTHON;
+  const envCmd = getConfigValue('python_exe') || getConfigValue('python');
   if (envCmd) return [envCmd, []];
 
   if (process.platform === 'win32') {
-    const ver = process.env.PY_PYVER || '-3.13';
+    const ver = getConfigValue('py_pyver', '-3.13');
     return ['py', [ver]]; // ex: py -3.13 -m markitdown ...
   }
   // *nix
-  return [process.env.PY_CMD || 'python3', []];
+  return [getConfigValue('py_cmd', 'python3'), []];
 }
 
 /**
@@ -436,7 +439,7 @@ async function pdfToMarkdown(pdfPath, u8, opts = {}) {
     // exécution MarkItDown via le lanceur Python
     const tmpDir  = await fs.mkdtemp(path.join(os.tmpdir(), 'markitdown-'));
     const outPath = path.join(tmpDir, path.basename(mdPath));
-    const launcher = process.platform === 'win32' ? 'py' : (process.env.PYTHON || 'python3');
+    const launcher = process.platform === 'win32' ? 'py' : (getConfigValue('python', 'python3'));
 
     try {
       console.log('  MarkItDown', absIn, '->', outPath);
@@ -465,15 +468,15 @@ async function pdfToMarkdown(pdfPath, u8, opts = {}) {
 }
 
 // ---------- Configuration ----------
-if (!process.env.OPENAI_API_KEY) {
+if (!getConfigValue('openai_api_key')) {
   console.error('Erreur : OPENAI_API_KEY manquant (.env ou variable d’environnement).');
   process.exit(1);
 }
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const client = createOpenAIClient();
 
-const OCR_ENABLED = (process.env.OCR_ENABLED ?? '1') !== '0';
-const LOW_SIM  = Number.parseFloat(process.env.LOW_SIM  || '0.55');
-const HIGH_SIM = Number.parseFloat(process.env.HIGH_SIM || '0.82');
+const OCR_ENABLED = getConfigValue('ocr_enabled', '1') !== '0';
+const LOW_SIM  = Number.parseFloat(getConfigValue('low_sim', '0.55'));
+const HIGH_SIM = Number.parseFloat(getConfigValue('high_sim', '0.82'));
 
 // ---------- Caches en mémoire ----------
 const pdfCache = new Map();           // key: `pdfText-<path>` -> string
@@ -811,11 +814,11 @@ function mdEscape(s=''){ return sstr(s).replace(/\|/g,'\\|'); }
 
 import crypto from 'node:crypto';
 
-const CANON_CACHE_DIR = process.env.CANON_CACHE_DIR ||
+const CANON_CACHE_DIR = getConfigValue('canon_cache_dir') ||
   path.join(process.cwd(), 'public', 'docs', 'conseils', 'cache', 'canon');
 
-const CANON_PROMPT_VERSION = process.env.CANON_PROMPT_VERSION || 'v1'; // incrémentez si vous changez le prompt few-shot
-const CANON_CACHE_TTL_SEC = Number(process.env.CANON_CACHE_TTL_SEC || 0); // 0 = pas d’expiration
+const CANON_PROMPT_VERSION = getConfigValue('canon_prompt_version', 'v1'); // incrémentez si vous changez le prompt few-shot
+const CANON_CACHE_TTL_SEC = Number(getConfigValue('canon_cache_ttl_sec', 0)); // 0 = pas d’expiration
 
 // Mémoire (process) pour accélérer les re-calls instantanés
 const memCache = new Map();
@@ -888,7 +891,7 @@ async function writeCache(key, hint = {}, valueObj) {
  * - `opts` : { model, date, sourceUrl, promptVersion }
  */
 export async function canonizeItemsCached(llmCanonFn, text, kind, opts = {}) {
-  const model = opts.model || process.env.CANON_MODEL || 'gpt-5-thinking';
+  const model = opts.model || getConfigValue('canon_model', 'gpt-5-thinking');
   const promptVersion = opts.promptVersion || CANON_PROMPT_VERSION;
 
   const key = buildKey({ text, kind, model, promptVersion });
@@ -1077,10 +1080,10 @@ ARTICLE 1 — Attribution d’une subvention de 5 000 € à l’association X�
 }
 
 // ---------- Embeddings ----------
-const BATCH_SIZE  = Number(process.env.EMBED_BATCH_SIZE || 64);
-const MAX_RETRY   = Number(process.env.EMBED_MAX_RETRY || 5);
-const BASE_DELAY  = Number(process.env.EMBED_BASE_DELAY_MS || 400);
-const CACHE_DIR   = process.env.EMBED_CACHE_DIR ||
+const BATCH_SIZE  = Number(getConfigValue('embed_batch_size', 64));
+const MAX_RETRY   = Number(getConfigValue('embed_max_retry', 5));
+const BASE_DELAY  = Number(getConfigValue('embed_base_delay_ms', 400));
+const CACHE_DIR   = getConfigValue('embed_cache_dir') ||
   path.join(process.cwd(), 'public', 'docs', 'conseil', 'cache', 'emb');
 
 // --- utils
@@ -1110,7 +1113,7 @@ async function embedBatchSerial(inputs, model=EMBED_MODEL){
       const delay = BASE_DELAY * Math.pow(2, attempt-1) + Math.floor(Math.random()*100);
       // 429/5xx → backoff
       await new Promise(r=>setTimeout(r, delay));
-      if (process.env.DEBUG_AUDIT === '1'){
+      if (getConfigValue('debug_audit') === '1'){
         console.warn(`[embed-batch retry ${attempt}] code=${code} wait=${delay}ms`);
       }
     }
