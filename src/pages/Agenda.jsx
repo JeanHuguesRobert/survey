@@ -37,6 +37,9 @@ export default function Agenda() {
   const [mapCenter, setMapCenter] = useState(null);
   const [mapZoom, setMapZoom] = useState(13);
   const [locationModalPost, setLocationModalPost] = useState(null);
+  const [showFullHistory, setShowFullHistory] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const HISTORY_PAGE_SIZE = 6;
 
   useEffect(() => {
     setSelectedGazette(initialGazette);
@@ -114,12 +117,27 @@ export default function Agenda() {
   });
 
   const now = new Date();
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
   const upcomingEvents = filteredEvents
     .filter((event) => event.eventDate >= now)
     .sort((a, b) => a.eventDate - b.eventDate);
-  const pastEvents = filteredEvents
+
+  const allPastEvents = filteredEvents
     .filter((event) => event.eventDate < now)
     .sort((a, b) => b.eventDate - a.eventDate);
+
+  // Recent past events (within last week)
+  const recentPastEvents = allPastEvents.filter((event) => event.eventDate >= oneWeekAgo);
+
+  // Older events (more than 1 week ago)
+  const olderPastEvents = allPastEvents.filter((event) => event.eventDate < oneWeekAgo);
+
+  // Pagination for full history view
+  const totalHistoryPages = Math.ceil(allPastEvents.length / HISTORY_PAGE_SIZE);
+  const paginatedPastEvents = showFullHistory
+    ? allPastEvents.slice((historyPage - 1) * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE)
+    : recentPastEvents;
 
   const handleViewOnMap = (location) => {
     if (location && location.lat && location.lng) {
@@ -347,11 +365,75 @@ export default function Agenda() {
               )}
             </section>
             <section>
-              <h2 className="text-2xl font-['Playfair_Display'] mb-4">Passés</h2>
-              {pastEvents.length === 0 ? (
-                <p className="italic text-sm text-[#4b3c2f]">Pas d'événement passé enregistré.</p>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-['Playfair_Display']">
+                  {showFullHistory ? "Historique complet" : "Passés récemment"}
+                </h2>
+                {allPastEvents.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowFullHistory(!showFullHistory);
+                      setHistoryPage(1);
+                    }}
+                    className="text-sm font-sans px-3 py-1 border border-[#2c241b] rounded-full hover:bg-[#2c241b] hover:text-[#f4e4bc] transition"
+                  >
+                    {showFullHistory ? "← Voir récents" : `📚 Voir tout (${allPastEvents.length})`}
+                  </button>
+                )}
+              </div>
+
+              {paginatedPastEvents.length === 0 ? (
+                <p className="italic text-sm text-[#4b3c2f]">
+                  {showFullHistory
+                    ? "Pas d'événement passé enregistré."
+                    : "Aucun événement passé cette semaine."}
+                </p>
               ) : (
-                <div className="grid gap-4">{pastEvents.map(renderEventCard)}</div>
+                <>
+                  <div className="grid gap-4">{paginatedPastEvents.map(renderEventCard)}</div>
+
+                  {/* Show hint about older events when not in full history mode */}
+                  {!showFullHistory && olderPastEvents.length > 0 && (
+                    <p className="text-center text-sm text-[#4b3c2f] mt-4 italic">
+                      {olderPastEvents.length} événement{olderPastEvents.length > 1 ? "s" : ""} plus
+                      ancien{olderPastEvents.length > 1 ? "s" : ""} masqué
+                      {olderPastEvents.length > 1 ? "s" : ""}.{" "}
+                      <button
+                        type="button"
+                        onClick={() => setShowFullHistory(true)}
+                        className="underline hover:text-[#2c241b]"
+                      >
+                        Afficher l'historique complet
+                      </button>
+                    </p>
+                  )}
+
+                  {/* Pagination controls for full history */}
+                  {showFullHistory && totalHistoryPages > 1 && (
+                    <div className="flex justify-center items-center gap-4 mt-6 font-sans">
+                      <button
+                        type="button"
+                        onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
+                        disabled={historyPage === 1}
+                        className="px-3 py-1 border border-[#2c241b] rounded disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#2c241b] hover:text-[#f4e4bc] transition"
+                      >
+                        ← Précédent
+                      </button>
+                      <span className="text-sm">
+                        Page {historyPage} / {totalHistoryPages}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setHistoryPage((p) => Math.min(totalHistoryPages, p + 1))}
+                        disabled={historyPage === totalHistoryPages}
+                        className="px-3 py-1 border border-[#2c241b] rounded disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#2c241b] hover:text-[#f4e4bc] transition"
+                      >
+                        Suivant →
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </section>
           </div>
