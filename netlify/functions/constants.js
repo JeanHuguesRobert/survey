@@ -1,7 +1,17 @@
+import { getGitHubConfig, getConfigValue } from "../lib/instanceConfig.js";
+
+// Export synchrone pour rétrocompatibilité (utilise vault avec fallback env vars)
 export const GITHUB_CONFIG = {
   owner: "jeanhuguesrobert",
   repo: "pertitellu",
   branch: "main",
   wikiPath: "wiki",
-  token: process.env.GITHUB_TOKEN,
+  get token() {
+    return getConfigValue("github_token");
+  },
 };
+
+// Export asynchrone pour utiliser le vault
+export async function getGitHubConfigAsync() {
+  return await getGitHubConfig();
+}
