@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getConfigValue } from "./lib/instanceConfig.js";
 
 export const config = { path: "/api/fil/item/*" };
 
@@ -14,7 +15,9 @@ export default async function handler(request) {
     });
   }
 
-  const supabase = createClient(Deno.env.get("SUPABASE_URL"), Deno.env.get("SUPABASE_ANON_KEY"));
+  const supabaseUrl = getConfigValue("supabase_url");
+  const supabaseAnonKey = getConfigValue("supabase_anon_key");
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
   // Fetch post with author
   const { data: post, error } = await supabase
