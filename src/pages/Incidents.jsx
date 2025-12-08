@@ -326,10 +326,10 @@ export default function Incidents() {
         )}
         <div>
           <Link
-            to={`/posts/${item.id}`}
+            to={`/incidents/${item.id}`}
             className="inline-flex items-center gap-2 text-sm font-semibold text-[#2c241b] underline"
           >
-            📄 Consulter le post
+            📄 Consulter l'incident
           </Link>
         </div>
       </article>

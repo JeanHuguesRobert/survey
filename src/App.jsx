@@ -54,6 +54,7 @@ import Gazette from "./pages/Gazette";
 import Agenda from "./pages/Agenda";
 import Incidents from "./pages/Incidents";
 import IncidentEditor from "./pages/IncidentEditor";
+import IncidentPage from "./pages/IncidentPage";
 import SurveyModeEmploi from "./pages/SurveyModeEmploi";
 import MarkdownViewer from "./pages/MarkdownViewer";
 import PublicFileHandler from "./components/common/PublicFileHandler";
@@ -150,6 +151,7 @@ export function App() {
         <Route path="/agenda" element={<Agenda />} />
         <Route path="/incidents" element={<Incidents />} />
         <Route path="/incidents/new" element={<IncidentEditor />} />
+        <Route path="/incidents/:id" element={<IncidentPage />} />
         <Route path="/incidents/:id/edit" element={<IncidentEditor />} />
         <Route path="/social" element={<Social />} />
         <Route path="/users/:id" element={<UserPage />} />

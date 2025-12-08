@@ -159,7 +159,7 @@ export default function IncidentEditorForm({ post, currentUser }) {
           .select()
           .single();
         if (updateError) throw updateError;
-        navigate(`/posts/${post.id}`);
+        navigate(`/incidents/${post.id}`);
       } else {
         const { data: newPost, error: insertError } = await supabase
           .from("posts")
@@ -171,7 +171,7 @@ export default function IncidentEditorForm({ post, currentUser }) {
         await supabase
           .from("content_subscriptions")
           .insert({ user_id: currentUser.id, content_type: "post", content_id: newPost.id });
-        navigate(`/posts/${newPost.id}`);
+        navigate(`/incidents/${newPost.id}`);
       }
     } catch (err) {
       console.error("Erreur enregistrement incident:", err);
