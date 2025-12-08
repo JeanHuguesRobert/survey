@@ -1,6 +1,6 @@
 import http from "http";
 import { createClient } from "@supabase/supabase-js";
-import bus from "./cop/supabaseBus.js";
+import createBus from "./cop/bus.js";
 import store from "./cop/supabaseStore.js";
 import opheliaAgent from "./agents/opheliaAgent.js";
 import ragAgent from "./agents/ragAgent.js";
@@ -13,7 +13,10 @@ let lastHeartbeat = new Date().toISOString();
 let workers = [];
 
 let readClient = null;
+let bus = null;
 async function init() {
+  // Allow switching bus implementation via env var COP_BUS
+  bus = createBus({ type: process.env.COP_BUS || "supabase" });
   await bus.initBus();
   await store.initStore();
   // local read client for subscription wildcard

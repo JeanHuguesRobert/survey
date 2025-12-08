@@ -17,28 +17,23 @@ function client() {
   return supabase;
 }
 
-export async function createConversation({
-  title,
-  description,
-  created_by = null,
-  metadata = {},
-} = {}) {
-  // Insert into cop_topic (new canonical table). Keep handler name for backwards compat.
-  const payload = { title, metadata: { ...(metadata || {}), description } };
+export async function createTopic({ title, description, created_by = null, metadata = {} } = {}) {
+  // Insert into cop_topic (canonical table)
+  const payload = { title, metadata: { ...(metadata || {}), description }, created_by };
   const { data, error } = await client().from("cop_topic").insert([payload]).select().single();
   if (error) throw error;
   return data;
 }
 
-export async function getConversation(id) {
+export async function getTopic(id) {
   // Read from cop_topic
   const { data, error } = await client().from("cop_topic").select().eq("id", id).single();
   if (error) throw error;
   return data;
 }
 
-export async function listConversations({ limit = 50, offset = 0 } = {}) {
-  // List cop_topic rows, preserving function signature for compatibility
+export async function listTopics({ limit = 50, offset = 0 } = {}) {
+  // List cop_topic rows
   const { data, error } = await client()
     .from("cop_topic")
     .select()
@@ -49,7 +44,7 @@ export async function listConversations({ limit = 50, offset = 0 } = {}) {
 }
 
 export async function createParticipant({
-  conversation_id,
+  topic_id,
   user_id = null,
   role = "participant",
   metadata = {},
@@ -57,46 +52,11 @@ export async function createParticipant({
   // Participants table uses topic_id
   const { data, error } = await client()
     .from("cop_participants")
-    .insert([{ topic_id: conversation_id, user_id, role, metadata }])
+    .insert([{ topic_id, user_id, role, metadata }])
     .select()
     .single();
   if (error) throw error;
   return data;
-}
-
-export async function createMessage({
-  conversation_id,
-  participant_id = null,
-  content,
-  content_type = "text",
-  metadata = {},
-} = {}) {
-  // Older API used cop_messages; modern COP design uses cop_event with type 'user_message'.
-  // Insert an event row and return a message-like object for compatibility.
-  const { data: ev, error: evErr } = await client()
-    .from("cop_event")
-    .insert([
-      {
-        topic_id: conversation_id,
-        type: "user_message",
-        payload: { content, participant_id, content_type },
-        meta: metadata,
-      },
-    ])
-    .select()
-    .single();
-  if (evErr) throw evErr;
-  // Map event to a compatible message object
-  const msg = {
-    id: ev.id,
-    topic_id: ev.topic_id,
-    participant_id,
-    content,
-    content_type,
-    metadata,
-    created_at: ev.created_at,
-  };
-  return msg;
 }
 
 export async function createEvent({
@@ -115,33 +75,47 @@ export async function createEvent({
   return data;
 }
 
-export async function listMessages(conversation_id, { limit = 100, offset = 0 } = {}) {
-  // Return COP events of type user_message, mapped to message-like objects for compatibility
-  const { data, error } = await client()
+export async function createUserMessage({
+  topic_id,
+  participant_id = null,
+  content,
+  content_type = "text",
+  metadata = {},
+} = {}) {
+  // Shortcut for creating a user_message event (canonical)
+  if (!content) throw new Error("content required for user_message");
+  const { data: ev, error: evErr } = await client()
     .from("cop_event")
-    .select("*")
-    .eq("topic_id", conversation_id)
-    .eq("type", "user_message")
+    .insert([
+      {
+        topic_id,
+        type: "user_message",
+        payload: { content, participant_id, content_type },
+        meta: metadata,
+      },
+    ])
+    .select()
+    .single();
+  if (evErr) throw evErr;
+  return ev;
+}
+
+export async function listEvents(topic_id, { limit = 100, offset = 0, type = null } = {}) {
+  const q = client().from("cop_event").select("*").eq("topic_id", topic_id);
+  if (type) q.eq("type", type);
+  const { data, error } = await q
     .order("created_at", { ascending: true })
     .range(offset, offset + limit - 1);
   if (error) throw error;
-  // Map events to message-like objects
-  return data.map((ev) => ({
-    id: ev.id,
-    topic_id: ev.topic_id,
-    participant_id: ev.payload?.participant_id || null,
-    content: ev.payload?.content || null,
-    content_type: ev.payload?.content_type || "text",
-    metadata: ev.meta || {},
-    created_at: ev.created_at,
-  }));
+  return data;
 }
 
 export default {
-  createConversation,
-  getConversation,
-  listConversations,
+  createTopic,
+  getTopic,
+  listTopics,
   createParticipant,
-  createMessage,
-  listMessages,
+  createEvent,
+  createUserMessage,
+  listEvents,
 };

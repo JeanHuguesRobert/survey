@@ -1,4 +1,4 @@
-import bus from "./cop/supabaseBus.js";
+import createBus from "./cop/bus.js";
 import store from "./cop/supabaseStore.js";
 import ophAgent from "./agents/ophéliaAgent.js";
 
@@ -14,18 +14,19 @@ export class MCPscheduler {
   }
 
   async init() {
-    await bus.initBus();
+    this.bus = createBus({ type: process.env.COP_BUS || "supabase" });
+    await this.bus.initBus();
     await store.initStore();
   }
 
   async processEvents() {
-    const events = await bus.fetchSince({ since: this.lastSeen, limit: 500 });
+    const events = await this.bus.fetchSince({ since: this.lastSeen, limit: 500 });
     if (!events || events.length === 0) return;
     for (const e of events) {
       for (const agent of this.agents) {
         try {
           if (agent.onEvent)
-            await agent.onEvent(e, { bus, store, now: () => new Date().toISOString() });
+            await agent.onEvent(e, { bus: this.bus, store, now: () => new Date().toISOString() });
         } catch (err) {
           console.error(`Agent ${agent.name || "unnamed"} onEvent error`, err?.message || err);
         }
@@ -38,7 +39,7 @@ export class MCPscheduler {
     for (const agent of this.agents) {
       if (agent.onTick) {
         try {
-          await agent.onTick({ bus, store, now: () => new Date().toISOString() });
+          await agent.onTick({ bus: this.bus, store, now: () => new Date().toISOString() });
         } catch (err) {
           console.error(`Agent ${agent.name || "unnamed"} onTick error`, err?.message || err);
         }
@@ -61,7 +62,11 @@ export class MCPscheduler {
           for (const a of this.agents) {
             if (a.onJob) {
               try {
-                await a.onJob(claimed, { bus, store, now: () => new Date().toISOString() });
+                await a.onJob(claimed, {
+                  bus: this.bus,
+                  store,
+                  now: () => new Date().toISOString(),
+                });
               } catch (e) {
                 console.error("agent onJob error", e);
               }
@@ -70,7 +75,7 @@ export class MCPscheduler {
         } else {
           for (const h of handlers) {
             try {
-              await h.onJob(claimed, { bus, store, now: () => new Date().toISOString() });
+              await h.onJob(claimed, { bus: this.bus, store, now: () => new Date().toISOString() });
             } catch (e) {
               console.error("agent onJob error", e);
             }

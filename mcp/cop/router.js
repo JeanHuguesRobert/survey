@@ -7,33 +7,33 @@ router.get("/health", (req, res) => {
   res.json({ ok: true, service: "cop", version: "0.1" });
 });
 
-router.get("/conversations", async (req, res) => {
+router.get("/topics", async (req, res) => {
   try {
     const limit = parseInt(req.query.limit || "50");
     const offset = parseInt(req.query.offset || "0");
-    const rows = await db.listConversations({ limit, offset });
+    const rows = await db.listTopics({ limit, offset });
     res.json({ data: rows });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-router.post("/conversations", async (req, res) => {
+router.post("/topics", async (req, res) => {
   try {
     const { title, description, created_by = null, metadata = {} } = req.body;
-    const conv = await db.createConversation({ title, description, created_by, metadata });
-    res.status(201).json(conv);
+    const topic = await db.createTopic({ title, description, created_by, metadata });
+    res.status(201).json(topic);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
 // Participants
-router.post("/conversations/:id/participants", async (req, res) => {
+router.post("/topics/:id/participants", async (req, res) => {
   try {
     const { user_id = null, role = "participant", metadata = {} } = req.body;
     const participant = await db.createParticipant({
-      conversation_id: req.params.id,
+      topic_id: req.params.id,
       user_id,
       role,
       metadata,
@@ -44,49 +44,57 @@ router.post("/conversations/:id/participants", async (req, res) => {
   }
 });
 
-router.get("/conversations/:id", async (req, res) => {
+router.get("/topics/:id", async (req, res) => {
   try {
-    const conv = await db.getConversation(req.params.id);
-    if (!conv) return res.status(404).json({ error: "Conversation not found" });
-    res.json(conv);
+    const topic = await db.getTopic(req.params.id);
+    if (!topic) return res.status(404).json({ error: "Topic not found" });
+    res.json(topic);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-router.get("/conversations/:id/messages", async (req, res) => {
+router.get("/topics/:id/events", async (req, res) => {
   try {
     const limit = parseInt(req.query.limit || "100");
     const offset = parseInt(req.query.offset || "0");
-    const rows = await db.listMessages(req.params.id, { limit, offset });
+    const type = req.query.type || null;
+    const rows = await db.listEvents(req.params.id, { limit, offset, type });
     res.json({ data: rows });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-router.post("/conversations/:id/messages", async (req, res) => {
+router.post("/topics/:id/events", async (req, res) => {
   try {
-    const { participant_id = null, content, content_type = "text", metadata } = req.body;
-    if (!content) return res.status(400).json({ error: "content is required" });
-    const message = await db.createMessage({
-      conversation_id: req.params.id,
-      participant_id,
+    const {
+      participant_id = null,
       content,
-      content_type,
+      content_type = "text",
       metadata,
-    });
-    // db.createMessage now writes an event into cop_event (user_message) for compatibility.
-    res.status(201).json(message);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-router.post("/conversations/:id/events", async (req, res) => {
-  try {
-    const { type, payload = {}, meta = {}, created_by = null } = req.body;
-    const ev = await db.createEvent({ topic_id: req.params.id, type, payload, meta, created_by });
+      type = "user_message",
+    } = req.body;
+    if (!content && type === "user_message")
+      return res.status(400).json({ error: "content is required" });
+    let ev;
+    if (type === "user_message") {
+      ev = await db.createUserMessage({
+        topic_id: req.params.id,
+        participant_id,
+        content,
+        content_type,
+        metadata,
+      });
+    } else {
+      ev = await db.createEvent({
+        topic_id: req.params.id,
+        type,
+        payload: req.body.payload || {},
+        meta: metadata,
+        created_by: participant_id,
+      });
+    }
     res.status(201).json(ev);
   } catch (e) {
     res.status(500).json({ error: e.message });

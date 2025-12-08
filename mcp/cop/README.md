@@ -10,6 +10,23 @@ Usage:
 
 Env vars: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `SUPABASE_ANON_KEY`.
 
+Bus abstraction:
+
+- The repository includes a bus abstraction at `mcp/cop/bus.js` that chooses a bus implementation at
+  runtime based on the `COP_BUS` environment variable.
+- Supported values:
+  - `supabase` (default) — uses `mcp/cop/supabaseBus.js`.
+  - `ws` — uses `mcp/cop/wsBus.js` (websocket-based bus).
+
+Example (shell):
+
+```bash
+# Use the websocket bus instead of the default supabase bus
+COP_BUS=ws npm run start
+```
+
+Or set `COP_BUS` in your Netlify environment variables if deploying Edge functions.
+
 Note: This is a minimal starting point; implement robust job claiming/lock semantics in the store
 for Deno Edge function workers.
 
