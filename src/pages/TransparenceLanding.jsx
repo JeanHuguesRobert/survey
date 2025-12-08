@@ -232,8 +232,8 @@ const MATURITY_LEVELS = [
 
 // Engagements de la charte
 const CHARTER_COMMITMENTS = [
-  "Publier l'ordre du jour des conseils municipaux 7 jours avant",
-  "Diffuser les délibérations sous 48h après le conseil",
+  "Publier sur Internet l'ordre du jour des conseils municipaux 7 jours avant",
+  "Diffuser sur Internet les délibérations sous 48h après le conseil",
   "Rendre accessible le budget communal de manière lisible",
   "Répondre aux questions citoyennes sous 15 jours",
   "Publier les déclarations d'intérêts des élus",
