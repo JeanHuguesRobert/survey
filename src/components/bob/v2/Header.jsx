@@ -1,4 +1,5 @@
 import React from "react";
+import { getConfig } from "../../../lib/instanceConfig";
 
 export default function Header({
   botName = "Ophélia",
@@ -8,7 +9,7 @@ export default function Header({
   onSignIn = () => {},
   onSignOut = () => {},
 }) {
-  const facebookPageUrl = import.meta.env.VITE_FACEBOOK_PAGE_URL;
+  const facebookPageUrl = getConfig("facebook_page_url", import.meta.env.VITE_FACEBOOK_PAGE_URL);
 
   return (
     <div className={`chat-header ${isMobile ? "mobile" : ""}`}>
