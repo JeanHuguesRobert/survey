@@ -1,11 +1,10 @@
-import { createClient } from "@supabase/supabase-js";
-import OpenAI from "openai";
-import dotenv from "dotenv";
+import { loadConfig, createSupabaseClient, createOpenAIClient } from "./lib/config.js";
 
-dotenv.config();
+// Charger la configuration
+await loadConfig();
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const supabase = createSupabaseClient();
+const openai = await createOpenAIClient();
 
 async function testVectorSearch(query) {
   console.log(`🔍 Testing vector search for: "${query}"`);
