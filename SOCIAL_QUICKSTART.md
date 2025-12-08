@@ -190,7 +190,8 @@ ORDER BY gm.created_at ASC;
 
 ### useAuth hook erreur
 
-→ Vérifier que `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY` sont dans `.env`
+→ Vérifier que `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY` sont dans `.env` → Voir aussi
+`docs/CONFIGURATION_VAULT.md` pour le système de configuration centralisé
 
 ### Commentaires imbriqués ne s'affichent pas
 
