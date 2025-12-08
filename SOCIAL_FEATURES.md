@@ -72,6 +72,24 @@ Toutes les tables utilisent un champ `metadata jsonb` avec :
 }
 ```
 
+### Audit fields (`metadata.lastModifiedBy`)
+
+We store the full edit ledger in `metadata.lastModifiedBy` as an ordered array of entries:
+
+```javascript
+lastModifiedBy: [
+  { id: "user_uuid", displayName: "Alice", timestampISO: "2025-12-02T10:00:00.000Z" },
+  { id: "moderator_uuid", displayName: "Editor Bob", timestampISO: "2025-12-03T12:30:00.000Z" },
+];
+```
+
+Rules:
+
+- Stored entries are ordered with the newest first.
+- A helper appends or merges entries (consecutive edits by the same user within 1 hour are merged).
+- Reads fallback to the `author_id`/`created_at` when the array is missing; we do not persist this
+  fallback until an actual edit occurs.
+
 **Avantages** :
 
 - Extensibilité sans migration SQL
