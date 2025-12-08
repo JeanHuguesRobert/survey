@@ -1,15 +1,16 @@
 import fs from "fs";
 import path from "path";
 import OpenAI from "openai";
-import dotenv from "dotenv";
+import { loadConfig, getConfigValue } from "./lib/config.js";
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+// Charger la configuration
+await loadConfig();
 
 const COUNCIL_FILE = path.resolve("public", "docs", "conseils", "conseil-consolidated.md");
 const OUTPUT_FILE = COUNCIL_FILE.replace(".md", ".semantic.md");
 const JSON_OUTPUT = COUNCIL_FILE.replace(".md", ".semantic.json");
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({ apiKey: getConfigValue("openai_api_key") });
 
 // ============================================================================
 // EXTRACTION SÉMANTIQUE
@@ -195,7 +196,7 @@ async function main() {
   console.log("═══════════════════════════════════════════════════════\n");
 
   // Vérifications
-  if (!process.env.OPENAI_API_KEY) {
+  if (!getConfigValue("openai_api_key")) {
     console.error("❌ OPENAI_API_KEY manquant dans .env");
     process.exit(1);
   }
