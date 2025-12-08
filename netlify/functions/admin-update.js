@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { loadInstanceConfig, getConfigValue } from "../lib/instanceConfig.js";
 
 // This function expects the following env vars set in Netlify:
 // - SUPABASE_URL
@@ -8,8 +9,11 @@ export const handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  // Charger la configuration
+  await loadInstanceConfig();
+  const supabaseUrl = getConfigValue("supabase_url");
+  const supabaseKey = getConfigValue("supabase_service_role_key");
   if (!supabaseUrl || !supabaseKey) {
     return { statusCode: 500, body: "Server misconfiguration: missing Supabase keys" };
   }
@@ -18,6 +22,7 @@ export const handler = async (event) => {
   const supabase = createClient(supabaseUrl, supabaseKey, {
     auth: { persistSession: false },
   });
+
   // Expect the frontend to include the requestor UUID (temporary prototype):
   // either in header `x-requestor-id` or in the JSON body as `requestorId`.
   let requestorId = event.headers["x-requestor-id"] || event.headers["X-Requestor-Id"];
@@ -34,9 +39,8 @@ export const handler = async (event) => {
     return { statusCode: 403, body: "Forbidden: missing requestor id" };
   }
 
-  // Validate that requestorId matches the auth user id for the contact email (weak prototype check)
-  // On the server we expect the non-VITE var `CONTACT_EMAIL` to be configured; fall back to VITE_CONTACT_EMAIL if present.
-  const contactEmail = process.env.CONTACT_EMAIL || process.env.VITE_CONTACT_EMAIL;
+  // Validate that requestorId matches the auth user id for the contact email
+  const contactEmail = getConfigValue("contact_email");
   if (!contactEmail) {
     return { statusCode: 500, body: "Server misconfiguration: missing contact email" };
   }
