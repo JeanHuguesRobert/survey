@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getConfigValue } from "./lib/instanceConfig.js";
 
 export default async (request, context) => {
   // Handle CORS preflight
@@ -17,8 +18,8 @@ export default async (request, context) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseUrl = getConfigValue("supabase_url");
+    const supabaseKey = getConfigValue("supabase_service_role_key");
 
     if (!supabaseUrl || !supabaseKey) {
       return new Response(JSON.stringify({ error: "Missing Supabase configuration" }), {
@@ -66,6 +67,36 @@ export default async (request, context) => {
       fil_type: type, // 'post', 'link', 'doc'
       source_type: source_type || null,
       external_url: external_url || null,
+      federated: await (async () => {
+        // 1. Explicit Ascent: User checked the box
+        if (body.federated === true) return true;
+
+        // 2. Delegated Ascent: User delegated 'sys:federation'
+        try {
+          // Find the tag ID for sys:federation
+          const { data: tagData } = await supabase
+            .from("tags")
+            .select("id")
+            .eq("name", "sys:federation")
+            .single();
+
+          if (!tagData) return false;
+
+          // Check if user has ANY active delegation for this tag
+          const { data: delegation } = await supabase
+            .from("delegations")
+            .select("id")
+            .eq("delegator_id", user.id)
+            .eq("tag_id", tagData.id)
+            .limit(1)
+            .maybeSingle();
+
+          return !!delegation; // True if delegation exists
+        } catch (err) {
+          console.warn("Error checking delegated federation:", err);
+          return false; // Fail safe to Local
+        }
+      })(),
       fil_score: 0,
       fil_comment_count: 0,
       moderation_history: [],
