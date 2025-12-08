@@ -1,5 +1,6 @@
 // src/App.jsx
 
+import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import Methodologie from "./pages/Methodologie";
 import GlobalStatusIndicator from "./components/common/GlobalStatusIndicator";
@@ -38,21 +39,24 @@ import OAuthCallback from "./pages/OAuthCallback";
 import FacebookDeletionStatus from "./pages/FacebookDeletionStatus";
 import OAuthConsent from "./pages/OAuthConsent";
 import DataCollector from "./pages/DataCollector";
-import DataReview from "./pages/admin/DataReview";
-import Entities from "./pages/admin/Entities";
-import AdminAPI from "./pages/admin/AdminAPI";
-import SaasAdmin from "./pages/admin/SaasAdmin";
-import LeadsAdmin from "./pages/admin/LeadsAdmin";
-import VaultConfig from "./pages/admin/VaultConfig";
+// Lazy-loaded admin components (separate chunk - only loads when visiting /admin/*)
+const Admin = lazy(() => import("./pages/Admin"));
+const DataReview = lazy(() => import("./pages/admin/DataReview"));
+const Entities = lazy(() => import("./pages/admin/Entities"));
+const AdminAPI = lazy(() => import("./pages/admin/AdminAPI"));
+const SaasAdmin = lazy(() => import("./pages/admin/SaasAdmin"));
+const LeadsAdmin = lazy(() => import("./pages/admin/LeadsAdmin"));
+const VaultConfig = lazy(() => import("./pages/admin/VaultConfig"));
+
 import TransparenceLanding from "./pages/TransparenceLanding";
 import TransparenceVitrine from "./pages/TransparenceVitrine";
-import Admin from "./pages/Admin";
 import Gazette from "./pages/Gazette";
 import Agenda from "./pages/Agenda";
 import Incidents from "./pages/Incidents";
 import IncidentEditor from "./pages/IncidentEditor";
 import SurveyModeEmploi from "./pages/SurveyModeEmploi";
 import MarkdownViewer from "./pages/MarkdownViewer";
+import PublicFileHandler from "./components/common/PublicFileHandler";
 import NotFound from "./pages/NotFound";
 import MissionsPage from "./pages/MissionsPage";
 import MissionCreate from "./pages/MissionCreate";
@@ -98,6 +102,13 @@ import StatsDashboard from "./pages/actes/StatsDashboard";
 import FractalFeedPage from "./pages/FractalFeedPage";
 import CafeSessionPage from "./pages/CafeSessionPage";
 
+// Suspense wrapper for lazy-loaded routes
+const LazyRoute = ({ children }) => (
+  <Suspense fallback={<div className="p-8 text-center text-gray-500">Chargement...</div>}>
+    {children}
+  </Suspense>
+);
+
 export function App() {
   return (
     <>
@@ -130,6 +141,7 @@ export function App() {
         <Route path="/terms" element={<LegalPage type="terms" />} />
         <Route path="/survey" element={<Survey />} />
         <Route path="/markdown-viewer" element={<MarkdownViewer />} />
+        <Route path="/docs/*" element={<PublicFileHandler />} />
         <Route path="/survey-mode-emploi" element={<SurveyModeEmploi />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/browser/*" element={<PublicBrowser />} />
@@ -150,13 +162,62 @@ export function App() {
         <Route path="/data-collector" element={<DataCollector />} />
         <Route path="/user-profile" element={<UserProfile />} />
         <Route path="/profile" element={<UserProfile />} />
-        <Route path="/admin/data-review" element={<DataReview />} />
-        <Route path="/admin/api" element={<AdminAPI />} />
-        <Route path="/admin/saas" element={<SaasAdmin />} />
-        <Route path="/admin/leads" element={<LeadsAdmin />} />
-        <Route path="/admin/vault" element={<VaultConfig />} />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/admin/entities" element={<Entities />} />
+        <Route
+          path="/admin/data-review"
+          element={
+            <LazyRoute>
+              <DataReview />
+            </LazyRoute>
+          }
+        />
+        <Route
+          path="/admin/api"
+          element={
+            <LazyRoute>
+              <AdminAPI />
+            </LazyRoute>
+          }
+        />
+        <Route
+          path="/admin/saas"
+          element={
+            <LazyRoute>
+              <SaasAdmin />
+            </LazyRoute>
+          }
+        />
+        <Route
+          path="/admin/leads"
+          element={
+            <LazyRoute>
+              <LeadsAdmin />
+            </LazyRoute>
+          }
+        />
+        <Route
+          path="/admin/vault"
+          element={
+            <LazyRoute>
+              <VaultConfig />
+            </LazyRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <LazyRoute>
+              <Admin />
+            </LazyRoute>
+          }
+        />
+        <Route
+          path="/admin/entities"
+          element={
+            <LazyRoute>
+              <Entities />
+            </LazyRoute>
+          }
+        />
         <Route path="/subscriptions" element={<SubscriptionFeed />} />
         <Route path="/groups/new" element={<GroupCreate />} />
         <Route path="/groups/:id" element={<GroupPage />} />
