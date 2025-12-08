@@ -76,17 +76,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
       content_type,
       metadata,
     });
-    // Also create a COP event for message publication
-    try {
-      await db.createEvent({
-        topic_id: req.params.id,
-        type: "user_message",
-        payload: { content, participant_id },
-        meta: metadata,
-      });
-    } catch (e) {
-      console.warn("Failed to create COP event for message", e.message);
-    }
+    // db.createMessage now writes an event into cop_event (user_message) for compatibility.
     res.status(201).json(message);
   } catch (e) {
     res.status(500).json({ error: e.message });
