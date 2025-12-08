@@ -1,16 +1,35 @@
 import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
 import crypto from "crypto";
+import { loadInstanceConfig, getConfigValue } from "../lib/instanceConfig.js";
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Clients initialisés de façon lazy
+let _supabase = null;
+let _openai = null;
+
+function getSupabase() {
+  if (!_supabase) {
+    _supabase = createClient(
+      getConfigValue("supabase_url"),
+      getConfigValue("supabase_service_role_key")
+    );
+  }
+  return _supabase;
+}
+
+function getOpenAI() {
+  if (!_openai) {
+    _openai = new OpenAI({ apiKey: getConfigValue("openai_api_key") });
+  }
+  return _openai;
+}
 
 function hashText(text) {
   return crypto.createHash("sha256").update(text.toLowerCase().trim()).digest("hex");
 }
 
 async function generateEmbedding(text) {
-  const response = await openai.embeddings.create({
+  const response = await getOpenAI().embeddings.create({
     model: "text-embedding-3-small",
     input: text,
   });
@@ -18,6 +37,9 @@ async function generateEmbedding(text) {
 }
 
 export default async (req, context) => {
+  // Charger la configuration
+  await loadInstanceConfig();
+
   if (req.method !== "POST") {
     return new Response("Method Not Allowed", { status: 405 });
   }
@@ -62,7 +84,7 @@ export default async (req, context) => {
 
     if (!source_id) {
       // Check if exists by external_id to avoid duplicates if possible, though manual ingestion might want to overwrite
-      const { data: existing } = await supabase
+      const { data: existing } = await getSupabase()
         .from("document_sources")
         .select("id")
         .eq("external_id", sourceData.external_id)
@@ -70,9 +92,9 @@ export default async (req, context) => {
 
       if (existing) {
         source_id = existing.id;
-        await supabase.from("document_sources").update(sourceData).eq("id", source_id);
+        await getSupabase().from("document_sources").update(sourceData).eq("id", source_id);
       } else {
-        const { data: newSource, error: sourceError } = await supabase
+        const { data: newSource, error: sourceError } = await getSupabase()
           .from("document_sources")
           .insert(sourceData)
           .select("id")
@@ -82,14 +104,14 @@ export default async (req, context) => {
         source_id = newSource.id;
       }
     } else {
-      await supabase.from("document_sources").update(sourceData).eq("id", source_id);
+      await getSupabase().from("document_sources").update(sourceData).eq("id", source_id);
     }
 
     // 2. Process Chunks
     // First, archive old chunks for this source if we are doing a full re-ingestion
     // For now, we'll just insert new ones. A more advanced logic would be to diff them.
     // Let's delete old confirmed chunks for this source to keep it clean for this V1.
-    await supabase.from("knowledge_chunks").delete().eq("source_id", source_id);
+    await getSupabase().from("knowledge_chunks").delete().eq("source_id", source_id);
 
     const chunkInserts = [];
 
@@ -136,7 +158,9 @@ export default async (req, context) => {
     }
 
     if (chunkInserts.length > 0) {
-      const { error: chunkError } = await supabase.from("knowledge_chunks").insert(chunkInserts);
+      const { error: chunkError } = await getSupabase()
+        .from("knowledge_chunks")
+        .insert(chunkInserts);
       if (chunkError) throw chunkError;
     }
 
