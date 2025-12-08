@@ -52,9 +52,10 @@ export default function SiteFooter({
   const handleOralClick = async (e) => {
     e.preventDefault();
     try {
-      // 1. Check for recent active session
+      setIsCreatingOral(true);
+      // 1. Check for recent active session in cop_topic (DB standard)
       const { data: latestSession } = await supabase
-        .from("cop_conversations")
+        .from("cop_topic")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(1)
@@ -71,7 +72,7 @@ export default function SiteFooter({
         }
       }
 
-      // 2. Create new if none found
+      // 2. Create new if none found using the cafe API
       const newSession = await cafeApi.createSession({
         title: "Session Spontanée",
         session_purpose: "Discussion rapide depuis le footer",
@@ -84,6 +85,8 @@ export default function SiteFooter({
     } catch (err) {
       console.error("Error accessing oral session:", err);
       alert("Impossible de rejoindre le Café Ophélia pour le moment.");
+    } finally {
+      setIsCreatingOral(false);
     }
   };
 
@@ -471,6 +474,7 @@ export default function SiteFooter({
 
   const [siteConfig, setSiteConfig] = React.useState(null);
   const [siteConfigLoaded, setSiteConfigLoaded] = React.useState(false);
+  const [isCreatingOral, setIsCreatingOral] = useState(false);
 
   // Fetch site-config only on sign-in/sign-out to reduce backend requests
   React.useEffect(() => {
@@ -562,24 +566,35 @@ export default function SiteFooter({
       <div style={styles.panel}>
         <div style={styles.inner}>
           {/* Bouton Oral - Café Ophélia */}
-          <a
-            href="#"
+          <button
+            type="button"
             onClick={handleOralClick}
+            disabled={isCreatingOral}
             style={{
-              ...styles.link,
-              background: "linear-gradient(135deg, #7C3AED, #4F46E5)",
+              cursor: isCreatingOral ? "default" : "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              border: "none",
+              outline: "none",
+              background: isCreatingOral
+                ? "linear-gradient(135deg, #A78BFA, #8B5CF6)"
+                : "linear-gradient(135deg, #7C3AED, #4F46E5)",
               color: "white",
-              padding: "2px 8px",
+              padding: "6px 10px",
               borderRadius: "9999px",
               fontWeight: 700,
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
               boxShadow: "0 2px 4px rgba(124, 58, 237, 0.3)",
             }}
           >
-            <span>🎙️</span> Oral
-          </a>
+            {isCreatingOral ? (
+              <span>⏳ Création...</span>
+            ) : (
+              <>
+                <span>🎙️</span> Oral
+              </>
+            )}
+          </button>
           {/* Auth section */}
           <div style={styles.auth}>
             {loading ? (
