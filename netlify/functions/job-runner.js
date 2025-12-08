@@ -1,15 +1,25 @@
 import { createClient } from "@supabase/supabase-js";
+import { loadInstanceConfig, getConfigValue } from "../lib/instanceConfig.js";
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+// Supabase client initialisé de façon lazy
+let _supabase = null;
+function getSupabase() {
+  if (!_supabase) {
+    _supabase = createClient(
+      getConfigValue("supabase_url"),
+      getConfigValue("supabase_service_role_key")
+    );
+  }
+  return _supabase;
+}
 
 /**
  * Netlify function for running long jobs with progress updates
  * This demonstrates server-side job processing with realtime progress updates
  */
 export const handler = async (event, context) => {
+  // Charger la configuration
+  await loadInstanceConfig();
   // Enable CORS
   const headers = {
     "Access-Control-Allow-Origin": "*",
@@ -41,7 +51,7 @@ export const handler = async (event, context) => {
     }
 
     // Start the job
-    await supabase.rpc("update_job_progress", {
+    await getSupabase().rpc("update_job_progress", {
       job_id: jobId,
       new_progress: 0,
       new_message: "Job started",
@@ -56,7 +66,7 @@ export const handler = async (event, context) => {
       const progress = Math.round((i / totalSteps) * 100);
       const message = `Processing step ${i}/${totalSteps}`;
 
-      await supabase.rpc("update_job_progress", {
+      await getSupabase().rpc("update_job_progress", {
         job_id: jobId,
         new_progress: progress,
         new_message: message,
@@ -68,7 +78,7 @@ export const handler = async (event, context) => {
     }
 
     // Mark job as completed with result
-    await supabase
+    await getSupabase()
       .from("jobs")
       .update({
         result: { completed: true, processedSteps: totalSteps },
@@ -93,13 +103,13 @@ export const handler = async (event, context) => {
       try {
         const { jobId } = JSON.parse(event.body);
         if (jobId) {
-          await supabase.rpc("update_job_progress", {
+          await getSupabase().rpc("update_job_progress", {
             job_id: jobId,
             new_status: "failed",
             new_message: "Job failed: " + error.message,
           });
 
-          await supabase
+          await getSupabase()
             .from("jobs")
             .update({
               error_details: { message: error.message, stack: error.stack },
