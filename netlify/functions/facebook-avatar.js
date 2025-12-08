@@ -1,3 +1,5 @@
+import { getFacebookConfig } from "../lib/instanceConfig.js";
+
 export const handler = async function (event) {
   const params = event.queryStringParameters || {};
   const facebookId = params.facebookId || params.id;
@@ -10,11 +12,8 @@ export const handler = async function (event) {
     };
   }
 
-  const token =
-    process.env.FACEBOOK_TOKEN ||
-    (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_CLIENT_SECRET
-      ? `${process.env.FACEBOOK_APP_ID}|${process.env.FACEBOOK_CLIENT_SECRET}`
-      : null);
+  const { appId, clientSecret, token: configToken } = await getFacebookConfig();
+  const token = configToken || (appId && clientSecret ? `${appId}|${clientSecret}` : null);
 
   if (!token) {
     return {
