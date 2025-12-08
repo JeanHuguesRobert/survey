@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-import dotenv from "dotenv";
-dotenv.config();
-
 import fs from "node:fs/promises";
-import { createClient } from "@supabase/supabase-js";
+import { loadConfig, getConfigValue, createSupabaseClient } from "./lib/config.js";
 
-const OPENAI_KEY = process.env.OPENAI_API_KEY;
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Charger la configuration
+await loadConfig();
+
+const OPENAI_KEY = getConfigValue("openai_api_key");
+const SUPABASE_URL = getConfigValue("supabase_url");
+const SUPABASE_SERVICE_ROLE_KEY = getConfigValue("supabase_service_role_key");
 
 let supabaseClient = null;
 function getSupabaseClient() {
@@ -15,14 +15,12 @@ function getSupabaseClient() {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in environment");
   }
-  supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false },
-  });
+  supabaseClient = createSupabaseClient();
   return supabaseClient;
 }
 
-const EMBEDDING_MODEL = process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small";
-const CHAT_MODEL = process.env.OPENAI_CHAT_MODEL || "gpt-3.5-turbo";
+const EMBEDDING_MODEL = getConfigValue("openai_embedding_model", "text-embedding-3-small");
+const CHAT_MODEL = getConfigValue("openai_model", "gpt-3.5-turbo");
 const DEFAULT_SQL_LIMIT = 100;
 const DEFAULT_SQL_FORMAT = "json";
 const DEFAULT_CHAT_PATH = "/api/chat-stream";
@@ -108,9 +106,9 @@ function parseCliArgs(argv) {
 function resolveSqlEndpoint(cliOverride) {
   const source =
     (cliOverride && cliOverride.trim()) ||
-    (process.env.RAG_SQL_ENDPOINT || "").trim() ||
-    (process.env.RAG_CHAT_ENDPOINT || "").trim() ||
-    (process.env.URL || "").trim();
+    (getConfigValue("rag_sql_endpoint") || "").trim() ||
+    (getConfigValue("rag_chat_endpoint") || "").trim() ||
+    (getConfigValue("app_url") || "").trim();
   if (!source) {
     throw new Error(
       "Missing SQL endpoint. Set RAG_SQL_ENDPOINT, RAG_CHAT_ENDPOINT, or URL environment variable."
@@ -124,12 +122,12 @@ function resolveSqlEndpoint(cliOverride) {
 
 function buildSqlHeaders(cliTokenOverride, authTokenOverride) {
   const headers = { "Content-Type": "application/json" };
-  const cliToken = (cliTokenOverride || process.env.CLI_TOKEN || "").trim();
+  const cliToken = (cliTokenOverride || getConfigValue("cli_token") || "").trim();
   if (cliToken) headers["x-cli-token"] = cliToken;
   const bearer = (
     authTokenOverride ||
-    process.env.SQL_AUTH_TOKEN ||
-    process.env.SUPABASE_JWT ||
+    getConfigValue("sql_auth_token") ||
+    getConfigValue("supabase_jwt") ||
     ""
   ).trim();
   if (bearer) headers.Authorization = `Bearer ${bearer}`;
