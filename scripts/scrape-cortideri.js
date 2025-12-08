@@ -1,12 +1,14 @@
 // script/scrape-cortiderir.js
 // Scrape cortideri.fr et upsert dans Supabase (table cortideri_items)
 
-import "dotenv/config";
 import axios from "axios";
 import * as cheerio from "cheerio";
-import { createClient } from "@supabase/supabase-js";
 import fs from "fs";
 import path from "path";
+import { loadConfig, getConfigValue, createSupabaseClient } from "./lib/config.js";
+
+// Charger la configuration
+await loadConfig();
 
 let somethingChanged = false;
 
@@ -23,17 +25,15 @@ const MAX_PAGES_PER_CATEGORY = 100;
 const COOLDOWN_HOURS = 24;
 const OUT_FILE_PATH = path.join(process.cwd(), "public", "docs", "cortideri.md");
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_URL = getConfigValue("supabase_url");
+const SUPABASE_SERVICE_ROLE_KEY = getConfigValue("supabase_service_role_key");
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env");
+  console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
   process.exit(1);
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false },
-});
+const supabase = createSupabaseClient();
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
