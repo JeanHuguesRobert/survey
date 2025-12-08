@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useMap } from "react-leaflet";
 import { parseLocationInput } from "../../lib/locationParser";
+import { getConfig } from "../../lib/instanceConfig";
 
 export default function AddressSearchControl({ onLocationSelect }) {
   const map = useMap();
@@ -51,9 +52,17 @@ export default function AddressSearchControl({ onLocationSelect }) {
     if (!query.trim()) return;
 
     // First, try to parse as a direct location (URL or lat,lng)
-    // Get default center from env
-    const defaultCenterStr = import.meta.env.VITE_MAP_DEFAULT_CENTER || "42.3094,9.1490";
-    const [centerLat, centerLng] = defaultCenterStr.split(",").map(parseFloat);
+    // Get default center from vault or env
+    const lat = getConfig("map_default_lat");
+    const lng = getConfig("map_default_lng");
+    let centerLat, centerLng;
+    if (lat && lng) {
+      centerLat = lat;
+      centerLng = lng;
+    } else {
+      const defaultCenterStr = import.meta.env.VITE_MAP_DEFAULT_CENTER || "42.3094,9.1490";
+      [centerLat, centerLng] = defaultCenterStr.split(",").map(parseFloat);
+    }
     const center = { lat: centerLat, lng: centerLng };
 
     const parsedLocation = parseLocationInput(query, { center, maxDistanceKm: 200 });
