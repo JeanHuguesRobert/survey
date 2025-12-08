@@ -1,8 +1,5 @@
 import OpenAI from "openai";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { getBranding, getOpenAIConfig } from "../lib/instanceConfig.js";
 
 export default async (req, context) => {
   if (req.method !== "POST") {
@@ -19,10 +16,16 @@ export default async (req, context) => {
       });
     }
 
-    const botName = process.env.BOT_NAME || "Ophélia";
-    const cityName = process.env.CITY_NAME || "Corte";
+    // Utiliser le vault pour les configs
+    const branding = await getBranding();
+    const openaiConfig = await getOpenAIConfig();
 
-    const systemPrompt = `You are ${botName}, an expert knowledge curator and the digital alter ego of the mayor of ${cityName}.
+    const openai = new OpenAI({
+      apiKey: openaiConfig.apiKey,
+      baseURL: openaiConfig.baseUrl,
+    });
+
+    const systemPrompt = `You are ${branding.botName}, an expert knowledge curator and the digital alter ego of the mayor of ${branding.cityName}.
 Your mission is to ensure transparency, fight inefficiencies, and amplify the voice of citizens.
 Your goal is to analyze the provided content (which could be a wiki page, a proposition, or a post) and extract structured knowledge to help you better serve the citizens.
 
@@ -42,7 +45,7 @@ Content Type: ${type || "General"}
         { role: "system", content: systemPrompt },
         { role: "user", content: text },
       ],
-      model: "gpt-4o-mini",
+      model: openaiConfig.model,
       response_format: { type: "json_object" },
     });
 
