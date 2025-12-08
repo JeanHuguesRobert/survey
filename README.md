@@ -126,6 +126,8 @@ npm install
 # 3. Configurer les variables d'environnement
 cp .env.example .env
 # Éditez le fichier .env avec vos propres clés API
+# Note: Le projet utilise un système de "vault" centralisé qui permet de stocker
+# la configuration en base de données. Voir docs/CONFIGURATION_VAULT.md pour plus de détails.
 
 # 4. Lancer en mode développement
 netlify dev
@@ -301,7 +303,9 @@ personnaliser :
 - Les couleurs et le logo
 - Les questions des consultations
 
-Toute la configuration se fait via le fichier `.env`. Consultez `.env.example` pour les détails.
+Toute la configuration se fait via le fichier `.env` ou via le **vault** en base de données.
+Consultez `.env.example` pour les variables disponibles et `docs/CONFIGURATION_VAULT.md` pour le
+système de configuration centralisée.
 
 ---
 
@@ -337,37 +341,57 @@ Cette plateforme participe à l'initiative citoyenne **"Transparence"** qui vise
 
 ---
 
-## 💰 Open Source Funding & Transparency
+## 💰 Financement & Association C.O.R.S.I.C.A.
 
-Survey est un **commun numérique open source**. Son développement est financé de manière **publique,
-traçable et indépendante** via **Open Collective**.
+Survey est un **commun numérique open source** porté par l'association loi 1901 **C.O.R.S.I.C.A.**
+(Corse Organisant la Réunion Sur Internet de Compétences Autonomes).
 
-👉 Page de financement : https://opencollective.com/survey (à activer après création)
+### 💚 Faire un don
 
-### Ce que votre soutien finance exclusivement
+Le projet est **100% gratuit** et financé exclusivement par les dons :
 
-- Développement logiciel (frontend, backend, IA)
+En cours de mise en place :
+
+👉 **[HelloAsso](https://www.helloasso.com/associations/corsica)** (plateforme principale, 0%
+commission)
+
+Autres plateformes : [Open Collective](https://opencollective.com/kudocracy) •
+[Liberapay](https://liberapay.com/)
+
+### Ce que votre soutien finance
+
+- Hébergement & infrastructure (~700€/an)
+- APIs IA et embeddings (~200€/an)
+- Noms de domaine (~50€/an)
 - Sécurité & audits
-- Hébergement & infrastructure
-- Documentation & traductions
-- Conformité RGPD & juridique open data
 
 ### Ce que Survey ne finance jamais
 
-- Aucune campagne politique
-- Aucune liste électorale
-- Aucune action partisane
-- Aucun mouvement ou front
+- ❌ Aucune campagne politique
+- ❌ Aucune liste électorale
+- ❌ Aucune action partisane
 
-Kudocracy.Survey est une **infrastructure open source neutre**, réutilisable par :
+Kudocracy.Survey est une **infrastructure open source neutre**, réutilisable par tous.
 
-- les citoyens,
-- les communes,
-- les associations,
-- les universités,
-- les collectifs citoyens, sans exclusivité ni orientation politique imposée.
+👉 Voir [FUNDING.md](FUNDING.md) pour tous les détails.
 
-✨ Financer Survey, c’est financer un **outil**, pas un parti.
+---
+
+## 🗳️ Municipales 2026 : Engagez-vous !
+
+À l'approche des élections municipales, la plateforme permet aux **listes électorales** de démontrer
+leur engagement concret pour la transparence **avant même d'être élues**.
+
+### Comment ça marche ?
+
+1. **Signez la Charte Transparence** (8 engagements mesurables)
+2. **Déployez une instance** pour votre liste/commune
+3. **Publiez vos données** et répondez aux citoyens
+4. **Comparez votre score** avec les autres listes
+
+👉 **[S'engager pour la transparence](/engagement)**
+
+👉 **[Voir les communes engagées](/transparence/communes)**
 
 ---
 
@@ -381,7 +405,7 @@ Kudocracy.Survey est une **infrastructure open source neutre**, réutilisable pa
 
 **Initiative #PERTITELLU - Corti Capitale**
 
-📧 Email : [jeanhuguesrobert@gmail.com](mailto:jeanhuguesrobert@gmail.com) 🌐 Site :
+📧 Email : [jean_hugues_robert@yahoo.com](mailto:jean_hugues_robert@yahoo.com) 🌐 Site :
 [lepp.fr](https://lepp.fr/)
 
 **Vous souhaitez contribuer ?**
@@ -394,6 +418,42 @@ Kudocracy.Survey est une **infrastructure open source neutre**, réutilisable pa
 ---
 
 ## 📖 Annexes techniques
+
+<details>
+<summary><strong>Système de Configuration Centralisé (Vault)</strong></summary>
+
+Le projet utilise un système de configuration centralisé qui permet de :
+
+- Stocker la configuration en base de données (table `instance_config`)
+- Avoir un fallback automatique vers les variables d'environnement
+- Gérer des valeurs par défaut cohérentes
+
+### Ordre de priorité
+
+1. **Vault** (base de données Supabase)
+2. **Variables d'environnement** (`.env` ou Netlify)
+3. **Valeurs par défaut** (définies dans le code)
+
+### Modules disponibles
+
+- `src/lib/instanceConfig.js` — Frontend React
+- `netlify/lib/instanceConfig.js` — Netlify Functions (Node.js)
+- `netlify/edge-functions/lib/instanceConfig.js` — Edge Functions (Deno)
+- `scripts/lib/config.js` — Scripts CLI
+
+### Utilisation
+
+```javascript
+import { loadConfig, getConfigValue } from "./lib/instanceConfig.js";
+
+await loadConfig();
+const apiKey = getConfigValue("openai_api_key");
+const cityName = getConfigValue("city_name", "Corte");
+```
+
+Voir `docs/CONFIGURATION_VAULT.md` pour la documentation complète.
+
+</details>
 
 <details>
 <summary><strong>Configuration des providers IA</strong></summary>
