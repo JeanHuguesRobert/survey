@@ -5,9 +5,7 @@
 // ============================================================================
 
 import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+import { loadInstanceConfig, getConfigValue } from "../lib/instanceConfig.js";
 
 export async function handler(event, context) {
   // Vérification de la méthode
@@ -48,6 +46,11 @@ export async function handler(event, context) {
   }
 
   try {
+    // Charger la configuration
+    await loadInstanceConfig();
+    const supabaseUrl = getConfigValue("supabase_url");
+    const supabaseServiceKey = getConfigValue("supabase_service_role_key");
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const {
       data: { user },

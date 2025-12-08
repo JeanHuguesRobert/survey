@@ -10,6 +10,16 @@ import postgres from "https://deno.land/x/postgresjs/mod.js";
 
 import OpenAI from "https://esm.sh/openai@4";
 
+// Import instance config for vault-based configuration
+import {
+  loadInstanceConfig,
+  getConfigValue,
+  getBranding,
+  getProviderApiKey,
+  isProviderAvailable as vaultProviderAvailable,
+  getSupabaseConfig,
+} from "./lib/instanceConfig.js";
+
 // Import civic acts tools for municipal transparency system
 import {
   CIVIC_TOOLS,
@@ -1371,7 +1381,7 @@ function cosineSimilarity(a, b) {
 
 async function performWebSearch(query) {
   console.log(`[WebSearch] ➜ request query=${previewForLog(query)}`);
-  const apiKey = Deno.env.get("BRAVE_SEARCH_API_KEY");
+  const apiKey = getConfigValue("brave_search_api_key");
   if (!apiKey) {
     console.warn("[WebSearch] ⚠️ BRAVE_SEARCH_API_KEY manquant");
     return `Recherche web non configurée pour: "${query}". Réponds en t'excusant et en proposant une alternative si possible.`;
@@ -1656,12 +1666,13 @@ async function callLLMAPI({
   stream = true,
 }) {
   const config = PROVIDER_CONFIGS[provider];
-  // GESTION SPÉCIFIQUE POUR LA CLÉ API GEMINI
+  // GESTION SPÉCIFIQUE POUR LA CLÉ API - Vault avec fallback env automatique
   let apiKey;
   if (provider === "google") {
-    apiKey = Deno.env.get("GEMINI_API_KEY");
+    apiKey = getConfigValue("gemini_api_key");
   } else {
-    apiKey = Deno.env.get(`${provider.toUpperCase()}_API_KEY`);
+    const keyName = `${provider.toLowerCase()}_api_key`;
+    apiKey = getConfigValue(keyName);
   }
   if (!apiKey) throw new Error(`Clé API manquante pour ${provider}`);
 
@@ -2038,11 +2049,11 @@ const detectModelProvider = (model) => {
 };
 
 const PROVIDER_ENV_CHECKERS = {
-  anthropic: () => Boolean(Deno.env.get("ANTHROPIC_API_KEY")),
-  openai: () => Boolean(Deno.env.get("OPENAI_API_KEY")),
-  mistral: () => Boolean(Deno.env.get("MISTRAL_API_KEY")),
-  huggingface: () => Boolean(Deno.env.get("HUGGINGFACE_API_KEY")),
-  google: () => Boolean(Deno.env.get("GEMINI_API_KEY")),
+  anthropic: () => Boolean(getConfigValue("anthropic_api_key")),
+  openai: () => Boolean(getConfigValue("openai_api_key")),
+  mistral: () => Boolean(getConfigValue("mistral_api_key")),
+  huggingface: () => Boolean(getConfigValue("huggingface_api_key")),
+  google: () => Boolean(getConfigValue("gemini_api_key")),
 };
 const isProviderAvailable = (provider) => Boolean(PROVIDER_ENV_CHECKERS[provider]?.());
 
@@ -2051,7 +2062,9 @@ const isMistralCapacityError = (error) => {
   return /service_tier_capacity_exceeded|capacity|3505|429/i.test(msg);
 };
 
-const SHOULD_RANDOMIZE_PROVIDERS = Deno.env.get("DISABLE_PROVIDER_RANDOMIZATION") !== "1";
+const SHOULD_RANDOMIZE_PROVIDERS =
+  getConfigValue("disable_provider_randomization") !== true &&
+  getConfigValue("disable_provider_randomization") !== "1";
 const shuffleProviders = (providers) => {
   const arr = [...providers];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -2280,20 +2293,20 @@ async function getSystemPrompt() {
   let basePrompt = `📅 **Date actuelle :** ${currentDate}\n\n`;
 
   // 1. Charge le prompt depuis l'URL publique
-  const siteUrl = Deno.env.get("URL") || Deno.env.get("DEPLOY_PRIME_URL");
+  const siteUrl = getConfigValue("app_url");
   const localPrompt = await fetchPublicSystemPrompt(siteUrl);
   if (localPrompt) {
     basePrompt += localPrompt;
   } else {
-    // 2. Fallback avec les variables d'environnement
-    const envPrompt = Deno.env.get("BOB_SYSTEM_PROMPT");
+    // 2. Fallback avec le vault ou les variables d'environnement
+    const envPrompt = getConfigValue("bob_system_prompt");
     if (envPrompt) {
       basePrompt += envPrompt;
     } else {
-      // 3. Fallback par défaut
-      const city = Deno.env.get("CITY_NAME") || "Corte";
-      const movement = Deno.env.get("MOVEMENT_NAME") || "Pertitellu";
-      const bot = Deno.env.get("BOT_NAME") || "Ophélia";
+      // 3. Fallback par défaut (utilise le vault si disponible)
+      const city = getConfigValue("city_name");
+      const movement = getConfigValue("movement_name");
+      const bot = getConfigValue("bot_name");
       basePrompt += `
       **Rôle :** Tu es **${bot}**, l'assistant citoyen du mouvement **${movement}** pour la commune de **${city}**.
 
@@ -2312,7 +2325,7 @@ async function getSystemPrompt() {
   }
 
   // 4. Charge le wiki consolidé depuis Supabase
-  /* JHR 2024-06-10 : désactivé pour l'instant car trop volumineux et ralentit tout le système
+  /* JHR 2025-06-10 : désactivé pour l'instant car trop volumineux et ralentit tout le système
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (supabaseUrl && supabaseKey) {
@@ -2343,7 +2356,7 @@ async function getSystemPrompt() {
   */
 
   // 5. Charge le contexte municipal (si disponible)
-  /* JHR 2024-06-10 : désactivé pour l'instant car trop volumineux et ralentit tout le système
+  /* JHR 2025-06-10 : désactivé pour l'instant car trop volumineux et ralentit tout le système
   const councilContext = await _fetchCouncilContext(siteUrl);
   if (councilContext) {
     basePrompt += `\n\n🏛 **Contexte municipal (conseils consolidés) :**\n${councilContext}...`;
@@ -2583,20 +2596,21 @@ const handler = async (request) => {
   let systemPrompt = await getSystemPrompt();
   console.log(`[EdgeFunction] 📏 System prompt: ${systemPrompt.length} caractères`);
 
-  // 11.5. Initialise les clients
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  // 11.5. Initialise les clients (vault avec fallback env automatique)
+  const supabaseUrl = getConfigValue("supabase_url");
+  const supabaseKey = getConfigValue("supabase_service_role_key");
+  const supabaseAnonKey = getConfigValue("supabase_anon_key");
   const supabaseAdmin = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
   // Extract user from Authorization header
   let user = null;
   let supabaseUser = null; // Scoped client for RLS
   const authHeader = request.headers.get("Authorization");
-  if (authHeader && supabaseUrl && Deno.env.get("SUPABASE_ANON_KEY")) {
+  if (authHeader && supabaseUrl && supabaseAnonKey) {
     try {
       const token = authHeader.replace("Bearer ", "");
       // Create a client with the user's token to respect RLS
-      supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY"), {
+      supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
         global: { headers: { Authorization: `Bearer ${token}` } },
       });
       const {
@@ -2617,7 +2631,8 @@ const handler = async (request) => {
   // Fallback to admin client for read-only / system operations if no user
   const supabase = supabaseUser || supabaseAdmin;
 
-  const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
+  const openaiApiKey = getConfigValue("openai_api_key");
+  const openai = new OpenAI({ apiKey: openaiApiKey });
 
   const sanitizePostgresUrl = (value) => {
     if (!value || typeof value !== "string") return null;
@@ -2627,7 +2642,7 @@ const handler = async (request) => {
   };
 
   const configuredPostgresUrl = sanitizePostgresUrl(
-    Deno.env.get("POSTGRES_URL") || Deno.env.get("DATABASE_URL") || null
+    getConfigValue("postgres_url") || getConfigValue("database_url") || null
   );
   const requestPostgresUrl = sanitizePostgresUrl(
     typeof body?.postgres_url === "string"
@@ -2740,12 +2755,13 @@ const handler = async (request) => {
 
         while (providerRetries <= maxProviderRetries) {
           try {
-            // GESTION SPÉCIFIQUE POUR LA CLÉ API GEMINI
+            // GESTION SPÉCIFIQUE POUR LA CLÉ API - Vault avec fallback env automatique
             let apiKey;
             if (provider === "google") {
-              apiKey = Deno.env.get("GEMINI_API_KEY");
+              apiKey = getConfigValue("gemini_api_key");
             } else {
-              apiKey = Deno.env.get(`${provider.toUpperCase()}_API_KEY`);
+              const keyName = `${provider.toLowerCase()}_api_key`;
+              apiKey = getConfigValue(keyName);
             }
             if (!apiKey) {
               console.log(`[EdgeFunction] ⏭️ Skipping ${provider} (no API key)`);
@@ -2989,7 +3005,7 @@ async function* runConversationalAgent({
   context = {},
 }) {
   let toolCallCount = 0;
-  const idleTimeoutMs = Number(Deno.env.get("LLM_STREAM_TIMEOUT_MS")) || 30000;
+  const idleTimeoutMs = getConfigValue("llm_stream_timeout_ms") || 30000;
   const agentStartMs = Date.now();
 
   let messages = [
@@ -3393,7 +3409,7 @@ async function* runConversationalAgent({
 
 async function runHuggingFaceAgent(userQuestion, systemPrompt, modelMode) {
   const provider = "huggingface";
-  const apiKey = Deno.env.get("HUGGINGFACE_API_KEY");
+  const apiKey = getConfigValue("huggingface_api_key");
   if (!apiKey) throw new Error("Clé API manquante pour huggingface");
 
   const model =

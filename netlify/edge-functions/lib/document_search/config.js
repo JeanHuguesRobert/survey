@@ -1,28 +1,29 @@
 // Configuration pour le module de recherche documentaire
+import { getConfigValue } from "../instanceConfig.js";
 
 export const DocumentSearchConfig = {
   // Gemini
-  GEMINI_API_KEY: Deno.env.get("GOOGLE_FILESEARCH_API_KEY") || Deno.env.get("GEMINI_API_KEY"),
+  GEMINI_API_KEY: getConfigValue("google_filesearch_api_key") || getConfigValue("gemini_api_key"),
 
   // Supabase
-  SUPABASE_URL: Deno.env.get("SUPABASE_URL"),
-  SUPABASE_SERVICE_ROLE_KEY: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
+  SUPABASE_URL: getConfigValue("supabase_url"),
+  SUPABASE_SERVICE_ROLE_KEY: getConfigValue("supabase_service_role_key"),
 
   // File Search
   // Liste des stores par défaut séparés par des virgules
-  FILE_SEARCH_DEFAULT_STORES: (Deno.env.get("FILE_SEARCH_DEFAULT_STORES") || "")
+  FILE_SEARCH_DEFAULT_STORES: (getConfigValue("file_search_default_stores") || "")
     .split(",")
     .filter((s) => s.trim().length > 0),
 
   // Context Caching (Alternative recommandée)
-  GEMINI_CACHE_ID: Deno.env.get("GEMINI_CACHE_ID"),
+  GEMINI_CACHE_ID: getConfigValue("gemini_cache_id"),
 
   // Storage
-  SUPABASE_STORAGE_BUCKET: Deno.env.get("SUPABASE_STORAGE_BUCKET") || "public-documents",
+  SUPABASE_STORAGE_BUCKET: getConfigValue("supabase_storage_bucket"),
 
   // Cache
-  FILE_SEARCH_CACHE_TABLE: Deno.env.get("FILE_SEARCH_CACHE_TABLE") || "file_search_cache",
-  FILE_SEARCH_CACHE_TTL_DAYS: parseInt(Deno.env.get("FILE_SEARCH_CACHE_TTL_DAYS") || "7", 10),
+  FILE_SEARCH_CACHE_TABLE: getConfigValue("file_search_cache_table"),
+  FILE_SEARCH_CACHE_TTL_DAYS: parseInt(getConfigValue("file_search_cache_ttl_days") || "7", 10),
 
   // Sources History
   DOCUMENT_SOURCES_TABLE: "document_sources",
@@ -37,9 +38,9 @@ export const DocumentSearchConfig = {
  * @throws {Error} Si une variable requise est manquante.
  */
 export function validateConfig() {
-  const required = ["GEMINI_API_KEY", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"];
+  const required = ["gemini_api_key", "supabase_url", "supabase_service_role_key"];
 
-  const missing = required.filter((key) => !Deno.env.get(key));
+  const missing = required.filter((key) => !getConfigValue(key));
 
   if (missing.length > 0) {
     throw new Error(`[DocumentSearch] Configuration manquante : ${missing.join(", ")}`);

@@ -2,6 +2,8 @@
 // TOOLS - Définition et exécution centralisée
 // ============================================================================
 
+import { getConfigValue } from "../instanceConfig.js";
+
 /**
  * Définition des outils disponibles pour les LLM
  */
@@ -30,7 +32,7 @@ export const TOOLS = {
  */
 async function performWebSearch(query) {
   console.log(`[WebSearch] ➜ request query=${query.slice(0, 100)}`);
-  const apiKey = Deno.env.get("BRAVE_SEARCH_API_KEY");
+  const apiKey = getConfigValue("brave_search_api_key");
   if (!apiKey) {
     console.warn("[WebSearch] ⚠️ BRAVE_SEARCH_API_KEY manquant");
     return `Recherche web non configurée pour: "${query}". Réponds en t'excusant et en proposant une alternative si possible.`;

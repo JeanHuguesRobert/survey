@@ -17,6 +17,7 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { loadInstanceConfig, getConfigValue } from "./lib/instanceConfig.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,17 +46,20 @@ export default async function handler(request, context) {
   }
 
   try {
+    // Load vault config
+    await loadInstanceConfig();
+
     // Verify API key (for cron authentication)
     const apiKey = request.headers.get("x-api-key");
     const expectedApiKey =
-      Deno.env.get("CRON_API_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      getConfigValue("cron_api_key") || getConfigValue("supabase_service_role_key");
 
     if (!apiKey || apiKey !== expectedApiKey) {
       return errorResponse("Unauthorized", 401);
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseUrl = getConfigValue("supabase_url");
+    const supabaseKey = getConfigValue("supabase_service_role_key");
 
     if (!supabaseUrl || !supabaseKey) {
       return errorResponse("Missing Supabase configuration", 500);

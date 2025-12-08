@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import postgres from "https://deno.land/x/postgresjs/mod.js";
+import { getConfigValue } from "./instanceConfig.js";
 
 export async function handleExplicitSql(request, body, TOOL_HANDLERS) {
   try {
@@ -9,8 +10,8 @@ export async function handleExplicitSql(request, body, TOOL_HANDLERS) {
 
     console.log("[EdgeFunction] ℹ️ Explicit SQL request detected (helper)");
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseUrl = getConfigValue("supabase_url");
+    const supabaseKey = getConfigValue("supabase_service_role_key");
     let supabase = null;
     try {
       if (supabaseUrl && supabaseKey) supabase = createClient(supabaseUrl, supabaseKey);
@@ -46,7 +47,7 @@ export async function handleExplicitSql(request, body, TOOL_HANDLERS) {
 
     let authorized = false;
     const cliToken = String(request.headers.get("x-cli-token") || "");
-    const envCli = Deno.env.get("CLI_TOKEN");
+    const envCli = getConfigValue("cli_token");
     if (cliToken && envCli && cliToken === envCli) {
       authorized = true;
       console.log("[EdgeFunction] ✅ Authorized via X-CLI-TOKEN (helper)");

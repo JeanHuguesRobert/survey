@@ -3,6 +3,8 @@
 // Provides text summarization service for the Data Collector feature
 // ============================================================================
 
+import { getConfigValue, loadInstanceConfig } from "./lib/instanceConfig.js";
+
 // Import shared utilities from rag_chatbot if needed
 const MODEL_MODES = {
   mistral: {
@@ -42,9 +44,10 @@ const PROVIDER_CONFIGS = {
   },
 };
 
-// Check which providers are available
+// Check which providers are available (vault first, then env)
 const isProviderAvailable = (provider) => {
-  return Boolean(Deno.env.get(`${provider.toUpperCase()}_API_KEY`));
+  const keyName = `${provider.toLowerCase()}_api_key`;
+  return Boolean(getConfigValue(keyName));
 };
 
 // Get first available provider
@@ -61,6 +64,9 @@ const getAvailableProvider = () => {
 
 // Summarize text using available AI provider
 async function summarizeText(text, provider = null) {
+  // Load vault config
+  await loadInstanceConfig();
+
   // Auto-detect provider if not specified
   if (!provider) {
     provider = getAvailableProvider();
@@ -73,7 +79,8 @@ async function summarizeText(text, provider = null) {
   }
 
   const config = PROVIDER_CONFIGS[provider];
-  const apiKey = Deno.env.get(`${provider.toUpperCase()}_API_KEY`);
+  const keyName = `${provider.toLowerCase()}_api_key`;
+  const apiKey = getConfigValue(keyName);
 
   if (!apiKey) {
     throw new Error(`Clé API manquante pour ${provider}`);

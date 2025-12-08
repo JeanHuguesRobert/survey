@@ -2,6 +2,8 @@
 // SYSTEM PROMPT - Chargement dynamique
 // ============================================================================
 
+import { getConfigValue } from "../instanceConfig.js";
+
 /**
  * Petit utilitaire pour prévisualiser les valeurs dans les logs
  */
@@ -81,20 +83,20 @@ export async function getSystemPrompt() {
   let basePrompt = `📅 **Date actuelle :** ${currentDate}\\n\\n`;
 
   // 1. Charge le prompt depuis l'URL publique
-  const siteUrl = Deno.env.get("URL") || Deno.env.get("DEPLOY_PRIME_URL");
+  const siteUrl = getConfigValue("app_url");
   const localPrompt = await fetchPublicSystemPrompt(siteUrl);
   if (localPrompt) {
     basePrompt += localPrompt;
   } else {
     // 2. Fallback avec les variables d'environnement
-    const envPrompt = Deno.env.get("BOB_SYSTEM_PROMPT");
+    const envPrompt = getConfigValue("bob_system_prompt");
     if (envPrompt) {
       basePrompt += envPrompt;
     } else {
       // 3. Fallback par défaut
-      const city = Deno.env.get("CITY_NAME") || "Corte";
-      const movement = Deno.env.get("MOVEMENT_NAME") || "Pertitellu";
-      const bot = Deno.env.get("BOT_NAME") || "Ophélia";
+      const city = getConfigValue("city_name");
+      const movement = getConfigValue("movement_name");
+      const bot = getConfigValue("bot_name");
       basePrompt += `
       **Rôle :** Tu es **${bot}**, l'assistant citoyen du mouvement **${movement}** pour la commune de **${city}**.
 

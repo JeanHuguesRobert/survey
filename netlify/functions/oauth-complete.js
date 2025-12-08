@@ -1,12 +1,13 @@
 import { PROVIDERS } from "../lib/oauthProviders.js";
 import fetch from "node-fetch"; // Netlify Functions environment usually has node-fetch or global fetch in Node 18+
 import { createClient } from "@supabase/supabase-js";
+import { loadInstanceConfig, getConfigValue } from "../lib/instanceConfig.js";
 
 // Helper to exchange code for token
 async function exchangeCodeForToken(providerConf, code, redirectUri) {
   const params = new URLSearchParams({
-    client_id: process.env[providerConf.clientIdEnv],
-    client_secret: process.env[providerConf.clientSecretEnv],
+    client_id: getConfigValue(providerConf.clientIdEnv.toLowerCase().replace(/_/g, "_")),
+    client_secret: getConfigValue(providerConf.clientSecretEnv.toLowerCase().replace(/_/g, "_")),
     code,
     redirect_uri: redirectUri,
   });
@@ -62,6 +63,9 @@ async function fetchProfile(providerConf, tokenData) {
 // (previous storeAvatarForUser implementation removed - logic moved inline to use SUPABASE_SERVICE_ROLE_KEY to update metadata)
 
 export const handler = async (event) => {
+  // Charger la configuration
+  await loadInstanceConfig();
+
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
@@ -77,7 +81,7 @@ export const handler = async (event) => {
       };
     }
 
-    const appBaseUrl = process.env.APP_BASE_URL || "http://localhost:8888";
+    const appBaseUrl = getConfigValue("app_base_url", "http://localhost:8888");
     // Prefer the redirectUri stored in user metadata at oauth-start, if present. This ensures
     // the token exchange uses the exact same redirect_uri used in the authorize request.
     let redirectUri = `${appBaseUrl}${conf.redirectPath}`;
@@ -90,8 +94,8 @@ export const handler = async (event) => {
     }
     const accessToken = authHeader.split(" ")[1];
 
-    const SUPABASE_URL = process.env.SUPABASE_URL;
-    const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const SUPABASE_URL = getConfigValue("supabase_url");
+    const SUPABASE_SERVICE_ROLE_KEY = getConfigValue("supabase_service_role_key");
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       return {
         statusCode: 500,

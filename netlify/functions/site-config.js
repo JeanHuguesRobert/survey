@@ -1,8 +1,12 @@
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+import { loadInstanceConfig, getConfigValue } from "../lib/instanceConfig.js";
 
 export const handler = async () => {
   try {
+    // Charger la configuration
+    await loadInstanceConfig();
+    const SUPABASE_URL = getConfigValue("supabase_url");
+    const SUPABASE_SERVICE_ROLE_KEY = getConfigValue("supabase_service_role_key");
+
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       return {
         statusCode: 500,

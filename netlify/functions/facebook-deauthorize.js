@@ -1,7 +1,9 @@
 import crypto from "crypto";
+import { loadInstanceConfig, getConfigValue } from "../lib/instanceConfig.js";
 
-const APP_SECRET = process.env.FACEBOOK_CLIENT_SECRET;
-const APP_BASE_URL = process.env.APP_BASE_URL || "http://localhost:8888";
+// Variables initialisées après loadInstanceConfig
+let APP_SECRET = null;
+let APP_BASE_URL = null;
 
 function base64UrlDecode(input) {
   input = input.replace(/-/g, "+").replace(/_/g, "/");
@@ -36,6 +38,11 @@ function parseSignedRequest(signedRequest) {
 }
 
 export const handler = async (event) => {
+  // Charger la configuration
+  await loadInstanceConfig();
+  APP_SECRET = getConfigValue("facebook_client_secret");
+  APP_BASE_URL = getConfigValue("app_base_url", "http://localhost:8888");
+
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
@@ -70,8 +77,8 @@ export const handler = async (event) => {
     const userId = data.user_id || data.user?.id || null;
     console.log("Facebook deauthorize for user:", userId, "payload:", data);
 
-    const SUPABASE_URL = process.env.SUPABASE_URL;
-    const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const SUPABASE_URL = getConfigValue("supabase_url");
+    const SUPABASE_SERVICE_ROLE_KEY = getConfigValue("supabase_service_role_key");
 
     if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && userId) {
       try {

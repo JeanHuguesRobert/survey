@@ -1,10 +1,13 @@
 // netlify/functions/facebook-deletion-status.js
-
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+import { loadInstanceConfig, getConfigValue } from "../lib/instanceConfig.js";
 
 export const handler = async (event) => {
   try {
+    // Charger la configuration
+    await loadInstanceConfig();
+    const SUPABASE_URL = getConfigValue("supabase_url");
+    const SUPABASE_SERVICE_ROLE_KEY = getConfigValue("supabase_service_role_key");
+
     const code = (event.queryStringParameters && event.queryStringParameters.code) || null;
     if (!code) {
       return { statusCode: 400, body: JSON.stringify({ error: "code parameter required" }) };

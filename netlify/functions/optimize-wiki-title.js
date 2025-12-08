@@ -1,4 +1,5 @@
 import { OpenAI } from "openai";
+import { getOpenAIConfig } from "../lib/instanceConfig.js";
 
 export const handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -18,7 +19,7 @@ export const handler = async (event) => {
       };
     }
 
-    const openaiApiKey = process.env.OPENAI_API_KEY;
+    const { apiKey: openaiApiKey, model } = await getOpenAIConfig();
     if (!openaiApiKey) {
       return {
         statusCode: 500,
@@ -32,7 +33,7 @@ export const handler = async (event) => {
     const userQuestion = `Optimise le titre et génère un slug pour la page wiki suivante. Titre par défaut: "${defaultTitle}". Contenu: "${pageContent.substring(0, 1000)}...". Réponds uniquement avec un objet JSON au format { "optimizedTitle": "Nouveau Titre", "optimizedSlug": "nouveau-titre" }.`;
 
     const response = await client.chat.completions.create({
-      model: "gpt-4o-mini", // Ou un autre modèle approprié
+      model: model || "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userQuestion },

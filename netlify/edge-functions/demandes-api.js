@@ -16,6 +16,7 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getConfigValue } from "./lib/instanceConfig.js";
 
 // ============================================================================
 // CORS and Response Helpers
@@ -549,8 +550,8 @@ export default async function handler(request, context) {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseUrl = getConfigValue("supabase_url");
+    const supabaseKey = getConfigValue("supabase_service_role_key");
 
     if (!supabaseUrl || !supabaseKey) {
       return errorResponse("Missing Supabase configuration", 500);

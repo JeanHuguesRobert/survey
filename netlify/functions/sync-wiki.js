@@ -1,15 +1,26 @@
 import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
 import { GITHUB_CONFIG } from "../functions/constants.js";
+import { loadInstanceConfig, getConfigValue, getOpenAIConfig } from "../lib/instanceConfig.js";
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+// Supabase client initialisé de façon lazy
+let _supabase = null;
+function getSupabase() {
+  if (!_supabase) {
+    _supabase = createClient(
+      getConfigValue("supabase_url"),
+      getConfigValue("supabase_service_role_key")
+    );
+  }
+  return _supabase;
+}
 
 // ============================================================================
 // SUMMARY GENERATION
 // ============================================================================
 
 async function generatePageSummary(pageContent, pageTitle) {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const { apiKey, model } = await getOpenAIConfig();
   if (!apiKey) {
     console.warn("OPENAI_API_KEY manquant pour la génération de résumé.");
     return null;
@@ -22,7 +33,7 @@ async function generatePageSummary(pageContent, pageTitle) {
 
   try {
     const response = await client.chat.completions.create({
-      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      model: model || "gpt-4o-mini",
       max_tokens: 500, // Suffisant pour un résumé de 200 mots
       temperature: 0.3,
       messages: [
@@ -43,7 +54,9 @@ async function generatePageSummary(pageContent, pageTitle) {
 // ============================================================================
 
 async function generateConsolidatedWikiDocument() {
-  const { data: pages, error } = await supabase.from("wiki_pages").select("title, slug, summary");
+  const { data: pages, error } = await getSupabase()
+    .from("wiki_pages")
+    .select("title, slug, summary");
 
   if (error) {
     console.error("Erreur lors de la récupération des pages wiki:", error);
@@ -70,6 +83,9 @@ async function generateConsolidatedWikiDocument() {
 }
 
 export default async (req, context) => {
+  // Charger la configuration
+  await loadInstanceConfig();
+
   // Vérifier la méthode
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
@@ -89,7 +105,7 @@ export default async (req, context) => {
     }
 
     // 1. Récupérer la page depuis Supabase
-    let query = supabase.from("wiki_pages").select("*");
+    let query = getSupabase().from("wiki_pages").select("*");
 
     if (pageId) {
       query = query.eq("id", pageId);
@@ -129,15 +145,25 @@ export default async (req, context) => {
     }
 
     // 3. Préparer le contenu Markdown avec frontmatter
+    // Include federation metadata: origin_hub_id and global_id if possible
+    const subdomain =
+      typeof window !== "undefined"
+        ? window.location.hostname.split(".")[0]
+        : process.env.VITE_COMMUNITY_NAME || "local";
+    const hubType = process.env.VITE_HUB_TYPE || "commune";
+    const isGlobalRoot = hubType === "national" || process.env.VITE_IS_HUB === "true";
+    const globalId = isGlobalRoot ? `global:${page.slug}` : `instance:${subdomain}:${page.slug}`;
     const frontmatter = `---
-title: ${page.title}
-slug: ${page.slug}
-author_id: ${page.author_id || "unknown"}
-created_at: ${page.created_at}
-updated_at: ${page.updated_at}
----
+  title: ${page.title}
+  slug: ${page.slug}
+  author_id: ${page.author_id || "unknown"}
+  created_at: ${page.created_at}
+  updated_at: ${page.updated_at}
+  origin_hub_id: ${subdomain}
+  global_id: ${globalId}
+  ---
 
-`;
+  `;
     const content = frontmatter + page.content;
 
     // 4. Commit sur GitHub
@@ -170,7 +196,7 @@ updated_at: ${page.updated_at}
       console.log("Document wiki consolidé sauvegardé sur GitHub.");
 
       // Sauvegarder le document consolidé dans Supabase
-      const { error: consolidatedDocError } = await supabase
+      const { error: consolidatedDocError } = await getSupabase()
         .from('consolidated_wiki_documents') // Assuming this table exists as per instruction
         .insert({ content: consolidatedDocument, updated_at: new Date().toISOString() });
 
@@ -183,11 +209,24 @@ updated_at: ${page.updated_at}
       */
 
     // 5. Logger le sync
-    await supabase.from("git_sync_log").insert({
+    await getSupabase().from("git_sync_log").insert({
       page_id: page.id,
       last_sync_date: today,
       commit_sha: commitSha,
     });
+
+    // Save metadata fields for federation (global_id + origin_hub_id) if missing or different
+    try {
+      const updatedMeta = { ...(page.metadata || {}) };
+      updatedMeta.wiki_page = {
+        ...(updatedMeta.wiki_page || {}),
+        global_id: globalId,
+        origin_hub_id: subdomain,
+      };
+      await getSupabase().from("wiki_pages").update({ metadata: updatedMeta }).eq("id", page.id);
+    } catch (e) {
+      console.warn("Erreur en mettant à jour les metadata wiki_page après sync:", e.message || e);
+    }
 
     return new Response(
       JSON.stringify({

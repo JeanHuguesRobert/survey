@@ -1,8 +1,12 @@
 import { PROVIDERS } from "../lib/oauthProviders.js";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
+import { loadInstanceConfig, getConfigValue } from "../lib/instanceConfig.js";
 
 export const handler = async (event) => {
+  // Charger la configuration
+  await loadInstanceConfig();
+
   const { provider } = event.queryStringParameters;
   const conf = PROVIDERS[provider];
 
@@ -13,7 +17,7 @@ export const handler = async (event) => {
     };
   }
 
-  const appBaseUrl = process.env.APP_BASE_URL || "http://localhost:8888";
+  const appBaseUrl = getConfigValue("app_base_url", "http://localhost:8888");
   const redirectUri = `${appBaseUrl}${conf.redirectPath}`;
 
   // Enforce Authorization header (Supabase session access token)
@@ -25,8 +29,8 @@ export const handler = async (event) => {
   const accessToken = authHeader.split(" ")[1];
 
   // Validate session token and extract user id
-  const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const SUPABASE_URL = getConfigValue("supabase_url");
+  const SUPABASE_SERVICE_ROLE_KEY = getConfigValue("supabase_service_role_key");
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return {
       statusCode: 500,
@@ -90,8 +94,10 @@ export const handler = async (event) => {
     return { statusCode: 500, body: JSON.stringify({ error: "Failed to persist oauth state" }) };
   }
 
+  // Get client_id using the config key format (e.g., GITHUB_CLIENT_ID -> github_client_id)
+  const clientIdConfigKey = conf.clientIdEnv.toLowerCase();
   const params = new URLSearchParams({
-    client_id: process.env[conf.clientIdEnv],
+    client_id: getConfigValue(clientIdConfigKey),
     redirect_uri: redirectUri,
     response_type: "code",
     scope: conf.scopes.join(" "),

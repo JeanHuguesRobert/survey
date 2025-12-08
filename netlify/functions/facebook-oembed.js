@@ -1,8 +1,9 @@
 // Returns Facebook oEmbed for a given post URL using App access token
-// Expects FACEBOOK_APP_ID and FACEBOOK_CLIENT_SECRET in environment (Netlify env)
+// Uses vault config for Facebook credentials (with env var fallback)
 // ES Module (Node) version: top-level imports for `node-fetch` and `cheerio`.
 import fetch from "node-fetch";
 import { load } from "cheerio";
+import { getFacebookConfig } from "../lib/instanceConfig.js";
 
 function parseUrl(raw) {
   try {
@@ -107,12 +108,10 @@ export const handler = async (event) => {
       };
     }
 
-    const explicitToken = process.env.FACEBOOK_TOKEN;
+    const { appId, clientSecret, token: configToken } = await getFacebookConfig();
+    const explicitToken = configToken;
     const access_token =
-      explicitToken ||
-      (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_CLIENT_SECRET
-        ? `${process.env.FACEBOOK_APP_ID}|${process.env.FACEBOOK_CLIENT_SECRET}`
-        : null);
+      explicitToken || (appId && clientSecret ? `${appId}|${clientSecret}` : null);
     if (!access_token)
       return {
         statusCode: 500,

@@ -8,6 +8,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import OpenAI from "https://esm.sh/openai@4";
+import { loadInstanceConfig, getConfigValue } from "./lib/instanceConfig.js";
 
 // ============================================================================
 // CONFIGURATION
@@ -250,7 +251,7 @@ export default async function handler(request) {
   // Authenticate: either cron key or user auth
   const cronKey = request.headers.get("X-Cron-Key");
   const authHeader = request.headers.get("Authorization");
-  const expectedCronKey = Deno.env.get("CRON_API_KEY");
+  const expectedCronKey = getConfigValue("cron_api_key");
 
   let isAuthenticated = false;
   let userId = null;
@@ -260,8 +261,8 @@ export default async function handler(request) {
     console.log("[SyncRAG] ✅ Authenticated via cron key");
   } else if (authHeader) {
     // Verify user auth
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    const supabaseUrl = getConfigValue("supabase_url");
+    const supabaseAnonKey = getConfigValue("supabase_anon_key");
 
     if (supabaseUrl && supabaseAnonKey) {
       const token = authHeader.replace("Bearer ", "");
@@ -297,10 +298,10 @@ export default async function handler(request) {
     });
   }
 
-  // Initialize clients
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const openaiKey = Deno.env.get("OPENAI_API_KEY");
+  // Initialize clients (vault first, then env)
+  const supabaseUrl = getConfigValue("supabase_url");
+  const supabaseKey = getConfigValue("supabase_service_role_key");
+  const openaiKey = getConfigValue("openai_api_key");
 
   if (!supabaseUrl || !supabaseKey) {
     return new Response(JSON.stringify({ error: "Supabase not configured" }), {
