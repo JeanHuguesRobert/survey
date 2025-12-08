@@ -10,22 +10,18 @@
  * - Append-only architecture
  */
 
-import { createClient } from "@supabase/supabase-js";
-import OpenAI from "openai";
 import crypto from "crypto";
-import dotenv from "dotenv";
+import { loadConfig, createSupabaseClient, createOpenAIClient } from "./lib/config.js";
 
-dotenv.config();
+// Charger la configuration
+await loadConfig();
 
 // ============================================================================
 // Configuration
 // ============================================================================
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const supabase = createSupabaseClient();
+const openai = await createOpenAIClient();
 
 const MAX_TOKENS_PER_CHUNK = 1500;
 const MAX_EMBEDDING_TOKENS = 8000; // OpenAI limit is 8191
