@@ -196,3 +196,10 @@ src/components/bob/legacy/
 src/components/bob/broken-v1/
 
 public/docs/cortideri.md
+
+# artifacts du build
+public/meta-init.js
+tmp-tailwind-input.css
+scripts/test-feed-adapter-simple.js
+scripts/test-social-metadata.js
+scripts/test_vector_search.js
