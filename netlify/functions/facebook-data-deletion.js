@@ -1,7 +1,9 @@
 import crypto from "crypto";
+import { loadInstanceConfig, getConfigValue } from "../lib/instanceConfig.js";
 
-const APP_BASE_URL = process.env.APP_BASE_URL || "http://localhost:8888";
-const APP_SECRET = process.env.FACEBOOK_CLIENT_SECRET;
+// Variables initialisées après loadInstanceConfig
+let APP_BASE_URL = null;
+let APP_SECRET = null;
 
 function base64UrlDecode(input) {
   input = input.replace(/-/g, "+").replace(/_/g, "/");
@@ -39,6 +41,11 @@ function parseSignedRequest(signedRequest) {
 }
 
 export const handler = async (event) => {
+  // Charger la configuration
+  await loadInstanceConfig();
+  APP_BASE_URL = getConfigValue("app_base_url", "http://localhost:8888");
+  APP_SECRET = getConfigValue("facebook_client_secret");
+
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
@@ -81,8 +88,8 @@ export const handler = async (event) => {
     console.log("Facebook data deletion request for user:", userId, "payload:", data);
 
     // Try to find a matching user in the project's `users` table using common metadata keys
-    const SUPABASE_URL = process.env.SUPABASE_URL;
-    const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const SUPABASE_URL = getConfigValue("supabase_url");
+    const SUPABASE_SERVICE_ROLE_KEY = getConfigValue("supabase_service_role_key");
 
     if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && userId) {
       try {
