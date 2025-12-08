@@ -1,28 +1,34 @@
 // Dynamic metadata initialization
-// Extracted from index.html to avoid Vite html-proxy issues
+// ⚠️ FICHIER GÉNÉRÉ AUTOMATIQUEMENT - NE PAS MODIFIER
+// Généré par scripts/generate-meta-init.js lors du build
+// Dernière génération: 2025-12-08T07:07:11.914Z
 
-// Récupération des constantes depuis les variables d'environnement
-const CITY_NAME = import.meta.env.VITE_CITY_NAME || "Corte";
-const PARTY_NAME = import.meta.env.VITE_PARTY_NAME || "Petit Parti";
-const SITE_URL = import.meta.env.VITE_APP_URL || "https://lepp.fr";
+const CITY_NAME = "Corte";
+const PARTY_NAME = "Petit Parti";
+const SITE_URL = "http://localhost:8888";
 
 // Mise à jour dynamique des métadonnées
-document.getElementById("page-title").textContent = `Consultation Citoyenne - ${PARTY_NAME}`;
-document
-  .getElementById("page-description")
-  .setAttribute(
+const pageTitle = document.getElementById("page-title");
+if (pageTitle) pageTitle.textContent = `Consultation Citoyenne - ${PARTY_NAME}`;
+
+const pageDesc = document.getElementById("page-description");
+if (pageDesc) {
+  pageDesc.setAttribute(
     "content",
     `Plateforme de consultation citoyenne pour les élections municipales de ${CITY_NAME}, incluant un wiki collaboratif et un système de propositions citoyennes.`
   );
-document
-  .getElementById("og-title")
-  .setAttribute("content", `Consultation Citoyenne - ${PARTY_NAME}`);
-document
-  .getElementById("og-description")
-  .setAttribute(
+}
+
+const ogTitle = document.getElementById("og-title");
+if (ogTitle) ogTitle.setAttribute("content", `Consultation Citoyenne - ${PARTY_NAME}`);
+
+const ogDesc = document.getElementById("og-description");
+if (ogDesc) {
+  ogDesc.setAttribute(
     "content",
     `Participez à la démocratie locale de ${CITY_NAME} avec notre plateforme de consultation citoyenne.`
   );
+}
 
 // Ensure an explicit og:image is set (Facebook requires explicit image meta)
 const ogImageUrl = `${SITE_URL.replace(/\/$/, "")}/images/og-image.png`;
