@@ -6,20 +6,19 @@
  */
 
 import { GoogleAIFileManager, GoogleAICacheManager } from "@google/generative-ai/server";
-import { createClient } from "@supabase/supabase-js";
-import { config } from "dotenv";
 import fetch from "node-fetch";
 import path from "path";
 import fs from "fs/promises";
 import os from "os";
+import { loadConfig, getConfigValue, createSupabaseClient } from "./lib/config.js";
 
-// Load env vars
-config();
+// Charger la configuration
+await loadConfig();
 
-const API_KEY = process.env.GOOGLE_FILESEARCH_API_KEY || process.env.GEMINI_API_KEY;
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || "public-documents";
+const API_KEY = getConfigValue("google_filesearch_api_key") || getConfigValue("gemini_api_key");
+const SUPABASE_URL = getConfigValue("supabase_url");
+const SUPABASE_KEY = getConfigValue("supabase_service_role_key");
+const STORAGE_BUCKET = getConfigValue("supabase_storage_bucket", "public-documents");
 
 if (!API_KEY || !SUPABASE_URL || !SUPABASE_KEY) {
   console.error("❌ Error: Missing required environment variables");
@@ -31,7 +30,7 @@ console.log("Using Gemini API Key:", API_KEY.substring(0, 10) + "...");
 
 const fileManager = new GoogleAIFileManager(API_KEY);
 const cacheManager = new GoogleAICacheManager(API_KEY);
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = createSupabaseClient();
 
 /**
  * Fetch all active documents from Supabase
