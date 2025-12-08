@@ -7,7 +7,8 @@ export const PROVIDERS = {
     clientIdEnv: "GITHUB_CLIENT_ID",
     clientSecretEnv: "GITHUB_CLIENT_SECRET",
     redirectPath: "/oauth/github/callback",
-    scopes: ["read:user"],
+    // Request email explicitly so the provider returns verified email addresses
+    scopes: ["read:user", "user:email"],
     mapProfile: (profile) => ({
       providerUserId: profile.id,
       username: profile.login,
