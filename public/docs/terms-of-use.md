@@ -49,7 +49,7 @@ https://opensource.org/licenses/MIT
 ## 8. Mentions légales
 
 Éditeur du site : Jean Hugues Noël Robert, particulier, initiative citoyenne bénévole. Contact :
-jeanhuguesrobert@gmail.com Aucune activité commerciale, hébergement sur Netlify/GitHub Pages.
+jean_hugues_robert@yahoo.com Aucune activité commerciale, hébergement sur Netlify/GitHub Pages.
 
 ---
 

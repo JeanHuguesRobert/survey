@@ -182,8 +182,8 @@ participation citoyenne ailleurs. Les contributions sont bienvenues.
 
 👥 **Groupe Facebook** :
 [facebook.com/groups/1269635707349220](https://www.facebook.com/groups/1269635707349220) 📧
-**Contact** : [jeanhuguesrobert@gmail.com](mailto:jeanhuguesrobert@gmail.com) 🌐 **Plateforme** :
-[lepp.fr](https://lepp.fr)
+**Contact** : [jean_hugues_robert@yahoo.com](mailto:jean_hugues_robert@yahoo.com) 🌐 **Plateforme**
+: [lepp.fr](https://lepp.fr)
 
 ---
 
