@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Client npm pour l’API REST Ophélia (RAG civic-tech)",
   "main": "index.js",
-  "type": "commonjs",
+  "type": "module",
   "author": "Jean-Hugues Robert",
   "license": "MIT",
   "keywords": [

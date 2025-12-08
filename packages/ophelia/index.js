@@ -30,4 +30,4 @@ async function ask(question, options = {}) {
   return res.json();
 }
 
-module.exports = { ask };
+export { ask };

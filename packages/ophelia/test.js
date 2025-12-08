@@ -1,7 +1,7 @@
 // packages/ophelia/test.js
 // Test rapide du package Ophélia (API REST)
 
-const { ask } = require("./index");
+import { ask } from "./index.js";
 
 (async () => {
   try {
