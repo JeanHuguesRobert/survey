@@ -6,4 +6,4 @@ Kudocracy is a neutral open-source digital infrastructure.
 - Funding does not grant control over the roadmap.
 - No political party, movement or campaign has any governance power.
 - All code is released under the MIT license.
-- All financial flows will be publicly traceable via Open Collective.
+- WIP: All financial flows will be publicly traceable via Open Collective.
