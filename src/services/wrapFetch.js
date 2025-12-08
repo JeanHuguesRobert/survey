@@ -1,9 +1,13 @@
 export async function wrapFetch(url, options = {}) {
   const { token, headers = {}, onAuthError } = options;
   const fetchOptions = { ...options };
+
+  // If body is FormData, do not set Content-Type (browser will set multipart boundary)
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+
   fetchOptions.headers = {
     Accept: "application/json",
-    "Content-Type": "application/json",
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...headers,
   };
   if (token) fetchOptions.headers.Authorization = `Bearer ${token}`;

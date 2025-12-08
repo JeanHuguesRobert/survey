@@ -24,6 +24,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getConfigValue } from "./lib/instanceConfig.js";
+import { isAdmin as permIsAdmin, getUserRole } from "./lib/permissions.js";
 
 // ============================================================================
 // CORS and Request Handling
@@ -655,6 +656,74 @@ async function createProof(supabase, data, user, request) {
   return jsonResponse(newProof, 201);
 }
 
+async function listProofLinks(supabase, params, user) {
+  try {
+    let query = supabase
+      .from("proof_link")
+      .select(
+        `
+      id, role, piece_number, created_at,
+      proof:proof_id(
+        id, type, source_org, date_emission, date_reception,
+        probative_force, verified_by_human, storage_url, original_filename, created_at
+      )
+    `
+      )
+      .order("created_at", { ascending: false });
+
+    if (params.acte_id || params.entity_id) {
+      const acteId = params.acte_id || params.entity_id;
+      query = query.eq("entity_type", "ACTE").eq("entity_id", acteId);
+    }
+    if (params.demande_admin_id) {
+      query = query.eq("entity_type", "DEMANDE").eq("entity_id", params.demande_admin_id);
+    }
+
+    const { data, error } = await query;
+    if (error) return errorResponse("Failed to fetch proof links", 500, error.message);
+    return jsonResponse(data);
+  } catch (err) {
+    return errorResponse("Failed to fetch proof links", 500, err.message);
+  }
+}
+
+async function deleteProof(supabase, proofId, user, request) {
+  // Only allow admins (use shared permission helper)
+  const allowed = permIsAdmin(user);
+  if (!allowed) return errorResponse("Forbidden", 403);
+
+  // Delete links first
+  const { error: linkError } = await supabase.from("proof_link").delete().eq("proof_id", proofId);
+  if (linkError) {
+    console.error("Error deleting proof links:", linkError);
+    return errorResponse("Failed to delete proof links", 500, linkError.message);
+  }
+
+  // Delete proof record
+  const { data: deleted, error } = await supabase
+    .from("proof")
+    .delete()
+    .eq("id", proofId)
+    .select()
+    .single();
+  if (error) {
+    console.error("Error deleting proof:", error);
+    return errorResponse("Failed to delete proof", 500, error.message);
+  }
+
+  await logAudit(supabase, {
+    userId: user.id,
+    actorType: "HUMAIN",
+    action: "DELETE",
+    entityType: "PROOF",
+    entityId: proofId,
+    payload: {},
+    request,
+  });
+
+  return jsonResponse({ message: "deleted", proof: deleted });
+}
+
 async function verifyProof(supabase, proofId, data, user, request) {
   const { data: existingProof, error: existingError } = await supabase
     .from("proof")
@@ -779,21 +848,29 @@ export default async function handler(request, context) {
     }
 
     // Check user has civic profile (and get role)
-    const { data: profile } = await supabase
+    let { data: profile } = await supabase
       .from("civic_user_profile")
       .select("role, collectivite_id")
       .eq("id", user.id)
       .single();
 
-    // If no profile, create default one
+    // If no profile, create default one and re-read
     if (!profile) {
-      await supabase.from("civic_user_profile").insert({
-        id: user.id,
-        display_name: user.email?.split("@")[0] || "User",
-        role: "CITIZEN_REVIEWER",
-        organisation: "CITOYEN",
-      });
+      const { data: created } = await supabase
+        .from("civic_user_profile")
+        .insert({
+          id: user.id,
+          display_name: user.email?.split("@")[0] || "User",
+          role: "CITIZEN_REVIEWER",
+          organisation: "CITOYEN",
+        })
+        .select()
+        .single();
+      profile = created || null;
     }
+
+    // Merge user and profile for permission helpers
+    const mergedUser = { ...user, profile };
 
     // Parse route
     const { parts, params } = parseRoute(request.url);
@@ -803,32 +880,32 @@ export default async function handler(request, context) {
     if (parts[0] === "actes" || parts[0] === undefined) {
       if (parts.length === 0 || (parts.length === 1 && parts[0] === "actes")) {
         if (method === "GET") {
-          return await listActes(supabase, params, user);
+          return await listActes(supabase, params, mergedUser);
         }
         if (method === "POST") {
           const body = await request.json();
-          return await createActe(supabase, body, user, request);
+          return await createActe(supabase, body, mergedUser, request);
         }
       }
 
       if (parts.length === 2 && parts[0] === "actes") {
         const acteId = parts[1];
         if (method === "GET") {
-          return await getActe(supabase, acteId, user);
+          return await getActe(supabase, acteId, mergedUser);
         }
         if (method === "PUT") {
           const body = await request.json();
-          return await updateActe(supabase, acteId, body, user, request);
+          return await updateActe(supabase, acteId, body, mergedUser, request);
         }
         if (method === "DELETE") {
-          return await deleteActe(supabase, acteId, user, request);
+          return await deleteActe(supabase, acteId, mergedUser, request);
         }
       }
 
       if (parts.length === 3 && parts[0] === "actes" && parts[2] === "history") {
         const acteId = parts[1];
         if (method === "GET") {
-          return await getActeHistory(supabase, acteId, user);
+          return await getActeHistory(supabase, acteId, mergedUser);
         }
       }
     }
@@ -837,19 +914,84 @@ export default async function handler(request, context) {
     if (parts[0] === "proofs") {
       if (parts.length === 1) {
         if (method === "GET") {
-          return await listProofs(supabase, params, user);
+          return await listProofs(supabase, params, mergedUser);
         }
         if (method === "POST") {
+          const ct = request.headers.get("content-type") || "";
+          if (ct.includes("multipart/form-data")) {
+            // Handle multipart upload: file + metadata
+            const form = await request.formData();
+            const file = form.get("file");
+            if (!file) return errorResponse("file is required", 400);
+
+            // Read file bytes
+            const arrayBuffer = await file.arrayBuffer();
+            const uint8 = new Uint8Array(arrayBuffer);
+
+            // Compute SHA-256 if not provided
+            let hash = form.get("hash_sha256") || null;
+            if (!hash) {
+              const digest = await crypto.subtle.digest("SHA-256", arrayBuffer);
+              const h = Array.from(new Uint8Array(digest))
+                .map((b) => b.toString(16).padStart(2, "0"))
+                .join("");
+              hash = h;
+            }
+
+            // Upload to storage
+            const fileExt = (form.get("original_filename") || file.name || "").split(".").pop();
+            const fileName = `${crypto.randomUUID()}.${fileExt}`;
+            const filePath = `proofs/${mergedUser.id}/${fileName}`;
+
+            const { data: uploadData, error: uploadError } = await supabase.storage
+              .from("civic-proofs")
+              .upload(filePath, uint8, { contentType: file.type });
+
+            if (uploadError) {
+              console.error("Storage upload failed:", uploadError);
+              return errorResponse("Storage upload failed", 500, uploadError.message);
+            }
+
+            const { data: urlData } = await supabase.storage
+              .from("civic-proofs")
+              .getPublicUrl(filePath);
+            const publicUrl = urlData?.publicUrl || null;
+
+            const payload = {
+              type: form.get("type") || form.get("role") || "AUTRE",
+              source_org: form.get("source_org") || "CITOYEN",
+              date_emission: form.get("date_emission") || form.get("date_constat") || null,
+              date_reception: form.get("date_reception") || null,
+              hash_sha256: hash,
+              storage_url: publicUrl,
+              original_filename: form.get("original_filename") || file.name,
+              file_size_bytes: uint8.length,
+              mime_type: file.type || null,
+              probative_force: form.get("probative_force") || "FAIBLE",
+              metadata: form.get("metadata")
+                ? JSON.parse(form.get("metadata"))
+                : { uploaded_via: "ui" },
+            };
+
+            return await createProof(supabase, payload, mergedUser, request);
+          }
+
+          // Default: expect JSON
           const body = await request.json();
-          return await createProof(supabase, body, user, request);
+          return await createProof(supabase, body, mergedUser, request);
         }
+      }
+
+      if (parts.length === 2 && parts[1] && method === "DELETE") {
+        const proofId = parts[1];
+        return await deleteProof(supabase, proofId, mergedUser, request);
       }
 
       if (parts.length === 3 && parts[2] === "verify") {
         const proofId = parts[1];
         if (method === "POST") {
           const body = await request.json().catch(() => ({}));
-          return await verifyProof(supabase, proofId, body, user, request);
+          return await verifyProof(supabase, proofId, body, mergedUser, request);
         }
       }
     }
@@ -858,7 +1000,10 @@ export default async function handler(request, context) {
     if (parts[0] === "proof-links") {
       if (parts.length === 1 && method === "POST") {
         const body = await request.json();
-        return await createProofLink(supabase, body, user, request);
+        return await createProofLink(supabase, body, mergedUser, request);
+      }
+      if (parts.length === 1 && method === "GET") {
+        return await listProofLinks(supabase, params, mergedUser);
       }
     }
 

@@ -6,8 +6,9 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
-import { useSupabase } from "../../contexts/SupabaseContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { wrapFetch } from "../../services/wrapFetch";
+import { linkProof } from "../../services/api/proofs";
 import SiteFooter from "../../components/layout/SiteFooter";
 
 // ============================================================================
@@ -260,13 +261,13 @@ const ExistingProofs = ({ proofs, onDelete }) => {
 // MAIN COMPONENT
 // ============================================================================
 
-export default function ProofUpload() {
+export default function ProofUpload({ acteId: propActeId, demandeId: propDemandeId, onUploaded }) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user } = useSupabase();
+  const { session, user } = useAuth();
 
-  const acteId = searchParams.get("acte");
-  const demandeId = searchParams.get("demande");
+  const acteId = propActeId || searchParams.get("acte");
+  const demandeId = propDemandeId || searchParams.get("demande");
 
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -293,48 +294,28 @@ export default function ProofUpload() {
   // Fetch linked item and existing proofs
   useEffect(() => {
     const fetchData = async () => {
-      if (!supabase) return;
-
       setLoading(true);
-
+      const token = session?.access_token;
       try {
-        // Fetch linked item
         if (acteId) {
-          const { data: acte } = await supabase
-            .from("v_actes_current")
-            .select("id, numero_interne, objet_court, type_acte")
-            .eq("id", acteId)
-            .single();
+          // Fetch acte summary via edge API
+          const acte = await wrapFetch(`/api/actes/${acteId}`, { token });
+          if (acte) setLinkedItem({ type: "acte", ...acte });
 
-          if (acte) {
-            setLinkedItem({ type: "acte", ...acte });
-          }
-
-          // Fetch existing proofs for this acte
-          const { data: links } = await supabase
-            .from("proof_link")
-            .select(`proof:proof_id (*)`)
-            .eq("acte_id", acteId);
-
-          setExistingProofs((links || []).map((l) => l.proof).filter(Boolean));
+          // Fetch proof-links for this acte
+          const links = await wrapFetch(`/api/proof-links?acte_id=${acteId}`, { token });
+          // links expected to be an array of { proof: { ... } } or proofs
+          const proofs = Array.isArray(links) ? links.map((l) => l.proof || l).filter(Boolean) : [];
+          setExistingProofs(proofs);
         } else if (demandeId) {
-          const { data: demande } = await supabase
-            .from("demande_admin")
-            .select("id, objet, type")
-            .eq("id", demandeId)
-            .single();
+          const demande = await wrapFetch(`/api/demandes/${demandeId}`, { token });
+          if (demande) setLinkedItem({ type: "demande", ...demande });
 
-          if (demande) {
-            setLinkedItem({ type: "demande", ...demande });
-          }
-
-          // Fetch existing proofs for this demande
-          const { data: links } = await supabase
-            .from("proof_link")
-            .select(`proof:proof_id (*)`)
-            .eq("demande_admin_id", demandeId);
-
-          setExistingProofs((links || []).map((l) => l.proof).filter(Boolean));
+          const links = await wrapFetch(`/api/proof-links?demande_admin_id=${demandeId}`, {
+            token,
+          });
+          const proofs = Array.isArray(links) ? links.map((l) => l.proof || l).filter(Boolean) : [];
+          setExistingProofs(proofs);
         }
       } catch (err) {
         console.error("[ProofUpload] Error:", err);
@@ -342,7 +323,6 @@ export default function ProofUpload() {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [acteId, demandeId]);
 
@@ -410,69 +390,46 @@ export default function ProofUpload() {
     setError(null);
 
     try {
-      // 1. Upload file to Supabase Storage
-      const fileExt = selectedFile.name.split(".").pop();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      const filePath = `proofs/${user.id}/${fileName}`;
+      const token = session?.access_token;
 
-      const { error: uploadError } = await supabase.storage
-        .from("civic-proofs")
-        .upload(filePath, selectedFile);
-
-      if (uploadError) {
-        // Fallback: store URL reference only
-        console.warn("Storage upload failed, storing reference only:", uploadError);
-      }
-
-      // Get public URL
-      const { data: urlData } = supabase.storage.from("civic-proofs").getPublicUrl(filePath);
-
-      const fileUrl = urlData?.publicUrl || null;
-
-      // 2. Create proof record
-      const proofData = {
-        type: proofType,
-        label: formData.label,
-        date_constat: formData.date_constat,
-        url_source: formData.url_source || null,
-        url_fichier: fileUrl,
-        hash_sha256: formData.hash_sha256 || null,
-        metadata: {
+      // Build FormData for file + metadata
+      const fd = new FormData();
+      fd.append("file", selectedFile, selectedFile.name);
+      fd.append("type", proofType);
+      fd.append("label", formData.label);
+      fd.append("date_constat", formData.date_constat);
+      if (formData.url_source) fd.append("url_source", formData.url_source);
+      if (formData.hash_sha256) fd.append("hash_sha256", formData.hash_sha256);
+      fd.append(
+        "metadata",
+        JSON.stringify({
           original_name: selectedFile.name,
           size: selectedFile.size,
           mime_type: selectedFile.type,
           notes: formData.notes,
-        },
-        uploaded_by: user.id,
-      };
+        })
+      );
 
-      const { data: proof, error: proofError } = await supabase
-        .from("proof")
-        .insert(proofData)
-        .select("id")
-        .single();
+      // Create proof via edge API (expects multipart/form-data)
+      const proof = await wrapFetch("/api/proofs", { method: "POST", token, body: fd });
 
-      if (proofError) throw proofError;
-
-      // 3. Create link to acte or demande
-      if (acteId || demandeId) {
-        const linkData = {
+      // Link proof to acte/demande
+      if ((acteId || demandeId) && proof?.id) {
+        const payload = {
           proof_id: proof.id,
-          acte_id: acteId || null,
-          demande_admin_id: demandeId || null,
-          link_type: proofType,
-          linked_by: user.id,
+          entity_type: acteId ? "acte" : "demande_admin",
+          entity_id: acteId || demandeId,
+          role: proofType,
         };
 
-        const { error: linkError } = await supabase.from("proof_link").insert(linkData);
-
-        if (linkError) throw linkError;
+        await linkProof(payload, { token });
       }
 
       setSuccess(true);
 
-      // Redirect after success
+      // Callback and redirect after success
       setTimeout(() => {
+        if (typeof onUploaded === "function") onUploaded();
         if (acteId) {
           navigate(`/actes/${acteId}`);
         } else if (demandeId) {
@@ -480,7 +437,7 @@ export default function ProofUpload() {
         } else {
           navigate("/actes");
         }
-      }, 1500);
+      }, 800);
     } catch (err) {
       console.error("[ProofUpload] Submit error:", err);
       setError(err.message || "Erreur lors de l'upload");
@@ -494,9 +451,9 @@ export default function ProofUpload() {
     if (!confirm("Supprimer cette preuve ?")) return;
 
     try {
-      await supabase.from("proof_link").delete().eq("proof_id", proofId);
-      await supabase.from("proof").delete().eq("id", proofId);
-
+      const token = session?.access_token;
+      // Ask server to delete proof (server should handle unlinking)
+      await wrapFetch(`/api/proofs/${proofId}`, { method: "DELETE", token });
       setExistingProofs((prev) => prev.filter((p) => p.id !== proofId));
     } catch (err) {
       console.error("[ProofUpload] Delete error:", err);
