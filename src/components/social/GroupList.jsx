@@ -6,7 +6,7 @@ import GroupCard from "./GroupCard";
 /**
  * Liste tous les groupes (forums, quartiers, associations)
  */
-export default function GroupList({ filterType = null, currentUserId = null }) {
+export default function GroupList({ filterType = null, currentUserId = null, gazette = null }) {
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -27,7 +27,8 @@ export default function GroupList({ filterType = null, currentUserId = null }) {
         query = query.eq("metadata->>groupType", filterType);
       }
 
-      query = query.order("created_at", { ascending: false });
+      // Order alphabetically by group name for consistent UI
+      query = query.order("name", { ascending: true });
 
       const { data, error: fetchError } = await query;
 
@@ -71,8 +72,13 @@ export default function GroupList({ filterType = null, currentUserId = null }) {
     );
   }
 
+  const gridClass =
+    gazette === "global"
+      ? "grid grid-cols-1 gap-6"
+      : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className={gridClass}>
       {groups.map((group) => (
         <GroupCard key={group.id} group={group} currentUserId={currentUserId} />
       ))}
