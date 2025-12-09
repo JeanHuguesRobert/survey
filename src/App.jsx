@@ -72,6 +72,8 @@ import FilFeed from "./components/fil/FilFeed";
 import FilSubmissionForm from "./components/fil/FilSubmissionForm";
 import FilGuidelines from "./components/fil/FilGuidelines";
 import FilFAQ from "./components/fil/FilFAQ";
+import CopCoreLandingPage from "./pages/CopCoreLandingPage";
+import OpheliaLandingPage from "./pages/OpheliaLandingPage";
 
 // Consultation active (module séparé)
 import ConsultationsHome, {
@@ -116,6 +118,8 @@ export function App() {
       <GlobalStatusIndicator />
       <Routes>
         <Route path="/" element={<ConsultationsHome />} />
+        <Route path="/ophelia-land" element={<OpheliaLandingPage />} />
+        <Route path="/cop-core" element={<CopCoreLandingPage />} />
         <Route path="/consultations" element={<ConsultationsHome />} />
         <Route path="/consultation" element={<ConsultationQuasquara />} />
         <Route path="/consultation/quasquara" element={<ConsultationQuasquara />} />
