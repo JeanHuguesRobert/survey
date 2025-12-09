@@ -299,6 +299,7 @@ export default function OpheliaLandingPage() {
             >
               Fonctionnalités
             </button>
+            <Link to="/engagement">Rejoindre</Link>
             <button
               type="button"
               style={{ ...styles.navLink, background: "none", border: "none" }}
@@ -509,7 +510,7 @@ export default function OpheliaLandingPage() {
           <div>© {new Date().getFullYear()} Ophélia · Projet civique open source.</div>
           <div style={styles.footerLinks}>
             <a href={GITHUB_MAIN_REPO} style={styles.footerLink}>
-              GitHub (plateforme)
+              GitHub
             </a>
 
             <Link to="/cop-core" style={styles.footerLink}>
