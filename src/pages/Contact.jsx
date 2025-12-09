@@ -45,7 +45,7 @@ export default function Contact() {
                 <a href={`mailto:${email}`} className="text-blue-600 hover:underline">
                   {email}
                 </a>
-                .
+                <Link to="/ophelia-land">l'auteur</Link>.
               </p>
             </section>
           </div>
