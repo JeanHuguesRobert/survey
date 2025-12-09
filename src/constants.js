@@ -1,7 +1,7 @@
 // centralised app version (single source of truth)
 // hardcoded value is the canonical version; CI/CD can override by setting process.env.APP_VERSION at build time
-export const APP_VERSION = import.meta.env.APP_VERSION ?? "1.5.7";
-export const DEPLOY_DATE = import.meta.env.DEPLOY_DATE ?? "2025-12-07";
+export const APP_VERSION = import.meta.env.APP_VERSION ?? "1.5.9";
+export const DEPLOY_DATE = import.meta.env.DEPLOY_DATE ?? "2025-12-09";
 
 // Palette Bauhaus sombre harmonisée avec le thème CSS
 // Voir src/index.css pour la correspondance exacte
