@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 const GITHUB_MAIN_REPO = "https://github.com/JeanHuguesRobert/survey";
 const GITHUB_COP_CORE = "https://github.com/JeanHuguesRobert/survey/tree/main/packages/cop-core";
@@ -510,9 +511,11 @@ export default function OpheliaLandingPage() {
             <a href={GITHUB_MAIN_REPO} style={styles.footerLink}>
               GitHub (plateforme)
             </a>
-            <a href={GITHUB_COP_CORE} style={styles.footerLink}>
-              Core / COP
-            </a>
+
+            <Link to="/cop-core" style={styles.footerLink}>
+              dont COP v0.2
+            </Link>
+
             <button
               type="button"
               style={{

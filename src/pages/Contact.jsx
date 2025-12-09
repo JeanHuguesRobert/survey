@@ -41,11 +41,11 @@ export default function Contact() {
           <div className="space-y-6">
             <section>
               <p className="text-gray-300">
-                Pour nous contacter, écrivez à&nbsp;
+                Contactez <Link to="/ophelia-land">l'auteur</Link>, écrivez à&nbsp;
                 <a href={`mailto:${email}`} className="text-blue-600 hover:underline">
                   {email}
                 </a>
-                <Link to="/ophelia-land">l'auteur</Link>.
+                .
               </p>
             </section>
           </div>
