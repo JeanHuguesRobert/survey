@@ -61,8 +61,8 @@ INSERT INTO public.instance_config (key, value, category, description, is_public
   ('locale', 'fr-FR', 'identity', 'Langue/locale par défaut', true),
 
   -- Contact
-  ('contact_email', 'contact@transparence-corte.fr', 'identity', 'Email de contact public', true),
-  ('support_email', 'support@corsica-asso.fr', 'identity', 'Email support technique', false)
+  ('contact_email', 'jean_hugues_robert@yahoo.com', 'identity', 'Email de contact public', true),
+  ('support_email', 'jean_hugues_robert@yahoo.com', 'identity', 'Email support technique', false)
 ON CONFLICT (key) DO NOTHING;
 
 -- === BRANDING ===
