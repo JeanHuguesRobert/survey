@@ -1,6 +1,5 @@
-export * from "./core/types";
-export * from "./core/bus";
-export * from "./core/store";
-export * from "./core/agent";
-export * from "./core/scheduler";
-export * from "./core/delivery";
+// index.ts
+
+export * as COPCore from "./core";
+export * as COPRuntime from "./runtime";
+export * as COPChat from "./profiles/chat";

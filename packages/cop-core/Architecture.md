@@ -1,0 +1,361 @@
+# **Architecture.md**
+
+# **Cognitive Orchestration Protocol — Core Architecture**
+
+`cop-core` defines the **abstract architecture** of a COP-compatible system. It provides
+**protocol-level types**, **runtime interfaces**, and **profile contracts**, without any
+implementation or dependency.
+
+This document describes how the pieces fit together and how a COP system is expected to behave at
+scale.
+
+---
+
+# **1. Overview**
+
+A COP system is built from **immutable events**, **durable artifacts**, and **stateless agents**
+that react to them. It is a **deterministic, replayable, fault-tolerant** architecture inspired by:
+
+- event sourcing,
+- actor systems (Erlang/OTP),
+- workflow engines,
+- LLM orchestration patterns.
+
+`cop-core` defines:
+
+- **Core model** – the canonical data structures (`Event`, `Topic`, `Job`, `Step`, `Artifact`)
+- **Runtime contracts** – bus, store, scheduler, agents, context
+- **Profiles** – semantic extensions (e.g., chat/LLM)
+
+Everything else (storage, networking, execution engines, LLM providers) lives **outside** this
+package.
+
+---
+
+# **2. Core Model**
+
+The COP core defines five durable types.
+
+```
+Topic
+ ├── Events     (immutable, ordered via topicSeq)
+ └── Artifacts  (immutable, durable outputs)
+
+Jobs
+ └── Steps      (progression of long-running tasks)
+```
+
+## 2.1 Event
+
+Events are the foundational unit of computation:
+
+- **Immutable**
+- **Append-only**
+- **Strictly ordered within a Topic** via `topicSeq`
+- **Versioned** (`schemaVersion`)
+- **Causally linked** (`correlationId`, `parentEventIds`)
+
+Events drive all agent reactions.
+
+## 2.2 Topic
+
+A Topic groups events and artifacts into a coherent cognitive thread:
+
+- A long-lived conversation
+- A workflow
+- A subgraph of coordinated reasoning
+
+Topics evolve through statuses:
+
+- `open` → `in_progress` → `exhausted` → `closed`
+
+## 2.3 Job and Step
+
+Jobs represent durable tasks within a Topic. Steps represent the execution phases of a Job.
+
+Jobs and Steps are **projections** derived from events, not primary sources of truth.
+
+## 2.4 Artifact
+
+Artifacts store meaningful, durable outputs:
+
+- LLM messages
+- Summaries
+- Plans
+- Files
+- Embeddings
+- Decisions
+
+They are immutable and versioned.
+
+They allow:
+
+- restartability,
+- auditability,
+- deep reasoning over time.
+
+---
+
+# **3. Runtime Interfaces**
+
+Runtime interfaces describe how to execute a COP system. They are pure TypeScript interfaces — no
+implementation in this package.
+
+## 3.1 COPBus
+
+The `COPBus` is responsible for transporting Events.
+
+Requirements:
+
+- **at-least-once delivery**
+- **topic-local ordering via `fetchFromSeq`**
+- optional **subscription API**
+
+Interfaces:
+
+```
+publish(event)
+fetchSince({ since })   // convenience
+fetchFromSeq({ fromSeq }) // canonical replay
+subscribe?()
+```
+
+Bus implementations may use:
+
+- Postgres (append-only table)
+- Kafka
+- NATS
+- Redis Streams
+- In-memory queues
+- Durable objects / CRDT stores
+
+## 3.2 COPStore
+
+The `COPStore` holds the **projections** (Topics, Jobs, Steps, Artifacts).
+
+Important detail:
+
+> Events and Artifacts are the source of truth. The store provides useful, denormalized views
+> derived from them.
+
+Interfaces include:
+
+```
+getTopic, saveTopic
+getJob, saveJob, listJobs, listJobsByTopic
+getSteps, saveStep
+saveArtifact, getArtifact, listArtifacts
+```
+
+Implementers are free to use:
+
+- SQL
+- KV stores
+- In-memory projection maps
+- Vector DBs for artifacts containing embeddings
+
+## 3.3 AgentContext
+
+Agents never manipulate global state. They can only:
+
+- read projections (via `store`)
+- publish events (via `bus`)
+- observe time (`now()`)
+- emit events (`emit(event)`)
+
+This enforces:
+
+- idempotency
+- determinism
+- restartability
+
+## 3.4 COPAgent
+
+Agents react to events and perform periodic work:
+
+```
+onEvent(event, ctx)
+onTick?(ctx)
+```
+
+Agents are intentionally small and composable. They encode **policy**, not **transport logic**.
+
+## 3.5 COPScheduler (interface)
+
+The scheduler orchestrates ticks and event dispatch:
+
+```
+start()
+stop()
+dispatchEvent(event)
+getContext?()
+```
+
+Concrete schedulers may use:
+
+- setInterval (Node)
+- Timers (Deno, Bun)
+- cron
+- Durable Objects
+- Temporal.io workflows
+- Distributed heartbeat systems
+
+The scheduler **must not** embed business logic.
+
+---
+
+# **4. Profiles**
+
+A profile is a specialization layer on top of the COP core.
+
+Profiles define:
+
+- domain-specific event types
+- structured payloads
+- artifact types
+- type guards
+- helper functions
+
+Profiles **do not** modify the COP core.
+
+## Example: Chat Profile
+
+Adds:
+
+- `ChatEvent`
+- `ChatMessageArtifact`
+- `LlmCallArtifact`
+- `DeliveryMode`
+- guards: `isChatEvent`, `isChatMessageArtifact`
+
+This makes the COP suitable for LLM orchestration, conversational interfaces, and reflective agents.
+
+---
+
+# **5. Execution Model**
+
+A COP runtime follows six invariants:
+
+1. **Immutability**
+2. **Topic-local ordering**
+3. **Idempotency**
+4. **Durability**
+5. **Stateless agents**
+6. **Isolation via event emission**
+
+Execution typically follows this pattern:
+
+### 1. A new event is appended to a Topic
+
+`bus.publish(event)`
+
+### 2. A scheduler or event pump retrieves pending events
+
+`bus.fetchFromSeq(...)`
+
+### 3. Events are dispatched to all agents
+
+`scheduler.dispatchEvent(event)`
+
+### 4. Each agent may update projections or emit new events
+
+`ctx.store.saveJob(...)` `ctx.emit(newEvent)`
+
+### 5. Projections reflect the durable state
+
+Jobs, Steps, Artifacts are updated by store implementations.
+
+This forms a **self-sustaining loop** of durable, incremental reasoning.
+
+---
+
+# **6. Reference Implementation Strategy**
+
+Although `cop-core` contains no code, typical runtimes implement:
+
+## 6.1 InMemory Runtime (for tests)
+
+- simple array-backed bus
+- map-based store
+- trivial scheduler (setInterval + synchronous dispatch)
+
+## 6.2 Node/Deno Runtime
+
+- Postgres/Supabase-backed store
+- Postgres logical replication or polling for events
+- distributed scheduler using advisory locks
+
+## 6.3 Edge Runtime
+
+- Durable Object or Cloudflare KV for projections
+- Event push via WebSockets or SSE
+
+## 6.4 Distributed High-Scale Runtime
+
+- Kafka or NATS for event streams
+- sharded Topic partitions
+- failover schedulers with leader election
+
+All these implementations remain fully compatible with `cop-core`.
+
+---
+
+# **7. Why This Architecture Works**
+
+COP provides long-term stability through:
+
+### **Deterministic replay**
+
+Given events + artifacts, the entire system can be reconstructed.
+
+### **Fault isolation**
+
+Agent failures do not corrupt durable state.
+
+### **Eventual progress**
+
+Agents always resume from where events last left them.
+
+### **Modularity**
+
+Runtimes evolve independently of the protocol.
+
+### **Time independence**
+
+A COP system running in 2035 can replay an event from 2025.
+
+### **LLM readiness**
+
+Durable artifacts capture:
+
+- model calls
+- summaries
+- reasoning chains
+
+This enables incremental, auditable AI workflows.
+
+---
+
+# **8. Future Extensions (non-normative)**
+
+These are possible add-ons outside `cop-core`:
+
+- Supervisor trees (Erlang/OTP–style)
+- Workflow DSL for multi-step reasoning
+- Vector-indexed artifact retrieval
+- Standards for embedding storage
+- Multi-topic transactions (rare but possible)
+- Distributed rate-limiting for agents
+
+---
+
+# **Conclusion**
+
+`cop-core` defines the **minimal, durable vocabulary** for building robust cognitive systems:
+
+- immutable events,
+- durable artifacts,
+- stateless, restartable agents,
+- event-driven runtime contracts.
+
+Everything else is implementation detail. The architecture is designed to last.
