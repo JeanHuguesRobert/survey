@@ -6,7 +6,7 @@ import { isDeleted } from "../lib/metadata";
 import IncidentEditorForm from "../components/incidents/IncidentEditorForm";
 import SiteFooter from "../components/layout/SiteFooter";
 import { enrichUserMetadata } from "../lib/userTransform";
-import { getConfig } from "../lib/instanceConfig";
+import { getConfig } from "../../common/config/instanceConfig.client.js";
 
 export default function IncidentEditor() {
   const { id } = useParams();

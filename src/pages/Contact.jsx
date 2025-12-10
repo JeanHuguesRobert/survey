@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { HASHTAG, CITY_NAME, getDynamicConfig } from "../constants";
 import CommentSection from "../components/common/CommentSection";
 import { useCurrentUser } from "../lib/useCurrentUser";
-import { useInstanceConfig } from "../lib/instanceConfig";
+import { useInstanceConfig } from "../../common/config/instanceConfig.client.js";
 
 export default function Contact() {
   const { config } = useInstanceConfig();

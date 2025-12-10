@@ -7,7 +7,7 @@ import { useCurrentUser } from "../lib/useCurrentUser";
 import GazetteLayout from "../components/gazette/GazetteLayout";
 import GazettePost from "../components/gazette/GazettePost";
 import { isEventPost, getPostEvent } from "../lib/postPredicates";
-import { getConfig } from "../lib/instanceConfig";
+import { getConfig } from "../../common/config/instanceConfig.client.js";
 
 // Collapsible help banner for editors
 function CollapsibleHelpBanner({ gazetteName }) {

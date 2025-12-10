@@ -5,7 +5,7 @@ import { useCurrentUser } from "../lib/useCurrentUser";
 import { isDeleted } from "../lib/metadata";
 import PostEditor from "../components/social/PostEditor";
 import SiteFooter from "../components/layout/SiteFooter";
-import { getConfig } from "../lib/instanceConfig";
+import { getConfig } from "../../common/config/instanceConfig.client.js";
 
 // Helper to check if a user is an editor for a given gazette (copied from PostEditor)
 async function checkEditorForGazette(gazetteName, userId) {

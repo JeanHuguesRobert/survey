@@ -8,7 +8,7 @@ import { useCurrentUser } from "../lib/useCurrentUser";
 import SubscribeButton from "../components/common/SubscribeButton";
 import SiteFooter from "../components/layout/SiteFooter";
 import { useSubscription } from "../lib/useSubscription";
-import { getConfig } from "../lib/instanceConfig";
+import { getConfig } from "../../common/config/instanceConfig.client.js";
 
 export default function UserPage() {
   const { id } = useParams();
