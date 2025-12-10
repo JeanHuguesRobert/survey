@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { getBranding, getOpenAIConfig } from "../lib/instanceConfig.js";
+import { getBranding, getOpenAIConfig } from "../../../common/config/instanceConfig.backend.js";
 
 export default async (req, context) => {
   if (req.method !== "POST") {

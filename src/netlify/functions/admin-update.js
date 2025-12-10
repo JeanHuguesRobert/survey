@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { loadInstanceConfig, getConfigValue } from "../lib/instanceConfig.js";
+import { getConfigValue } from "../../../common/config/instanceConfig.backend.js";
 
 // This function expects the following env vars set in Netlify:
 // - SUPABASE_URL
