@@ -32,6 +32,42 @@ CREATE TABLE public.acte (
   CONSTRAINT acte_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id),
   CONSTRAINT acte_exec_proof_fkey FOREIGN KEY (exec_proof_id) REFERENCES public.proof(id)
 );
+CREATE TABLE public.cafe_reflection_tasks (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  session_id uuid,
+  conversation_id uuid,
+  trigger_utterance_id uuid,
+  trigger_participant_id uuid,
+  question_text text,
+  context_snapshot jsonb,
+  status text DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'running'::text, 'done'::text, 'failed'::text])),
+  result_summary text,
+  result_full text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT cafe_reflection_tasks_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.charter_signatures (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  lead_id uuid NOT NULL,
+  signer_name text NOT NULL,
+  signer_email text NOT NULL,
+  signer_role text,
+  organization_name text,
+  commune_name text NOT NULL,
+  charter_version text DEFAULT '1.0'::text,
+  charter_hash text,
+  commitments jsonb DEFAULT '[]'::jsonb,
+  ip_address inet,
+  user_agent text,
+  signed_at timestamp with time zone DEFAULT now(),
+  verified boolean DEFAULT false,
+  verified_at timestamp with time zone,
+  verified_by uuid,
+  CONSTRAINT charter_signatures_pkey PRIMARY KEY (id),
+  CONSTRAINT charter_signatures_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES public.transparency_leads(id),
+  CONSTRAINT charter_signatures_verified_by_fkey FOREIGN KEY (verified_by) REFERENCES auth.users(id)
+);
 CREATE TABLE public.chat_interactions (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   user_id uuid,
@@ -260,6 +296,170 @@ CREATE TABLE public.content_subscriptions (
   CONSTRAINT content_subscriptions_pkey PRIMARY KEY (id),
   CONSTRAINT content_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.cop_agent_identities (
+  agent_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  agent_name text NOT NULL,
+  agent_class text NOT NULL,
+  description text,
+  owner_human_id uuid,
+  owner_group_id uuid,
+  operator_id uuid,
+  domains jsonb NOT NULL DEFAULT '[]'::jsonb,
+  permissions jsonb NOT NULL DEFAULT '{}'::jsonb,
+  constraints jsonb NOT NULL DEFAULT '{}'::jsonb,
+  issued_by text,
+  valid_until timestamp with time zone,
+  profile jsonb NOT NULL DEFAULT '{}'::jsonb,
+  status text NOT NULL DEFAULT 'active'::text,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT cop_agent_identities_pkey PRIMARY KEY (agent_id)
+);
+CREATE TABLE public.cop_agents (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  network_id text NOT NULL,
+  node_id text NOT NULL,
+  instance_id text NOT NULL,
+  agent_name text NOT NULL,
+  handler_type text NOT NULL DEFAULT 'runtime'::text,
+  handler_path text,
+  intents jsonb NOT NULL DEFAULT '[]'::jsonb,
+  active boolean NOT NULL DEFAULT true,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT cop_agents_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.cop_artifact (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  topic_id uuid NOT NULL,
+  source_job_id uuid,
+  source_step_id uuid,
+  type text NOT NULL,
+  format text,
+  payload jsonb DEFAULT '{}'::jsonb,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_by uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT cop_artifact_pkey PRIMARY KEY (id),
+  CONSTRAINT cop_artifact_topic_id_fkey FOREIGN KEY (topic_id) REFERENCES public.cop_topic(id),
+  CONSTRAINT cop_artifact_source_job_id_fkey FOREIGN KEY (source_job_id) REFERENCES public.cop_job(id),
+  CONSTRAINT cop_artifact_source_step_id_fkey FOREIGN KEY (source_step_id) REFERENCES public.cop_step(id)
+);
+CREATE TABLE public.cop_artifacts (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  correlation_id uuid,
+  message_id uuid,
+  event_id uuid,
+  network_id text,
+  node_id text,
+  instance_id text,
+  agent_name text,
+  artifact_type text NOT NULL,
+  artifact_kind text NOT NULL,
+  content jsonb NOT NULL,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT cop_artifacts_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.cop_debug_logs (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  correlation_id uuid,
+  message_id uuid,
+  event_id uuid,
+  location text NOT NULL,
+  stage text NOT NULL,
+  direction text,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT cop_debug_logs_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.cop_event (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  topic_id uuid NOT NULL,
+  type text NOT NULL,
+  payload jsonb DEFAULT '{}'::jsonb,
+  meta jsonb DEFAULT '{}'::jsonb,
+  created_by uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT cop_event_pkey PRIMARY KEY (id),
+  CONSTRAINT cop_event_topic_id_fkey FOREIGN KEY (topic_id) REFERENCES public.cop_topic(id)
+);
+CREATE TABLE public.cop_events (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  cop_version text NOT NULL,
+  event_id uuid NOT NULL,
+  correlation_id uuid,
+  from_addr text NOT NULL,
+  channel text NOT NULL,
+  event_type text NOT NULL,
+  payload jsonb NOT NULL,
+  metadata jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT cop_events_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.cop_job (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  topic_id uuid NOT NULL,
+  type text NOT NULL,
+  status text NOT NULL DEFAULT 'pending'::text,
+  attempts integer NOT NULL DEFAULT 0,
+  max_attempts integer NOT NULL DEFAULT 3,
+  worker_id text,
+  lease_expires_at timestamp with time zone,
+  last_error text,
+  meta jsonb DEFAULT '{}'::jsonb,
+  created_by uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  source_event_id uuid,
+  status_reason text,
+  CONSTRAINT cop_job_pkey PRIMARY KEY (id),
+  CONSTRAINT cop_job_topic_id_fkey FOREIGN KEY (topic_id) REFERENCES public.cop_topic(id)
+);
+CREATE TABLE public.cop_nodes (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  network_id text NOT NULL,
+  node_id text NOT NULL,
+  base_url text NOT NULL,
+  cop_path text NOT NULL DEFAULT '/cop'::text,
+  events_path text NOT NULL DEFAULT '/cop-events'::text,
+  stream_path text NOT NULL DEFAULT '/cop-stream'::text,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT cop_nodes_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.cop_step (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  job_id uuid NOT NULL,
+  name text NOT NULL,
+  status text NOT NULL DEFAULT 'pending'::text,
+  input jsonb DEFAULT '{}'::jsonb,
+  output jsonb DEFAULT '{}'::jsonb,
+  created_by uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  attempts integer DEFAULT 0,
+  max_attempts integer DEFAULT 3,
+  worker_id text,
+  lease_expires_at timestamp with time zone,
+  checkpoint jsonb DEFAULT '{}'::jsonb,
+  CONSTRAINT cop_step_pkey PRIMARY KEY (id),
+  CONSTRAINT cop_step_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.cop_job(id)
+);
+CREATE TABLE public.cop_topic (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  status text NOT NULL DEFAULT 'open'::text,
+  current_version integer NOT NULL DEFAULT 1 CHECK (current_version > 0),
+  title text,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_by uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT cop_topic_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.cortideri_items (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   post_id bigint UNIQUE,
@@ -277,6 +477,16 @@ CREATE TABLE public.cortideri_items (
   source_id uuid,
   synced_at timestamp with time zone,
   CONSTRAINT cortideri_items_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.crawl_runs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  source_id uuid,
+  started_at timestamp with time zone DEFAULT now(),
+  finished_at timestamp with time zone,
+  status text DEFAULT 'running'::text,
+  error_message text,
+  CONSTRAINT crawl_runs_pkey PRIMARY KEY (id),
+  CONSTRAINT crawl_runs_source_id_fkey FOREIGN KEY (source_id) REFERENCES public.sources_web(id)
 );
 CREATE TABLE public.deadline_instance (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -397,6 +607,23 @@ CREATE TABLE public.federation_registry (
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT federation_registry_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.feeds (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  url text NOT NULL UNIQUE,
+  title text,
+  type text NOT NULL CHECK (type = ANY (ARRAY['jsonfeed'::text, 'rss'::text, 'atom'::text, 'internal'::text])),
+  category text,
+  is_internal boolean NOT NULL DEFAULT false,
+  is_indexed_by_ai boolean NOT NULL DEFAULT false,
+  etag text,
+  last_modified text,
+  last_fetched_at timestamp with time zone,
+  last_status text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  metadata jsonb DEFAULT '{}'::jsonb,
+  CONSTRAINT feeds_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.git_sync_log (
   page_id uuid NOT NULL,
   last_sync_date date NOT NULL,
@@ -425,6 +652,52 @@ CREATE TABLE public.groups (
   metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
   CONSTRAINT groups_pkey PRIMARY KEY (id),
   CONSTRAINT groups_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.instance_config (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  key text NOT NULL UNIQUE,
+  value text,
+  value_json jsonb,
+  category text NOT NULL DEFAULT 'general'::text,
+  description text,
+  is_secret boolean DEFAULT false,
+  is_public boolean DEFAULT false,
+  version integer DEFAULT 1,
+  previous_value text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  updated_by uuid,
+  CONSTRAINT instance_config_pkey PRIMARY KEY (id),
+  CONSTRAINT instance_config_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.instance_registry (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  subdomain text NOT NULL UNIQUE,
+  display_name text NOT NULL,
+  description text,
+  supabase_url text NOT NULL,
+  supabase_anon_key text NOT NULL,
+  status text NOT NULL DEFAULT 'active'::text CHECK (status = ANY (ARRAY['pending'::text, 'active'::text, 'suspended'::text, 'archived'::text])),
+  metadata jsonb DEFAULT '{}'::jsonb,
+  instance_type text DEFAULT 'municipality'::text CHECK (instance_type = ANY (ARRAY['municipality'::text, 'epci'::text, 'region'::text, 'national'::text, 'association'::text, 'university'::text, 'cooperative'::text, 'cse'::text, 'copropriete'::text, 'other'::text])),
+  is_hub boolean DEFAULT false,
+  hub_type text,
+  parent_hub_id uuid,
+  logo_url text,
+  primary_color text DEFAULT '#B35A4A'::text,
+  custom_domain text,
+  admin_email text,
+  contact_email text,
+  stats jsonb DEFAULT '{}'::jsonb,
+  schema_version text,
+  schema_updated_at timestamp with time zone,
+  migrations_count integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  activated_at timestamp with time zone,
+  suspended_at timestamp with time zone,
+  CONSTRAINT instance_registry_pkey PRIMARY KEY (id),
+  CONSTRAINT instance_registry_parent_hub_id_fkey FOREIGN KEY (parent_hub_id) REFERENCES public.instance_registry(id)
 );
 CREATE TABLE public.jobs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -462,6 +735,20 @@ CREATE TABLE public.knowledge_chunks (
   CONSTRAINT knowledge_chunks_pkey PRIMARY KEY (id),
   CONSTRAINT knowledge_chunks_source_id_fkey FOREIGN KEY (source_id) REFERENCES public.document_sources(id)
 );
+CREATE TABLE public.lead_interactions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  lead_id uuid NOT NULL,
+  interaction_type text NOT NULL CHECK (interaction_type = ANY (ARRAY['email_sent'::text, 'email_opened'::text, 'email_clicked'::text, 'call'::text, 'meeting'::text, 'demo'::text, 'onboarding'::text, 'support'::text, 'note'::text])),
+  subject text,
+  content text,
+  outcome text,
+  performed_by uuid,
+  performed_at timestamp with time zone DEFAULT now(),
+  metadata jsonb DEFAULT '{}'::jsonb,
+  CONSTRAINT lead_interactions_pkey PRIMARY KEY (id),
+  CONSTRAINT lead_interactions_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES public.transparency_leads(id),
+  CONSTRAINT lead_interactions_performed_by_fkey FOREIGN KEY (performed_by) REFERENCES auth.users(id)
+);
 CREATE TABLE public.legal_status_instance (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   entity_type USER-DEFINED NOT NULL,
@@ -492,6 +779,70 @@ CREATE TABLE public.legal_status_registry (
   metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT legal_status_registry_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.municipal_documents (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  source_id uuid,
+  source_doc_id text,
+  source_url text NOT NULL,
+  type text NOT NULL,
+  title text NOT NULL,
+  summary text,
+  content_html text,
+  published_at timestamp with time zone,
+  attachment_url text,
+  attachment_content_type text,
+  raw_document_id uuid,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT municipal_documents_pkey PRIMARY KEY (id),
+  CONSTRAINT municipal_documents_source_id_fkey FOREIGN KEY (source_id) REFERENCES public.sources_web(id),
+  CONSTRAINT municipal_documents_raw_document_id_fkey FOREIGN KEY (raw_document_id) REFERENCES public.municipal_raw_documents(id)
+);
+CREATE TABLE public.municipal_poi (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  source_id uuid,
+  source_poi_id text,
+  raw_document_id uuid,
+  name text NOT NULL,
+  category text,
+  subcategory text,
+  description text,
+  latitude double precision,
+  longitude double precision,
+  geom USER-DEFINED DEFAULT
+CASE
+    WHEN ((latitude IS NOT NULL) AND (longitude IS NOT NULL)) THEN st_setsrid(st_makepoint(longitude, latitude), 4326)
+    ELSE NULL::geometry
+END,
+  external_url text,
+  internal_page_url text,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT municipal_poi_pkey PRIMARY KEY (id),
+  CONSTRAINT municipal_poi_source_id_fkey FOREIGN KEY (source_id) REFERENCES public.sources_web(id),
+  CONSTRAINT municipal_poi_raw_document_id_fkey FOREIGN KEY (raw_document_id) REFERENCES public.municipal_raw_documents(id)
+);
+CREATE TABLE public.municipal_raw_documents (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  source_id uuid,
+  crawl_run_id uuid,
+  url text NOT NULL,
+  content_type text,
+  http_status integer,
+  retrieved_at timestamp with time zone DEFAULT now(),
+  etag text,
+  last_modified text,
+  body bytea,
+  body_text text,
+  hash_content text,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT municipal_raw_documents_pkey PRIMARY KEY (id),
+  CONSTRAINT municipal_raw_documents_source_id_fkey FOREIGN KEY (source_id) REFERENCES public.sources_web(id),
+  CONSTRAINT municipal_raw_documents_crawl_run_id_fkey FOREIGN KEY (crawl_run_id) REFERENCES public.crawl_runs(id)
 );
 CREATE TABLE public.municipal_transparency (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -727,6 +1078,87 @@ CREATE TABLE public.responsibility_log (
   CONSTRAINT responsibility_log_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES auth.users(id),
   CONSTRAINT responsibility_log_collectivite_id_fkey FOREIGN KEY (collectivite_id) REFERENCES public.collectivite(id)
 );
+CREATE TABLE public.saas_config (
+  key text NOT NULL,
+  value text,
+  is_secret boolean DEFAULT false,
+  description text,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT saas_config_pkey PRIMARY KEY (key)
+);
+CREATE TABLE public.saas_instances (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  commune_name text NOT NULL,
+  commune_insee text UNIQUE,
+  region_code text,
+  epci_siren text,
+  is_hub boolean DEFAULT false,
+  hub_type text CHECK (hub_type = ANY (ARRAY['commune'::text, 'epci'::text, 'region'::text, 'national'::text])),
+  instance_url text,
+  supabase_project_id text,
+  supabase_url text,
+  netlify_site_id text,
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'provisioning'::text, 'active'::text, 'suspended'::text, 'error'::text])),
+  admin_email text NOT NULL,
+  admin_user_id uuid,
+  storage_used_bytes bigint DEFAULT 0,
+  api_calls_month integer DEFAULT 0,
+  users_count integer DEFAULT 0,
+  last_activity_at timestamp with time zone,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  provisioning_log jsonb DEFAULT '[]'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT saas_instances_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.saas_provisioning_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  instance_id uuid NOT NULL,
+  step text NOT NULL,
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'running'::text, 'success'::text, 'error'::text, 'skipped'::text])),
+  started_at timestamp with time zone,
+  completed_at timestamp with time zone,
+  details jsonb DEFAULT '{}'::jsonb,
+  error_message text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT saas_provisioning_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT saas_provisioning_logs_instance_id_fkey FOREIGN KEY (instance_id) REFERENCES public.saas_instances(id)
+);
+CREATE TABLE public.schema_migrations (
+  id integer NOT NULL DEFAULT nextval('schema_migrations_id_seq'::regclass),
+  version character varying NOT NULL UNIQUE,
+  name character varying NOT NULL,
+  applied_at timestamp with time zone DEFAULT now(),
+  checksum character varying,
+  execution_time_ms integer,
+  applied_by character varying DEFAULT 'system'::character varying,
+  CONSTRAINT schema_migrations_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.schema_version (
+  id integer NOT NULL DEFAULT 1 CHECK (id = 1),
+  current_version character varying NOT NULL,
+  updated_at timestamp with time zone DEFAULT now(),
+  instance_id character varying,
+  CONSTRAINT schema_version_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.sources_web (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  label text NOT NULL,
+  base_url text NOT NULL,
+  description text,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT sources_web_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.spatial_ref_sys (
+  srid integer NOT NULL CHECK (srid > 0 AND srid <= 998999),
+  auth_name character varying,
+  auth_srid integer,
+  srtext character varying,
+  proj4text character varying,
+  CONSTRAINT spatial_ref_sys_pkey PRIMARY KEY (srid)
+);
 CREATE TABLE public.tags (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   name text NOT NULL UNIQUE,
@@ -754,6 +1186,37 @@ CREATE TABLE public.teletransmission (
   CONSTRAINT teletransmission_acte_id_fkey FOREIGN KEY (acte_id) REFERENCES public.acte(id),
   CONSTRAINT teletransmission_proof_id_ar_ctes_fkey FOREIGN KEY (proof_id_ar_ctes) REFERENCES public.proof(id)
 );
+CREATE TABLE public.transparency_leads (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  lead_type text NOT NULL CHECK (lead_type = ANY (ARRAY['liste_electorale'::text, 'maire_elu'::text, 'collectif_citoyen'::text, 'citoyen_engage'::text])),
+  maturity_level integer NOT NULL DEFAULT 1 CHECK (maturity_level >= 1 AND maturity_level <= 4),
+  name text NOT NULL,
+  email text NOT NULL,
+  phone text,
+  commune_name text NOT NULL,
+  commune_insee text,
+  organization_name text,
+  message text,
+  accepted_charter boolean DEFAULT false,
+  accepted_contact boolean DEFAULT true,
+  source text DEFAULT 'landing_page'::text,
+  referrer_url text,
+  utm_source text,
+  utm_medium text,
+  utm_campaign text,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  status text DEFAULT 'new'::text CHECK (status = ANY (ARRAY['new'::text, 'contacted'::text, 'qualified'::text, 'onboarding'::text, 'active'::text, 'churned'::text, 'duplicate'::text])),
+  notes text,
+  assigned_to uuid,
+  instance_id uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  contacted_at timestamp with time zone,
+  converted_at timestamp with time zone,
+  CONSTRAINT transparency_leads_pkey PRIMARY KEY (id),
+  CONSTRAINT transparency_leads_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES auth.users(id),
+  CONSTRAINT transparency_leads_instance_id_fkey FOREIGN KEY (instance_id) REFERENCES public.saas_instances(id)
+);
 CREATE TABLE public.user_consents (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
@@ -771,6 +1234,15 @@ CREATE TABLE public.user_consents (
   CONSTRAINT user_consents_pkey PRIMARY KEY (id),
   CONSTRAINT user_consents_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.user_feed_subscriptions (
+  user_id uuid NOT NULL,
+  feed_id uuid NOT NULL,
+  category text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT user_feed_subscriptions_pkey PRIMARY KEY (user_id, feed_id),
+  CONSTRAINT user_feed_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT user_feed_subscriptions_feed_id_fkey FOREIGN KEY (feed_id) REFERENCES public.feeds(id)
+);
 CREATE TABLE public.users (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   display_name text NOT NULL DEFAULT ''::text,
@@ -782,6 +1254,7 @@ CREATE TABLE public.users (
   updated_at timestamp with time zone DEFAULT now(),
   metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
   role text NOT NULL DEFAULT 'user'::text CHECK (role = ANY (ARRAY['user'::text, 'moderator'::text, 'admin'::text])),
+  public_profile boolean NOT NULL DEFAULT true,
   CONSTRAINT users_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.verification_queue (
@@ -806,7 +1279,7 @@ CREATE TABLE public.votes (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
   proposition_id uuid NOT NULL,
-  vote_value boolean,
+  vote_value text CHECK (vote_value = ANY (ARRAY['approve'::text, 'disapprove'::text, 'neutral'::text, 'false_choice'::text])),
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   metadata jsonb DEFAULT '{}'::jsonb,
@@ -827,3 +1300,4 @@ CREATE TABLE public.wiki_pages (
   CONSTRAINT wiki_pages_pkey PRIMARY KEY (id),
   CONSTRAINT wiki_pages_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.users(id)
 );
+
