@@ -5,6 +5,7 @@ democracy, reusable by any municipality or collective worldwide. It belongs to t
 of projects.
 
 The Corte (Corsica) deployment is the first real-world pilot.
+[![Netlify Status](https://api.netlify.com/api/v1/badges/e01f01b7-130b-4749-abc7-7b81cfd591e0/deploy-status)](https://app.netlify.com/projects/lucky-concha-a9fcd2/deploys)
 
 ## Neutrality & Scope
 
