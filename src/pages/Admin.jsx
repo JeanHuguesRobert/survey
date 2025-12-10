@@ -53,6 +53,7 @@ export default function Admin() {
   const adminLinks = [
     { label: "🔐 Configuration Vault", to: "/admin/vault" },
     { label: "API Testing", to: "/admin/api" },
+    { label: "COP Administration", to: "/admin/cop" },
     { label: "Entities editor", to: "/admin/entities" },
     { label: "Data review", to: "/admin/data-review" },
     { label: "🏛️ Gestion Instances (Communes)", to: "/admin/saas" },

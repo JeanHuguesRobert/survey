@@ -44,6 +44,7 @@ const Admin = lazy(() => import("./pages/Admin"));
 const DataReview = lazy(() => import("./pages/admin/DataReview"));
 const Entities = lazy(() => import("./pages/admin/Entities"));
 const AdminAPI = lazy(() => import("./pages/admin/AdminAPI"));
+const CopAdmin = lazy(() => import("./pages/admin/CopAdmin"));
 const SaasAdmin = lazy(() => import("./pages/admin/SaasAdmin"));
 const LeadsAdmin = lazy(() => import("./pages/admin/LeadsAdmin"));
 const VaultConfig = lazy(() => import("./pages/admin/VaultConfig"));
@@ -181,6 +182,14 @@ export function App() {
           element={
             <LazyRoute>
               <AdminAPI />
+            </LazyRoute>
+          }
+        />
+        <Route
+          path="/admin/cop"
+          element={
+            <LazyRoute>
+              <CopAdmin />
             </LazyRoute>
           }
         />
