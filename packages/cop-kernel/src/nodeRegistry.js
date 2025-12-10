@@ -2,6 +2,7 @@
 // Description: Distributed CopNode registry (self-registration + resolveNode) backed by Supabase (cop_nodes table).
 
 import { createClient } from "@supabase/supabase-js";
+import { getEnv } from "./env.js";
 
 let supabase = null;
 let localNodeInfo = null;
@@ -9,8 +10,8 @@ const resolveCache = new Map();
 
 function getSupabase() {
   if (!supabase) {
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE;
+    const url = getEnv("SUPABASE_URL");
+    const key = getEnv("SUPABASE_SERVICE_ROLE");
     if (!url || !key) {
       throw new Error("getSupabase: SUPABASE_URL or SUPABASE_SERVICE_ROLE not set");
     }
@@ -21,13 +22,13 @@ function getSupabase() {
 
 export function getLocalNodeConfig() {
   return {
-    networkId: process.env.COP_NETWORK_ID,
-    nodeId: process.env.COP_NODE_ID,
-    baseUrl: process.env.COP_BASE_URL,
+    networkId: getEnv("COP_NETWORK_ID"),
+    nodeId: getEnv("COP_NODE_ID"),
+    baseUrl: getEnv("COP_BASE_URL"),
 
-    copPath: process.env.COP_COP_PATH || "/.netlify/functions/cop",
-    eventsPath: process.env.COP_EVENTS_PATH || "/.netlify/functions/cop-events",
-    streamPath: process.env.COP_STREAM_PATH || "/.netlify/functions/cop-stream",
+    copPath: getEnv("COP_COP_PATH") || "/cop",
+    eventsPath: getEnv("COP_EVENTS_PATH") || "/cop-events",
+    streamPath: getEnv("COP_STREAM_PATH") || "/cop-stream",
 
     metadata: {},
   };

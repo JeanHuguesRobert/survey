@@ -2,14 +2,15 @@
 // Description: Distributed COP agent registry (resolveAgent + registerAgent) backed by Supabase (cop_agents table).
 
 import { createClient } from "@supabase/supabase-js";
+import { getEnv } from "./env.js";
 
 let supabase = null;
 const agentCache = new Map();
 
 function getSupabase() {
   if (!supabase) {
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE;
+    const url = getEnv("SUPABASE_URL");
+    const key = getEnv("SUPABASE_SERVICE_ROLE");
     if (!url || !key) {
       throw new Error("getSupabase: SUPABASE_URL or SUPABASE_SERVICE_ROLE not set");
     }
