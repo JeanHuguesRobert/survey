@@ -144,16 +144,14 @@ export default async (req, context) => {
       if (error) throw error;
 
       // emit event
-      await supabase
-        .from("cop_event")
-        .insert([
-          {
-            topic_id: topic_id,
-            type: "participant_joined",
-            payload: { participant_id: data.id, user_id },
-            created_by: user_id || null,
-          },
-        ]);
+      await supabase.from("cop_event").insert([
+        {
+          topic_id: topic_id,
+          type: "participant_joined",
+          payload: { participant_id: data.id, user_id },
+          created_by: user_id || null,
+        },
+      ]);
 
       return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -272,16 +270,14 @@ export default async (req, context) => {
         .single();
 
       // Emit event about mic change
-      await supabase
-        .from("cop_event")
-        .insert([
-          {
-            topic_id: data.topic_id,
-            type: "mic_state_changed",
-            payload: { participant_id, action, newState },
-            created_by: null,
-          },
-        ]);
+      await supabase.from("cop_event").insert([
+        {
+          topic_id: data.topic_id,
+          type: "mic_state_changed",
+          payload: { participant_id, action, newState },
+          created_by: null,
+        },
+      ]);
 
       if (error) throw error;
       return new Response(JSON.stringify(data), {

@@ -3,6 +3,9 @@
 // ============================================================================
 
 import { getConfigValue } from "../instanceConfig.js";
+import { AgentExecutorService } from "../../../src/services/AgentExecutorService.js";
+
+const agentExecutor = new AgentExecutorService();
 
 /**
  * Définition des outils disponibles pour les LLM
@@ -20,6 +23,21 @@ export const TOOLS = {
           description: "Requête de recherche courte et précise (3-8 mots).",
           minLength: 3,
           maxLength: 50,
+        },
+      },
+      required: ["query"],
+    },
+  },
+  sql_query: {
+    name: "sql_query",
+    description:
+      "Exécute une requête SQL en lecture seule sur la base de données. Utilise cet outil pour récupérer des informations structurées de la base de données (ex: 'SELECT * FROM users LIMIT 5'). La requête doit être une instruction SELECT valide.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "La requête SQL en lecture seule à exécuter.",
         },
       },
       required: ["query"],
@@ -92,9 +110,28 @@ async function performWebSearch(query) {
 /**
  * Handlers pour l'exécution des outils
  */
+/**
+ * Handlers pour l'exécution des outils
+ */
 const TOOL_HANDLERS = {
   web_search: performWebSearch,
+  sql_query: performSqlQuery,
 };
+
+/**
+ * SQL Query - Implémentation de l'outil sql_query
+ */
+async function performSqlQuery(args) {
+  console.log(`[SqlQuery] ➜ request query=${args.query.slice(0, 400)}`);
+  try {
+    const result = await agentExecutor.executeReadOnly(args.query);
+    console.log(`[SqlQuery] ✅ Query executed, ${result.length} rows returned.`);
+    return JSON.stringify(result);
+  } catch (error) {
+    console.error("[SqlQuery] ❌ Erreur:", error.message);
+    return `⚠️ Erreur d'exécution SQL: ${error.message}`;
+  }
+}
 
 /**
  * Parse les arguments d'un tool call
