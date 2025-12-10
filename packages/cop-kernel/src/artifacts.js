@@ -62,24 +62,9 @@
 //     on public.cop_artifacts (artifact_type, created_at);
 //
 
-import { createClient } from "@supabase/supabase-js";
-import { getEnv } from "./env.js";
+import { getDefaultStorage } from "./storage.js";
 import { emitCopEvent } from "./events.js";
 import { COP_VERSION } from "./message.js";
-
-let supabaseArtifacts = null;
-
-function getSupabaseArtifacts() {
-  if (!supabaseArtifacts) {
-    const url = getEnv("SUPABASE_URL");
-    const key = getEnv("SUPABASE_SERVICE_ROLE");
-    if (!url || !key) {
-      throw new Error("emitCopArtifact: SUPABASE_URL or SUPABASE_SERVICE_ROLE not set");
-    }
-    supabaseArtifacts = createClient(url, key);
-  }
-  return supabaseArtifacts;
-}
 
 /**
  * Persist a high-level COP artifact into cop_artifacts and optionally emit
@@ -121,12 +106,18 @@ function getSupabaseArtifacts() {
  * @param {boolean} [params.throwOnError=true] - If false, do not throw on DB or event error,
  *                                               just return ok=false with an error message.
  *
+ * @param {string} [params.jobId]      - ID du job parent dans cop_jobs
+ * @param {string} [params.jobStepId]  - ID de l'étape (step) dans cop_steps
+ *
  * @returns {Promise<{
  *   artifact: object | null,
  *   ok: boolean,
  *   error?: string
  * }>}
  */
+
+// TODO: handle jobId & jobStepId in all helpers
+
 export async function emitCopArtifact(params) {
   const {
     artifactType,
@@ -135,6 +126,10 @@ export async function emitCopArtifact(params) {
     correlationId = null,
     messageId = null,
     eventId = null,
+
+    // Nouveau : traçabilité Job / Step
+    jobId = null,
+    jobStepId = null,
 
     agent,
     content,
@@ -169,24 +164,16 @@ export async function emitCopArtifact(params) {
     }
   }
 
-  let sb;
-  try {
-    sb = getSupabaseArtifacts();
-  } catch (err) {
-    if (throwOnError) {
-      throw err;
-    }
-    return {
-      artifact: null,
-      ok: false,
-      error: "supabase_init: " + (err && err.message),
-    };
-  }
+  const storage = getDefaultStorage();
 
   const row = {
     correlation_id: correlationId || null,
     message_id: messageId || null,
     event_id: eventId || null,
+
+    // LIAISON AUX JOBS / STEPS
+    job_id: jobId || null,
+    job_step_id: jobStepId || null,
 
     network_id: agent?.networkId || null,
     node_id: agent?.nodeId || null,
@@ -202,20 +189,19 @@ export async function emitCopArtifact(params) {
 
   let inserted;
   try {
-    const { data, error } = await sb.from("cop_artifacts").insert(row).select().maybeSingle();
-
-    if (error) {
-      const msg = "emitCopArtifact: DB insert failed: " + error.message;
+    const res = await storage.artifacts.insert(row);
+    if (!res.ok) {
+      const msg = "emitCopArtifact: DB insert failed: " + res.error;
       if (throwOnError) {
         throw new Error(msg);
       }
       return {
         artifact: null,
         ok: false,
-        error: "db_insert: " + error.message,
+        error: msg,
       };
     }
-    inserted = data;
+    inserted = res.artifact;
   } catch (err) {
     if (throwOnError) {
       throw err;
@@ -234,14 +220,19 @@ export async function emitCopArtifact(params) {
         artifact_id: inserted.id,
         artifact_type: inserted.artifact_type,
         artifact_kind: inserted.artifact_kind,
+        job_id: inserted.job_id,
+        job_step_id: inserted.job_step_id,
       };
+
+      // ici, on réutilise votre emitCopEvent existant
+      const { emitCopEvent } = await import("./events.js");
 
       await emitCopEvent({
         endpoint,
         baseUrl,
         path: eventsPath,
         from,
-        channel: `cop://artifact/${inserted.artifact_type}`, // simple convention, ajustable
+        channel: `cop://artifact/${inserted.artifact_type}`,
         eventType: "artifact.created",
         payload: eventPayload,
         metadata: {
@@ -249,14 +240,12 @@ export async function emitCopArtifact(params) {
         },
         correlationId: inserted.correlation_id,
         copVersion,
-        // on considère qu'un échec d'event ne doit pas invalider l'artifact lui-même
-        throwOnError: throwOnError,
+        throwOnError,
       });
     } catch (err) {
       if (throwOnError) {
         throw err;
       }
-      // artifact créé, mais event raté : on le signale dans le retour
       return {
         artifact: inserted,
         ok: false,
@@ -311,6 +300,10 @@ export async function saveConversationSummary(params) {
 
     metadata = {},
 
+    // NOUVEAU
+    jobId = null,
+    jobStepId = null,
+
     emitEvent = false,
     from,
     endpoint,
@@ -341,6 +334,8 @@ export async function saveConversationSummary(params) {
     agent,
     content,
     metadata,
+    jobId,
+    jobStepId,
     emitEvent,
     from,
     endpoint,
