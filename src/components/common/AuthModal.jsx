@@ -2,7 +2,7 @@ import { useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { ANONYMOUS_EMAIL } from "../../lib/permissions";
 import { useCurrentUser } from "../../lib/useCurrentUser";
-import { getConfig } from "../../lib/instanceConfig";
+import { getConfig } from "../../../common/config/instanceConfig.client.js";
 const facebookAppId = getConfig("facebook_app_id", import.meta.env.VITE_FACEBOOK_APP_ID);
 
 export default function AuthModal({ onClose, onSuccess }) {
