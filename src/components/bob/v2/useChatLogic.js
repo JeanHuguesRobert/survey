@@ -11,7 +11,7 @@ import {
 } from "../../../lib/useStatusOperations";
 import { createPropositionWithTags } from "../../../lib/propositions";
 import { useNavigate } from "react-router-dom";
-import { getConfig } from "../../../lib/instanceConfig";
+import { getConfig } from "../../../common/config/instanceConfig.client.js";
 
 // Enhanced hook scaffold providing core chat state and simple send/abort
 // behavior. This intentionally does not call real APIs — it provides

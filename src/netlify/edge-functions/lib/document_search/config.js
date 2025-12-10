@@ -1,5 +1,5 @@
 // Configuration pour le module de recherche documentaire
-import { getConfigValue } from "../instanceConfig.js";
+import { getConfigValue } from "../../../../common/config/instanceConfig.edge.js";
 
 export const DocumentSearchConfig = {
   // Gemini

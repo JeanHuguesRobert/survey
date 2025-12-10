@@ -1,4 +1,4 @@
-import { getConfigValue, loadInstanceConfig } from "./lib/instanceConfig.js";
+import { getConfigValue, loadInstanceConfig } from "../../common/config/instanceConfig.edge.js";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Shared config from summarize.js (duplicated for independence, ideally should be valid shared lib)

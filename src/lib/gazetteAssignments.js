@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { getConfig } from "./instanceConfig";
+import { getConfig } from "../common/config/instanceConfig.client.js";
 
 /**
  * Detect gazette names linked to a group.
