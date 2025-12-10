@@ -3,22 +3,7 @@
 //   Helper to insert debug logs into cop_debug_logs (Supabase).
 //   Safe to call from both Node and Deno contexts.
 
-import { createClient } from "@supabase/supabase-js";
-import { getEnv } from "./env.js";
-
-let supabase = null;
-
-function getSupabase() {
-  if (!supabase) {
-    const url = getEnv("SUPABASE_URL");
-    const key = getEnv("SUPABASE_SERVICE_ROLE");
-    if (!url || !key) {
-      throw new Error("logCopDebug: SUPABASE_URL or SUPABASE_SERVICE_ROLE not set");
-    }
-    supabase = createClient(url, key);
-  }
-  return supabase;
-}
+import { getDefaultStorage } from "./storage.js";
 
 /**
  * Log a debug entry into cop_debug_logs.
@@ -32,35 +17,28 @@ function getSupabase() {
  * @param {string} [params.direction]  // 'in', 'out', 'internal', ...
  * @param {Object} [params.metadata]   // arbitrary JSON-serializable object
  */
-export async function logCopDebug(params) {
-  const { correlationId, messageId, eventId, location, stage, direction, metadata } = params || {};
-
-  if (!location || !stage) {
-    console.warn("[logCopDebug] missing location or stage");
-    return;
-  }
-
-  let sb;
-  try {
-    sb = getSupabase();
-  } catch (err) {
-    console.warn("[logCopDebug] cannot init Supabase:", err && err.message);
-    return;
-  }
-
-  const row = {
-    correlation_id: correlationId || null,
-    message_id: messageId || null,
-    event_id: eventId || null,
-    location,
-    stage,
-    direction: direction || null,
-    metadata: metadata || {},
+/**
+ * Insert a debug log into cop_debug_logs via storage layer.
+ *
+ * @param {object} log
+ */
+export async function logCopDebug(log) {
+  const storage = getDefaultStorage();
+  const record = {
+    correlation_id: log.correlation_id || null,
+    message_id: log.message_id || null,
+    event_id: log.event_id || null,
+    location: log.location || null,
+    stage: log.stage || null,
+    direction: log.direction || null,
+    payload: log.payload || null,
+    metadata: log.metadata || {},
   };
 
-  try {
-    await sb.from("cop_debug_logs").insert(row);
-  } catch (err) {
-    console.warn("[logCopDebug] insert failed:", err && err.message);
+  const res = await storage.debugLogs.insert(record);
+  if (!res.ok) {
+    // optional: swallow, or throw, or console.error
+    // for now, just ignore to avoid breaking flows
+    // console.error("logCopDebug error:", res.error);
   }
 }
