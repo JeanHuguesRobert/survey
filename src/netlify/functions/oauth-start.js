@@ -1,7 +1,10 @@
 import { PROVIDERS } from "../lib/oauthProviders.js";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
-import { loadInstanceConfig, getConfigValue } from "../lib/instanceConfig.js";
+import {
+  loadInstanceConfig,
+  getConfigValue,
+} from "../../../common/config/instanceConfig.backend.js";
 
 export const handler = async (event) => {
   // Charger la configuration

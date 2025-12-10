@@ -1,5 +1,8 @@
 import crypto from "crypto";
-import { loadInstanceConfig, getConfigValue } from "../lib/instanceConfig.js";
+import {
+  loadInstanceConfig,
+  getConfigValue,
+} from "../../../common/config/instanceConfig.backend.js";
 
 // Variables initialisées après loadInstanceConfig
 let APP_BASE_URL = null;

@@ -1,7 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
 import crypto from "crypto";
-import { loadInstanceConfig, getConfigValue } from "../lib/instanceConfig.js";
+import {
+  loadInstanceConfig,
+  getConfigValue,
+} from "../../../common/config/instanceConfig.backend.js";
 
 // Clients initialisés de façon lazy
 let _supabase = null;

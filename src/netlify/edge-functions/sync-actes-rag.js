@@ -8,7 +8,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import OpenAI from "https://esm.sh/openai@4";
-import { loadInstanceConfig, getConfigValue } from "./lib/instanceConfig.js";
+import { getConfigValue } from "../../../common/config/instanceConfig.edge.js";
 
 // ============================================================================
 // CONFIGURATION

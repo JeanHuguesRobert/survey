@@ -1,5 +1,5 @@
 // netlify/edge-functions/root-redirect.js
-import { getConfigValue } from "./lib/instanceConfig.js";
+import { getConfigValue } from "../common/config/instanceConfig.edge.js";
 
 export default async (request, context) => {
   const url = new URL(request.url);

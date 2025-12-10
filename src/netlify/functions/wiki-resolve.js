@@ -1,5 +1,5 @@
-import { loadInstanceConfig } from "../lib/instanceConfig.js";
-import wikiFederation from "../../src/lib/wikiFederation.js";
+import { loadInstanceConfig } from "../../../common/config/instanceConfig.backend.js";
+import wikiFederation from "../../lib/wikiFederation.js";
 
 export default async (req, context) => {
   await loadInstanceConfig();

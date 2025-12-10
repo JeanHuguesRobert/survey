@@ -1,7 +1,7 @@
 import { PROVIDERS } from "../lib/oauthProviders.js";
 import fetch from "node-fetch"; // Netlify Functions environment usually has node-fetch or global fetch in Node 18+
 import { createClient } from "@supabase/supabase-js";
-import { loadInstanceConfig, getConfigValue } from "../lib/instanceConfig.js";
+import { loadInstanceConfig, getConfigValue } from "../../common/config/instanceConfig.backend.js";
 
 // Helper to exchange code for token
 async function exchangeCodeForToken(providerConf, code, redirectUri) {

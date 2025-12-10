@@ -1,5 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
-import { loadInstanceConfig, getConfigValue } from "../lib/instanceConfig.js";
+import {
+  loadInstanceConfig,
+  getConfigValue,
+} from "../../../common/config/instanceConfig.backend.js";
 
 // Supabase client initialisé de façon lazy
 let _supabase = null;

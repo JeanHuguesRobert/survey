@@ -1,4 +1,4 @@
-import { getFacebookConfig } from "../lib/instanceConfig.js";
+import { getFacebookConfig } from "../../../common/config/instanceConfig.backend.js";
 
 export const handler = async function (event) {
   const params = event.queryStringParameters || {};

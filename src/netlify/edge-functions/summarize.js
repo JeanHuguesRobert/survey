@@ -3,7 +3,7 @@
 // Provides text summarization service for the Data Collector feature
 // ============================================================================
 
-import { getConfigValue, loadInstanceConfig } from "./lib/instanceConfig.js";
+import { getConfigValue } from "../../../common/config/instanceConfig.edge.js";
 
 // Import shared utilities from rag_chatbot if needed
 const MODEL_MODES = {

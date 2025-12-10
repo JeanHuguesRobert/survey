@@ -2,7 +2,7 @@
 // TOOLS - Définition et exécution centralisée
 // ============================================================================
 
-import { getConfigValue } from "../instanceConfig.js";
+import { getConfigValue } from "../../../common/config/instanceConfig.edge.js";
 import { AgentExecutorService } from "../../../common/services/AgentExecutorService.js";
 
 const agentExecutor = new AgentExecutorService();

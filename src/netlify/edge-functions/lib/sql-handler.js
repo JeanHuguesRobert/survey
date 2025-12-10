@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import postgres from "https://deno.land/x/postgresjs/mod.js";
-import { getConfigValue } from "./instanceConfig.js";
+import { getConfigValue } from "../../../common/config/instanceConfig.edge.js";
 
 export async function handleExplicitSql(request, body, TOOL_HANDLERS) {
   try {

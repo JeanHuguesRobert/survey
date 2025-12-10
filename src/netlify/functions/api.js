@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { loadInstanceConfig, getConfigValue } from "../edge-functions/lib/instanceConfig.js";
+import { getConfigValue } from "../../common/config/instanceConfig.backend.js";
 
 export default async (request, context) => {
   // Charger la configuration

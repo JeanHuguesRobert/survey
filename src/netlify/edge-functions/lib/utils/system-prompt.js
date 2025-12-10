@@ -2,7 +2,7 @@
 // SYSTEM PROMPT - Chargement dynamique
 // ============================================================================
 
-import { getConfigValue } from "../instanceConfig.js";
+import { getConfigValue } from "../../../common/config/instanceConfig.edge.js";
 
 /**
  * Petit utilitaire pour prévisualiser les valeurs dans les logs

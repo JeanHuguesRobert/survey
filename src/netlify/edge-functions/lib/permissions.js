@@ -1,6 +1,6 @@
 // netlify/edge-functions/lib/permissions.js
 // Edge-compatible permission helpers that mirror src/lib/permissions.js behavior
-import { getConfigValue } from "./instanceConfig.js";
+import { getConfigValue } from "../../../common/config/instanceConfig.edge.js";
 
 export const ROLE_USER = "user";
 export const ROLE_MODERATOR = "moderator";

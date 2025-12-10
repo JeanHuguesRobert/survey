@@ -3,7 +3,10 @@
 // POST /api/ophelia
 
 import { getOpheliaAnswer } from "../lib/getOpheliaAnswer.js";
-import { loadInstanceConfig, getConfigValue } from "../lib/instanceConfig.js";
+import {
+  loadInstanceConfig,
+  getConfigValue,
+} from "../../../common/config/instanceConfig.backend.js";
 
 export default async (req, context) => {
   // Charger la configuration
