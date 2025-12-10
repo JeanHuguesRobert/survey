@@ -10,7 +10,7 @@ import {
 } from "@phosphor-icons/react";
 import { sharePost } from "../../lib/sharePost";
 import FeedOpheliaModal from "../ophelia/FeedOpheliaModal";
-import { getConfig } from "../../../common/config/instanceConfig.client.js";
+import { getConfig } from "../../common/config/instanceConfig.client.js";
 
 /**
  * Enhanced ShareMenu - Mobile-first dropdown for sharing content

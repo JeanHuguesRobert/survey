@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 // import { useSupabase } from '../contexts/SupabaseContext';
-import { useCurrentUser } from "../lib/useCurrentUser";
+import { useCurrentUser } from "../../lib/useCurrentUser.js";
 import { Link } from "react-router-dom";
-import { getTaskTitleFromPost } from "../lib/taskHelpers";
-import { TASK_STATUS_LABELS } from "../lib/taskMetadata";
-import { supabase } from "../lib/supabase";
+import { getTaskTitleFromPost } from "../../lib/taskHelpers.js";
+import { TASK_STATUS_LABELS } from "../../lib/taskMetadata.js";
+import { supabase } from "../../lib/supabase.js";
 import {
   BarChart,
   Bar,
