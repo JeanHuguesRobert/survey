@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Brain, Check, Trash, Plus, Sparkle } from "@phosphor-icons/react";
 import { useCurrentUser } from "../../lib/useCurrentUser";
-import { getConfig } from "../../lib/instanceConfig";
+import { getConfig } from "../../../common/config/instanceConfig.client.js";
 
 export default function FeedOpheliaModal({
   isOpen,

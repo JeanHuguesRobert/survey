@@ -1,5 +1,5 @@
 import React from "react";
-import { getConfig } from "../../../lib/instanceConfig";
+import { getConfig } from "../../../../common/config/instanceConfig.client.js";
 
 export default function Header({
   botName = "Ophélia",

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useMap } from "react-leaflet";
 import { parseLocationInput } from "../../lib/locationParser";
-import { getConfig } from "../../lib/instanceConfig";
+import { getConfig } from "../../../common/config/instanceConfig.client.js";
 
 export default function AddressSearchControl({ onLocationSelect }) {
   const map = useMap();

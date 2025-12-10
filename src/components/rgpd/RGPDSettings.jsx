@@ -8,7 +8,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { useCurrentUser } from "../../lib/useCurrentUser";
-import { useInstanceConfig } from "../../lib/instanceConfig";
+import { useInstanceConfig } from "../../../common/config/instanceConfig.client.js";
 
 const CONSENT_TYPES = {
   rgpd_general: {

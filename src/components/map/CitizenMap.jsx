@@ -6,7 +6,7 @@ import LocateControl from "./LocateControl";
 import GeoportalControls from "./GeoportalControls";
 import MunicipalPoiLayer from "./layers/MunicipalPoiLayer";
 import MunicipalEventsLayer from "./layers/MunicipalEventsLayer";
-import { getConfig } from "../../lib/instanceConfig";
+import { getConfig } from "../../../common/config/instanceConfig.client.js";
 
 // Fix pour les icônes Leaflet manquantes
 import icon from "leaflet/dist/images/marker-icon.png";

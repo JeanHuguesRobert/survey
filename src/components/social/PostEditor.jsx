@@ -22,7 +22,7 @@ import {
   isPinnedPost,
   isLockedPost,
 } from "../../lib/postPredicates";
-import { getConfig } from "../../lib/instanceConfig";
+import { getConfig } from "../../../common/config/instanceConfig.client.js";
 
 /**
  * Éditeur de post (nouveau ou édition)

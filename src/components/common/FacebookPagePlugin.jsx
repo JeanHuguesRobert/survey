@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { getConfig } from "../../lib/instanceConfig";
+import { getConfig } from "../../../common/config/instanceConfig.client.js";
 
 export default function FacebookPagePlugin({ className = "" }) {
   const pageUrl = getConfig("facebook_page_url", import.meta.env.VITE_FACEBOOK_PAGE_URL);
