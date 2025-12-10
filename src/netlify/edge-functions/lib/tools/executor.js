@@ -3,7 +3,7 @@
 // ============================================================================
 
 import { getConfigValue } from "../instanceConfig.js";
-import { AgentExecutorService } from "../../../src/services/AgentExecutorService.js";
+import { AgentExecutorService } from "../../../common/services/AgentExecutorService.js";
 
 const agentExecutor = new AgentExecutorService();
 

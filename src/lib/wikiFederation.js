@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { getSupabase } from "./supabase.js";
-import instanceConfigLib, { getFederationConfig } from "./instanceConfig.js";
+import instanceConfigLib, { getFederationConfig } from "../common/config/instanceConfig.client.js";
 import { getInstance, getSubdomain } from "./instanceResolver.js";
 
 // Maximum depth when walking parent chain to avoid infinite loops

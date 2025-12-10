@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getConfigValue } from "./lib/instanceConfig.js";
+import { getConfigValue } from "../common/config/instanceConfig.edge.js";
 
 export const config = { path: "/api/fil/stories" };
 
