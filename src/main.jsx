@@ -17,7 +17,7 @@ import "./styles/index.css";
 // Import des modules multi-instances
 import { resolveInstance, getInstance } from "./lib/instanceResolver";
 import { initSupabaseWithInstance } from "./lib/supabase";
-import { initInstanceConfig } from "./lib/instanceConfig";
+import { initInstanceConfig } from "../common/config/instanceConfig.client.js";
 
 // ============================================================================
 // LOADER PENDANT L'INIT
