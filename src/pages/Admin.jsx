@@ -4,7 +4,7 @@ import SiteFooter from "../components/layout/SiteFooter";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { getUserRole, ROLE_ADMIN } from "../lib/permissions";
 import SiteConfigEditor from "../components/admin/SiteConfigEditor";
-import { getConfig } from "../../common/config/instanceConfig.client.js";
+import { getConfig } from "../common/config/instanceConfig.client.js";
 
 export default function Admin() {
   const { currentUser, loading } = useCurrentUser();

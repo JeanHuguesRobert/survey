@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-// import { useSupabase } from '../contexts/SupabaseContext';
 import PropositionList from "../components/kudocracy/PropositionList";
 import CreateProposition from "../components/kudocracy/CreateProposition";
 import DelegationManager from "../components/kudocracy/DelegationManager";
