@@ -4019,8 +4019,7 @@ suit le 18 avril 2024 :
 associés, SMI, Solertia, Procobat, Thermibel, scénarchie, Pauline Guerrier Créations, Ascaudit
 Groupe, Invéo, Real sport Ingénierie, Nova Pluviam »
 
-© Groupement « Orma (Mandataire), PNG, ISB, Sinetic, Artélia, Teckicéa, Joseph Marie Ordioni,
-Igtec,
+© Groupement « Orma (Mandataire), PNG, ISB, Sinetic, Artélia, Teckicéa, Joseph Marie Ordioni, Igtec,
 
 ACFI, Territoires, Sage Services Energie, Tribu, Scénarchie »
 

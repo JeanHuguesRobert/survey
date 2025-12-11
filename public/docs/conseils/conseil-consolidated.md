@@ -12475,9 +12475,9 @@ des enfants scolarisésbinéficiant activités périscolies dans ce eae,
 > VU la delibération du Conseil Municipal en date du 24 mars 2025 relative u recrutement des
 > personnels ‘enseignants pour des missions de surveillance et d'encadrement dans le cadrede
 > Torganistion des nouveau rythmes scolaire, VUVavis favorable da Comité Social Territorial en date
-> du 11 mars 2025, VU l note de service n® 2017-030 du ministre de Education nationale du ? m VU
-> les exits inserts au budget, CONSIDERANT que V'administration d'origine, principal employeur,
-> autorse un Professeur des Écoles à assure ces fonctions au tire d'ctivité accessore,
+> du 11 mars 2025, VU l note de service n® 2017-030 du ministre de Education nationale du ? m VU les
+> exits inserts au budget, CONSIDERANT que V'administration d'origine, principal employeur, autorse
+> un Professeur des Écoles à assure ces fonctions au tire d'ctivité accessore,
 
 5 2017,
 
