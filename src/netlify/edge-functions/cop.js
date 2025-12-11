@@ -1,13 +1,13 @@
 // File: netlify/edge-functions/cop.js
 
-import { parseCopAddr } from "../../packages/cop-kernel/src/address.js";
-import { validateCopMessage } from "../../packages/cop-kernel/src/validation.js";
+import { parseCopAddr } from "../../../packages/cop-kernel/src/address.js";
+import { validateCopMessage } from "../../../packages/cop-kernel/src/validation.js";
 import {
   getLocalNodeConfig,
   ensureLocalNodeRegistered,
   resolveNode,
-} from "../../packages/cop-kernel/src/nodeRegistry.js";
-import { logCopDebug } from "../../packages/cop-kernel/src/debugLog.js";
+} from "../../../packages/cop-kernel/src/nodeRegistry.js";
+import { logCopDebug } from "../../../packages/cop-kernel/src/debugLog.js";
 
 export default async (request, context) => {
   if (request.method !== "POST") {

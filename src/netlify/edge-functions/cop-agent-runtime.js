@@ -1,12 +1,12 @@
 // File: netlify/edge-functions/cop-agent-runtime.js
 
-import { parseCopAddr } from "../../packages/cop-kernel/src/address.js";
-import { validateCopMessage } from "../../packages/cop-kernel/src/validation.js";
-import { getLocalNodeConfig } from "../../packages/cop-kernel/src/nodeRegistry.js";
-import { resolveAgent } from "../../packages/cop-kernel/src/agentRegistry.js";
-import { COP_VERSION } from "../../packages/cop-kernel/src/message.js";
-import { logCopDebug } from "../../packages/cop-kernel/src/debugLog.js";
-import { emitCopEvent } from "../../packages/cop-kernel/src/events.js";
+import { parseCopAddr } from "../../../packages/cop-kernel/src/address.js";
+import { validateCopMessage } from "../../../packages/cop-kernel/src/validation.js";
+import { getLocalNodeConfig } from "../../../packages/cop-kernel/src/nodeRegistry.js";
+import { resolveAgent } from "../../../packages/cop-kernel/src/agentRegistry.js";
+import { COP_VERSION } from "../../../packages/cop-kernel/src/message.js";
+import { logCopDebug } from "../../../packages/cop-kernel/src/debugLog.js";
+import { emitCopEvent } from "../../../packages/cop-kernel/src/events.js";
 
 // Table de handlers locaux d'exemple.
 const LOCAL_AGENT_HANDLERS = {

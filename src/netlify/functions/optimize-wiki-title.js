@@ -1,5 +1,5 @@
 import { OpenAI } from "openai";
-import { getOpenAIConfig } from "../../../common/config/instanceConfig.backend.js";
+import { getConfig } from "../../common/config/instanceConfig.backend.js";
 
 export const handler = async (event) => {
   if (event.httpMethod !== "POST") {

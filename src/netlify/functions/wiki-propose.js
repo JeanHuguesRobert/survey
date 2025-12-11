@@ -3,10 +3,9 @@ import {
   getFederationConfig,
   getConfigValue,
   getSecret,
-} from "../lib/instanceConfig.js";
+} from "../../common/config/instanceConfig.backend.js";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
-import wikiFederation from "../../src/lib/wikiFederation.js";
-import { createClient } from "@supabase/supabase-js";
+import wikiFederation from "../../lib/wikiFederation.js";
 
 export default async (req, context) => {
   await loadInstanceConfig();

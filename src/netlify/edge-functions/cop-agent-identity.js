@@ -42,7 +42,7 @@ import {
   getAgentIdentityByName,
   listAgentIdentities,
   updateAgentIdentityStatus,
-} from "../../packages/cop-kernel/src/agentIdentity.js";
+} from "../../../packages/cop-kernel/src/agentIdentity.js";
 
 export default async function handler(request, context) {
   const url = new URL(request.url);

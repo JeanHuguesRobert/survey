@@ -1,4 +1,4 @@
-import { PROVIDERS } from "../lib/oauthProviders.js";
+import { PROVIDERS } from "../edge-functions/lib/lib/oauthProviders.js";
 import fetch from "node-fetch"; // Netlify Functions environment usually has node-fetch or global fetch in Node 18+
 import { createClient } from "@supabase/supabase-js";
 import { loadInstanceConfig, getConfigValue } from "../../common/config/instanceConfig.backend.js";

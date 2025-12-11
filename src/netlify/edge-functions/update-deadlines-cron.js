@@ -17,7 +17,7 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getConfigValue } from "../../../common/config/instanceConfig.edge.js";
+import { getConfigValue } from "../../common/config/instanceConfig.edge.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

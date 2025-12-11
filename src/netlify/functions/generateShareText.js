@@ -9,7 +9,7 @@ import {
   getOpenAIConfig,
   loadInstanceConfig,
   getConfigValue,
-} from "../lib/instanceConfig.js";
+} from "../../common/config/instanceConfig.backend.js";
 
 // Supabase client initialisé de façon lazy
 let _supabase = null;

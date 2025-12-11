@@ -18,7 +18,7 @@ import {
   getProviderApiKey,
   isProviderAvailable as vaultProviderAvailable,
   getSupabaseConfig,
-} from "./lib/instanceConfig.js";
+} from "../../common/config/instanceConfig.edge.js";
 
 // Import civic acts tools for municipal transparency system
 import {

@@ -3,7 +3,7 @@
 // ES Module (Node) version: top-level imports for `node-fetch` and `cheerio`.
 import fetch from "node-fetch";
 import { load } from "cheerio";
-import { getFacebookConfig } from "../../../common/config/instanceConfig.backend.js";
+import { getFacebookConfig } from "../../common/config/instanceConfig.backend.js";
 
 function parseUrl(raw) {
   try {

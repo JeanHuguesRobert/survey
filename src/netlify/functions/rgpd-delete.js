@@ -5,10 +5,7 @@
 // ============================================================================
 
 import { createClient } from "@supabase/supabase-js";
-import {
-  loadInstanceConfig,
-  getConfigValue,
-} from "../../../common/config/instanceConfig.backend.js";
+import { loadInstanceConfig, getConfigValue } from "../../common/config/instanceConfig.backend.js";
 
 export async function handler(event, context) {
   // Vérification de la méthode

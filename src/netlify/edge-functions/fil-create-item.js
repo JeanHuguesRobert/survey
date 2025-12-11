@@ -1,5 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getConfigValue } from "../common/config/instanceConfig.edge.js";
+import { getConfigValue } from "../../common/config/instanceConfig.edge.js";
+import { AgentExecutorService } from "../../common/services/AgentExecutorService.js";
+
+import { getSystemPrompt } from "./lib/utils/system-prompt.js";
 
 export default async (request, context) => {
   // Handle CORS preflight

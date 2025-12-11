@@ -1,8 +1,5 @@
-import { PROVIDERS } from "../lib/lib/oauthProviders.js";
-import {
-  loadInstanceConfig,
-  getConfigValue,
-} from "../../../common/config/instanceConfig.backend.js";
+import { PROVIDERS } from "../edge-functions/lib/lib/oauthProviders.js";
+import { loadInstanceConfig, getConfigValue } from "../../common/config/instanceConfig.backend.js";
 
 export const handler = async (event) => {
   await loadInstanceConfig();
