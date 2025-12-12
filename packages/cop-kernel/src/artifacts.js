@@ -3,64 +3,6 @@
 //   Helper to persist high-level COP artifacts into the cop_artifacts table,
 //   and optionally emit a COP_EVENT ("artifact.created") via /cop-events.
 //
-//   Typical usage from an agent (Edge / Deno):
-//
-//     import { emitCopArtifact } from "../../packages/cop-kernel/src/artifacts.js";
-//
-//     await emitCopArtifact({
-//       artifactType: "summary",
-//       artifactKind: "conversation",
-//       correlationId: msg.correlation_id || msg.message_id,
-//       messageId: msg.message_id,
-//       agent: {
-//         networkId: to.networkId,
-//         nodeId: to.nodeId,
-//         instanceId: to.instanceId,
-//         agentName: to.agentName,
-//       },
-//       content: {
-//         format: "markdown",
-//         text: "Résumé de la discussion...",
-//       },
-//       metadata: {
-//         source: "cafe_oral",
-//         language: "fr",
-//       },
-//       // facultatif : émettre aussi un COP_EVENT artifact.created
-//       emitEvent: true,
-//       from: msg.to, // COP_ADDR de l'agent émetteur
-//       baseUrl: new URL(context.request.url).origin,
-//     });
-//
-// Prérequis côté SQL (exemple recommandé) :
-//
-//   create table public.cop_artifacts (
-//     id uuid primary key default gen_random_uuid(),
-//
-//     correlation_id uuid,
-//     message_id     uuid,
-//     event_id       uuid,
-//
-//     network_id  text,
-//     node_id     text,
-//     instance_id text,
-//     agent_name  text,
-//
-//     artifact_type text not null,
-//     artifact_kind text not null,
-//
-//     content  jsonb not null,
-//     metadata jsonb not null default '{}'::jsonb,
-//
-//     created_at timestamptz not null default now()
-//   );
-//
-//   create index if not exists cop_artifacts_corr_idx
-//     on public.cop_artifacts (correlation_id, created_at);
-//
-//   create index if not exists cop_artifacts_type_idx
-//     on public.cop_artifacts (artifact_type, created_at);
-//
 
 import { getDefaultStorage } from "./storage.js";
 import { emitCopEvent } from "./events.js";
@@ -260,32 +202,6 @@ export async function emitCopArtifact(params) {
   };
 }
 
-/**
- * Helper: conversation summary artifact
- *
- * Typical use for Café Oral, debriefs, etc.
- *
- * @param {Object} params
- * @param {string} [params.correlationId]
- * @param {string} [params.messageId]
- * @param {Object} [params.agent] - { networkId, nodeId, instanceId, agentName }
- *
- * @param {string} params.text        - Summary text (markdown or plain)
- * @param {string} [params.level]     - 'short' | 'detailed' | 'per_speaker' | ...
- * @param {string} [params.format]    - 'markdown' (default) | 'plain'
- * @param {string[]} [params.speakers]- Optional list of participant ids/names
- * @param {string} [params.language]  - e.g. 'fr', 'en'
- *
- * @param {Object} [params.metadata]  - Extra metadata
- *
- * @param {boolean} [params.emitEvent=false]
- * @param {string}  [params.from]       - COP_ADDR of emitting agent (required if emitEvent)
- * @param {string}  [params.endpoint]   - full URL to /cop-events
- * @param {string}  [params.baseUrl]    - base URL if endpoint not provided
- * @param {string}  [params.eventsPath] - events path (default '/cop-events')
- * @param {string}  [params.copVersion]
- * @param {boolean} [params.throwOnError=true]
- */
 export async function saveConversationSummary(params) {
   const {
     correlationId,
@@ -300,7 +216,6 @@ export async function saveConversationSummary(params) {
 
     metadata = {},
 
-    // NOUVEAU
     jobId = null,
     jobStepId = null,
 

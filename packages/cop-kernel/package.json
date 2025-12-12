@@ -23,7 +23,7 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "cop-core": "^0.2.0",
+    "cop-core": "file:../cop-core",
     "@supabase/supabase-js": "^2.0.0"
   },
   "engines": {
