@@ -64,6 +64,8 @@
     "react-router-dom": "^7.10.1",
     "recharts": "^3.5.1",
     "remark-gfm": "^4.0.1",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7",
     "supabase": "^2.65.8",
     "swagger-ui-react": "^5.30.3",
     "swr": "^2.3.7"
