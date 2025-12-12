@@ -9,6 +9,10 @@
   "scripts": {
     "start": "node ./src/cli.js --help"
   },
-  "keywords": ["cop", "cli", "orchestration"],
+  "keywords": [
+    "cop",
+    "cli",
+    "orchestration"
+  ],
   "license": "MIT"
 }

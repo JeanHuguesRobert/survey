@@ -25,6 +25,20 @@ async function main() {
       await cmdTrace(rest);
     } else if (cmd === "send-message") {
       await cmdSendMessage(rest);
+    } else if (cmd === "nodes") {
+      await cmdNodes(rest);
+    } else if (cmd === "agents") {
+      await cmdAgents(rest);
+    } else if (cmd === "identities") {
+      await cmdIdentities(rest);
+    } else if (cmd === "trace") {
+      await cmdTrace(rest);
+    } else if (cmd === "send-message") {
+      await cmdSendMessage(rest);
+    } else if (cmd === "jobs") {
+      await cmdJobs(rest);
+    } else if (cmd === "job") {
+      await cmdJob(rest);
     } else {
       console.error(`Unknown command: ${cmd}`);
       printHelp();
@@ -47,6 +61,8 @@ Usage:
   cop identities [--base-url URL] [--status STATUS]
   cop trace <correlation_id> [--base-url URL]
   cop send-message --from ADDR --to ADDR --intent INTENT [--payload JSON] [--channel CH] [--base-url URL]
+  cop jobs [--base-url URL] [--status STATUS] [--type TYPE] [--worker NAME]
+  cop job <id> [--base-url URL]
 
 Base URL:
   --base-url URL       Override base URL (default: env COP_BASE_URL or http://localhost:8888)
@@ -210,6 +226,47 @@ async function cmdSendMessage(argv) {
   } else {
     console.log("Message sent successfully (no JSON body).");
   }
+}
+
+async function cmdJobs(argv) {
+  const { flags } = parseFlags(argv);
+  const baseUrl = getBaseUrl(flags);
+  const status = flags["status"];
+  const type = flags["type"];
+  const worker = flags["worker"];
+
+  const url = new URL("/cop-admin-jobs", baseUrl);
+  if (status) url.searchParams.set("status", status);
+  if (type) url.searchParams.set("job_type", type);
+  if (worker) url.searchParams.set("worker_agent_name", worker);
+
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`HTTP ${res.status} – ${txt.slice(0, 200)}`);
+  }
+  const data = await res.json();
+  console.log(JSON.stringify(data, null, 2));
+}
+
+async function cmdJob(argv) {
+  const { flags, positional } = parseFlags(argv);
+  const baseUrl = getBaseUrl(flags);
+  const jobId = positional[0];
+  if (!jobId) {
+    throw new Error("job: missing <id>");
+  }
+
+  const url = new URL("/cop-admin-jobs", baseUrl);
+  url.searchParams.set("id", jobId);
+
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`HTTP ${res.status} – ${txt.slice(0, 200)}`);
+  }
+  const data = await res.json();
+  console.log(JSON.stringify(data, null, 2));
 }
 
 main().catch((err) => {
