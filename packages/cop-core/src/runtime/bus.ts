@@ -21,7 +21,7 @@ export interface COPBus {
    */
   fetchSince(params: {
     topicId: string;
-    since?: string;  // ISO 8601
+    since?: string; // ISO 8601
     limit?: number;
   }): Promise<Event[]>;
 
@@ -36,18 +36,11 @@ export interface COPBus {
    *
    * This is the canonical API for replay / projections.
    */
-  fetchFromSeq(params: {
-    topicId: string;
-    fromSeq: number;
-    limit?: number;
-  }): Promise<Event[]>;
+  fetchFromSeq(params: { topicId: string; fromSeq: number; limit?: number }): Promise<Event[]>;
 
   /**
    * Optional real-time subscription API.
    * Implementations MAY not support it.
    */
-  subscribe?: (
-    params: { topicId: string },
-    onEvent: (event: Event) => void
-  ) => () => void;
+  subscribe?: (params: { topicId: string }, onEvent: (event: Event) => void) => () => void;
 }

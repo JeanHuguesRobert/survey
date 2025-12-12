@@ -9,7 +9,12 @@
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest"
   },
-  "keywords": ["cop", "cognitive", "orchestration", "scheduler"],
+  "keywords": [
+    "cop",
+    "cognitive",
+    "orchestration",
+    "scheduler"
+  ],
   "license": "MIT",
   "devDependencies": {
     "typescript": "^5.5.0",

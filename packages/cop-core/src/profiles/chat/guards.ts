@@ -1,10 +1,7 @@
 // profiles/chat/guards.ts
 
 import type { Event as CoreEvent, Artifact as CoreArtifact } from "../../core";
-import type {
-  ChatEvent,
-  ChatMessageArtifact,
-} from "./types";
+import type { ChatEvent, ChatMessageArtifact } from "./types";
 
 export function isChatEvent(e: CoreEvent): e is ChatEvent {
   return (
@@ -20,8 +17,6 @@ export function isChatEvent(e: CoreEvent): e is ChatEvent {
   );
 }
 
-export function isChatMessageArtifact(
-  a: CoreArtifact
-): a is ChatMessageArtifact {
+export function isChatMessageArtifact(a: CoreArtifact): a is ChatMessageArtifact {
   return a.type === "chat_message";
 }

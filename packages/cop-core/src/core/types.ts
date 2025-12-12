@@ -48,13 +48,7 @@ export interface Topic {
   meta?: Record<string, unknown>;
 }
 
-export type JobStatus =
-  | "pending"
-  | "running"
-  | "needs_input"
-  | "done"
-  | "failed"
-  | "cancelled";
+export type JobStatus = "pending" | "running" | "needs_input" | "done" | "failed" | "cancelled";
 
 export interface Job {
   id: string;
@@ -93,10 +87,10 @@ export interface Artifact {
   topicId: string;
   sourceJobId?: string;
   sourceStepId?: string;
-  type: string;           // sémantique
-  format: string;         // MIME-like
-  schemaVersion: string;  // ex: "cop.artifact.v0.2"
-  payload: unknown;       // valeur directe ou référence
+  type: string; // sémantique
+  format: string; // MIME-like
+  schemaVersion: string; // ex: "cop.artifact.v0.2"
+  payload: unknown; // valeur directe ou référence
   createdAt: string;
   meta?: Record<string, unknown>;
 }
