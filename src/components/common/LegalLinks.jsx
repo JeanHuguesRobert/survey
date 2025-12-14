@@ -1,7 +1,7 @@
-import React from "react";
+// src/components/common/LegalLinks.jsx
+
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { linkifyWardWiki } from "../../lib/wikiLinks";
 import { useMarkdownDoc } from "../../hooks/useMarkdownDoc";
 
 /**
@@ -29,7 +29,7 @@ export function LegalMarkdown({ file }) {
   return (
     // apply site markdown typography (Tailwind Typography / prose) while keeping legacy "markdown-content"
     <div className="markdown-content prose max-w-none">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{linkifyWardWiki(content)}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
     </div>
   );
 }

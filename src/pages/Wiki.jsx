@@ -4,7 +4,6 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import ErrorBoundary from "../components/common/ErrorBoundary";
-import { linkifyWardWiki } from "../lib/wikiLinks";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import ShareModal from "../components/wiki/ShareModal";
@@ -628,7 +627,7 @@ export default function Wiki() {
                       components={{ a: renderLink }}
                       skipHtml={true}
                     >
-                      {linkifyWardWiki(activePage.content)}
+                      {activePage.content}
                     </ReactMarkdown>
                   </ErrorBoundary>
                 </div>

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { linkifyWardWiki } from "../lib/wikiLinks";
 import CommentSection from "../components/common/CommentSection";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import VoteButton from "../components/kudocracy/VoteButton";
@@ -246,7 +245,7 @@ export default function Proposition() {
               }}
               skipHtml={true}
             >
-              {linkifyWardWiki(proposition.description)}
+              {proposition.description}
             </ReactMarkdown>
           ) : (
             <p className="text-gray-300">Aucune description fournie.</p>

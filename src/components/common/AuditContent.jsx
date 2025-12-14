@@ -1,7 +1,6 @@
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { linkifyWardWiki } from "../../lib/wikiLinks";
 import { useMarkdownDoc } from "../../hooks/useMarkdownDoc";
 
 export default function AuditContent() {
@@ -27,7 +26,7 @@ export default function AuditContent() {
   return (
     <div className="prose prose-blue max-w-none">
       <div className="markdown-content">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{linkifyWardWiki(content)}</ReactMarkdown>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
       </div>
 
       <hr />

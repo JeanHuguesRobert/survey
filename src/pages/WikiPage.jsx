@@ -5,7 +5,6 @@ import remarkGfm from "remark-gfm";
 import { supabase } from "../lib/supabase";
 import wikiFederation from "../lib/wikiFederation";
 import ErrorBoundary from "../components/common/ErrorBoundary";
-import { linkifyWardWiki } from "../lib/wikiLinks";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import ShareModal from "../components/wiki/ShareModal";
@@ -380,7 +379,7 @@ const WikiPage = () => {
           <div className="markdown-content prose prose-slate max-w-none">
             <ErrorBoundary>
               <ReactMarkdown remarkPlugins={[remarkGfm]} breaks components={{ a: renderLink }}>
-                {linkifyWardWiki(page.content)}
+                {page.content}
               </ReactMarkdown>
             </ErrorBoundary>
           </div>
