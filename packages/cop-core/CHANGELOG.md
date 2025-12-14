@@ -7,13 +7,111 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Ver
 
 ---
 
+# CHANGELOG — Cognitive Orchestration Protocol (COP)
+
+This changelog documents **semantic and structural changes** to the COP specification and its
+reference materials.
+
+COP is a protocol. This changelog tracks **conceptual evolution**, not feature velocity.
+
+---
+
+## [Unreleased]
+
+- Ongoing hardening of the reference implementation (`cop-kernel`)
+- Feedback-driven clarification of edge cases
+
+---
+
+## v0.x — Specification Consolidation (Current)
+
+This release marks a **major consolidation phase**: COP transitions from an exploratory project to a
+**coherent, complete protocol specification**.
+
+### Added
+
+- Full `Architecture.md` specification covering:
+  - data model
+  - causality and ordering
+  - execution model
+  - continuations
+  - transport (CloudEvents)
+  - semantic layer (JSON-LD)
+  - references and linking
+  - integrity, hashing, and ledger
+  - profiles and conformance levels
+
+- `invariants.md` formally defining COP’s non-negotiable protocol invariants
+- Clear definition of **COP/Core**, **COP/HITL**, **COP/AI**, and optional capabilities
+
+### Changed
+
+- **README.md rewritten** as a stable, protocol-level overview (not a library README)
+- **FAQ.md rewritten**:
+  - integrates the conceptual rationale ("Why COP exists")
+  - removes marketing-oriented answers
+  - aligns all explanations with the formal specification
+
+- **COMPARISON.md rewritten** with explicit, structural positioning against:
+  - agent frameworks,
+  - workflow engines,
+  - event specifications
+
+- **ROADMAP.md rewritten** as a protocol and ecosystem roadmap, not a product plan
+
+### Clarified
+
+- COP is a **protocol**, not a framework, runtime, or platform
+- The reference kernel (`cop-kernel`) is **non-normative**
+- Agents are **stateless by design**
+- Replay reconstructs **state**, not execution
+- Durability and auditability take precedence over convenience
+
+### Removed
+
+- Implicit or ambiguous claims suggesting COP is an execution framework
+- Roadmap items implying short-term feature delivery pressure
+
+---
+
+## Compatibility Notes
+
+- All changes in v0.x are **additive or clarifying**
+- No breaking changes to the core data model
+- Future breaking changes, if any, will require a **major version bump**
+
+---
+
+## Philosophy
+
+COP evolves by **subtraction and clarification**, not accumulation.
+
+If a change does not improve durability, replayability, or interpretability, it does not belong in
+the protocol.
+
+## **[Unreleased]**
+
+### **Added**
+
+#### **Documentation**
+
+- Added `Architecture.md`: Comprehensive "Version 1.0" specification covering:
+  - Core Concepts (Actors, Agents, HITL, Continuations).
+  - Data Model (JSON-LD semantics, JCS integrity, CloudEvents mapping).
+  - Execution Model (Projectors, Scheduler, Continuations).
+  - Profiles (COP/Core, COP/HITL, COP/AI).
+- Added `Manifesto.md`: High-level philosophy and vision for durable cognitive systems.
+- Added `FAQ.md`: Answers to common questions about COP's positioning and value proposition.
+- Added `COMPARISON.md`: Detailed technical comparison with LangGraph, Temporal, Swarm, and
+  CloudEvents.
+
 ## **[0.2.0] – 2025-12-09**
 
 ### **Added**
 
 #### **Core model**
 
-- Introduced versioned specification of the COP core (`Event`, `Topic`, `Job`, `Step`, `Artifact`).
+- Introduced versioned specification of the COP core (`Event`, `Topic`, `Task`, `Step`, `Artifact`).
 - Added `topicSeq` to `Event` to guarantee strict per-topic ordering and replay.
 - Added `schemaVersion` to `Event` and `Artifact`.
 - Added causal metadata fields: `correlationId`, `parentEventIds`.
@@ -28,8 +126,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Ver
 
 - Added `COPStore` interface with:
   - Topic operations: `getTopic`, `saveTopic`
-  - Job operations: `getJob`, `saveJob`, `listJobs`
-  - **`listJobsByTopic`**
+  - Task operations: `getTask`, `saveTask`, `listTasks`
+  - **`listTasksByTopic`**
   - Step operations: `getSteps`, `saveStep`
   - Artifact operations: `saveArtifact`, `getArtifact`, `listArtifacts`
 
@@ -55,7 +153,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Ver
   - `AssistantReflexPayload`
   - `AssistantUpdatePayload`
   - `TopicUpdatePayload`
-  - `JobStateChangedPayload`
+  - `TaskStateChangedPayload`
   - `ArtifactCreatedPayload`
 
 - Added `ChatMessageArtifact` and `LlmCallArtifact`.

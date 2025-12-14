@@ -1,152 +1,160 @@
-# **cop-core**
+# COP Core — Cognitive Orchestration Protocol
 
-Minimal TypeScript specification of the **Cognitive Orchestration Protocol (COP)** core. This
-package defines the **types**, **interfaces**, and **profiles** required to build durable,
-event-driven, multi-agent cognitive systems.
+`cop-core` is the **reference specification package** for the Cognitive Orchestration Protocol
+(COP).
 
-The goal of `cop-core` is to provide a **stable, implementation-agnostic foundation** for COP
-runtimes (Node, Deno, Bun, Edge, Supabase, browser, workers, etc.).
+It defines the **canonical data model, invariants, and interfaces** required to build durable,
+replayable, and interoperable cognitive systems (AI agents, workflows, human-in-the-loop processes).
 
-No logic is implemented here—only **contracts**.
+This package intentionally contains **no executable logic**.
 
----
-
-## **Contents**
-
-### **Core Types (protocol invariants)**
-
-- `Event`
-- `Topic`
-- `Job`
-- `Step`
-- `Artifact`
-- Supporting enums: `TopicStatus`, `JobStatus`, `StepStatus`
-
-These types model the immutable event log and durable artifacts of a COP system.
-
-### **Runtime Interfaces**
-
-These are pure contracts that real runtimes implement:
-
-- `COPBus` At-least-once event delivery with:
-  - `publish(event)`
-  - `fetchSince({ since })`
-  - `fetchFromSeq({ fromSeq })` (canonical replay API)
-  - optional `subscribe(...)`
-
-- `COPStore` Projection storage for Topics, Jobs, Steps, and Artifacts:
-  - `getTopic`, `saveTopic`
-  - `getJob`, `saveJob`, `listJobs`, `listJobsByTopic`
-  - `getSteps`, `saveStep`
-  - `getArtifact`, `saveArtifact`, `listArtifacts`
-
-- `AgentContext`
-  - `bus`, `store`, `now()`
-  - `emit(event)` → convenience wrapper for `bus.publish`
-
-- `COPAgent`
-  - `onEvent(event, ctx)`
-  - optional `onTick(ctx)`
-
-- `COPScheduler` (interface only)
-  - `start()`, `stop()`
-  - `dispatchEvent(event)`
-  - optional `getContext()`
-
-### **Profile: Chat**
-
-A specialization for conversational and LLM-driven workflows:
-
-- `ChatEvent`, `ChatEventType`, `ChatEventPayload`
-- `ChatMessageArtifact`, `LlmCallArtifact`
-- Type-guards (`isChatEvent`, `isChatMessageArtifact`)
-- `DeliveryMode`
-
-Profiles are optional; they do **not** affect the COP core.
+COP is a **protocol**, not a framework, SDK, runtime, or product.
 
 ---
 
-## **Design Principles**
+## What COP Is
 
-`cop-core` follows six invariants:
+COP standardizes how cognition is:
 
-1. **Immutability** → Events and Artifacts cannot be modified.
-2. **Topic-local ordering** → `topicSeq` provides strict replay order.
-3. **Idempotency** → Multiple deliveries MUST NOT corrupt state.
-4. **Durability** → All meaningful state lives in Events + Artifacts.
-5. **Agent statelessness** → Agents hold no internal mutable state.
-6. **Isolation** → Agents communicate only via Events through a bus.
+- **represented** (Events, Artifacts, Tasks, Steps),
+- **ordered** (topic-local sequencing and causality),
+- **persisted** (immutable event logs),
+- **replayed** (deterministic reconstruction),
+- **audited** (hashing, optional ledger),
+- **shared** (CloudEvents, JSON-LD).
 
-A full description is available in `core/invariants.md`.
+COP treats cognition as a **durable process**, not a transient computation.
 
----
-
-## **Usage**
-
-This package does not include any execution engine. You must provide concrete implementations of:
-
-- `COPBus`
-- `COPStore`
-- `COPScheduler`
-
-### Minimal example (pseudo-runtime)
-
-```ts
-import { COPCore, COPRuntime } from "cop-core";
-
-const agent: COPRuntime.COPAgent = {
-  name: "example",
-  async onEvent(event, ctx) {
-    console.log("Event received:", event);
-  },
-  async onTick(ctx) {
-    console.log("Tick at", ctx.now());
-  },
-};
-
-// Example: create your own bus/store/scheduler implementations.
-// const bus = ...
-// const store = ...
-// const scheduler = ...
-
-// scheduler.start();
-// scheduler.dispatchEvent({ ... });
-```
+Agents are replaceable. Models evolve. Cognition remains.
 
 ---
 
-## **What `cop-core` is NOT**
+## What COP Is Not
 
-- not a scheduler implementation
-- not an event loop
-- not an LLM orchestrator
-- not tied to any database or provider
-- not a runtime library
+COP is deliberately minimal. It does **not**:
 
-It is a **specification** meant to last and remain stable across many runtimes.
+- execute workflows,
+- run agents,
+- schedule tasks,
+- manage infrastructure,
+- depend on any database, broker, or cloud provider.
 
----
-
-## **What belongs in other packages**
-
-Recommended layout for real usage:
-
-```
-cop-core               → Types & interfaces only (this package)
-cop-runtime-node       → Node/Deno implementation of bus/store/scheduler
-cop-runtime-supabase   → Supabase/Postgres projection store
-cop-runtime-edge       → Edge/Workers-compatible runtime
-cop-profile-chat       → (optional) extracted chat profile
-```
-
-This keeps the core stable and small, while runtimes evolve freely.
+Those concerns belong to **runtimes** built on top of COP.
 
 ---
 
-## **Versioning**
+## Core Concepts
 
-`cop-core` follows semantic, additive versioning:
+COP defines a small set of foundational primitives:
 
-- **v0.x** → experimental but stable enough to use
-- breaking changes → explicit major bump
-- new optional fields / interfaces → minor bump only
+- **Event** — immutable record of a cognitive action
+- **Topic** — unit of cognitive coherence
+- **Task** — structured objective within a Topic
+- **Step** — atomic unit of work inside a Task
+- **Artifact** — durable cognitive output
+- **Continuation** — suspended, resumable execution state
+
+All durable state lives in Events and Artifacts.
+
+Agents are **stateless**.
+
+---
+
+## Runtime Interfaces
+
+`cop-core` defines pure interfaces that real systems must implement:
+
+- **COPBus** — event publication and replay
+- **COPStore** — deterministic projection storage
+- **COPScheduler** — event dispatch and coordination
+- **COPAgent** — stateless cognitive actor
+
+Any technology stack can implement these interfaces:
+
+- Node / Deno / Bun
+- SQL (Postgres, Supabase)
+- Kafka / NATS / Redis Streams
+- Temporal
+- Edge runtimes
+- In-memory test harnesses
+
+---
+
+## Protocol Invariants
+
+COP is defined by a small number of **non-negotiable invariants**:
+
+1. Immutability
+2. Topic-local ordering
+3. Idempotency
+4. Durability
+5. Stateless agents
+6. Isolation via events
+
+These invariants are normative and MUST be preserved by all implementations.
+
+See **`invariants.md`** for the formal definition.
+
+---
+
+## Profiles
+
+Profiles extend COP without modifying the core.
+
+Examples:
+
+- Chat / conversational agents
+- RAG pipelines
+- Planning and workflow orchestration
+- Tool invocation
+- Human-in-the-loop governance
+
+Profiles define **additional semantics**, not new execution rules.
+
+---
+
+## Interoperability
+
+COP is designed to interoperate cleanly with existing standards:
+
+- **CloudEvents** — transport and envelope
+- **JSON-LD** — semantic layer
+- **JCS (RFC 8785)** — canonical hashing
+
+COP Events can be transported anywhere while preserving meaning.
+
+---
+
+## Who COP Is For
+
+COP is intended for:
+
+- system architects designing long-lived AI systems,
+- framework authors seeking interoperability,
+- institutions requiring auditability and traceability,
+- researchers focused on reproducibility,
+- regulated or safety-critical domains.
+
+---
+
+## Status
+
+COP is currently in **v0.3**:
+
+- the core model is stable,
+- schemas are versioned,
+- additive evolution only,
+- breaking changes require explicit major versions.
+
+COP is designed for **multi-decade persistence**.
+
+---
+
+## Philosophy
+
+Frameworks come and go.
+
+Cognition should not.
+
+COP exists to ensure that reasoning, decisions, and coordination outlive any single model, vendor,
+or runtime.

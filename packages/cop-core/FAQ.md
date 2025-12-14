@@ -16,7 +16,7 @@ It defines:
 
 - immutable **Events**,
 - durable **Artifacts**,
-- structured reasoning units (**Topics**, **Jobs**, **Steps**),
+- structured reasoning units (**Topics**, **Tasks**, **Steps**),
 - stateless **Agents**,
 - and abstract **Bus/Store** interfaces.
 
@@ -108,7 +108,7 @@ CloudEvents define the **shape** of an event. COP defines the **shape of cogniti
 COP adds domain semantics:
 
 - `Topic` (coherent reasoning thread)
-- `Job` and `Step`
+- `Task` and `Step`
 - `Artifact` (durable memory)
 - `topicSeq` ordering
 - replayable execution

@@ -52,8 +52,8 @@ COP defines just five fundamental concepts:
 - **Event** — immutable record of what happened
 - **Artifact** — durable output of cognition
 - **Topic** — the coherent thread binding reasoning together
-- **Job** — a task within a Topic
-- **Step** — a phase of a Job’s execution
+- **Task** — a task within a Topic
+- **Step** — a phase of a Task’s execution
 
 These are orchestrated by simple interfaces:
 
