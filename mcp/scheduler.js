@@ -46,46 +46,50 @@ export class MCPscheduler {
       }
     }
 
-    // Claim and process distributed jobs using store.claimJob if available
+    // Claim and process distributed tasks using store.claimTask if available
     try {
       const workerId = `mcp-${process.pid}-${Math.random().toString(36).slice(2, 6)}`;
-      let claimed = await store.claimJob({ workerId, leaseSeconds: 60 }).catch(() => null);
+      let claimed = await store.claimTask({ workerId, leaseSeconds: 60 }).catch(() => null);
       let processed = 0;
       while (claimed && processed < 20) {
-        // dispatch to agent that can handle job type
-        const jobType = claimed.type;
+        // dispatch to agent that can handle task type
+        const taskType = claimed.type;
         const handlers = this.agents.filter(
-          (a) => a.onJob && a.jobTypes && a.jobTypes.includes(jobType)
+          (a) => a.onTask && a.taskTypes && a.taskTypes.includes(taskType)
         );
         if (handlers.length === 0) {
           // default: run agents that have onTick for deep processing
           for (const a of this.agents) {
-            if (a.onJob) {
+            if (a.onTask) {
               try {
-                await a.onJob(claimed, {
+                await a.onTask(claimed, {
                   bus: this.bus,
                   store,
                   now: () => new Date().toISOString(),
                 });
               } catch (e) {
-                console.error("agent onJob error", e);
+                console.error("agent onTask error", e);
               }
             }
           }
         } else {
           for (const h of handlers) {
             try {
-              await h.onJob(claimed, { bus: this.bus, store, now: () => new Date().toISOString() });
+              await h.onTask(claimed, {
+                bus: this.bus,
+                store,
+                now: () => new Date().toISOString(),
+              });
             } catch (e) {
-              console.error("agent onJob error", e);
+              console.error("agent onTask error", e);
             }
           }
         }
         processed++;
-        claimed = await store.claimJob({ workerId, leaseSeconds: 60 }).catch(() => null);
+        claimed = await store.claimTask({ workerId, leaseSeconds: 60 }).catch(() => null);
       }
     } catch (err) {
-      console.error("Distributed job processing error", err?.message || err);
+      console.error("Distributed task processing error", err?.message || err);
     }
   }
 

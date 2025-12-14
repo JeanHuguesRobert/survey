@@ -25,18 +25,18 @@ export async function saveTopic(topic) {
   return data || null;
 }
 
-export async function getJob(id) {
+export async function getTask(id) {
   if (!client) await initStore();
-  const { data, error } = await client.from("cop_job").select("*").eq("id", id).single();
+  const { data, error } = await client.from("cop_task").select("*").eq("id", id).single();
   if (error && error.code !== "PGRST116") throw error;
   return data || null;
 }
 
-export async function findJobBySourceEvent({ topicId, type, sourceEventId } = {}) {
+export async function findTaskBySourceEvent({ topicId, type, sourceEventId } = {}) {
   if (!client) await initStore();
   if (!sourceEventId) return null;
   const { data, error } = await client
-    .from("cop_job")
+    .from("cop_task")
     .select("*")
     .eq("topic_id", topicId)
     .eq("type", type)
@@ -46,21 +46,25 @@ export async function findJobBySourceEvent({ topicId, type, sourceEventId } = {}
   return (data || [])[0] || null;
 }
 
-export async function saveJob(job) {
+export async function saveTask(task) {
   if (!client) await initStore();
-  // If job contains source_event_id, use upsert by unique constraint (topic_id,type,source_event_id) so repeated new job requests are idempotent
-  const onConflict = job && job.source_event_id ? "topic_id,type,source_event_id" : undefined;
+  // If task contains source_event_id, use upsert by unique constraint (topic_id,type,source_event_id) so repeated new task requests are idempotent
+  const onConflict = task && task.source_event_id ? "topic_id,type,source_event_id" : undefined;
   const { data, error } = await client
-    .from("cop_job")
-    .upsert(job, onConflict ? { onConflict } : {})
+    .from("cop_task")
+    .upsert(task, onConflict ? { onConflict } : {})
     .select();
   if (error) throw error;
   return data?.[0] || null;
 }
 
-export async function listJobs({ status, limit = 100 } = {}) {
+export async function listTasks({ status, limit = 100 } = {}) {
   if (!client) await initStore();
-  let q = client.from("cop_job").select("*").order("created_at", { ascending: false }).limit(limit);
+  let q = client
+    .from("cop_task")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
   if (status) q = q.in("status", status);
   const { data, error } = await q;
   if (error) throw error;
@@ -68,15 +72,15 @@ export async function listJobs({ status, limit = 100 } = {}) {
 }
 
 /**
- * Claim a job for processing: update a pending job to be claimed by workerId for leaseSeconds atomically.
- * Returns the claimed job or null if none.
+ * Claim a task for processing: update a pending task to be claimed by workerId for leaseSeconds atomically.
+ * Returns the claimed task or null if none.
  */
-export async function claimJob({ workerId, leaseSeconds = 60 } = {}) {
+export async function claimTask({ workerId, leaseSeconds = 60 } = {}) {
   if (!client) await initStore();
   const now = new Date().toISOString();
   const leaseUntil = new Date(Date.now() + leaseSeconds * 1000).toISOString();
-  // Find a job with status pending and no lease or expired lease, and atomically claim it
-  const { data, error } = await client.rpc("cop_claim_job", {
+  // Find a task with status pending and no lease or expired lease, and atomically claim it
+  const { data, error } = await client.rpc("cop_claim_task", {
     p_worker_id: workerId,
     p_lease_until: leaseUntil,
   });
@@ -84,23 +88,23 @@ export async function claimJob({ workerId, leaseSeconds = 60 } = {}) {
   return data?.[0] || null;
 }
 
-export async function getSteps(jobId) {
+export async function getSteps(taskId) {
   if (!client) await initStore();
   const { data, error } = await client
     .from("cop_step")
     .select("*")
-    .eq("job_id", jobId)
+    .eq("task_id", taskId)
     .order("created_at", { ascending: true });
   if (error) throw error;
   return data || [];
 }
 
-export async function getNextPendingStep(jobId) {
+export async function getNextPendingStep(taskId) {
   if (!client) await initStore();
   const { data, error } = await client
     .from("cop_step")
     .select("*")
-    .eq("job_id", jobId)
+    .eq("task_id", taskId)
     .eq("status", "pending")
     .order("created_at", { ascending: true })
     .limit(1);
@@ -108,11 +112,11 @@ export async function getNextPendingStep(jobId) {
   return (data || [])[0] || null;
 }
 
-export async function claimStep({ jobId, workerId, leaseSeconds = 60 } = {}) {
+export async function claimStep({ taskId, workerId, leaseSeconds = 60 } = {}) {
   if (!client) await initStore();
   const leaseUntil = new Date(Date.now() + leaseSeconds * 1000).toISOString();
   const { data, error } = await client.rpc("cop_claim_step", {
-    p_job_id: jobId,
+    p_task_id: taskId,
     p_worker_id: workerId,
     p_lease_until: leaseUntil,
   });
@@ -122,8 +126,8 @@ export async function claimStep({ jobId, workerId, leaseSeconds = 60 } = {}) {
 
 export async function saveStep(step) {
   if (!client) await initStore();
-  // idempotent upsert: prefer to upsert by primary key (id), otherwise use job_id+name unique constraint
-  const onConflict = step && !step.id ? "job_id,name" : undefined;
+  // idempotent upsert: prefer to upsert by primary key (id), otherwise use task_id+name unique constraint
+  const onConflict = step && !step.id ? "task_id,name" : undefined;
   const { data, error } = await client
     .from("cop_step")
     .upsert(step, onConflict ? { onConflict } : {})
@@ -134,10 +138,10 @@ export async function saveStep(step) {
 
 export async function saveArtifact(artifact) {
   if (!client) await initStore();
-  // Try upsert if we have source_job_id + source_step_id, otherwise insert
+  // Try upsert if we have source_task_id + source_step_id, otherwise insert
   const onConflict =
-    artifact && artifact.source_job_id && artifact.source_step_id
-      ? "source_job_id,source_step_id,type"
+    artifact && artifact.source_task_id && artifact.source_step_id
+      ? "source_task_id,source_step_id,type"
       : undefined;
   if (onConflict) {
     const { data, error } = await client
@@ -171,12 +175,12 @@ export default {
   initStore,
   getTopic,
   saveTopic,
-  getJob,
-  saveJob,
-  listJobs,
+  getTask,
+  saveTask,
+  listTasks,
   getSteps,
   getNextPendingStep,
-  claimJob,
+  claimTask,
   claimStep,
   saveStep,
   saveArtifact,
