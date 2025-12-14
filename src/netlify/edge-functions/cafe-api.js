@@ -330,7 +330,7 @@ export default async (req, context) => {
       if (error) throw error;
 
       // 2. Optionally, create a cop_message view-compatible row (cop_messages view will reflect cop_event)
-      // 3. Optionally create a cop_job for deep processing (ASR -> transcript normalization, RAG, etc.)
+      // 3. Optionally create a cop_task for deep processing (ASR -> transcript normalization, RAG, etc.)
       // For now, just return the event row
       return new Response(JSON.stringify({ event: eventRow }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -1,7 +1,6 @@
 // src/components/kudocracy/PropositionList.jsx
 
 import React, { useState, useEffect, useMemo } from "react";
-// import { useSupabase } from '../../contexts/SupabaseContext';
 import PropositionCard from "./PropositionCard";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import { supabase } from "../../lib/supabase";

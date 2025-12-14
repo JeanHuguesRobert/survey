@@ -600,7 +600,7 @@ export default function SiteFooter({
               <span>⏳ Création...</span>
             ) : (
               <>
-                <span>🎙️</span> Oral
+                <span>🎙️</span> Oral (bientôt)
               </>
             )}
           </button>

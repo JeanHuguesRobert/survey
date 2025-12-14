@@ -1,16 +1,16 @@
-// File: netlify/edge-functions/cop-admin-jobs.js
+// File: netlify/edge-functions/cop-admin-tasks.js
 // Description:
-//   Netlify Edge Function exposing a minimal admin API for COP jobs.
+//   Netlify Edge Function exposing a minimal admin API for COP tasks.
 //
-//   GET /cop-admin-jobs
-//     - List jobs (optionally filtered)
+//   GET /cop-admin-tasks
+//     - List tasks (optionally filtered)
 //       Query params:
 //         ?status=pending|running|completed|failed|cancelled
-//         &job_type=AUDIT_LEGAL_STATE
+//         &task_type=AUDIT_LEGAL_STATE
 //         &worker_agent_name=Ophélia
 //
-//   GET /cop-admin-jobs?id=<job_id>
-//     - Get a single job with its steps
+//   GET /cop-admin-tasks?id=<task_id>
+//     - Get a single task with its steps
 //
 //   (POST could be added later for admin actions like force-fail, retry, etc.)
 
@@ -47,23 +47,23 @@ async function handleGet(url) {
   const id = url.searchParams.get("id");
   const storage = getDefaultStorage();
 
-  // Cas 1 : détail d'un job
+  // Cas 1 : détail d'un task
   if (id) {
-    const jobRes = await storage.jobs.get(id);
-    if (!jobRes.ok) {
-      return new Response(JSON.stringify({ error: "job_load_error", detail: jobRes.error }), {
+    const taskRes = await storage.tasks.get(id);
+    if (!taskRes.ok) {
+      return new Response(JSON.stringify({ error: "task_load_error", detail: taskRes.error }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
       });
     }
-    if (!jobRes.job) {
+    if (!taskRes.task) {
       return new Response(JSON.stringify({ error: "not_found" }), {
         status: 404,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    const stepsRes = await storage.steps.listByJob(id);
+    const stepsRes = await storage.steps.listByTask(id);
     if (!stepsRes.ok) {
       return new Response(JSON.stringify({ error: "steps_load_error", detail: stepsRes.error }), {
         status: 500,
@@ -72,7 +72,7 @@ async function handleGet(url) {
     }
 
     const payload = {
-      job: jobRes.job,
+      task: taskRes.task,
       steps: stepsRes.steps || [],
     };
 
@@ -82,25 +82,25 @@ async function handleGet(url) {
     });
   }
 
-  // Cas 2 : liste des jobs
+  // Cas 2 : liste des tasks
   const status = url.searchParams.get("status") || undefined;
-  const job_type = url.searchParams.get("job_type") || undefined;
+  const task_type = url.searchParams.get("task_type") || undefined;
   const worker_agent_name = url.searchParams.get("worker_agent_name") || undefined;
 
-  const listRes = await storage.jobs.list({
+  const listRes = await storage.tasks.list({
     status,
-    job_type,
+    task_type,
     worker_agent_name,
   });
 
   if (!listRes.ok) {
-    return new Response(JSON.stringify({ error: "jobs_list_error", detail: listRes.error }), {
+    return new Response(JSON.stringify({ error: "tasks_list_error", detail: listRes.error }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
   }
 
-  return new Response(JSON.stringify(listRes.jobs || []), {
+  return new Response(JSON.stringify(listRes.tasks || []), {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });

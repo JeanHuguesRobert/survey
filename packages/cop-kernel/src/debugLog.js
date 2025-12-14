@@ -1,44 +1,54 @@
 // File: packages/cop-kernel/src/debugLog.js
 // Description:
-//   Helper to insert debug logs into cop_debug_logs (Supabase).
-//   Safe to call from both Node and Deno contexts.
+//   COP debug logs written via StorageInterface.debugLogs.
 
-import { getDefaultStorage } from "./storage.js";
+import { getStorage } from "./storage.js";
+
+function nowIso() {
+  return new Date().toISOString();
+}
 
 /**
- * Log a debug entry into cop_debug_logs.
+ * Insert a debug log entry.
  *
  * @param {Object} params
- * @param {string} [params.correlationId]
- * @param {string} [params.messageId]
- * @param {string} [params.eventId]
- * @param {string} params.location
- * @param {string} params.stage
- * @param {string} [params.direction]  // 'in', 'out', 'internal', ...
- * @param {Object} [params.metadata]   // arbitrary JSON-serializable object
+ * @param {string} [params.correlation_id]
+ * @param {string} [params.message_id]
+ * @param {string} [params.event_id]
+ * @param {string} [params.location]   - usually agent address
+ * @param {string} [params.stage]      - e.g. "received", "processing", "sent", "error"
+ * @param {string} [params.direction]  - "in", "out", "internal"
+ * @param {any}    [params.payload]
+ * @param {Object} [params.metadata]
  */
-/**
- * Insert a debug log into cop_debug_logs via storage layer.
- *
- * @param {object} log
- */
-export async function logCopDebug(log) {
-  const storage = getDefaultStorage();
-  const record = {
-    correlation_id: log.correlation_id || null,
-    message_id: log.message_id || null,
-    event_id: log.event_id || null,
-    location: log.location || null,
-    stage: log.stage || null,
-    direction: log.direction || null,
-    payload: log.payload || null,
-    metadata: log.metadata || {},
+export async function logCopDebug(params) {
+  const storage = getStorage();
+  const {
+    correlation_id = null,
+    message_id = null,
+    event_id = null,
+    location = null,
+    stage = null,
+    direction = null,
+    payload = null,
+    metadata = {},
+  } = params || {};
+
+  const row = {
+    id:
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : String(Date.now()) + "-" + Math.random().toString(16).slice(2),
+    correlation_id,
+    message_id,
+    event_id,
+    location,
+    stage,
+    direction,
+    payload,
+    metadata,
+    created_at: nowIso(),
   };
 
-  const res = await storage.debugLogs.insert(record);
-  if (!res.ok) {
-    // optional: swallow, or throw, or console.error
-    // for now, just ignore to avoid breaking flows
-    // console.error("logCopDebug error:", res.error);
-  }
+  return storage.debugLogs.insert(row);
 }

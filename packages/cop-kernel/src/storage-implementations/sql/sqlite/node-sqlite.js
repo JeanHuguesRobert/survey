@@ -53,10 +53,12 @@ export class NodeSqliteConnection {
   }
 }
 
-export async function createNodeSqliteConnection(config) {
-  const db = await open({
+export async function createNodeSqliteConnection(config, sqliteModule, sqlite3Module) {
+  const Sqlite = sqliteModule || { open };
+  const Sqlite3 = sqlite3Module || { Database: sqlite3.Database };
+  const db = await Sqlite.open({
     filename: config.uri,
-    driver: sqlite3.Database,
+    driver: Sqlite3.Database,
   });
   return new NodeSqliteConnection(db);
 }

@@ -276,7 +276,7 @@ function parseValue(value, key) {
   // JSON (si la valeur est une chaîne JSON valide)
   if (
     (typeof value === "string" && value.startsWith("{") && value.endsWith("}")) ||
-    (value.startsWith("[") && value.endsWith("]"))
+    (typeof value === "string" && value.startsWith("[") && value.endsWith("]"))
   ) {
     try {
       const json = JSON.parse(value);
@@ -658,6 +658,26 @@ export function getSupabaseConfig() {
   };
 }
 
+/**
+ * Récupère la config Facebook
+ */
+export async function getFacebookConfig() {
+  return {
+    appId: getConfigValue("facebook_app_id", ""),
+    token: getConfigValue("facebook_token", ""),
+    clientSecret: getConfigValue("facebook_client_secret", ""),
+  };
+}
+
+/**
+ * Récupère un secret (charge depuis vault si disponible)
+ * @param {string} key
+ */
+export async function getSecret(key) {
+  await loadInstanceConfig();
+  return getConfigValue(key, null);
+}
+
 // ============================================================================\
 // INITIALISATION AU BOOT
 // ============================================================================\
@@ -707,6 +727,7 @@ export default {
   getProviderApiKey,
   isProviderAvailable,
   getSupabaseConfig,
+  getSecret,
   // Note: createSupabaseClient n'est pas exporté ici car il dépend de l'implémentation
   // spécifique à l'environnement et sera géré par les adaptateurs.
 };

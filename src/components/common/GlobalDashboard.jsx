@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-// import { useSupabase } from '../contexts/SupabaseContext';
+import { useSupabase } from "../../contexts/SupabaseContext.jsx";
 import { useCurrentUser } from "../../lib/useCurrentUser.js";
 import { Link } from "react-router-dom";
 import { getTaskTitleFromPost } from "../../lib/taskHelpers.js";

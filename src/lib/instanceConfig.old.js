@@ -1,3 +1,5 @@
+// TODO: Remove this file, it should never be imported
+
 // src/lib/instanceConfig.js
 // Module de configuration d'instance - Vault centralisé
 //

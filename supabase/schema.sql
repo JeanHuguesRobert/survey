@@ -334,7 +334,7 @@ CREATE TABLE public.cop_agents (
 CREATE TABLE public.cop_artifact (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   topic_id uuid NOT NULL,
-  source_job_id uuid,
+  source_task_id uuid,
   source_step_id uuid,
   type text NOT NULL,
   format text,
@@ -344,7 +344,7 @@ CREATE TABLE public.cop_artifact (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT cop_artifact_pkey PRIMARY KEY (id),
   CONSTRAINT cop_artifact_topic_id_fkey FOREIGN KEY (topic_id) REFERENCES public.cop_topic(id),
-  CONSTRAINT cop_artifact_source_job_id_fkey FOREIGN KEY (source_job_id) REFERENCES public.cop_job(id),
+  CONSTRAINT cop_artifact_source_task_id_fkey FOREIGN KEY (source_task_id) REFERENCES public.cop_task(id),
   CONSTRAINT cop_artifact_source_step_id_fkey FOREIGN KEY (source_step_id) REFERENCES public.cop_step(id)
 );
 CREATE TABLE public.cop_artifacts (
@@ -399,7 +399,7 @@ CREATE TABLE public.cop_events (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT cop_events_pkey PRIMARY KEY (id)
 );
-CREATE TABLE public.cop_job (
+CREATE TABLE public.cop_task (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   topic_id uuid NOT NULL,
   type text NOT NULL,
@@ -415,8 +415,8 @@ CREATE TABLE public.cop_job (
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   source_event_id uuid,
   status_reason text,
-  CONSTRAINT cop_job_pkey PRIMARY KEY (id),
-  CONSTRAINT cop_job_topic_id_fkey FOREIGN KEY (topic_id) REFERENCES public.cop_topic(id)
+  CONSTRAINT cop_task_pkey PRIMARY KEY (id),
+  CONSTRAINT cop_task_topic_id_fkey FOREIGN KEY (topic_id) REFERENCES public.cop_topic(id)
 );
 CREATE TABLE public.cop_nodes (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -433,7 +433,7 @@ CREATE TABLE public.cop_nodes (
 );
 CREATE TABLE public.cop_step (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  job_id uuid NOT NULL,
+  task_id uuid NOT NULL,
   name text NOT NULL,
   status text NOT NULL DEFAULT 'pending'::text,
   input jsonb DEFAULT '{}'::jsonb,
@@ -447,7 +447,7 @@ CREATE TABLE public.cop_step (
   lease_expires_at timestamp with time zone,
   checkpoint jsonb DEFAULT '{}'::jsonb,
   CONSTRAINT cop_step_pkey PRIMARY KEY (id),
-  CONSTRAINT cop_step_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.cop_job(id)
+  CONSTRAINT cop_step_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.cop_task(id)
 );
 CREATE TABLE public.cop_topic (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -699,7 +699,7 @@ CREATE TABLE public.instance_registry (
   CONSTRAINT instance_registry_pkey PRIMARY KEY (id),
   CONSTRAINT instance_registry_parent_hub_id_fkey FOREIGN KEY (parent_hub_id) REFERENCES public.instance_registry(id)
 );
-CREATE TABLE public.jobs (
+CREATE TABLE public.tasks (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   owner uuid,
   type text NOT NULL,
@@ -713,8 +713,8 @@ CREATE TABLE public.jobs (
   updated_at timestamp with time zone DEFAULT now(),
   started_at timestamp with time zone,
   completed_at timestamp with time zone,
-  CONSTRAINT jobs_pkey PRIMARY KEY (id),
-  CONSTRAINT jobs_owner_fkey FOREIGN KEY (owner) REFERENCES public.users(id)
+  CONSTRAINT tasks_pkey PRIMARY KEY (id),
+  CONSTRAINT tasks_owner_fkey FOREIGN KEY (owner) REFERENCES public.users(id)
 );
 CREATE TABLE public.knowledge_chunks (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

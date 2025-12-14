@@ -1,4 +1,4 @@
-import initSqlJs from "sql.js";
+import * as SQLJs from "https://cdn.jsdelivr.net/npm/sql.js/dist/sql-wasm.js";
 
 export class BrowserSqliteConnection {
   constructor(db) {
@@ -84,7 +84,7 @@ export class BrowserSqliteConnection {
 export async function createBrowserSqliteConnection(config) {
   // sql.js needs to be initialized, typically by loading the WASM module.
   // This assumes initSqlJs is globally available or imported correctly.
-  const SQL = await initSqlJs();
+  const SQL = await SQLJs.initSqlJs();
   const db = new SQL.Database(); // Create a new database
   return new BrowserSqliteConnection(db);
 }

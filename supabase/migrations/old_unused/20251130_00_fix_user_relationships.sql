@@ -36,12 +36,12 @@ ALTER TABLE public.document_sources
 ADD CONSTRAINT document_sources_ingested_by_fkey
 FOREIGN KEY (ingested_by) REFERENCES public.users(id);
 
--- 5. Update jobs
-ALTER TABLE public.jobs
-DROP CONSTRAINT jobs_owner_fkey;
+-- 5. Update tasks
+ALTER TABLE public.tasks
+DROP CONSTRAINT tasks_owner_fkey;
 
-ALTER TABLE public.jobs
-ADD CONSTRAINT jobs_owner_fkey
+ALTER TABLE public.tasks
+ADD CONSTRAINT tasks_owner_fkey
 FOREIGN KEY (owner) REFERENCES public.users(id);
 
 -- 6. Update wiki_pages

@@ -13,7 +13,7 @@
  *
  * Security:
  * - Requires API key authentication (x-api-key header)
- * - Only available to internal cron jobs
+ * - Only available to internal cron tasks
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";

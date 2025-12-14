@@ -7,5 +7,5 @@ ALTER TABLE public.cop_step
   ADD COLUMN IF NOT EXISTS worker_id text DEFAULT NULL,
   ADD COLUMN IF NOT EXISTS lease_expires_at timestamptz DEFAULT NULL;
 
-CREATE INDEX IF NOT EXISTS idx_cop_step_job_status ON public.cop_step(job_id, status);
+CREATE INDEX IF NOT EXISTS idx_cop_step_task_status ON public.cop_step(task_id, status);
 

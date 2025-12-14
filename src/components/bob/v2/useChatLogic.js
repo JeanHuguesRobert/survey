@@ -87,7 +87,7 @@ export default function useChatLogic(initial = {}) {
   const DEFAULT_MODEL_MODE = {
     mistral: "fast",
     anthropic: "main",
-    openai: "main",
+    openai: "cheap",
     huggingface: "main",
     grok: "main",
     google: "main",

@@ -19,8 +19,8 @@ export function SupabaseProvider({ children }) {
   const [connectionState, setConnectionState] = useState("disconnected");
   const [realtimeStatus, setRealtimeStatus] = useState("disconnected");
   const [authEvent, setAuthEvent] = useState(null);
-  // Job monitoring state
-  const [activeJobs, setActiveJobs] = useState(new Map());
+  // Task monitoring state
+  const [activeTasks, setActiveTasks] = useState(new Map());
 
   // Resolve client (use getSupabase to obtain the initialized instance)
   let client;
@@ -30,12 +30,12 @@ export function SupabaseProvider({ children }) {
     client = null;
   }
 
-  // Job monitoring functions
-  const createJob = async (type, payload = {}) => {
-    console.log("SupabaseContext: Creating job:", type, payload);
+  // Task monitoring functions
+  const createTask = async (type, payload = {}) => {
+    console.log("SupabaseContext: Creating task:", type, payload);
     try {
       const { data, error } = await client
-        .from("jobs")
+        .from("tasks")
         .insert({
           type,
           payload,
@@ -46,19 +46,19 @@ export function SupabaseProvider({ children }) {
 
       if (error) throw error;
 
-      console.log("SupabaseContext: Created job:", data.id);
+      console.log("SupabaseContext: Created task:", data.id);
       return data;
     } catch (err) {
-      console.error("SupabaseContext: Error creating job:", err);
+      console.error("SupabaseContext: Error creating task:", err);
       throw err;
     }
   };
 
-  const updateJobProgress = async (jobId, progress, message, status) => {
-    console.log("SupabaseContext: Updating job progress:", jobId, progress, status);
+  const updateTaskProgress = async (taskId, progress, message, status) => {
+    console.log("SupabaseContext: Updating task progress:", taskId, progress, status);
     try {
-      const { error } = await client.rpc("update_job_progress", {
-        job_id: jobId,
+      const { error } = await client.rpc("update_task_progress", {
+        task_id: taskId,
         new_progress: progress,
         new_message: message,
         new_status: status,
@@ -66,31 +66,31 @@ export function SupabaseProvider({ children }) {
 
       if (error) throw error;
     } catch (err) {
-      console.error("SupabaseContext: Error updating job progress:", err);
+      console.error("SupabaseContext: Error updating task progress:", err);
       throw err;
     }
   };
 
-  const getJob = async (jobId) => {
+  const getTask = async (taskId) => {
     try {
-      const { data, error } = await client.from("jobs").select("*").eq("id", jobId).single();
+      const { data, error } = await client.from("tasks").select("*").eq("id", taskId).single();
 
       if (error) throw error;
       return data;
     } catch (err) {
-      console.error("SupabaseContext: Error fetching job:", err);
+      console.error("SupabaseContext: Error fetching task:", err);
       throw err;
     }
   };
 
-  const cancelJob = async (jobId) => {
-    console.log("SupabaseContext: Cancelling job:", jobId);
+  const cancelTask = async (taskId) => {
+    console.log("SupabaseContext: Cancelling task:", taskId);
     try {
-      const { error } = await client.from("jobs").update({ status: "cancelled" }).eq("id", jobId);
+      const { error } = await client.from("tasks").update({ status: "cancelled" }).eq("id", taskId);
 
       if (error) throw error;
     } catch (err) {
-      console.error("SupabaseContext: Error cancelling job:", err);
+      console.error("SupabaseContext: Error cancelling task:", err);
       throw err;
     }
   };
@@ -187,11 +187,11 @@ export function SupabaseProvider({ children }) {
     connectionState,
     realtimeStatus,
     authEvent,
-    activeJobs,
-    createJob,
-    updateJobProgress,
-    getJob,
-    cancelJob,
+    activeTasks,
+    createTask,
+    updateTaskProgress,
+    getTask,
+    cancelTask,
   };
 
   return <SupabaseContext.Provider value={value}>{children}</SupabaseContext.Provider>;
@@ -213,11 +213,11 @@ export function useSupabase() {
       connectionState: "disconnected",
       realtimeStatus: "disconnected",
       authEvent: null,
-      activeJobs: new Map(),
-      createJob: () => Promise.reject(new Error("Supabase not initialized")),
-      updateJobProgress: () => Promise.reject(new Error("Supabase not initialized")),
-      getJob: () => Promise.reject(new Error("Supabase not initialized")),
-      cancelJob: () => Promise.reject(new Error("Supabase not initialized")),
+      activeTasks: new Map(),
+      createTask: () => Promise.reject(new Error("Supabase not initialized")),
+      updateTaskProgress: () => Promise.reject(new Error("Supabase not initialized")),
+      getTask: () => Promise.reject(new Error("Supabase not initialized")),
+      cancelTask: () => Promise.reject(new Error("Supabase not initialized")),
     };
   }
   return context;

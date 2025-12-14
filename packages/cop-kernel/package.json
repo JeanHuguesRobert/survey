@@ -10,7 +10,7 @@
   },
   "scripts": {
     "lint": "eslint src || echo \"no eslint configured\"",
-    "test": "node --test || echo \"no tests yet\"",
+    "test": "node --test src/storage-implementations/__tests__/*.test.js test/*.test.js",
     "build": "echo \"cop-kernel: no build step (pure JS ES modules).\""
   },
   "keywords": [
@@ -23,8 +23,9 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "@supabase/supabase-js": "^2.0.0",
     "cop-core": "file:../cop-core",
-    "@supabase/supabase-js": "^2.0.0"
+    "mysql2": "^3.15.3"
   },
   "engines": {
     "node": ">=18.0.0"

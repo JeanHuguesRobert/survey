@@ -10,24 +10,6 @@ import postgres from "https://deno.land/x/postgresjs/mod.js";
 
 import OpenAI from "https://esm.sh/openai@4";
 
-// Import instance config for vault-based configuration
-import {
-  loadInstanceConfig,
-  getConfigValue,
-  getBranding,
-  getProviderApiKey,
-  isProviderAvailable as vaultProviderAvailable,
-  getSupabaseConfig,
-} from "../../common/config/instanceConfig.edge.js";
-
-// Import civic acts tools for municipal transparency system
-import {
-  CIVIC_TOOLS,
-  CIVIC_TOOL_HANDLERS,
-  mergeCivicTools,
-  mergeCivicHandlers,
-} from "./lib/civic-tools.js";
-
 const PROVIDER_META_PREFIX = "__PROVIDER_INFO__";
 import { providerMetrics } from "./lib/utils/provider-metrics.js";
 const PROVIDERS_STATUS_PREFIX = "__PROVIDERS_STATUS__";
@@ -48,7 +30,7 @@ const MODEL_MODES = {
   openai: {
     main: "gpt-4.1",
     reasoning: "gpt-5.1",
-    cheap: "gpt-5.1-nano",
+    cheap: "gpt-4.1-nano",
   },
 
   google: {
@@ -1228,22 +1210,6 @@ const TOOL_HANDLERS = {
   // Ajoute d'autres handlers ici
 };
 
-// ============================================================================
-// MERGE CIVIC TOOLS - Integration of municipal transparency system tools
-// ============================================================================
-
-// Merge civic acts tools into TOOLS object
-Object.assign(TOOLS, CIVIC_TOOLS);
-
-// Merge civic acts handlers into TOOL_HANDLERS object
-Object.assign(TOOL_HANDLERS, CIVIC_TOOL_HANDLERS);
-
-console.log(
-  `[RAGChatbot] 📋 Loaded ${Object.keys(CIVIC_TOOLS).length} civic tools: ${Object.keys(CIVIC_TOOLS).join(", ")}`
-);
-
-// ============================================================================
-
 function wrapSqlWithLimit(query, limit) {
   const trimmed = query.trim().replace(/;\s*$/, "");
   if (/limit\s+\d+/i.test(trimmed)) {
@@ -1381,7 +1347,7 @@ function cosineSimilarity(a, b) {
 
 async function performWebSearch(query) {
   console.log(`[WebSearch] ➜ request query=${previewForLog(query)}`);
-  const apiKey = getConfigValue("brave_search_api_key");
+  const apiKey = Deno.env.get("BRAVE_SEARCH_API_KEY");
   if (!apiKey) {
     console.warn("[WebSearch] ⚠️ BRAVE_SEARCH_API_KEY manquant");
     return `Recherche web non configurée pour: "${query}". Réponds en t'excusant et en proposant une alternative si possible.`;
@@ -1666,13 +1632,12 @@ async function callLLMAPI({
   stream = true,
 }) {
   const config = PROVIDER_CONFIGS[provider];
-  // GESTION SPÉCIFIQUE POUR LA CLÉ API - Vault avec fallback env automatique
+  // GESTION SPÉCIFIQUE POUR LA CLÉ API GEMINI
   let apiKey;
   if (provider === "google") {
-    apiKey = getConfigValue("gemini_api_key");
+    apiKey = Deno.env.get("GEMINI_API_KEY");
   } else {
-    const keyName = `${provider.toLowerCase()}_api_key`;
-    apiKey = getConfigValue(keyName);
+    apiKey = Deno.env.get(`${provider.toUpperCase()}_API_KEY`);
   }
   if (!apiKey) throw new Error(`Clé API manquante pour ${provider}`);
 
@@ -2049,11 +2014,11 @@ const detectModelProvider = (model) => {
 };
 
 const PROVIDER_ENV_CHECKERS = {
-  anthropic: () => Boolean(getConfigValue("anthropic_api_key")),
-  openai: () => Boolean(getConfigValue("openai_api_key")),
-  mistral: () => Boolean(getConfigValue("mistral_api_key")),
-  huggingface: () => Boolean(getConfigValue("huggingface_api_key")),
-  google: () => Boolean(getConfigValue("gemini_api_key")),
+  anthropic: () => Boolean(Deno.env.get("ANTHROPIC_API_KEY")),
+  openai: () => Boolean(Deno.env.get("OPENAI_API_KEY")),
+  mistral: () => Boolean(Deno.env.get("MISTRAL_API_KEY")),
+  huggingface: () => Boolean(Deno.env.get("HUGGINGFACE_API_KEY")),
+  google: () => Boolean(Deno.env.get("GEMINI_API_KEY")),
 };
 const isProviderAvailable = (provider) => Boolean(PROVIDER_ENV_CHECKERS[provider]?.());
 
@@ -2062,9 +2027,7 @@ const isMistralCapacityError = (error) => {
   return /service_tier_capacity_exceeded|capacity|3505|429/i.test(msg);
 };
 
-const SHOULD_RANDOMIZE_PROVIDERS =
-  getConfigValue("disable_provider_randomization") !== true &&
-  getConfigValue("disable_provider_randomization") !== "1";
+const SHOULD_RANDOMIZE_PROVIDERS = Deno.env.get("DISABLE_PROVIDER_RANDOMIZATION") !== "1";
 const shuffleProviders = (providers) => {
   const arr = [...providers];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -2234,13 +2197,7 @@ function createDebugLogger() {
 async function fetchPublicSystemPrompt(siteUrl) {
   if (!siteUrl) return null;
 
-  // Include civic acts system prompt for municipal transparency features
-  const promptFiles = [
-    "bob-system.md",
-    "bob-db-capabilities.md",
-    "civic-acts-system.md",
-    "civic-db-schema.md",
-  ];
+  const promptFiles = ["bob-system.md", "bob-db-capabilities.md"];
   const collected = [];
 
   for (const fileName of promptFiles) {
@@ -2293,20 +2250,20 @@ async function getSystemPrompt() {
   let basePrompt = `📅 **Date actuelle :** ${currentDate}\n\n`;
 
   // 1. Charge le prompt depuis l'URL publique
-  const siteUrl = getConfigValue("app_url");
+  const siteUrl = Deno.env.get("URL") || Deno.env.get("DEPLOY_PRIME_URL");
   const localPrompt = await fetchPublicSystemPrompt(siteUrl);
   if (localPrompt) {
     basePrompt += localPrompt;
   } else {
-    // 2. Fallback avec le vault ou les variables d'environnement
-    const envPrompt = getConfigValue("bob_system_prompt");
+    // 2. Fallback avec les variables d'environnement
+    const envPrompt = Deno.env.get("BOB_SYSTEM_PROMPT");
     if (envPrompt) {
       basePrompt += envPrompt;
     } else {
-      // 3. Fallback par défaut (utilise le vault si disponible)
-      const city = getConfigValue("city_name");
-      const movement = getConfigValue("movement_name");
-      const bot = getConfigValue("bot_name");
+      // 3. Fallback par défaut
+      const city = Deno.env.get("CITY_NAME") || "Corte";
+      const movement = Deno.env.get("MOVEMENT_NAME") || "Pertitellu";
+      const bot = Deno.env.get("BOT_NAME") || "Ophélia";
       basePrompt += `
       **Rôle :** Tu es **${bot}**, l'assistant citoyen du mouvement **${movement}** pour la commune de **${city}**.
 
@@ -2325,45 +2282,45 @@ async function getSystemPrompt() {
   }
 
   // 4. Charge le wiki consolidé depuis Supabase
-  /* JHR 2025-06-10 : désactivé pour l'instant car trop volumineux et ralentit tout le système
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (supabaseUrl && supabaseKey) {
-    try {
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/consolidated_wiki_documents?select=content&order=updated_at.desc&limit=1`,
-        {
-          headers: {
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        console.log(
-          `[SystemPrompt] Supabase data preview: ${previewForLog(data?.[0]?.content, 100)}`
+  /* JHR 2024-06-10 : désactivé pour l'instant car trop volumineux et ralentit tout le système
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (supabaseUrl && supabaseKey) {
+      try {
+        const response = await fetch(
+          `${supabaseUrl}/rest/v1/consolidated_wiki_documents?select=content&order=updated_at.desc&limit=1`,
+          {
+            headers: {
+              apikey: supabaseKey,
+              Authorization: `Bearer ${supabaseKey}`,
+              "Content-Type": "application/json",
+            },
+          }
         );
-        if (data?.length > 0 && data[0].content) {
-          basePrompt += `\n\n📚 **Contexte local (wiki) :**\n${data[0].content}...`;
+        if (response.ok) {
+          const data = await response.json();
+          console.log(
+            `[SystemPrompt] Supabase data preview: ${previewForLog(data?.[0]?.content, 100)}`
+          );
+          if (data?.length > 0 && data[0].content) {
+            basePrompt += `\n\n📚 **Contexte local (wiki) :**\n${data[0].content}...`;
+          }
         }
+      } catch (error) {
+        console.error("[SystemPrompt] Erreur Supabase:", error.message);
       }
-    } catch (error) {
-      console.error("[SystemPrompt] Erreur Supabase:", error.message);
     }
-  }
-  */
+    */
 
   // 5. Charge le contexte municipal (si disponible)
-  /* JHR 2025-06-10 : désactivé pour l'instant car trop volumineux et ralentit tout le système
-  const councilContext = await _fetchCouncilContext(siteUrl);
-  if (councilContext) {
-    basePrompt += `\n\n🏛 **Contexte municipal (conseils consolidés) :**\n${councilContext}...`;
-  } else {
-    basePrompt += `\n\n🏛 **Contexte municipal (conseils consolidés) :** indisponible pour le moment.`;
-  }
-  */
+  /* JHR 2024-06-10 : désactivé pour l'instant car trop volumineux et ralentit tout le système
+    const councilContext = await _fetchCouncilContext(siteUrl);
+    if (councilContext) {
+      basePrompt += `\n\n🏛 **Contexte municipal (conseils consolidés) :**\n${councilContext}...`;
+    } else {
+      basePrompt += `\n\n🏛 **Contexte municipal (conseils consolidés) :** indisponible pour le moment.`;
+    }
+    */
   console.log(`[SystemPrompt] ✅ Prompt chargé (${basePrompt.length} caractères)`);
   return basePrompt;
 }
@@ -2596,21 +2553,20 @@ const handler = async (request) => {
   let systemPrompt = await getSystemPrompt();
   console.log(`[EdgeFunction] 📏 System prompt: ${systemPrompt.length} caractères`);
 
-  // 11.5. Initialise les clients (vault avec fallback env automatique)
-  const supabaseUrl = getConfigValue("supabase_url");
-  const supabaseKey = getConfigValue("supabase_service_role_key");
-  const supabaseAnonKey = getConfigValue("supabase_anon_key");
+  // 11.5. Initialise les clients
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const supabaseAdmin = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
   // Extract user from Authorization header
   let user = null;
   let supabaseUser = null; // Scoped client for RLS
   const authHeader = request.headers.get("Authorization");
-  if (authHeader && supabaseUrl && supabaseAnonKey) {
+  if (authHeader && supabaseUrl && Deno.env.get("SUPABASE_ANON_KEY")) {
     try {
       const token = authHeader.replace("Bearer ", "");
       // Create a client with the user's token to respect RLS
-      supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
+      supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY"), {
         global: { headers: { Authorization: `Bearer ${token}` } },
       });
       const {
@@ -2631,8 +2587,7 @@ const handler = async (request) => {
   // Fallback to admin client for read-only / system operations if no user
   const supabase = supabaseUser || supabaseAdmin;
 
-  const openaiApiKey = getConfigValue("openai_api_key");
-  const openai = new OpenAI({ apiKey: openaiApiKey });
+  const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
 
   const sanitizePostgresUrl = (value) => {
     if (!value || typeof value !== "string") return null;
@@ -2642,7 +2597,7 @@ const handler = async (request) => {
   };
 
   const configuredPostgresUrl = sanitizePostgresUrl(
-    getConfigValue("postgres_url") || getConfigValue("database_url") || null
+    Deno.env.get("POSTGRES_URL") || Deno.env.get("DATABASE_URL") || null
   );
   const requestPostgresUrl = sanitizePostgresUrl(
     typeof body?.postgres_url === "string"
@@ -2755,13 +2710,12 @@ const handler = async (request) => {
 
         while (providerRetries <= maxProviderRetries) {
           try {
-            // GESTION SPÉCIFIQUE POUR LA CLÉ API - Vault avec fallback env automatique
+            // GESTION SPÉCIFIQUE POUR LA CLÉ API GEMINI
             let apiKey;
             if (provider === "google") {
-              apiKey = getConfigValue("gemini_api_key");
+              apiKey = Deno.env.get("GEMINI_API_KEY");
             } else {
-              const keyName = `${provider.toLowerCase()}_api_key`;
-              apiKey = getConfigValue(keyName);
+              apiKey = Deno.env.get(`${provider.toUpperCase()}_API_KEY`);
             }
             if (!apiKey) {
               console.log(`[EdgeFunction] ⏭️ Skipping ${provider} (no API key)`);
@@ -3005,7 +2959,7 @@ async function* runConversationalAgent({
   context = {},
 }) {
   let toolCallCount = 0;
-  const idleTimeoutMs = getConfigValue("llm_stream_timeout_ms") || 30000;
+  const idleTimeoutMs = Number(Deno.env.get("LLM_STREAM_TIMEOUT_MS")) || 30000;
   const agentStartMs = Date.now();
 
   let messages = [
@@ -3409,7 +3363,7 @@ async function* runConversationalAgent({
 
 async function runHuggingFaceAgent(userQuestion, systemPrompt, modelMode) {
   const provider = "huggingface";
-  const apiKey = getConfigValue("huggingface_api_key");
+  const apiKey = Deno.env.get("HUGGINGFACE_API_KEY");
   if (!apiKey) throw new Error("Clé API manquante pour huggingface");
 
   const model =

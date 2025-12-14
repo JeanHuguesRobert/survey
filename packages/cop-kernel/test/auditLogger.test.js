@@ -1,24 +1,23 @@
-import { describe, it, before, after, beforeEach } from "node:test";
+import { describe, it, before, after, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
-import fs from "fs/promises";
-import path from "path";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { createAuditLogger } from "../src/storage-implementations/auditLogger.js";
 import { createFileBasedStorage } from "../src/storage-implementations/fileBasedStorage.js";
 
-const TEST_AUDIT_LOG_PATH = "./test_audit_logs.jsonl";
-const TEST_STORAGE_BASE_PATH = "./test_file_storage_data";
-
 describe("AuditLogger Module", () => {
   let auditLogger;
+  let testAuditLogPath;
+  let tempDir;
 
   beforeEach(async () => {
-    // Clear the audit log file before each test
-    try {
-      await fs.unlink(TEST_AUDIT_LOG_PATH);
-    } catch (error) {
-      if (error.code !== "ENOENT") throw error;
-    }
-    auditLogger = createAuditLogger({ auditLogPath: TEST_AUDIT_LOG_PATH });
+    tempDir = await fs.mkdtemp(path.join(process.cwd(), "test_audit_logger_data-"));
+    testAuditLogPath = path.join(tempDir, "audit_logs.jsonl");
+    auditLogger = createAuditLogger({ auditLogPath: testAuditLogPath });
+  });
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
   });
 
   it("should log events to a JSONL file", async () => {
@@ -38,7 +37,7 @@ describe("AuditLogger Module", () => {
     await auditLogger.logEvent(event1);
     await auditLogger.logEvent(event2);
 
-    const content = await fs.readFile(TEST_AUDIT_LOG_PATH, "utf8");
+    const content = await fs.readFile(testAuditLogPath, "utf8");
     const lines = content.trim().split("\n");
 
     assert.strictEqual(lines.length, 2);
@@ -63,7 +62,7 @@ describe("AuditLogger Module", () => {
     const event2 = { eventType: "SecondEvent", entityType: "test", entityId: "2", payload: {} };
     await auditLogger.logEvent(event2);
 
-    const content = await fs.readFile(TEST_AUDIT_LOG_PATH, "utf8");
+    const content = await fs.readFile(testAuditLogPath, "utf8");
     const lines = content.trim().split("\n");
     assert.strictEqual(lines.length, 2);
   });
@@ -71,44 +70,29 @@ describe("AuditLogger Module", () => {
 
 describe("FileBasedStorage Audit Integration", () => {
   let storage;
+  let testAuditLogPath;
+  let testBasePath;
+  let tempDir;
 
   beforeEach(async () => {
-    // Clear storage and audit log before each test
-    try {
-      await fs.rm(TEST_STORAGE_BASE_PATH, { recursive: true, force: true });
-    } catch (error) {
-      if (error.code !== "ENOENT") throw error;
-    }
-    try {
-      await fs.unlink(TEST_AUDIT_LOG_PATH);
-    } catch (error) {
-      if (error.code !== "ENOENT") throw error;
-    }
-    storage = createFileBasedStorage({
-      basePath: TEST_STORAGE_BASE_PATH,
-      auditLogPath: TEST_AUDIT_LOG_PATH,
+    tempDir = await fs.mkdtemp(path.join(process.cwd(), "test_file_storage_audit_data-"));
+    testAuditLogPath = path.join(tempDir, "audit_logs.jsonl");
+    testBasePath = path.join(tempDir, "file_storage_data");
+    storage = await createFileBasedStorage({
+      basePath: testBasePath,
+      auditLogPath: testAuditLogPath,
     });
   });
 
-  after(async () => {
-    // Clean up after all tests are done
-    try {
-      await fs.rm(TEST_STORAGE_BASE_PATH, { recursive: true, force: true });
-    } catch (error) {
-      if (error.code !== "ENOENT") throw error;
-    }
-    try {
-      await fs.unlink(TEST_AUDIT_LOG_PATH);
-    } catch (error) {
-      if (error.code !== "ENOENT") throw error;
-    }
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
   });
 
   it("should log AgentIdentityUpserted event on agentIdentities.upsert", async () => {
     const identity = { agent_id: "agent1", agent_name: "Agent One", status: "active" };
     await storage.agentIdentities.upsert(identity);
 
-    const content = await fs.readFile(TEST_AUDIT_LOG_PATH, "utf8");
+    const content = await fs.readFile(testAuditLogPath, "utf8");
     const lines = content.trim().split("\n");
     assert.strictEqual(lines.length, 1);
 
@@ -124,7 +108,7 @@ describe("FileBasedStorage Audit Integration", () => {
     await storage.agentIdentities.upsert(identity);
     await storage.agentIdentities.updateStatus("agent2", "inactive");
 
-    const content = await fs.readFile(TEST_AUDIT_LOG_PATH, "utf8");
+    const content = await fs.readFile(testAuditLogPath, "utf8");
     const lines = content.trim().split("\n");
     assert.strictEqual(lines.length, 2); // upsert + updateStatus
 
@@ -135,45 +119,45 @@ describe("FileBasedStorage Audit Integration", () => {
     assert.deepStrictEqual(loggedEvent.payload, { oldStatus: "active", newStatus: "inactive" });
   });
 
-  it("should log JobUpserted event on jobs.upsert", async () => {
-    const job = { id: "job1", name: "Test Job", status: "pending" };
-    await storage.jobs.upsert(job);
+  it("should log TaskUpserted event on tasks.upsert", async () => {
+    const task = { id: "task1", name: "Test Task", status: "pending" };
+    await storage.tasks.upsert(task);
 
-    const content = await fs.readFile(TEST_AUDIT_LOG_PATH, "utf8");
+    const content = await fs.readFile(testAuditLogPath, "utf8");
     const lines = content.trim().split("\n");
     assert.strictEqual(lines.length, 1);
 
     const loggedEvent = JSON.parse(lines[0]);
-    assert.strictEqual(loggedEvent.eventType, "JobUpserted");
-    assert.strictEqual(loggedEvent.entityType, "job");
-    assert.strictEqual(loggedEvent.entityId, "job1");
+    assert.strictEqual(loggedEvent.eventType, "TaskUpserted");
+    assert.strictEqual(loggedEvent.entityType, "task");
+    assert.strictEqual(loggedEvent.entityId, "task1");
     assert.ok(loggedEvent.payload.version); // Version should be incremented
-    assert.strictEqual(loggedEvent.payload.name, job.name);
+    assert.strictEqual(loggedEvent.payload.name, task.name);
   });
 
-  it("should log JobUpdated event on jobs.update", async () => {
-    const job = { id: "job2", name: "Test Job 2", status: "pending", version: 0 };
-    await storage.jobs.upsert(job);
-    await storage.jobs.update("job2", { status: "running", version: 1 });
+  it("should log TaskUpdated event on tasks.update", async () => {
+    const task = { id: "task2", name: "Test Task 2", status: "pending", version: 0 };
+    await storage.tasks.upsert(task);
+    await storage.tasks.update("task2", { status: "running", version: 1 });
 
-    const content = await fs.readFile(TEST_AUDIT_LOG_PATH, "utf8");
+    const content = await fs.readFile(testAuditLogPath, "utf8");
     const lines = content.trim().split("\n");
     assert.strictEqual(lines.length, 2); // upsert + update
 
     const loggedEvent = JSON.parse(lines[1]); // Second event
-    assert.strictEqual(loggedEvent.eventType, "JobUpdated");
-    assert.strictEqual(loggedEvent.entityType, "job");
-    assert.strictEqual(loggedEvent.entityId, "job2");
+    assert.strictEqual(loggedEvent.eventType, "TaskUpdated");
+    assert.strictEqual(loggedEvent.entityType, "task");
+    assert.strictEqual(loggedEvent.entityId, "task2");
     assert.deepStrictEqual(loggedEvent.payload.patch, { status: "running", version: 1 });
-    assert.strictEqual(loggedEvent.payload.newJob.status, "running");
-    assert.strictEqual(loggedEvent.payload.newJob.version, 2); // Original version 0 + 1 (upsert) + 1 (update)
+    assert.strictEqual(loggedEvent.payload.newTask.status, "running");
+    assert.strictEqual(loggedEvent.payload.newTask.version, 2); // Original version 0 + 1 (upsert) + 1 (update)
   });
 
   it("should log StepUpserted event on steps.upsert", async () => {
-    const step = { id: "step1", job_id: "job1", name: "Step One", status: "created" };
+    const step = { id: "step1", task_id: "task1", name: "Step One", status: "created" };
     await storage.steps.upsert(step);
 
-    const content = await fs.readFile(TEST_AUDIT_LOG_PATH, "utf8");
+    const content = await fs.readFile(testAuditLogPath, "utf8");
     const lines = content.trim().split("\n");
     assert.strictEqual(lines.length, 1);
 
@@ -185,11 +169,11 @@ describe("FileBasedStorage Audit Integration", () => {
   });
 
   it("should log StepUpdated event on steps.update", async () => {
-    const step = { id: "step2", job_id: "job2", name: "Step Two", status: "created" };
+    const step = { id: "step2", task_id: "task2", name: "Step Two", status: "created" };
     await storage.steps.upsert(step);
-    await storage.steps.update("job2", "step2", { status: "running" });
+    await storage.steps.update("task2", "step2", { status: "running" });
 
-    const content = await fs.readFile(TEST_AUDIT_LOG_PATH, "utf8");
+    const content = await fs.readFile(testAuditLogPath, "utf8");
     const lines = content.trim().split("\n");
     assert.strictEqual(lines.length, 2); // upsert + update
 

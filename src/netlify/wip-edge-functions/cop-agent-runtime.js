@@ -1,12 +1,12 @@
 // File: netlify/edge-functions/cop-agent-runtime.js
 
-import { parseCopAddr } from "../../../packages/cop-kernel/src/address.js";
-import { validateCopMessage } from "../../../packages/cop-kernel/src/validation.js";
-import { getLocalNodeConfig } from "../../../packages/cop-kernel/src/nodeRegistry.js";
-import { resolveAgent } from "../../../packages/cop-kernel/src/agentRegistry.js";
-import { COP_VERSION } from "../../../packages/cop-kernel/src/message.js";
-import { logCopDebug } from "../../../packages/cop-kernel/src/debugLog.js";
-import { emitCopEvent } from "../../../packages/cop-kernel/src/events.js";
+import { parseCopAddr } from "../../packages/cop-kernel/src/address.js";
+import { validateCopMessage } from "../../packages/cop-kernel/src/validation.js";
+import { getLocalNodeConfig } from "../../packages/cop-kernel/src/nodeRegistry.js";
+import { resolveAgent } from "../../packages/cop-kernel/src/agentRegistry.js";
+import { COP_VERSION } from "../../packages/cop-kernel/src/message.js";
+import { logCopDebug } from "../../packages/cop-kernel/src/debugLog.js";
+import { emitCopEvent } from "../../packages/cop-kernel/src/events.js";
 
 // Table de handlers locaux d'exemple.
 const LOCAL_AGENT_HANDLERS = {
@@ -174,46 +174,39 @@ export default async (request, context) => {
 };
 
 async function handleEchoAgent(agent, msg, context) {
-  const channel = msg.channel || null;
-
-  // 1) Émettre un COP_EVENT si un channel est présent
-  if (channel) {
-    const baseUrl = new URL(context.request.url).origin;
-
-    try {
-      await emitCopEvent({
-        baseUrl,
-        from: msg.to,
-        channel,
-        eventType: "echo.received",
-        payload: { original_payload: msg.payload },
-        correlationId: msg.correlation_id || msg.message_id || null,
-        metadata: { agentName: agent.agentName },
-        copVersion: msg.cop_version || COP_VERSION,
-        // throwOnError: false, // optionnel, si vous préférez ne pas faire échouer l'agent
-      });
-    } catch (_err) {
-      // on peut ignorer ou tracer, au choix
-      // le côté /cop-events + cop_debug_logs trace déjà en cas de problème
-    }
-  }
-
-  // 2) Répondre normalement
   const reply = {
     cop_version: COP_VERSION,
     message_id: crypto.randomUUID(),
     correlation_id: msg.correlation_id || msg.message_id,
+
     from: msg.to,
     to: msg.from,
+
     intent: "echo.response",
     payload: { echo: msg.payload },
-    channel,
+
+    channel: msg.channel || null,
     metadata: {},
     auth: null,
   };
 
   return new Response(JSON.stringify(reply), {
     status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+function jsonError(status, code, message, details) {
+  const body = {
+    status: "error",
+    error: {
+      code,
+      message,
+      details: details || null,
+    },
+  };
+  return new Response(JSON.stringify(body), {
+    status,
     headers: { "Content-Type": "application/json" },
   });
 }

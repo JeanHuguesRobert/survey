@@ -2,8 +2,8 @@
 // Description: Service for AI agents to execute read-only SQL queries with security guardrails and schema introspection.
 
 import { sql } from "drizzle-orm";
-import { db } from "../common/db/client.js";
-import * as schema from "../common/schema/tables.js";
+import { db } from "../db/client.js";
+import * as schema from "../schema/tables.js";
 
 export class AgentExecutorService {
   constructor() {

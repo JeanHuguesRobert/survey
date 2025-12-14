@@ -1,7 +1,7 @@
 // centralised app version (single source of truth)
 // hardcoded value is the canonical version; CI/CD can override by setting process.env.APP_VERSION at build time
-export const APP_VERSION = import.meta.env.APP_VERSION ?? "1.5.10";
-export const DEPLOY_DATE = import.meta.env.DEPLOY_DATE ?? "2025-12-10";
+export const APP_VERSION = import.meta.env.APP_VERSION ?? "1.5.14";
+export const DEPLOY_DATE = import.meta.env.DEPLOY_DATE ?? "2025-12-14";
 
 // Palette Bauhaus sombre harmonisée avec le thème CSS
 // Voir src/index.css pour la correspondance exacte
@@ -27,7 +27,7 @@ export const GOOGLE_SCRIPT_URL =
 // Ces valeurs sont les FALLBACKS utilisés au chargement initial.
 // Une fois loadInstanceConfig() appelé, utiliser getConfig() pour les valeurs à jour.
 
-import { getConfig as _getConfig } from "../common/config/instanceConfig.client.js";
+import { getConfig as _getConfig } from "./common/config/instanceConfig.client.js";
 
 // Helper pour récupérer une config avec fallback sur la valeur initiale
 const getConfigValue = (key, envValue) => {
@@ -253,4 +253,4 @@ export const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || "jean_hugues_
 // ============================================================================
 // RE-EXPORT du module instanceConfig pour faciliter l'accès
 // ============================================================================
-export { getConfig as getInstanceConfig } from "./lib/instanceConfig";
+export { _getConfig as getInstanceConfig };

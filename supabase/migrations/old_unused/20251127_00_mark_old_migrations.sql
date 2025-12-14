@@ -10,7 +10,7 @@ VALUES
   ('20251120_allow_null_votes_for_blank.sql','20251120_allow_null_votes_for_blank.sql',md5('placeholder'), now()),
   ('20251120_create_content_subscriptions.sql','20251120_create_content_subscriptions.sql',md5('placeholder'), now()),
   ('20251120_create_document_sources.sql','20251120_create_document_sources.sql',md5('placeholder'), now()),
-  ('20251120_create_jobs_table.sql','20251120_create_jobs_table.sql',md5('placeholder'), now()),
+  ('20251120_create_tasks_table.sql','20251120_create_tasks_table.sql',md5('placeholder'), now()),
   ('20251120_enable_rls_wiki_pages.sql','20251120_enable_rls_wiki_pages.sql',md5('placeholder'), now()),
   ('20251123_create_collected_data.sql','20251123_create_collected_data.sql',md5('placeholder'), now()),
   ('add_reactions_rls_policies.sql','add_reactions_rls_policies.sql',md5('placeholder'), now()),

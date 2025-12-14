@@ -1,8 +1,8 @@
 // File: netlify/edge-functions/cop-events.js
 
 import { createClient } from "@supabase/supabase-js";
-import { validateCopEvent } from "../../../packages/cop-kernel/src/validation.js";
-import { logCopDebug } from "../../../packages/cop-kernel/src/debugLog.js";
+import { validateCopEvent } from "../../packages/cop-kernel/src/validation.js";
+import { logCopDebug } from "../../packages/cop-kernel/src/debugLog.js";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE");

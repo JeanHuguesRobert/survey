@@ -10,24 +10,38 @@ const ERROR_CODES = {
   OPTIMISTIC_LOCK_FAIL: "STORAGE_OPTIMISTIC_LOCK_FAILED",
 };
 
-export function createFileBasedStorage(options = {}) {
-  const { basePath = "./file_storage_data", auditLogPath = "./audit_logs.jsonl" } = options;
-  const auditLogger = createAuditLogger({ auditLogPath });
+export async function createFileBasedStorage(options = {}) {
+  const {
+    basePath: rawBasePath = "./file_storage_data",
+    auditLogPath = "./audit_logs.jsonl",
+    fs: injectedFs = fs,
+    createAuditLogger: injectedCreateAuditLogger = createAuditLogger,
+  } = options;
+  const basePath = normalizePath(rawBasePath);
+  const auditLogger = injectedCreateAuditLogger({ auditLogPath });
+
+  function normalizePath(p) {
+    return p.replace(/\\/g, "/");
+  }
 
   // Ensure the base directory exists
   async function ensureDir(dirPath) {
-    await fs.mkdir(dirPath, { recursive: true });
+    await injectedFs.mkdir(normalizePath(dirPath), { recursive: true });
   }
 
   // Helper to get file path for an entity
   function getEntityFilePath(entityType, id) {
-    return path.join(basePath, entityType, `${id}.json`);
+    return normalizePath(path.posix.join(basePath, entityType, `${id}.json`));
+  }
+
+  function getAuditLogFilePath(logId) {
+    return normalizePath(path.posix.join(basePath, "audit_logs", `${logId}.json`));
   }
 
   // Helper to read a JSON file
   async function readJsonFile(filePath) {
     try {
-      const content = await fs.readFile(filePath, "utf8");
+      const content = await injectedFs.readFile(normalizePath(filePath), "utf8");
       return JSON.parse(content);
     } catch (error) {
       if (error.code === "ENOENT") {
@@ -39,20 +53,20 @@ export function createFileBasedStorage(options = {}) {
 
   // Helper to write a JSON file
   async function writeJsonFile(filePath, data) {
-    await ensureDir(path.dirname(filePath));
-    await fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf8");
+    await ensureDir(normalizePath(path.dirname(filePath)));
+    await injectedFs.writeFile(normalizePath(filePath), JSON.stringify(data, null, 2), "utf8");
   }
 
   // Helper to get index file path
   function getIndexFilePath(entityType, indexName) {
-    return path.join(basePath, `${entityType}_${indexName}_index.json`);
+    return normalizePath(path.posix.join(basePath, `${entityType}_${indexName}_index.json`));
   }
 
   // Helper to read an index file
   async function readIndexFile(entityType, indexName) {
     const filePath = getIndexFilePath(entityType, indexName);
     try {
-      const content = await fs.readFile(filePath, "utf8");
+      const content = await injectedFs.readFile(normalizePath(filePath), "utf8");
       return JSON.parse(content);
     } catch (error) {
       if (error.code === "ENOENT") {
@@ -65,9 +79,18 @@ export function createFileBasedStorage(options = {}) {
   // Helper to write an index file
   async function writeIndexFile(entityType, indexName, indexData) {
     const filePath = getIndexFilePath(entityType, indexName);
-    await ensureDir(path.dirname(filePath));
-    await fs.writeFile(filePath, JSON.stringify(indexData, null, 2), "utf8");
+    await ensureDir(normalizePath(path.dirname(filePath)));
+    await injectedFs.writeFile(normalizePath(filePath), JSON.stringify(indexData, null, 2), "utf8");
   }
+
+  // Initialize directories
+  await ensureDir(normalizePath(path.posix.join(basePath, "agentIdentities")));
+  await ensureDir(normalizePath(path.posix.join(basePath, "tasks")));
+  await ensureDir(normalizePath(path.posix.join(basePath, "steps")));
+  await ensureDir(normalizePath(path.posix.join(basePath, "events")));
+  await ensureDir(normalizePath(path.posix.join(basePath, "debug_logs")));
+  await ensureDir(normalizePath(path.posix.join(basePath, "audit_logs")));
+  await ensureDir(normalizePath(path.posix.join(basePath, "artifacts")));
 
   // Implement the StorageInterface methods
   const fileBasedStorage = {
@@ -128,12 +151,12 @@ export function createFileBasedStorage(options = {}) {
         return { ok: false, error: "Agent not found", code: ERROR_CODES.NOT_FOUND };
       },
       async list({ status, limit = 100 } = {}) {
-        const dirPath = path.join(basePath, "agentIdentities");
+        const dirPath = normalizePath(path.posix.join(basePath, "agentIdentities"));
         await ensureDir(dirPath);
-        const files = await fs.readdir(dirPath);
+        const files = await injectedFs.readdir(dirPath);
         let identities = [];
         for (const file of files) {
-          const identity = await readJsonFile(path.join(dirPath, file));
+          const identity = await readJsonFile(normalizePath(path.posix.join(dirPath, file)));
           if (identity) {
             identities.push(identity);
           }
@@ -162,70 +185,75 @@ export function createFileBasedStorage(options = {}) {
       },
     },
 
-    jobs: {
-      async upsert(jobRecord) {
-        const newJob = { ...jobRecord, id: jobRecord.id || `job_${Date.now()}` };
-        newJob.version = (newJob.version || 0) + 1;
-        const filePath = getEntityFilePath("jobs", newJob.id);
-        await writeJsonFile(filePath, newJob);
+    tasks: {
+      async upsert(taskRecord) {
+        const newTask = { ...taskRecord, id: taskRecord.id || `task_${Date.now()}` };
+        newTask.version = (newTask.version || 0) + 1;
+        const filePath = getEntityFilePath("tasks", newTask.id);
+        await writeJsonFile(filePath, newTask);
         await auditLogger.logEvent({
-          eventType: "JobUpserted",
-          entityType: "job",
-          entityId: newJob.id,
-          payload: newJob,
+          eventType: "TaskUpserted",
+          entityType: "task",
+          entityId: newTask.id,
+          payload: newTask,
         });
-        return { ok: true, job: newJob };
+        return { ok: true, task: newTask };
       },
-      async get(jobId) {
-        const filePath = getEntityFilePath("jobs", jobId);
-        const job = await readJsonFile(filePath);
-        return { ok: !!job, job };
+      async get(taskId) {
+        const filePath = getEntityFilePath("tasks", taskId);
+        const task = await readJsonFile(filePath);
+        return { ok: !!task, task };
       },
       async list({ status, limit = 100 } = {}) {
-        const dirPath = path.join(basePath, "jobs");
+        const dirPath = normalizePath(path.posix.join(basePath, "tasks"));
         await ensureDir(dirPath);
-        const files = await fs.readdir(dirPath);
-        let jobs = [];
+        const files = await injectedFs.readdir(dirPath);
+        let tasks = [];
         for (const file of files) {
-          const job = await readJsonFile(path.join(dirPath, file));
-          if (job) {
-            jobs.push(job);
+          const task = await readJsonFile(normalizePath(path.posix.join(dirPath, file)));
+          if (task) {
+            tasks.push(task);
           }
         }
         if (status) {
-          jobs = jobs.filter((j) => j.status === status);
+          tasks = tasks.filter((j) => j.status === status);
         }
-        return { ok: true, jobs: jobs.slice(0, limit) };
+        return { ok: true, tasks: tasks.slice(0, limit) };
       },
-      async update(jobId, patch) {
-        const filePath = getEntityFilePath("jobs", jobId);
-        const job = await readJsonFile(filePath);
-        if (job) {
-          if (patch.version !== undefined && job.version !== patch.version) {
-            return {
-              ok: false,
-              error: "Optimistic lock failed. Version mismatch.",
-              code: ERROR_CODES.OPTIMISTIC_LOCK_FAIL,
-            };
-          }
-          Object.assign(job, patch);
-          job.version = (job.version || 0) + 1;
-          await writeJsonFile(filePath, job);
-          await auditLogger.logEvent({
-            eventType: "JobUpdated",
-            entityType: "job",
-            entityId: jobId,
-            payload: { patch, newJob: job },
-          });
-          return { ok: true, job };
+      async update(taskId, patch) {
+        const filePath = getEntityFilePath("tasks", taskId);
+        const existingTask = await readJsonFile(filePath);
+
+        if (!existingTask) {
+          return { ok: false, code: ERROR_CODES.NOT_FOUND };
         }
-        return { ok: false, error: "Job not found", code: ERROR_CODES.NOT_FOUND };
+
+        // Optimistic locking check
+        if (patch.version !== undefined && existingTask.version !== patch.version) {
+          return { ok: false, code: ERROR_CODES.OPTIMISTIC_LOCK_FAIL };
+        }
+
+        const updatedTask = { ...existingTask, ...patch, version: existingTask.version + 1 };
+        await writeJsonFile(filePath, updatedTask);
+
+        console.log("Logging TaskUpdated event:", { taskId, patch, newTask: updatedTask }); // Debug log
+        await auditLogger.logEvent({
+          eventType: "TaskUpdated",
+          entityType: "task",
+          entityId: taskId,
+          payload: { patch, newTask: updatedTask },
+        });
+
+        return { ok: true, task: updatedTask };
       },
     },
 
     steps: {
       async upsert(stepRecord) {
-        const newStep = { ...stepRecord, id: stepRecord.id || `step_${Date.now()}` };
+        const newStep = {
+          ...stepRecord,
+          id: stepRecord.id || `step_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
+        };
         const filePath = getEntityFilePath("steps", newStep.id);
         await writeJsonFile(filePath, newStep);
         await auditLogger.logEvent({
@@ -236,34 +264,44 @@ export function createFileBasedStorage(options = {}) {
         });
         return { ok: true, step: newStep };
       },
-      async listByJob(jobId) {
-        const dirPath = path.join(basePath, "steps");
+      async listByTask(taskId, { limit = 100 } = {}) {
+        const dirPath = normalizePath(path.posix.join(basePath, "steps"));
         await ensureDir(dirPath);
-        const files = await fs.readdir(dirPath);
+        const files = await injectedFs.readdir(dirPath);
         let steps = [];
         for (const file of files) {
-          const step = await readJsonFile(path.join(dirPath, file));
-          if (step && step.job_id === jobId) {
+          const step = await readJsonFile(normalizePath(path.posix.join(dirPath, file)));
+          if (step && step.task_id === taskId) {
             steps.push(step);
           }
         }
-        return { ok: true, steps };
+        return { ok: true, steps: steps.slice(0, limit) };
       },
-      async update(jobId, stepId, patch) {
+      async update(taskId, stepId, patch) {
+        const filePath = getEntityFilePath("steps", stepId);
+        const existingStep = await readJsonFile(filePath);
+
+        if (!existingStep || existingStep.task_id !== taskId) {
+          return { ok: false, code: ERROR_CODES.NOT_FOUND };
+        }
+
+        const updatedStep = { ...existingStep, ...patch };
+        await writeJsonFile(filePath, updatedStep);
+
+        console.log("Logging StepUpdated event:", { taskId, stepId, patch, newStep: updatedStep }); // Debug log
+        await auditLogger.logEvent({
+          eventType: "StepUpdated",
+          entityType: "step",
+          entityId: stepId,
+          payload: { patch, newStep: updatedStep },
+        });
+
+        return { ok: true, step: updatedStep };
+      },
+      async get(stepId) {
         const filePath = getEntityFilePath("steps", stepId);
         const step = await readJsonFile(filePath);
-        if (step && step.job_id === jobId) {
-          Object.assign(step, patch);
-          await writeJsonFile(filePath, step);
-          await auditLogger.logEvent({
-            eventType: "StepUpdated",
-            entityType: "step",
-            entityId: stepId,
-            payload: { jobId, patch, newStep: step },
-          });
-          return { ok: true, step };
-        }
-        return { ok: false, error: "Step not found", code: ERROR_CODES.NOT_FOUND };
+        return { ok: !!step, step };
       },
     },
 
@@ -271,16 +309,20 @@ export function createFileBasedStorage(options = {}) {
       defaultBucket: "cop-artifacts",
 
       async uploadArtifact(bucketName, filePath, fileBody, options = {}) {
-        const fullPath = path.join(basePath, "artifacts", bucketName, filePath);
-        await ensureDir(path.dirname(fullPath));
-        await fs.writeFile(fullPath, fileBody, "utf8");
+        const fullPath = normalizePath(
+          path.posix.join(basePath, "artifacts", bucketName, filePath)
+        );
+        await ensureDir(normalizePath(path.dirname(fullPath)));
+        await injectedFs.writeFile(fullPath, fileBody, "utf8");
         return { ok: true, path: fullPath };
       },
 
       async downloadArtifact(bucketName, filePath) {
-        const fullPath = path.join(basePath, "artifacts", bucketName, filePath);
+        const fullPath = normalizePath(
+          path.posix.join(basePath, "artifacts", bucketName, filePath)
+        );
         try {
-          const data = await fs.readFile(fullPath, "utf8");
+          const data = await injectedFs.readFile(fullPath, "utf8");
           return { ok: true, data };
         } catch (error) {
           if (error.code === "ENOENT") {
@@ -291,9 +333,11 @@ export function createFileBasedStorage(options = {}) {
       },
 
       async getPublicUrl(bucketName, filePath) {
-        const fullPath = path.join(basePath, "artifacts", bucketName, filePath);
+        const fullPath = normalizePath(
+          path.posix.join(basePath, "artifacts", bucketName, filePath)
+        );
         try {
-          await fs.access(fullPath); // Check if file exists
+          await injectedFs.access(fullPath); // Check if file exists
           return { ok: true, url: `file://${fullPath}` };
         } catch (error) {
           if (error.code === "ENOENT") {
@@ -310,9 +354,9 @@ export function createFileBasedStorage(options = {}) {
       // This is a destructive operation, use with caution.
       // For testing, it's fine.
       try {
-        await fs.rm(basePath, { recursive: true, force: true });
+        await injectedFs.rm(basePath, { recursive: true, force: true });
         // Also remove index files
-        await fs.unlink(getIndexFilePath("agentIdentities", "name")).catch(() => {}); // Ignore if file doesn't exist
+        await injectedFs.unlink(getIndexFilePath("agentIdentities", "name")).catch(() => {}); // Ignore if file doesn't exist
         await ensureDir(basePath); // Recreate base directory
       } catch (error) {
         // Ignore if directory doesn't exist
@@ -320,6 +364,14 @@ export function createFileBasedStorage(options = {}) {
           throw error;
         }
       }
+    },
+
+    getCacheContents: () => {
+      return {
+        agentIdentities: [],
+        tasks: [],
+        steps: [],
+      };
     },
   };
 

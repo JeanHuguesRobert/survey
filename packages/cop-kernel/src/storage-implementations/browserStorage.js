@@ -115,46 +115,46 @@ export function createBrowserStorage(options = {}) {
       },
     },
 
-    jobs: {
-      async upsert(jobRecord) {
-        const jobs = readFromLocalStorage("jobs");
-        const newJob = { ...jobRecord, id: jobRecord.id || `job_${Date.now()}` };
-        newJob.version = (newJob.version || 0) + 1;
-        jobs[newJob.id] = newJob;
-        writeToLocalStorage("jobs", jobs);
-        return { ok: true, job: newJob };
+    tasks: {
+      async upsert(taskRecord) {
+        const tasks = readFromLocalStorage("tasks");
+        const newTask = { ...taskRecord, id: taskRecord.id || `task_${Date.now()}` };
+        newTask.version = (newTask.version || 0) + 1;
+        tasks[newTask.id] = newTask;
+        writeToLocalStorage("tasks", tasks);
+        return { ok: true, task: newTask };
       },
-      async get(jobId) {
-        const jobs = readFromLocalStorage("jobs");
-        const job = jobs[jobId];
-        return job ? { ok: true, job } : { ok: false, code: currentErrorCodes.NOT_FOUND };
+      async get(taskId) {
+        const tasks = readFromLocalStorage("tasks");
+        const task = tasks[taskId];
+        return task ? { ok: true, task } : { ok: false, code: currentErrorCodes.NOT_FOUND };
       },
       async list({ status, limit = 100 } = {}) {
-        const jobs = readFromLocalStorage("jobs");
-        let filteredJobs = Object.values(jobs);
+        const tasks = readFromLocalStorage("tasks");
+        let filteredTasks = Object.values(tasks);
         if (status) {
-          filteredJobs = filteredJobs.filter((j) => j.status === status);
+          filteredTasks = filteredTasks.filter((j) => j.status === status);
         }
-        return { ok: true, jobs: filteredJobs.slice(0, limit) };
+        return { ok: true, tasks: filteredTasks.slice(0, limit) };
       },
-      async update(jobId, patch) {
-        const jobs = readFromLocalStorage("jobs");
-        const job = jobs[jobId];
-        if (job) {
-          if (patch.version !== undefined && job.version !== patch.version) {
+      async update(taskId, patch) {
+        const tasks = readFromLocalStorage("tasks");
+        const task = tasks[taskId];
+        if (task) {
+          if (patch.version !== undefined && task.version !== patch.version) {
             return {
               ok: false,
               error: "Optimistic lock failed. Version mismatch.",
               code: ERROR_CODES.OPTIMISTIC_LOCK_FAIL,
             };
           }
-          Object.assign(job, patch);
-          job.version = (job.version || 0) + 1;
-          jobs[jobId] = job;
-          writeToLocalStorage("jobs", jobs, currentErrorCodes);
-          return { ok: true, job };
+          Object.assign(task, patch);
+          task.version = (task.version || 0) + 1;
+          tasks[taskId] = task;
+          writeToLocalStorage("tasks", tasks, currentErrorCodes);
+          return { ok: true, task };
         }
-        return { ok: false, error: "Job not found", code: ERROR_CODES.NOT_FOUND };
+        return { ok: false, error: "Task not found", code: ERROR_CODES.NOT_FOUND };
       },
     },
 
@@ -166,15 +166,15 @@ export function createBrowserStorage(options = {}) {
         writeToLocalStorage("steps", steps);
         return { ok: true, step: newStep };
       },
-      async listByJob(jobId) {
+      async listByTask(taskId) {
         const steps = readFromLocalStorage("steps");
-        const filteredSteps = Object.values(steps).filter((step) => step.job_id === jobId);
+        const filteredSteps = Object.values(steps).filter((step) => step.task_id === taskId);
         return { ok: true, steps: filteredSteps };
       },
-      async update(jobId, stepId, patch) {
+      async update(taskId, stepId, patch) {
         const steps = readFromLocalStorage("steps");
         const step = steps[stepId];
-        if (step && step.job_id === jobId) {
+        if (step && step.task_id === taskId) {
           Object.assign(step, patch);
           steps[stepId] = step;
           writeToLocalStorage("steps", steps, currentErrorCodes);
@@ -212,7 +212,7 @@ export function createBrowserStorage(options = {}) {
     clearCache: async () => {
       try {
         localStorage.removeItem(getLocalStorageKey("agentIdentities"));
-        localStorage.removeItem(getLocalStorageKey("jobs"));
+        localStorage.removeItem(getLocalStorageKey("tasks"));
         localStorage.removeItem(getLocalStorageKey("steps"));
         // No audit logs for browser storage in this simple implementation
       } catch (error) {

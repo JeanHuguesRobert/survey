@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import { isAdmin } from "../../lib/permissions";
-import { getFederationConfig } from "../../../common/config/instanceConfig.client.js";
+import { getFederationConfig } from "../../common/config/instanceConfig.client.js";
 import AuthModal from "../common/AuthModal";
 import SiteFooter from "../layout/SiteFooter";
 

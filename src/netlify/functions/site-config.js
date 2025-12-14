@@ -1,3 +1,5 @@
+// src/netlify/functions/site-config.js
+
 import { loadInstanceConfig, getConfigValue } from "../../common/config/instanceConfig.backend.js";
 
 export const handler = async () => {

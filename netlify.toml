@@ -31,7 +31,7 @@
 
 [[edge_functions]]
   path = "/api/chat-stream"
-  function = "rag_chatbot"
+  function = "rag_chatbot.v3"
 
 [[edge_functions]]
   path = "/api/fil/items"
