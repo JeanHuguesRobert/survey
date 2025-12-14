@@ -19,7 +19,7 @@ It does not fund, promote or support:
 
 It provides digital tools that may be used by any citizen, collective or institution.
 
---
+---
 
 ## Pilote à Corte
 
