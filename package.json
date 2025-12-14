@@ -2,6 +2,7 @@
   "name": "survey",
   "version": "1.0.0",
   "type": "module",
+  "engines": { "node": ">=24 <25" },
   "scripts": {
     "test": "node scripts/test-runner.js",
     "backfill:lastModifiedBy": "node scripts/backfill-lastmodifiedby.js",
