@@ -2,7 +2,14 @@
 import { getConfigValue } from "../../common/config/instanceConfig.edge.js";
 
 export default async (request, context) => {
+
   const url = new URL(request.url);
+
+  // Don't intercept /markdown-viewer requests && non-GET requests
+  if (url.pathname === "/markdown-viewer") return context.next();
+  if (request.method !== "GET" && request.method !== "HEAD") return context.next();
+
+  // If this is a markdown file request, redirect to /markdown-viewer
   const markdownTarget = resolveMarkdownTarget(request, url);
   if (markdownTarget) {
     const viewerUrl = new URL(request.url);
@@ -51,6 +58,7 @@ export default async (request, context) => {
   const cfg = globalThis.__SITE_CONFIG_CACHE.cfg;
   if (!cfg || !cfg.redirect_enabled || !cfg.redirect_url) return context.next();
 
+  // Redirect only if required & appropriate, else process as usual
   try {
     const reqUrl = url;
     const target = new URL(cfg.redirect_url);
@@ -66,11 +74,24 @@ export default async (request, context) => {
   }
 };
 
+
 function resolveMarkdownTarget(request, url) {
+
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
+
   const accept = request.headers.get("accept") || "";
-  if (!accept.includes("text/html")) return null;
+  const wantsHtml = accept.startsWith("text/html") || accept.includes("text/html,");
+  if (!wantsHtml) return null;
+
   if (!url.pathname.startsWith("/docs/")) return null;
+  if (url.pathname === "/docs/") return null;          // à traiter ailleurs (index)
   if (url.searchParams.get("raw") === "1") return null;
   if (!url.pathname.endsWith(".md")) return null;
+
+  // bypass internal fetches if implemented
+  if (request.headers.get("x-ophelia-internal") === "1") return null;
+
   return `${url.pathname}${url.search}`;
+
 }
+

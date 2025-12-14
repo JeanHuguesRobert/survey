@@ -15,8 +15,9 @@ function normalizeFileParam(param) {
     return null;
   }
   const [basePath, search = ""] = decoded.split("?");
-  if (!basePath.startsWith("/docs/")) {
-    return decoded;
+  // Only allow /docs/ and /public/ paths
+  if (!basePath.startsWith("/docs/") && !basePath.startsWith("/public/")) {
+    return null;
   }
   const params = new URLSearchParams(search);
   params.delete("raw");
@@ -56,7 +57,7 @@ export default function MarkdownViewer() {
         ) : (
           <div className="space-y-6">
             <div className="markdown-content space-y-6">
-              <LegalMarkdown file={decodedFile} />
+              <LegalMarkdown file={appendRawParam(decodedFile)} />
             </div>
             <div className="text-center">
               <a
