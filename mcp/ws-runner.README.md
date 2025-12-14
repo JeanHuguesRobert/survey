@@ -1,18 +1,18 @@
 # WS Runner (COP Actor Runner)
 
-This runner is a single-process, stateful Actor runner for COP jobs that:
+This runner is a single-process, stateful Actor runner for COP tasks that:
 
 - Subscribes to `cop_event` table via Supabase Realtime.
 - Dispatches events to Agents (`onEvent`).
-- Claims jobs atomically (`cop_claim_job`) and processes them via `onJob` handlers.
-- Extends job leases while processing (heartbeat) to avoid other workers stealing mid-processing.
+- Claims tasks atomically (`cop_claim_task`) and processes them via `onTask` handlers.
+- Extends task leases while processing (heartbeat) to avoid other workers stealing mid-processing.
 - Provides a health/metrics HTTP endpoint (default port 8123) for liveness monitoring.
 - Provides reconnection/backoff logic for subscriptions and worker restarts.
-- Contains a reclaimer that scans for stale lease jobs and clears them to unblock claims.
+- Contains a reclaimer that scans for stale lease tasks and clears them to unblock claims.
 
 Operational notes
 
-- The Runner uses Supabase for persistence (jobs, steps, artifacts) and to subscribe to events for
+- The Runner uses Supabase for persistence (tasks, steps, artifacts) and to subscribe to events for
   UI notifications.
 - Treat the runner as an ephemeral Actor host: it can be restarted quickly and will pick up progress
   from DB because all state is persisted.

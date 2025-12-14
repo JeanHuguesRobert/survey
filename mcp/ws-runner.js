@@ -29,7 +29,7 @@ async function init() {
 }
 
 function simpleMetrics() {
-  return `# HELP cop_ws_runner_processed Jobs processed\n# TYPE cop_ws_runner_processed counter\ncop_ws_runner_processed ${processed}\n# HELP cop_ws_runner_failed Job process failures\n# TYPE cop_ws_runner_failed counter\ncop_ws_runner_failed ${failed}\n# HELP cop_ws_runner_last_heartbeat Last heartbeat UNIX timestamp\n# TYPE cop_ws_runner_last_heartbeat gauge\ncop_ws_runner_last_heartbeat ${Math.floor(new Date(lastHeartbeat).getTime() / 1000)}\n`;
+  return `# HELP cop_ws_runner_processed Tasks processed\n# TYPE cop_ws_runner_processed counter\ncop_ws_runner_processed ${processed}\n# HELP cop_ws_runner_failed Task process failures\n# TYPE cop_ws_runner_failed counter\ncop_ws_runner_failed ${failed}\n# HELP cop_ws_runner_last_heartbeat Last heartbeat UNIX timestamp\n# TYPE cop_ws_runner_last_heartbeat gauge\ncop_ws_runner_last_heartbeat ${Math.floor(new Date(lastHeartbeat).getTime() / 1000)}\n`;
 }
 
 async function subscribeAllTopics() {
@@ -44,7 +44,7 @@ async function subscribeAllTopics() {
       lastHeartbeat = new Date().toISOString();
       if (!payload || !payload.type) return;
 
-      // Directly forward to agent onEvent so that write-ahead and job creation behavior is preserved.
+      // Directly forward to agent onEvent so that write-ahead and task creation behavior is preserved.
       await opheliaAgent.onEvent(payload, { bus, store });
       await ragAgent.onEvent(payload, { bus, store });
     } catch (e) {
@@ -81,17 +81,17 @@ async function subscribeAllTopics() {
 }
 
 async function workerIteration(workerId) {
-  // This worker iteration claims a single job and processes a single step
+  // This worker iteration claims a single task and processes a single step
   const wid = workerId || `ws-runner-${process.pid}-${Math.random().toString(36).slice(2, 6)}`;
   try {
-    const job = await store.claimJob({ workerId: wid, leaseSeconds: 60 });
-    if (!job) return false;
+    const task = await store.claimTask({ workerId: wid, leaseSeconds: 60 });
+    if (!task) return false;
 
-    // Lease extension timer to keep job if long processing
+    // Lease extension timer to keep task if long processing
     let extendTimer = setInterval(async () => {
       try {
-        await store.saveJob({
-          id: job.id,
+        await store.saveTask({
+          id: task.id,
           lease_expires_at: new Date(Date.now() + 60 * 1000).toISOString(),
           worker_id: wid,
         });
@@ -100,17 +100,17 @@ async function workerIteration(workerId) {
       }
     }, 30000);
 
-    // Claim a single step for this job atomically
+    // Claim a single step for this task atomically
     const step = await store
-      .claimStep({ jobId: job.id, workerId: wid, leaseSeconds: 60 })
+      .claimStep({ taskId: task.id, workerId: wid, leaseSeconds: 60 })
       .catch(() => null);
     if (!step) {
-      // no pending steps; mark job done if no pending steps exist
-      const remainingSteps = await store.getSteps(job.id);
+      // no pending steps; mark task done if no pending steps exist
+      const remainingSteps = await store.getSteps(task.id);
       const hasPending = remainingSteps.some((s) => s.status === "pending");
       if (!hasPending) {
-        await store.saveJob({
-          id: job.id,
+        await store.saveTask({
+          id: task.id,
           status: "done",
           lease_expires_at: null,
           worker_id: null,
@@ -123,25 +123,25 @@ async function workerIteration(workerId) {
 
     // Dispatch to the agent's step handler if available
     const handlers = [opheliaAgent, ragAgent].filter(
-      (a) => a.onStep && a.jobTypes && a.jobTypes.includes(job.type)
+      (a) => a.onStep && a.taskTypes && a.taskTypes.includes(task.type)
     );
     if (handlers.length === 0) {
-      // Fallback to job-level handler
-      const jobHandlers = [opheliaAgent, ragAgent].filter(
-        (a) => a.jobTypes && a.jobTypes.includes(job.type)
+      // Fallback to task-level handler
+      const taskHandlers = [opheliaAgent, ragAgent].filter(
+        (a) => a.taskTypes && a.taskTypes.includes(task.type)
       );
-      for (const h of jobHandlers) {
+      for (const h of taskHandlers) {
         try {
-          await h.onJob(job, { bus, store });
+          await h.onTask(task, { bus, store });
         } catch (e) {
           failed++;
-          console.error("workerLoop: onJob error", e.message || e);
+          console.error("workerLoop: onTask error", e.message || e);
         }
       }
     } else {
       for (const h of handlers) {
         try {
-          await h.onStep(job, step, { bus, store });
+          await h.onStep(task, step, { bus, store });
         } catch (e) {
           failed++;
           console.error("workerLoop: onStep error", e.message || e);
@@ -163,17 +163,17 @@ async function workerLoop() {
   const workerId = `ws-runner-${process.pid}-${Math.random().toString(36).slice(2, 6)}`;
   while (running) {
     try {
-      const job = await store.claimJob({ workerId, leaseSeconds: 60 });
-      if (!job) {
+      const task = await store.claimTask({ workerId, leaseSeconds: 60 });
+      if (!task) {
         await new Promise((r) => setTimeout(r, 1000));
         continue;
       }
 
-      // Lease extension timer to keep job if long processing
+      // Lease extension timer to keep task if long processing
       let extendTimer = setInterval(async () => {
         try {
-          await store.saveJob({
-            id: job.id,
+          await store.saveTask({
+            id: task.id,
             lease_expires_at: new Date(Date.now() + 60 * 1000).toISOString(),
             worker_id: workerId,
           });
@@ -182,17 +182,17 @@ async function workerLoop() {
         }
       }, 30000);
 
-      // Claim a single step for this job atomically
+      // Claim a single step for this task atomically
       const step = await store
-        .claimStep({ jobId: job.id, workerId, leaseSeconds: 60 })
+        .claimStep({ taskId: task.id, workerId, leaseSeconds: 60 })
         .catch(() => null);
       if (!step) {
-        // no pending steps; mark job done if no pending steps exist
-        const remainingSteps = await store.getSteps(job.id);
+        // no pending steps; mark task done if no pending steps exist
+        const remainingSteps = await store.getSteps(task.id);
         const hasPending = remainingSteps.some((s) => s.status === "pending");
         if (!hasPending) {
-          await store.saveJob({
-            id: job.id,
+          await store.saveTask({
+            id: task.id,
             status: "done",
             lease_expires_at: null,
             worker_id: null,
@@ -205,25 +205,25 @@ async function workerLoop() {
 
       // Dispatch to the agent's step handler if available
       const handlers = [opheliaAgent, ragAgent].filter(
-        (a) => a.onStep && a.jobTypes && a.jobTypes.includes(job.type)
+        (a) => a.onStep && a.taskTypes && a.taskTypes.includes(task.type)
       );
       if (handlers.length === 0) {
-        // Fallback to job-level handler
-        const jobHandlers = [opheliaAgent, ragAgent].filter(
-          (a) => a.jobTypes && a.jobTypes.includes(job.type)
+        // Fallback to task-level handler
+        const taskHandlers = [opheliaAgent, ragAgent].filter(
+          (a) => a.taskTypes && a.taskTypes.includes(task.type)
         );
-        for (const h of jobHandlers) {
+        for (const h of taskHandlers) {
           try {
-            await h.onJob(job, { bus, store });
+            await h.onTask(task, { bus, store });
           } catch (e) {
             failed++;
-            console.error("workerLoop: onJob error", e.message || e);
+            console.error("workerLoop: onTask error", e.message || e);
           }
         }
       } else {
         for (const h of handlers) {
           try {
-            await h.onStep(job, step, { bus, store });
+            await h.onStep(task, step, { bus, store });
           } catch (e) {
             failed++;
             console.error("workerLoop: onStep error", e.message || e);
@@ -305,7 +305,7 @@ async function initRunner() {
 
   startWorkers();
   startHealthServer();
-  // start reclaimer: scan running jobs and clear stale leases (best-effort)
+  // start reclaimer: scan running tasks and clear stale leases (best-effort)
   setInterval(async () => {
     try {
       await reclaimStaleLeases();
@@ -317,12 +317,12 @@ async function initRunner() {
 
 export async function reclaimStaleLeases() {
   try {
-    const runningJobs = await store.listJobs({ status: ["running"], limit: 200 });
+    const runningTasks = await store.listTasks({ status: ["running"], limit: 200 });
     const now = new Date();
-    for (const j of runningJobs) {
+    for (const j of runningTasks) {
       if (j.lease_expires_at && new Date(j.lease_expires_at) < now) {
-        console.log("reclaiming stale job lease", j.id);
-        await store.saveJob({ id: j.id, lease_expires_at: null, worker_id: null });
+        console.log("reclaiming stale task lease", j.id);
+        await store.saveTask({ id: j.id, lease_expires_at: null, worker_id: null });
       }
     }
   } catch (e) {
@@ -356,7 +356,7 @@ function gracefulShutdown(server) {
   Promise.race([Promise.allSettled(workers), new Promise((r) => setTimeout(r, 5000))]).finally(
     () => {
       // Attempt to clear leases for worker id so other workers can pick up
-      // Best-effort: requests to clear job leases could go here using RPC
+      // Best-effort: requests to clear task leases could go here using RPC
       console.log("WS Runner shutdown complete");
       process.exit(0);
     }

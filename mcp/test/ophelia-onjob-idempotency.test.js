@@ -5,7 +5,7 @@ import * as opheliaAgent from "../agents/opheliaAgent.js";
   const stepsDb = [
     {
       id: "step-1",
-      job_id: "job-1",
+      task_id: "task-1",
       name: "compose",
       status: "pending",
       input: { text: "input text" },
@@ -13,8 +13,8 @@ import * as opheliaAgent from "../agents/opheliaAgent.js";
   ];
   const artifacts = [];
   const mockStore = {
-    getJob: async (id) => ({ id: id, topic_id: "t1", status: "running" }),
-    getSteps: async (jobId) => stepsDb,
+    getTask: async (id) => ({ id: id, topic_id: "t1", status: "running" }),
+    getSteps: async (taskId) => stepsDb,
     saveStep: async (s) => {
       const idx = stepsDb.findIndex((x) => x.id === s.id);
       if (idx >= 0) stepsDb[idx] = { ...stepsDb[idx], ...s };
@@ -23,7 +23,7 @@ import * as opheliaAgent from "../agents/opheliaAgent.js";
     saveArtifact: async (a) => {
       const existing = artifacts.find(
         (x) =>
-          x.source_job_id === a.source_job_id &&
+          x.source_task_id === a.source_task_id &&
           x.source_step_id === a.source_step_id &&
           x.type === a.type
       );
@@ -33,17 +33,20 @@ import * as opheliaAgent from "../agents/opheliaAgent.js";
       return newArt;
     },
     listArtifacts: async () => artifacts,
-    saveJob: async (job) => job,
+    saveTask: async (task) => task,
+    getNextPendingStep: async (taskId) => {
+      return stepsDb.find((s) => s.task_id === taskId && s.status === "pending");
+    },
   };
   const publishes = [];
   const mockBus = { publish: async (e) => publishes.push(e) };
 
-  const job = { id: "job-1", type: "deep_reply", topic_id: "t1" };
-  await opheliaAgent.onJob(job, { store: mockStore, bus: mockBus });
-  await opheliaAgent.onJob(job, { store: mockStore, bus: mockBus });
+  const task = { id: "task-1", type: "deep_reply", topic_id: "t1" };
+  await opheliaAgent.onTask(task, { store: mockStore, bus: mockBus });
+  await opheliaAgent.onTask(task, { store: mockStore, bus: mockBus });
 
   assert.strictEqual(artifacts.length, 1, "Expected only one artifact");
   assert.strictEqual(stepsDb[0].status, "done");
 
-  console.log("onJob idempotency test passed");
+  console.log("onTask idempotency test passed");
 })();

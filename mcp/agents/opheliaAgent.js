@@ -5,7 +5,7 @@ import store from "../cop/supabaseStore.js";
 const BOT_NAME = process.env.VITE_BOT_NAME || "Ophélia";
 
 export const name = "ophelia-agent";
-export const jobTypes = ["deep_reply"];
+export const taskTypes = ["deep_reply"];
 
 export async function onEvent(event, ctx) {
   try {
@@ -18,22 +18,22 @@ export async function onEvent(event, ctx) {
 
       if (!topicId || !userText) return;
 
-      // Idempotency: ensure we don't create duplicate jobs for same source event
+      // Idempotency: ensure we don't create duplicate tasks for same source event
       const sourceEventId = event.id || event.payload?.eventId || event.meta?.eventId || null;
-      // Create a job for deep reply (write-ahead): persist job and step before publishing events
-      const jobPayload = {
+      // Create a task for deep reply (write-ahead): persist task and step before publishing events
+      const taskPayload = {
         topic_id: topicId,
         type: "deep_reply",
         status: "pending",
         created_by: null,
         source_event_id: sourceEventId,
       };
-      const job = await _store.saveJob(jobPayload);
-      if (!job) return;
+      const task = await _store.saveTask(taskPayload);
+      if (!task) return;
 
-      // Create initial step in idempotent way (job_id,name unique)
+      // Create initial step in idempotent way (task_id,name unique)
       await _store.saveStep({
-        job_id: job.id,
+        task_id: task.id,
         name: "compose",
         status: "pending",
         input: { text: userText },
@@ -49,15 +49,15 @@ export async function onEvent(event, ctx) {
         createdBy: null,
       });
 
-      // Publish job_state_changed event only if the job appears newly created (best-effort heuristic)
+      // Publish task_state_changed event only if the task appears newly created (best-effort heuristic)
       const suggestNew =
-        (job && job.status === "pending" && job.attempts === 0) ||
-        (job && job.created_at && job.updated_at && job.created_at === job.updated_at);
+        (task && task.status === "pending" && task.attempts === 0) ||
+        (task && task.created_at && task.updated_at && task.created_at === task.updated_at);
       if (suggestNew) {
         await _bus.publish({
           topicId,
-          type: "job_state_changed",
-          payload: { jobId: job.id, state: job.status },
+          type: "task_state_changed",
+          payload: { taskId: task.id, state: task.status },
           createdBy: null,
         });
       }
@@ -68,7 +68,7 @@ export async function onEvent(event, ctx) {
 }
 
 export async function onTick(ctx) {
-  // onTick does not claim or force-run jobs in distributed mode; only used for lightweight periodic work
+  // onTick does not claim or force-run tasks in distributed mode; only used for lightweight periodic work
   try {
     // Optionally handle lightweight background tasks or health checks
     return;
@@ -77,59 +77,59 @@ export async function onTick(ctx) {
   }
 }
 
-export async function onJob(job, ctx) {
-  // Handle a single claimed job by delegating to onStep for sequential steps.
+export async function onTask(task, ctx) {
+  // Handle a single claimed task by delegating to onStep for sequential steps.
   try {
-    if (!job || job.type !== "deep_reply") return;
+    if (!task || task.type !== "deep_reply") return;
     const _store = ctx?.store || store;
-    const next = await _store.getNextPendingStep(job.id);
+    const next = await _store.getNextPendingStep(task.id);
     if (!next) {
       // no pending steps, maybe it's done
-      const finalSteps = await _store.getSteps(job.id);
+      const finalSteps = await _store.getSteps(task.id);
       const allDone = finalSteps.every((s) => s.status === "done");
       if (allDone) {
-        await (ctx?.store || store).saveJob({ id: job.id, status: "done" });
+        await (ctx?.store || store).saveTask({ id: task.id, status: "done" });
       }
       return;
     }
     // process single step via onStep
-    await onStep(job, next, ctx);
+    await onStep(task, next, ctx);
   } catch (e) {
-    console.error("onJob error", e?.message || e);
+    console.error("onTask error", e?.message || e);
     try {
-      await (ctx?.store || store).saveJob({
-        id: job.id,
+      await (ctx?.store || store).saveTask({
+        id: task.id,
         status: "pending",
         last_error: e?.message || String(e),
-        status_reason: "onJob failure",
+        status_reason: "onTask failure",
       });
     } catch (_) {}
   }
 }
 
-export async function onStep(job, step, ctx) {
+export async function onStep(task, step, ctx) {
   try {
-    if (!job || job.type !== "deep_reply") return;
+    if (!task || task.type !== "deep_reply") return;
     const _bus = ctx?.bus || bus;
     const _store = ctx?.store || store;
 
     // Skip if already done (idempotency)
-    const refreshed = await _store.getSteps(job.id);
+    const refreshed = await _store.getSteps(task.id);
     const current = refreshed.find((s) => s.id === step.id);
     if (current && current.status === "done") return;
 
     // mark running (write-ahead checkpoint)
     await _store.saveStep({
       id: step.id,
-      job_id: job.id,
+      task_id: task.id,
       name: step.name,
       status: "running",
       input: step.input,
     });
     await _bus.publish({
-      topicId: job.topic_id,
-      type: "job_step_started",
-      payload: { jobId: job.id, stepId: step.id, stepName: step.name },
+      topicId: task.topic_id,
+      type: "task_step_started",
+      payload: { taskId: task.id, stepId: step.id, stepName: step.name },
     });
 
     // process step
@@ -138,8 +138,8 @@ export async function onStep(job, step, ctx) {
 
     // Persist artifact idempotently
     const artifact = await _store.saveArtifact({
-      topic_id: job.topic_id,
-      source_job_id: job.id,
+      topic_id: task.topic_id,
+      source_task_id: task.id,
       source_step_id: step.id,
       type: "final_summary",
       format: "text",
@@ -150,7 +150,7 @@ export async function onStep(job, step, ctx) {
     // Save step result
     await _store.saveStep({
       id: step.id,
-      job_id: job.id,
+      task_id: task.id,
       name: step.name,
       status: "done",
       input: step.input,
@@ -160,21 +160,21 @@ export async function onStep(job, step, ctx) {
 
     // Publish results
     await _bus.publish({
-      topicId: job.topic_id,
+      topicId: task.topic_id,
       type: "artifact_created",
-      payload: { artifactId: artifact.id, jobId: job.id },
+      payload: { artifactId: artifact.id, taskId: task.id },
       createdBy: null,
     });
     await _bus.publish({
-      topicId: job.topic_id,
+      topicId: task.topic_id,
       type: "assistant_update",
       payload: { text: deepReply, kind: "deep" },
       createdBy: null,
     });
     await _bus.publish({
-      topicId: job.topic_id,
-      type: "job_state_changed",
-      payload: { jobId: job.id, state: "step_done" },
+      topicId: task.topic_id,
+      type: "task_state_changed",
+      payload: { taskId: task.id, state: "step_done" },
       createdBy: null,
     });
   } catch (e) {
@@ -182,7 +182,7 @@ export async function onStep(job, step, ctx) {
     try {
       await (ctx?.store || store).saveStep({
         id: step.id,
-        job_id: job.id,
+        task_id: task.id,
         status: "pending",
         attempts: (step.attempts || 0) + 1,
         checkpoint: step.checkpoint || {},
@@ -191,4 +191,4 @@ export async function onStep(job, step, ctx) {
   }
 }
 
-export default { name, jobTypes, onEvent, onTick, onJob, onStep };
+export default { name, taskTypes, onEvent, onTick, onTask, onStep };

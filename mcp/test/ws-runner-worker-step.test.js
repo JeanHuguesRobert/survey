@@ -4,28 +4,28 @@ import store from "../cop/supabaseStore.js";
 import opheliaAgent from "../agents/opheliaAgent.js";
 
 (async () => {
-  // Mock store to simulate a claimed job and step
-  let claimedJob = { id: "job-1", type: "deep_reply", topic_id: "t1" };
+  // Mock store to simulate a claimed task and step
+  let claimedTask = { id: "task-1", type: "deep_reply", topic_id: "t1" };
   let claimedStep = {
     id: "step-1",
-    job_id: "job-1",
+    task_id: "task-1",
     name: "compose",
     status: "pending",
     input: { text: "hello" },
   };
-  const origClaimJob = store.claimJob;
+  const origClaimTask = store.claimTask;
   const origClaimStep = store.claimStep;
   const origGetSteps = store.getSteps;
   let origOnStep = undefined;
   try {
-    store.claimJob = async ({ workerId, leaseSeconds }) => claimedJob;
-    store.claimStep = async ({ jobId, workerId, leaseSeconds }) => claimedStep;
-    store.getSteps = async (jobId) => [claimedStep];
+    store.claimTask = async ({ workerId, leaseSeconds }) => claimedTask;
+    store.claimStep = async ({ taskId, workerId, leaseSeconds }) => claimedStep;
+    store.getSteps = async (taskId) => [claimedStep];
 
     // mock agent onStep to record call
     let called = 0;
     origOnStep = opheliaAgent.onStep;
-    opheliaAgent.onStep = async (job, step, ctx) => {
+    opheliaAgent.onStep = async (task, step, ctx) => {
       called++;
       return;
     };
@@ -39,7 +39,7 @@ import opheliaAgent from "../agents/opheliaAgent.js";
     console.error("test failed", e);
     process.exit(1);
   } finally {
-    store.claimJob = origClaimJob;
+    store.claimTask = origClaimTask;
     store.claimStep = origClaimStep;
     store.getSteps = origGetSteps;
     opheliaAgent.onStep = origOnStep;

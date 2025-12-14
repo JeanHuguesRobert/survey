@@ -2,26 +2,26 @@ import assert from "assert";
 import * as opheliaAgent from "../agents/opheliaAgent.js";
 
 (async () => {
-  const savedJobs = [];
+  const savedTasks = [];
   const savedSteps = [];
   let publishCount = 0;
   const mockStore = {
-    saveJob: async (job) => {
-      const existing = savedJobs.find(
+    saveTask: async (task) => {
+      const existing = savedTasks.find(
         (j) =>
           j.source_event_id &&
-          job.source_event_id &&
-          j.source_event_id === job.source_event_id &&
-          j.topic_id === job.topic_id &&
-          j.type === job.type
+          task.source_event_id &&
+          j.source_event_id === task.source_event_id &&
+          j.topic_id === task.topic_id &&
+          j.type === task.type
       );
       if (existing) return existing;
-      const newJob = { id: "job-" + (savedJobs.length + 1), ...job };
-      savedJobs.push(newJob);
-      return newJob;
+      const newTask = { id: "task-" + (savedTasks.length + 1), ...task };
+      savedTasks.push(newTask);
+      return newTask;
     },
     saveStep: async (step) => {
-      const existing = savedSteps.find((s) => s.job_id === step.job_id && s.name === step.name);
+      const existing = savedSteps.find((s) => s.task_id === step.task_id && s.name === step.name);
       if (existing) return existing;
       const newStep = { id: "step-" + (savedSteps.length + 1), ...step };
       savedSteps.push(newStep);
@@ -40,14 +40,14 @@ import * as opheliaAgent from "../agents/opheliaAgent.js";
   await opheliaAgent.onEvent(ev, { store: mockStore, bus: mockBus });
 
   console.log(
-    "Jobs saved",
-    savedJobs.length,
+    "Tasks saved",
+    savedTasks.length,
     "Steps saved",
     savedSteps.length,
     "publishCount",
     publishCount
   );
-  assert.strictEqual(savedJobs.length, 1, "Expected 1 job saved");
+  assert.strictEqual(savedTasks.length, 1, "Expected 1 task saved");
   assert.strictEqual(savedSteps.length, 1, "Expected 1 step saved");
 
   console.log("Idempotency test passed");
