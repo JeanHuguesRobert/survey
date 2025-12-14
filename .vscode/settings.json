@@ -46,6 +46,12 @@
       "type": "http",
       "url": "https://mcp.supabase.com/mcp?project_ref=opnotbjrbphwcezaqgim"
     }
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
   }
 }
 
