@@ -347,7 +347,7 @@ Agents are expected to be:
 
 - **stateless** between invocations (no hidden in-memory state required for correctness),
 - **idempotent** with respect to repeated Events,
-- fully determined by the input Event(s), their configuration, and the Store contents.
+- somehow determined by the input Event(s), their configuration, and the Store contents.
 
 COP does not prescribe how agents are implemented (LLM calls, classical programs, rule engines,
 etc.). It only constrains how they observe and mutate the shared world: via Events and the Store.
@@ -1021,11 +1021,11 @@ time sources where strong ordering is needed.
 ## 3.5 Replay Semantics and Determinism
 
 Replay is a foundational COP feature. Any COP-compliant implementation MUST support full or partial
-replay as defined below.
+replay as defined below, at least in some auditable way.
 
 ### 3.5.1 Deterministic Replay
 
-Replaying the Events of a Topic in `topicSeq` order MUST produce:
+Replaying the Events of a Topic in `topicSeq` order should produce:
 
 - the same Topic status,
 - the same Tasks with the same fields,
@@ -1033,8 +1033,8 @@ Replaying the Events of a Topic in `topicSeq` order MUST produce:
 - the same Artifacts (immutability guaranteed),
 - the same Continuations.
 
-Projectors MUST be **deterministic**. Given the same input sequence of Events, they MUST produce the
-same output state.
+Projectors SHOULD be **deterministic**. Given the same input sequence of Events, they SHOULD produce
+the same output state.
 
 ### 3.5.2 Replay of Cross-Topic Dependencies
 
@@ -1044,7 +1044,7 @@ Global replay MUST also respect causal dependencies:
   be able to load and apply P before E.
 
 Full DAG replay MAY be costly, but is required for correctness. Optimizations (e.g. partial replay
-or snapshotting) are allowed but MUST not break determinism.
+or snapshotting) are allowed but SHOULD not break determinism.
 
 ### 3.5.3 Snapshotting
 
@@ -1130,7 +1130,7 @@ This store MUST:
 - expose projection state only,
 - never allow mutation via agent APIs,
 - return results wrapped in `COPResult<T>` structures,
-- behave deterministically during replay.
+- behave reasonnably deterministically during replay.
 
 ### 4.2.1 Reason for Read-Only Constraint
 
@@ -1144,7 +1144,7 @@ Agents influence the world **only** through Events.
 
 This guarantees:
 
-- determinism under replay,
+- best effort determinism under replay,
 - isolation between agents,
 - reproducibility,
 - auditability.
@@ -1277,9 +1277,9 @@ Replaying all Events in a Topic MUST produce:
 
 Projector logic MUST be:
 
-- deterministic,
+- deterministic or at least auditable,
 - pure (no side effects outside the Store),
-- referentially transparent (same input Event → same Store output).
+- referentially transparent (same input Event → compatible Store output).
 
 ### 4.5.3 Idempotent Application
 
@@ -1393,9 +1393,9 @@ A Projector MUST:
 
 ### 5.1.2 Determinism
 
-Projectors MUST be deterministic:
+Projectors SHOULD be deterministic:
 
-- Given the same sequence of Events, a Projector MUST produce the same Store state.
+- Given the same sequence of Events, a Projector MAY produce the same Store state.
 - Projectors MUST NOT depend on:
   - wall-clock time,
   - random values,
@@ -2063,7 +2063,7 @@ References in COP are governed by the following principles:
 
 3. **Replay safety**
    - All references MUST remain valid or explicitly broken during replay.
-   - Reference resolution MUST NOT affect replay determinism.
+   - Reference resolution MUST NOT affect replay optimisitic determinism.
 
 4. **Transport and format neutrality**
    - References are expressed using JSON-native mechanisms compatible with JSON-LD, CloudEvents, and
@@ -2265,7 +2265,7 @@ objects.
 Canonical hashing is required to:
 
 - detect tampering,
-- enable deterministic replay verification,
+- enable deterministic audit verification,
 - support append-only ledgers,
 - allow cross-system verification of Events and Artifacts.
 
@@ -2566,7 +2566,7 @@ Any implementation claiming COP compatibility MUST implement COP/Core fully.
 
 COP/Core guarantees:
 
-- deterministic replay,
+- autitable replay and sometimes deterministic replay,
 - auditability,
 - stateless agent execution,
 - transport independence,
@@ -2767,7 +2767,7 @@ A COP/Core–compliant implementation MUST:
    - cross-topic causal dependencies via `parentEventIds`.
 
 3. Implement **projection semantics** (Section 4):
-   - deterministic, replayable Store,
+   - auditable, sometimes replayable Store,
    - read-only store for Agents,
    - mutation only via Projectors.
 
@@ -2814,7 +2814,7 @@ An AI-capable implementation MUST:
 - Support agent lifecycle Events.
 - Support agent-produced Artifacts.
 - Support multi-step reasoning via Continuations.
-- Allow agents to resume execution deterministically.
+- Allow agents to resume execution, hopefully deterministically.
 
 Private reasoning MAY be redacted or summarized without violating compliance.
 
@@ -2900,7 +2900,7 @@ Example:
 
 COP compliance is testable via:
 
-- deterministic replay tests,
+- auditable replay tests,
 - hash verification tests,
 - causal ordering tests,
 - idempotence tests,
