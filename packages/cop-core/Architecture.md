@@ -547,15 +547,6 @@ This specification defines three key profiles:
 Profiles MUST NOT contradict COP/Core, but MAY add additional constraints and semantics. Profiles
 are described in more detail in Section 10.
 
-Below is **Section 2 — Core Data Model**, written in full specification style, ready to paste into
-your new `Architecture.md`.
-
-It establishes the canonical JSON form of every COP object: Events, Topics, Tasks, Steps, Artifacts,
-and Continuations.
-
-After Section 2, the next logical step will be Section 3 (Causality, Ordering, Time), unless you
-prefer to adjust anything here first.
-
 ---
 
 # 2. Core Data Model
