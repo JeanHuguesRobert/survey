@@ -849,14 +849,6 @@ Compatibility rules:
 
 ---
 
-Below is **Section 3 — Causality, Ordering, and Time**, written in full, formal, specification
-style, ready to paste into `Architecture.md`.
-
-This section is foundational: it defines how COP guarantees deterministic replay, how events relate
-across topics, and how time is interpreted.
-
----
-
 # 3. Causality, Ordering, and Time
 
 This section defines COP’s formal model of ordering, causality, and temporal semantics. These rules
@@ -1077,14 +1069,6 @@ Replay feeds only the Store, not the Agents.
 
 Agents SHOULD NOT be invoked during replay. Their behavior is driven by Event delivery, not by
 replay semantics.
-
----
-
-Below is **Section 4 — Projections and the COP Store**, written in complete specification style,
-ready to paste into `Architecture.md`.
-
-This is a crucial section: it defines what the Store _is_, what invariants it must respect, how
-projections behave, and how results and errors must be represented.
 
 ---
 
@@ -1657,14 +1641,6 @@ This separation is fundamental to COP’s correctness, replayability, and audita
 
 ---
 
-Below is **Section 6 — Transport and Interoperability**, written in full specification style, ready
-to paste into `Architecture.md`.
-
-This section formalizes how COP Events interoperate with external systems, in particular via
-**CloudEvents**, while preserving COP’s event-sourcing invariants.
-
----
-
 # 6. Transport and Interoperability
 
 COP is transport-agnostic. It defines _what_ an Event is and _how_ it behaves, but not _how_ it is
@@ -1849,14 +1825,6 @@ CloudEvents interoperability is compatible with:
 - **JSON Canonicalization Scheme (JCS)**:
   - JCS hashing MUST apply to the COP Event representation, not to the CloudEvent envelope.
   - The resulting hash MAY be exposed via the `copHash` extension.
-
----
-
-Below is **Section 7 — Semantic Layer (JSON-LD)**, written in formal specification style and ready
-to paste into `Architecture.md`.
-
-This section defines how COP gains explicit semantics without altering its core JSON model, and how
-COP objects can be represented as linked data.
 
 ---
 
@@ -2073,14 +2041,6 @@ However:
 
 ---
 
-Below is **Section 8 — References and Linking**, written in full specification style and ready to
-paste into `Architecture.md`.
-
-This section formalizes how COP objects reference each other and external resources, without
-introducing redundancy or breaking replay and integrity guarantees.
-
----
-
 # 8. References and Linking
 
 COP defines explicit rules for referencing and linking between objects, both **internally** (within
@@ -2284,14 +2244,6 @@ JSON-LD remains a semantic overlay; JSON Reference remains a structural linking 
 | JSON Pointer                          | Sub-document addressing | Optional       |
 | Hashlinks                             | Integrity verification  | Recommended    |
 | JSON-LD `@id`                         | Semantic identity       | Optional       |
-
----
-
-Below is **Section 9 — Integrity, Security, and Identity**, written in full specification style and
-ready to paste into `Architecture.md`.
-
-This section formalizes **hashing, integrity guarantees, identity, and the optional COP Ledger**,
-with an explicit eye toward auditability and legal/probative use cases.
 
 ---
 
@@ -2580,15 +2532,6 @@ These mechanisms are sufficient to support:
 
 ---
 
-Understood. I will proceed with the **next logical section**, which is **Section 10 — Profiles**,
-completing what Section 9 prepared. (Repeating Section 9 would add no value; this continues the spec
-coherently.)
-
-Below is **Section 10 — Profiles (COP/Core, COP/HITL, COP/AI)**, ready to paste into
-`Architecture.md`.
-
----
-
 # 10. Profiles
 
 COP is designed as a **layered protocol**. The core defines universal invariants; profiles constrain
@@ -2787,11 +2730,6 @@ Profiles enable interoperability at multiple levels:
 - systems sharing COP/AI can exchange agent behavior traces.
 
 Unknown profiles MUST be ignored safely.
-
-Below is **Section 11 — Conformance Levels and Compliance**, written in full specification style and
-ready to paste into `Architecture.md`.
-
-This final section closes the spec by defining _exactly_ what it means to “implement COP”.
 
 ---
 
