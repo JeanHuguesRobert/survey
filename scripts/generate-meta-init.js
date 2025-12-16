@@ -8,7 +8,9 @@ import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { loadConfig, getConfigValue } from "./lib/config.js";
 
-// Charger la configuration
+console.log("generate-meta-init.js: début");
+
+// Charger la configuration (et la mettre à jour si nécessaire)
 await loadConfig();
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
