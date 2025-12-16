@@ -1023,18 +1023,21 @@ time sources where strong ordering is needed.
 Replay is a foundational COP feature. Any COP-compliant implementation MUST support full or partial
 replay as defined below, at least in some auditable way.
 
-### 3.5.1 Deterministic Replay
+### 3.5.1 Auditable Replay (Normative)
 
-Replaying the Events of a Topic in `topicSeq` order should produce:
+Replaying Events in `topicSeq` order MUST reconstruct:
 
-- the same Topic status,
-- the same Tasks with the same fields,
-- the same Steps with the same statuses and artifact references,
-- the same Artifacts (immutability guaranteed),
-- the same Continuations.
+- Topic status and metadata
+- Task/Step lifecycles and assignments
+- Artifact index and immutability
+- Continuation conditions
 
-Projectors SHOULD be **deterministic**. Given the same input sequence of Events, they SHOULD produce
-the same output state.
+**External effects** (LLM outputs, API results, human decisions) are recorded as immutable Artifacts
+at execution time. Replay reuses these recorded outcomes rather than re-executing external systems.
+
+Projectors MUST be **pure functions** over Events → Projections. Given identical Event sequences,
+projectors MUST produce identical projection state (excluding external timestamps, random seeds, or
+implementation-specific optimizations).
 
 ### 3.5.2 Replay of Cross-Topic Dependencies
 
@@ -1273,13 +1276,13 @@ Replaying all Events in a Topic MUST produce:
 - the same Artifact index,
 - the same Continuation index.
 
-### 4.5.2 Deterministic Application
+### 4.5.2 Pure Projection Functions
 
-Projector logic MUST be:
+Projector logic MUST be pure:
 
-- deterministic or at least auditable,
-- pure (no side effects outside the Store),
-- referentially transparent (same input Event → compatible Store output).
+- Same Events → same Projections (modulo external time/randomness)
+- No side effects outside the Store
+- Idempotent application
 
 ### 4.5.3 Idempotent Application
 
