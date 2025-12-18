@@ -8,20 +8,12 @@
 //
 // Le frontend lit ces headers pour initialiser le bon client Supabase
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
 // Domaines de base pour la détection
-const BASE_DOMAINS = [
-  "transparence.corsica",
-  "transparence-corte.fr",
-  "transparence-commune.fr",
-  "kudocracy.org",
-  "netlify.app", // Pour les previews
-];
+const BASE_DOMAINS = ["lepp.fr", "kudocracy.org"];
 
 // Sous-domaines système à ignorer
 const IGNORED_SUBDOMAINS = ["www", "app", "api", "admin", "staging", "preview"];
@@ -108,9 +100,8 @@ function extractSubdomain(hostname) {
 
 async function lookupInstance(subdomain) {
   // URL du registre central (hub)
-  const registryUrl = Deno.env.get("REGISTRY_SUPABASE_URL") || Deno.env.get("SUPABASE_URL");
-  const registryKey =
-    Deno.env.get("REGISTRY_SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_ANON_KEY");
+  const registryUrl = getConfig("REGISTRY_SUPABASE_URL") || getConfig("SUPABASE_URL");
+  const registryKey = getConfig("REGISTRY_SUPABASE_ANON_KEY") || getConfig("SUPABASE_ANON_KEY");
 
   if (!registryUrl || !registryKey) {
     console.warn("[instance-resolver] No registry configured");
@@ -120,6 +111,7 @@ async function lookupInstance(subdomain) {
   try {
     const supabase = createClient(registryUrl, registryKey);
 
+    // TODO: use a REST API instead of a rpc
     const { data, error } = await supabase.rpc("get_instance_by_subdomain", {
       p_subdomain: subdomain,
     });

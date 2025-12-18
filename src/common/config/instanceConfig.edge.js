@@ -10,17 +10,15 @@ import { initializeConfigCore } from "./instanceConfig.core.js";
 // Par exemple, si vous utilisez le client Supabase pour Deno :
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.87.1"; // Exemple d'importation pour Deno
 
-// Fonction pour récupérer les variables d'environnement côté Deno Edge Functions
-const getEnvValueEdge = (key) => {
-  // Deno.env.get() est la manière standard d'accéder aux variables d'environnement dans Deno
-  const envKey = key.toUpperCase(); // Les variables d'environnement sont souvent en majuscules
-  return Deno.env.get(envKey) || null;
-};
+// Function to get env var in Netlify
+function getenv(key) {
+  return Netlify.env.get(key);
+}
 
 // Fonction pour créer une instance Supabase côté Deno Edge Functions
-const createSupabaseClientEdge = () => {
-  const supabaseUrl = getEnvValueEdge("SUPABASE_URL");
-  const supabaseServiceRoleKey = getEnvValueEdge("SUPABASE_SERVICE_ROLE_KEY"); // Utilisation de la clé de rôle de service pour les Edge Functions
+const createSupabase_Edge = () => {
+  const supabaseUrl = getenv("SUPABASE_URL");
+  const supabaseServiceRoleKey = getenv("SUPABASE_SERVICE_ROLE_KEY");
 
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     console.warn(
@@ -33,15 +31,19 @@ const createSupabaseClientEdge = () => {
   return createClient(supabaseUrl, supabaseServiceRoleKey);
 };
 
-// Instance Supabase (peut être null si les clés ne sont pas disponibles)
-const supabaseClientInstance = createSupabaseClientEdge();
+export async function newSupabase() {
+  return createSupabase_Edge();
+}
 
-// Initialiser le module de configuration core avec les fonctions spécifiques à Deno Edge
-initializeConfigCore({
-  getEnvValue: getEnvValueEdge,
-  createSupabaseClient: createSupabaseClientEdge,
-  supabaseInstance: supabaseClientInstance,
-});
+export async function initializeConfig_Edge(supabase, admin = false) {
+  return initializeConfigCore(supabase, getenv, newSupabase);
+}
+
+// Edge functions should call this function very early on.
+// TODO: where should the instance be selected in the multi-instance case?
+export async function initializeConfigAdmin_Edge(supabase) {
+  return initializeConfig_Edge(supabase, true);
+}
 
 // Ré-exporter tout de instanceConfig.core.js pour une utilisation facile dans les Edge Functions
 export * from "./instanceConfig.core.js";

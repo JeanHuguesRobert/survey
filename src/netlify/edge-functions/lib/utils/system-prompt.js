@@ -2,7 +2,7 @@
 // SYSTEM PROMPT - Chargement dynamique
 // ============================================================================
 
-import { getConfigValue } from "../../../../common/config/instanceConfig.edge.js";
+import { getConfig } from "../../../../common/config/instanceConfig.edge.js";
 
 /**
  * Petit utilitaire pour prévisualiser les valeurs dans les logs
@@ -83,20 +83,20 @@ export async function getSystemPrompt() {
   let basePrompt = `📅 **Date actuelle :** ${currentDate}\\n\\n`;
 
   // 1. Charge le prompt depuis l'URL publique
-  const siteUrl = getConfigValue("app_url");
+  const siteUrl = getConfig("app_url");
   const localPrompt = await fetchPublicSystemPrompt(siteUrl);
   if (localPrompt) {
     basePrompt += localPrompt;
   } else {
     // 2. Fallback avec les variables d'environnement
-    const envPrompt = getConfigValue("bob_system_prompt");
+    const envPrompt = getConfig("bob_system_prompt");
     if (envPrompt) {
       basePrompt += envPrompt;
     } else {
       // 3. Fallback par défaut
-      const city = getConfigValue("city_name");
-      const movement = getConfigValue("movement_name");
-      const bot = getConfigValue("bot_name");
+      const city = getConfig("city_name");
+      const movement = getConfig("movement_name");
+      const bot = getConfig("bot_name");
       basePrompt += `
       **Rôle :** Tu es **${bot}**, l'assistant citoyen du mouvement **${movement}** pour la commune de **${city}**.
 
@@ -117,8 +117,8 @@ export async function getSystemPrompt() {
 
   // 4. Charge le wiki consolidé depuis Supabase
   /*
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const supabaseUrl = getEnvVar("SUPABASE_URL");
+  const supabaseKey = getEnvVar("SUPABASE_SERVICE_ROLE_KEY");
   if (supabaseUrl && supabaseKey) {
     try {
       const response = await fetch(

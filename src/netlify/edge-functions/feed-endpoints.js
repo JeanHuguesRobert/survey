@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getConfig, getSupabase } from "../../common/config/instanceConfig.edge.js";
 
 export default async (request, context) => {
   // CORS headers
@@ -23,12 +23,10 @@ export default async (request, context) => {
   const cursor = url.searchParams.get("cursor"); // timestamp for pagination
 
   // Initialize Supabase
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") || Deno.env.get("VITE_SUPABASE_URL");
-  const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("VITE_SUPABASE_ANON_KEY");
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabase = getSupabase();
 
   // Instance Info (for metadata)
-  const instanceName = Deno.env.get("VITE_COMMUNITY_NAME") || "Corte";
+  const instanceName = getEnvVar("COMMUNITY_NAME") || "Corte";
   const instanceUrl = url.origin;
 
   let items = [];
