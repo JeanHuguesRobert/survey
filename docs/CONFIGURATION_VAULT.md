@@ -1,3 +1,5 @@
+OBSOLETE
+
 # Système de Configuration Centralisé (Vault)
 
 ## Vue d'ensemble
