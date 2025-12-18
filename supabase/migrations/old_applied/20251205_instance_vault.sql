@@ -96,7 +96,6 @@ INSERT INTO public.instance_config (key, value, category, description, is_secret
   -- IA
   ('openai_api_key', '', 'secrets', 'Clé API OpenAI', true),
   ('anthropic_api_key', '', 'secrets', 'Clé API Anthropic', true),
-  ('hf_api_key', '', 'secrets', 'Clé API Hugging Face (backend)', true),
   ('huggingface_api_key', '', 'secrets', 'Clé API Hugging Face (frontend)', true),
 
   -- Social OAuth
