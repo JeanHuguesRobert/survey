@@ -1,3 +1,6 @@
+// scripts/backfill-lastmodifiedby.js
+// Tool to fix missing lastModifiedBy metadata in posts table.
+
 import { loadConfig, getConfig, createSupabaseClient } from "./lib/config.js";
 
 // Charger la configuration
