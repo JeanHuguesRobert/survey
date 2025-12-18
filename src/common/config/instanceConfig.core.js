@@ -8,21 +8,35 @@
  * - Cache global cross-runtime via globalThis (Node / Deno / Netlify)
  * - Une seule requête effective, sauf force=true
  *
- * getConfig(key, { table, fallbackToEnv=false })
+ * getConfig(key, { table, fallback=undefined })
  * - Cherche la clé en essayant : exact, lower, upper
  * - Prend value_json si présent, sinon value
- * - Optionnel: fallbackToEnv pour lire process.env / Deno.env (si dispo)
+ * - Optionnel: fallback
  */
 
-const GLOBAL_CACHE_KEY = "__INSTANCE_CONFIG_TABLE_CACHE_V1__";
+const GLOBAL_CACHE_KEY = "__INSTANCE_DATA_CACHE_V1__";
+
+// Idempotency, singleton, global instance stuff
+var init_done = false;
+function inited() {
+  return !!globalThis[GLOBAL_CACHE_KEY];
+}
+function set_init_done() {
+  if (init_done) {
+    throw new Error("instanceConfig multiple instance init");
+  }
+  init_done = true;
+}
 
 function getGlobalCache() {
   if (!globalThis[GLOBAL_CACHE_KEY]) {
     globalThis[GLOBAL_CACHE_KEY] = {
-      data: null, // { [key]: row }
+      config: null, // { [key]: row }
       inFlight: null,
       loadedAt: 0,
-      supabaseClient: null,
+      supabase: null,
+      factory: null,
+      data: {},
     };
   }
   return globalThis[GLOBAL_CACHE_KEY];
@@ -56,31 +70,39 @@ async function fetchAllRows(supabaseClient) {
   return map;
 }
 
+// Load the instance config from some supabase. Reload if forced.
+// Return false if premature call (with warning) or promise if already in flight.
 export async function loadConfigTable(supabaseClient, { force = false } = {}) {
   if (!supabaseClient?.from) {
     // Inspect the supabaseClient object
     console.log("loadConfigTable: supabaseClient inspection:", supabaseClient);
     throw new TypeError("loadConfigTable: supabaseClient invalide (attendu: client Supabase)");
   }
+  if (!inited()) {
+    console.warn("instanceConfig.core: premature call to loadConfigTable, ingnored");
+    // Return as if inFlight
+    return false;
+  }
 
   const cache = getGlobalCache();
 
-  if (!force && cache.data) return cache.data;
   if (!force && cache.inFlight) return cache.inFlight;
+  if (!force && cache.config) return cache.config;
 
   cache.inFlight = (async () => {
     try {
       const map = await fetchAllRows(supabaseClient);
-      cache.data = map;
+      cache.config = map;
       cache.loadedAt = Date.now();
-      cache.supabaseClient = supabaseClient;
+      cache.supabase = supabaseClient;
+      cache.forced = force;
       return map;
     } finally {
       cache.inFlight = null;
     }
   })();
 
-  return cache.inFlight;
+  return !cache.inFlight;
 }
 
 /**
@@ -90,7 +112,7 @@ export async function loadConfigTable(supabaseClient, { force = false } = {}) {
 
 export function getAllConfigKeys() {
   const cache = getGlobalCache();
-  const t = cache.data;
+  const t = cache.config;
   return t ? Object.keys(t) : [];
 }
 
@@ -100,11 +122,11 @@ export function getAllConfigKeys() {
  * @param {string} key
  * @returns {*} value_json si présent, sinon value, sinon undefined
  */
-export function getConfig(key) {
+export function getConfig(key, by_default = undefined) {
   if (!key) return undefined;
 
   const cache = getGlobalCache();
-  const t = cache.data;
+  const t = cache.config;
   if (!t) {
     return undefined;
   }
@@ -122,7 +144,7 @@ export function getConfig(key) {
     return undefined;
   }
 
-  return undefined;
+  return by_default || undefined;
 }
 
 /** Optionnel: accès au timestamp du cache */
@@ -130,30 +152,55 @@ export function getConfigInfo() {
   const cache = getGlobalCache();
   return {
     loadedAt: cache.loadedAt,
-    hasData: !!cache.data,
+    hasConfig: !!cache.config,
+    config: cache.config,
     data: cache.data,
     inFlight: !!cache.inFlight,
-    supabaseClient: cache.supabaseClient,
+    supabase: cache.supabase,
+    factory: cache.factory,
     getenv: cache.getenv,
   };
 }
 
 export function getSupabase() {
-  return getGlobalCache().supabaseClient;
+  if (!inited()) {
+    console.warn("getSupabase: premature call");
+  }
+  return getGlobalCache().supabase;
 }
 
-var getenvPtr = null;
+export function supabaseFactory() {
+  if (!inited) {
+    console.warn("supabaseFactory: premature call");
+  }
+  return getGlobalCache().factory;
+}
 
-export async function initializeConfigCore(supabase, getenv_impl, newSupabase_impl, admin) {
-  // This function is called by either initializeConfig_Backend() or initializeConfig_Edge()
-  // or initializeConfig_Client() depending on the the actual runtime
+export function setInstanceData(key, val) {
+  getGlobalCache().data[key] = val;
+}
+
+export function getInstanceData(key) {
+  return getGlobalCache().data[key];
+}
+
+export async function initializeInstanceCore(supabase, getenv_impl, newSupabase_impl, admin) {
+  // This function is called by either initializeInstance_Backend() or initializeInstance_Edge()
+  // or initializeInstance_Client() depending on the the actual runtime
+  if (inited()) {
+    console.warn("initializeInstanceCore: multiple calls");
+    return getGlobalCache().factory;
+  }
   if (!supabase) {
-    console.log("initializeConfigCore: supabaseClient is null, trying to create a new one");
+    console.log("initializeInstanceCore: supabaseClient is null, trying to create a new one");
+  } else {
+    console.log("initializeInstanceCore: using existing supabaseClient");
   }
   const notnull_supabase = supabase || (await newSupabase_impl(admin));
-  getenvPtr = getenv_impl;
   await loadConfigTable(notnull_supabase, { force: true });
   getGlobalCache().getenv = getenv_impl;
+  getGlobalCache().factory = newSupabase_impl;
+  set_init_done();
   // Returns a supabaseClient factory
   return newSupabase_impl;
 }
@@ -171,7 +218,7 @@ export async function loadInstanceConfig() {
 }
 
 export function getenv(key) {
-  return getenvPtr(key);
+  return getGlobalCache().getenv(key);
 }
 
 export function getFederationConfig() {

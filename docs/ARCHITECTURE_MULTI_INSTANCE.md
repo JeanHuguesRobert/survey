@@ -487,11 +487,11 @@ CREATE TABLE instance_config (
 ### Utilisation côté JavaScript
 
 ```javascript
-import { initializeConfig_Client, getConfig, isFeatureEnabled } from "TODO";
+import { initializeInstance_Client, getConfig, isFeatureEnabled } from "TODO";
 
-// Au démarrage de l'app. Utiliser initializeConfig_Backend() or initializeConfig_Edge()
-// when running as Netlify functions. Use _initializeConfigAdmin_XXXX() when needed.
-await initializeConfig_Client();
+// Au démarrage de l'app. Utiliser initializeInstance_Backend() or initializeInstance_Edge()
+// when running as Netlify functions. Use _initializeInstanceAdmin_XXXX() when needed.
+await initializeInstance_Client();
 
 // Lecture d'une config
 const communityName = getConfig("community_name", "Corte");
@@ -689,7 +689,7 @@ ORDER BY version DESC;
 | -------------------- | ---------------------------- | ------------------- | --------------------------- |
 | **Sous-domaines** ✅ | `corte.transparence.corsica` | SEO, isolation, pro | Config DNS                  |
 | **Paramètre URL**    | `?instance=corte`            | Simple              | URLs moches, perte du param |
-|  |
+|                      |
 
 **Recommandation** : Sous-domaines avec fallback paramètre pour le dev.
 

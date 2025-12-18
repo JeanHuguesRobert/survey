@@ -17,7 +17,7 @@ import "./styles/index.css";
 // Import des modules multi-instances
 import { resolveInstance, getInstance } from "./lib/instanceResolver";
 import { initSupabaseWithInstance } from "./lib/supabase";
-import { initializeConfig_Client } from "./common/config/instanceConfig.client.js";
+import { initializeInstance_Client } from "./common/config/instanceConfig.client.js";
 
 // ============================================================================
 // LOADER PENDANT L'INIT
@@ -120,7 +120,7 @@ async function bootstrap() {
     initSupabaseWithInstance(instance);
 
     // 4. Initialiser la configuration globale, not admin / no secrets
-    await initializeConfig_Client(instance.supabase, false);
+    await initializeInstance_Client(instance.supabase, false);
 
     // 5. Stocker l'instance pour accès global
     window.__OPHELIA_INSTANCE__ = instance;

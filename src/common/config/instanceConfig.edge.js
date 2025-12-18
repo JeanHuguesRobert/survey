@@ -4,7 +4,7 @@
  * Gère l'accès aux variables d'environnement Deno et l'initialisation du client Supabase.
  */
 
-import { initializeConfigCore } from "./instanceConfig.core.js";
+import { initializeInstanceCore } from "./instanceConfig.core.js";
 // Pour Deno Edge Functions, le client Supabase est généralement importé depuis un CDN ou un module spécifique à Deno.
 // Assurez-vous que cette importation est correcte pour votre environnement Deno.
 // Par exemple, si vous utilisez le client Supabase pour Deno :
@@ -35,14 +35,14 @@ export async function newSupabase() {
   return createSupabase_Edge();
 }
 
-export async function initializeConfig_Edge(supabase, admin = false) {
-  return initializeConfigCore(supabase, getenv, newSupabase);
+export async function initializeInstance_Edge(supabase, admin = false) {
+  return initializeInstanceCore(supabase, getenv, newSupabase);
 }
 
 // Edge functions should call this function very early on.
 // TODO: where should the instance be selected in the multi-instance case?
-export async function initializeConfigAdmin_Edge(supabase) {
-  return initializeConfig_Edge(supabase, true);
+export async function initializeInstanceAdmin_Edge(supabase) {
+  return initializeInstance_Edge(supabase, true);
 }
 
 // Ré-exporter tout de instanceConfig.core.js pour une utilisation facile dans les Edge Functions

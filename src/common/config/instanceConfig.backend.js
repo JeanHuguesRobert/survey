@@ -4,7 +4,7 @@
  * Gère l'accès aux variables d'environnement côté serveur et l'initialisation du client Supabase.
  */
 
-import { initializeConfigCore } from "./instanceConfig.core.js";
+import { initializeInstanceCore } from "./instanceConfig.core.js";
 import { createClient } from "@supabase/supabase-js";
 
 // Use dotenv to load .env
@@ -40,12 +40,12 @@ export async function newSupabase(admin = true) {
   return createSupabase_Backend(admin);
 }
 
-export async function initializeConfigBackend(supabase = null, admin = false) {
-  return initializeConfigCore(supabase, getenv, newSupabase, admin);
+export async function initializeInstanceBackend(supabase = null, admin = false) {
+  return initializeInstanceCore(supabase, getenv, newSupabase, admin);
 }
 
-export async function initializeConfigAdminBackend(supabase = null) {
-  return initializeConfigCore(supabase, getenv, newSupabase, true);
+export async function initializeInstanceAdminBackend(supabase = null) {
+  return initializeInstanceCore(supabase, getenv, newSupabase, true);
 }
 
 // Ré-exporter tout de instanceConfig.core.js pour une utilisation facile dans le backend
