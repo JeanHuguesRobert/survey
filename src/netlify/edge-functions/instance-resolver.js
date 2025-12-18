@@ -1,5 +1,6 @@
 // netlify/edge-functions/instance-resolver.js
-// Edge function pour résoudre l'instance à partir du sous-domaine
+// Edge function pour résoudre l'instance à partir du sous-domaine.
+// TODO: WIP
 //
 // Cette fonction :
 // 1. Extrait le sous-domaine de la requête
