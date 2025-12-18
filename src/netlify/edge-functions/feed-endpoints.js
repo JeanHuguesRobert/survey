@@ -26,7 +26,7 @@ export default async (request, context) => {
   const supabase = getSupabase();
 
   // Instance Info (for metadata)
-  const instanceName = getEnvVar("COMMUNITY_NAME") || "Corte";
+  const instanceName = getConfig("COMMUNITY_NAME", "Corte");
   const instanceUrl = url.origin;
 
   let items = [];
