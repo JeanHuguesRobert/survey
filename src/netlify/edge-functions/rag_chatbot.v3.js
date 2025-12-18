@@ -1507,6 +1507,7 @@ async function getSystemPrompt() {
   let basePrompt = `📅 **Date actuelle :** ${currentDate}\n\n`;
 
   // 1. Charge le prompt depuis l'URL publique
+  // TODO: fix key + should use localhost when appropriate
   const siteUrl = getConfig("URL") || getConfig("DEPLOY_PRIME_URL");
   const localPrompt = await fetchPublicSystemPrompt(siteUrl);
   if (localPrompt) {
@@ -1518,6 +1519,7 @@ async function getSystemPrompt() {
       basePrompt += envPrompt;
     } else {
       // 3. Fallback par défaut
+      console.warn("Bad configuration, using default prompt.");
       const city = getConfig("CITY_NAME") || "Corte";
       const movement = getConfig("MOVEMENT_NAME") || "Pertitellu";
       const bot = getConfig("BOT_NAME") || "Ophélia";
@@ -1813,6 +1815,7 @@ const handler = async (request) => {
   // 11.5. Initialise les clients
   const supabaseUrl = getConfig("SUPABASE_URL");
   const supabaseKey = getConfig("SUPABASE_SERVICE_ROLE_KEY");
+  // TODO: should NOT have super user access!
   const supabaseAdmin = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
   // Extract user from Authorization header
