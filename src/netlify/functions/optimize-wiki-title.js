@@ -19,7 +19,7 @@ export const handler = async (event) => {
       };
     }
 
-    const { apiKey: openaiApiKey, model } = await getOpenAIConfig();
+    const openaiApiKey = getConfig("openai_api_key");
     if (!openaiApiKey) {
       return {
         statusCode: 500,

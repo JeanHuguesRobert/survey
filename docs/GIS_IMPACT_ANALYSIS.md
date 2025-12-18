@@ -151,16 +151,16 @@ Depuis décembre 2025, toutes les configurations d'instance sont stockées dans 
 ```javascript
 // src/lib/instanceConfig.js - Pattern de configuration centralisée
 
-import { getConfigValue, loadConfig } from "./instanceConfig";
+import { getConfig, loadConfig } from "./instanceConfig";
 
 // Au démarrage de l'application
 await loadConfig();
 
 // Accès aux valeurs (avec fallback env vars → defaults)
-const communeInsee = getConfigValue("community_code"); // '2B096'
-const regionName = getConfigValue("region_name"); // 'Corse'
-const regionCode = getConfigValue("region_code"); // 'COR'
-const isHub = getConfigValue("is_hub") === "true";
+const communeInsee = getConfig("community_code"); // '2B096'
+const regionName = getConfig("region_name"); // 'Corse'
+const regionCode = getConfig("region_code"); // 'COR'
+const isHub = getConfig("is_hub") === "true";
 ```
 
 **Table `instance_config` :**
@@ -1181,24 +1181,24 @@ ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 ```javascript
 // src/lib/gis-federation.js - Version avec vault
 
-import { getConfigValue, loadConfig } from "./instanceConfig";
+import { getConfig, loadConfig } from "./instanceConfig";
 
 // Charger la config au démarrage
 await loadConfig();
 
 // Récupérer les valeurs de fédération
 const CURRENT_INSTANCE = {
-  url: getConfigValue("supabase_url") || import.meta.env.VITE_SUPABASE_URL,
-  name: getConfigValue("community_name"),
-  insee: getConfigValue("community_code"),
-  regionCode: getConfigValue("region_code"),
-  isHub: getConfigValue("is_hub") === "true",
-  hubType: getConfigValue("hub_type"),
-  parentHubUrl: getConfigValue("parent_hub_url"),
+  url: getConfig("supabase_url") || import.meta.env.VITE_SUPABASE_URL,
+  name: getConfig("community_name"),
+  insee: getConfig("community_code"),
+  regionCode: getConfig("region_code"),
+  isHub: getConfig("is_hub") === "true",
+  hubType: getConfig("hub_type"),
+  parentHubUrl: getConfig("parent_hub_url"),
 };
 
 // Pour les secrets (côté serveur uniquement)
-const federationApiKey = getConfigValue("federation_api_key");
+const federationApiKey = getConfig("federation_api_key");
 ```
 
 ### 8.3. Nouveau module `src/lib/gis-federation.js`
@@ -1209,7 +1209,7 @@ const federationApiKey = getConfigValue("federation_api_key");
 
 import { supabase } from "./supabase";
 import { createClient } from "@supabase/supabase-js";
-import { getConfigValue } from "./instanceConfig";
+import { getConfig } from "./instanceConfig";
 
 // ============================================================================
 // CONFIGURATION INSTANCE (depuis le vault)
@@ -1217,13 +1217,13 @@ import { getConfigValue } from "./instanceConfig";
 
 export function getCurrentInstance() {
   return {
-    url: getConfigValue("supabase_url"),
-    name: getConfigValue("community_name"),
-    insee: getConfigValue("community_code"),
-    regionCode: getConfigValue("region_code"),
-    isHub: getConfigValue("is_hub") === "true",
-    hubType: getConfigValue("hub_type"),
-    parentHubUrl: getConfigValue("parent_hub_url"),
+    url: getConfig("supabase_url"),
+    name: getConfig("community_name"),
+    insee: getConfig("community_code"),
+    regionCode: getConfig("region_code"),
+    isHub: getConfig("is_hub") === "true",
+    hubType: getConfig("hub_type"),
+    parentHubUrl: getConfig("parent_hub_url"),
   };
 }
 
@@ -1288,7 +1288,7 @@ export async function syncContributionsToHub(options = {}) {
   }
 
   // Récupérer la clé API depuis le vault si non fournie
-  const hubApiKey = apiKey || getConfigValue("federation_api_key");
+  const hubApiKey = apiKey || getConfig("federation_api_key");
 
   let totalSynced = 0;
   let totalFailed = 0;
@@ -1362,7 +1362,7 @@ export async function fetchFederatedContributions(filters = {}) {
   if (!hubUrl) return [];
 
   // Clé API depuis le vault
-  const hubApiKey = getConfigValue("federation_api_key");
+  const hubApiKey = getConfig("federation_api_key");
   const hubClient = createClient(hubUrl.instance_url, hubApiKey || hubUrl.api_key);
 
   const results = [];
@@ -1409,7 +1409,7 @@ export async function aggregateRegionalStats() {
   });
 
   const stats = {
-    region: getConfigValue("region_name") || CURRENT_INSTANCE.region,
+    region: getConfig("region_name") || CURRENT_INSTANCE.region,
     communes_count: instances?.length || 0,
     contributions_total: 0,
     alertes_zonage_total: 0,
@@ -1475,7 +1475,7 @@ export async function discoverNearbyAlerts(communeInsee, radiusKm = 50) {
 
 async function getRegionalHub() {
   // D'abord vérifier si le hub parent est configuré dans le vault
-  const parentHubUrl = getConfigValue("parent_hub_url");
+  const parentHubUrl = getConfig("parent_hub_url");
   if (parentHubUrl) {
     return { instance_url: parentHubUrl };
   }
@@ -1494,7 +1494,7 @@ async function getRegisteredInstances(filters = {}) {
     .from("federation_registry")
     .select("*")
     .eq("status", "active")
-    .eq("region_code", filters.regionCode || getConfigValue("region_code"));
+    .eq("region_code", filters.regionCode || getConfig("region_code"));
 
   if (filters.hubOnly) {
     return data?.filter((i) => i.is_hub) || [];
@@ -2532,13 +2532,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 // src/lib/epci-federation.js
 
 import { supabase } from "./supabase";
-import { getConfigValue, loadConfig } from "./instanceConfig";
+import { getConfig, loadConfig } from "./instanceConfig";
 
 // Charger la config au démarrage
 await loadConfig();
 
 // Récupérer les infos EPCI depuis le vault du hub
-const EPCI_SIREN = getConfigValue("meta_epci") || getConfigValue("community_code");
+const EPCI_SIREN = getConfig("meta_epci") || getConfig("community_code");
 
 /**
  * Récupère les données agrégées de l'EPCI
@@ -2546,7 +2546,7 @@ const EPCI_SIREN = getConfigValue("meta_epci") || getConfigValue("community_code
  */
 export async function getEpciAggregatedData(dataType) {
   // Récupérer la liste des communes depuis le vault (JSON)
-  const federationPeersJson = getConfigValue("federation_peers");
+  const federationPeersJson = getConfig("federation_peers");
   const peers = federationPeersJson ? JSON.parse(federationPeersJson) : [];
 
   const responses = [];
@@ -2570,7 +2570,7 @@ export async function getEpciAggregatedData(dataType) {
   }
 
   return {
-    epci: getConfigValue("community_name"),
+    epci: getConfig("community_name"),
     siren: EPCI_SIREN,
     dataType,
     communes: responses,
@@ -2599,7 +2599,7 @@ export async function getIntercommunalComparison(metric) {
 
   return {
     metric,
-    epci: getConfigValue("community_name"),
+    epci: getConfig("community_name"),
     comparison,
     average: totalPop > 0 ? total / totalPop : 0,
     generatedAt: new Date().toISOString(),

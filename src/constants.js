@@ -1,7 +1,7 @@
 // centralised app version (single source of truth)
 // hardcoded value is the canonical version; CI/CD can override by setting process.env.APP_VERSION at build time
-export const APP_VERSION = import.meta.env.APP_VERSION ?? "1.5.14";
-export const DEPLOY_DATE = import.meta.env.DEPLOY_DATE ?? "2025-12-14";
+export const APP_VERSION = import.meta.env.APP_VERSION ?? "1.5.17";
+export const DEPLOY_DATE = import.meta.env.DEPLOY_DATE ?? "2025-12-17";
 
 // Palette Bauhaus sombre harmonisée avec le thème CSS
 // Voir src/index.css pour la correspondance exacte
@@ -30,7 +30,7 @@ export const GOOGLE_SCRIPT_URL =
 import { getConfig as _getConfig } from "./common/config/instanceConfig.client.js";
 
 // Helper pour récupérer une config avec fallback sur la valeur initiale
-const getConfigValue = (key, envValue) => {
+const getConfig = (key, envValue) => {
   try {
     const val = _getConfig(key);
     return val !== null && val !== undefined ? val : envValue;
@@ -41,6 +41,7 @@ const getConfigValue = (key, envValue) => {
 
 // Configuration générique (commune, mouvement, liste)
 // Ces exports restent pour la rétrocompatibilité
+// TODO: enlever tout ça
 export const CITY_NAME = import.meta.env.VITE_CITY_NAME || "Corte";
 export const CITY_TAGLINE = import.meta.env.VITE_CITY_TAGLINE || "CAPITALE";
 export const MOVEMENT_NAME = import.meta.env.VITE_MOVEMENT_NAME || "Pertitellu";
@@ -74,20 +75,17 @@ export const IS_NATIONAL_HUB =
  * Utiliser ces fonctions plutôt que les constantes statiques quand possible
  */
 export const getDynamicConfig = () => ({
-  cityName: getConfigValue("community_name", CITY_NAME),
-  cityTagline: getConfigValue("community_tagline", CITY_TAGLINE),
-  movementName: getConfigValue("movement_name", MOVEMENT_NAME),
-  partyName: getConfigValue("party_name", PARTY_NAME),
-  hashtag: getConfigValue("hashtag", HASHTAG),
-  botName: getConfigValue("bot_name", BOT_NAME),
-  communityName: getConfigValue("community_name", COMMUNITY_NAME),
-  communityType: getConfigValue("community_type", COMMUNITY_TYPE),
-  regionName: getConfigValue("region_name", REGION_NAME),
-  regionCode: getConfigValue("region_code", REGION_CODE),
-  contactEmail: getConfigValue(
-    "contact_email",
-    import.meta.env.VITE_CONTACT_EMAIL || "jean_hugues_robert@yahoo.com"
-  ),
+  cityName: getConfig("community_name", CITY_NAME),
+  cityTagline: getConfig("community_tagline", CITY_TAGLINE),
+  movementName: getConfig("movement_name", MOVEMENT_NAME),
+  partyName: getConfig("party_name", PARTY_NAME),
+  hashtag: getConfig("hashtag", HASHTAG),
+  botName: getConfig("bot_name", BOT_NAME),
+  communityName: getConfig("community_name", COMMUNITY_NAME),
+  communityType: getConfig("community_type", COMMUNITY_TYPE),
+  regionName: getConfig("region_name", REGION_NAME),
+  regionCode: getConfig("region_code", REGION_CODE),
+  contactEmail: getConfig("contact_email", "jean_hugues_robert@yahoo.com"),
 });
 
 // Niveaux de portée des consultations
@@ -243,14 +241,11 @@ export const COMMUNITY_LABELS = {
 
 // Fonction utilitaire pour obtenir les libellés de la communauté actuelle
 export const getCommunityLabels = () => {
-  const type = getConfigValue("community_type", COMMUNITY_TYPE);
+  const type = getConfig("community_type", COMMUNITY_TYPE);
   return COMMUNITY_LABELS[type] || COMMUNITY_LABELS.municipality;
 };
-
-// Contact email
-export const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || "jean_hugues_robert@yahoo.com";
 
 // ============================================================================
 // RE-EXPORT du module instanceConfig pour faciliter l'accès
 // ============================================================================
-export { _getConfig as getInstanceConfig };
+export { _getConfig as getInstance };

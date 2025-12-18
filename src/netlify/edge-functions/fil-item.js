@@ -1,6 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getConfigValue } from "../../common/config/instanceConfig.edge.js";
-
+import { getConfig, getSupabase } from "../../common/config/instanceConfig.edge.js";
 export const config = { path: "/api/fil/item/*" };
 
 export default async function handler(request) {
@@ -15,9 +13,7 @@ export default async function handler(request) {
     });
   }
 
-  const supabaseUrl = getConfigValue("supabase_url");
-  const supabaseAnonKey = getConfigValue("supabase_anon_key");
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const supabase = getSupabase();
 
   // Fetch post with author
   const { data: post, error } = await supabase

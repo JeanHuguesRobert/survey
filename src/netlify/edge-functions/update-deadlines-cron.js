@@ -17,7 +17,7 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getConfigValue } from "../../common/config/instanceConfig.edge.js";
+import { getConfig } from "../../common/config/instanceConfig.edge.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,15 +51,14 @@ export default async function handler(request, context) {
 
     // Verify API key (for cron authentication)
     const apiKey = request.headers.get("x-api-key");
-    const expectedApiKey =
-      getConfigValue("cron_api_key") || getConfigValue("supabase_service_role_key");
+    const expectedApiKey = getConfig("cron_api_key") || getConfig("supabase_service_role_key");
 
     if (!apiKey || apiKey !== expectedApiKey) {
       return errorResponse("Unauthorized", 401);
     }
 
-    const supabaseUrl = getConfigValue("supabase_url");
-    const supabaseKey = getConfigValue("supabase_service_role_key");
+    const supabaseUrl = getConfig("supabase_url");
+    const supabaseKey = getConfig("supabase_service_role_key");
 
     if (!supabaseUrl || !supabaseKey) {
       return errorResponse("Missing Supabase configuration", 500);

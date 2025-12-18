@@ -11,14 +11,7 @@ import postgres from "https://deno.land/x/postgresjs/mod.js";
 import OpenAI from "https://esm.sh/openai@4";
 
 // Import instance config for vault-based configuration
-import {
-  loadInstanceConfig,
-  getConfigValue,
-  getBranding,
-  getProviderApiKey,
-  isProviderAvailable as vaultProviderAvailable,
-  getSupabaseConfig,
-} from "../../common/config/instanceConfig.edge.js";
+import { getConfig } from "../../common/config/instanceConfig.edge.js";
 
 // Import civic acts tools for municipal transparency system
 import {
@@ -1381,7 +1374,7 @@ function cosineSimilarity(a, b) {
 
 async function performWebSearch(query) {
   console.log(`[WebSearch] ➜ request query=${previewForLog(query)}`);
-  const apiKey = getConfigValue("brave_search_api_key");
+  const apiKey = getConfig("brave_search_api_key");
   if (!apiKey) {
     console.warn("[WebSearch] ⚠️ BRAVE_SEARCH_API_KEY manquant");
     return `Recherche web non configurée pour: "${query}". Réponds en t'excusant et en proposant une alternative si possible.`;
@@ -1669,10 +1662,10 @@ async function callLLMAPI({
   // GESTION SPÉCIFIQUE POUR LA CLÉ API - Vault avec fallback env automatique
   let apiKey;
   if (provider === "google") {
-    apiKey = getConfigValue("gemini_api_key");
+    apiKey = getConfig("gemini_api_key");
   } else {
     const keyName = `${provider.toLowerCase()}_api_key`;
-    apiKey = getConfigValue(keyName);
+    apiKey = getConfig(keyName);
   }
   if (!apiKey) throw new Error(`Clé API manquante pour ${provider}`);
 
@@ -2049,11 +2042,11 @@ const detectModelProvider = (model) => {
 };
 
 const PROVIDER_ENV_CHECKERS = {
-  anthropic: () => Boolean(getConfigValue("anthropic_api_key")),
-  openai: () => Boolean(getConfigValue("openai_api_key")),
-  mistral: () => Boolean(getConfigValue("mistral_api_key")),
-  huggingface: () => Boolean(getConfigValue("huggingface_api_key")),
-  google: () => Boolean(getConfigValue("gemini_api_key")),
+  anthropic: () => Boolean(getConfig("anthropic_api_key")),
+  openai: () => Boolean(getConfig("openai_api_key")),
+  mistral: () => Boolean(getConfig("mistral_api_key")),
+  huggingface: () => Boolean(getConfig("huggingface_api_key")),
+  google: () => Boolean(getConfig("gemini_api_key")),
 };
 const isProviderAvailable = (provider) => Boolean(PROVIDER_ENV_CHECKERS[provider]?.());
 
@@ -2063,8 +2056,8 @@ const isMistralCapacityError = (error) => {
 };
 
 const SHOULD_RANDOMIZE_PROVIDERS =
-  getConfigValue("disable_provider_randomization") !== true &&
-  getConfigValue("disable_provider_randomization") !== "1";
+  getConfig("disable_provider_randomization") !== true &&
+  getConfig("disable_provider_randomization") !== "1";
 const shuffleProviders = (providers) => {
   const arr = [...providers];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -2293,20 +2286,20 @@ async function getSystemPrompt() {
   let basePrompt = `📅 **Date actuelle :** ${currentDate}\n\n`;
 
   // 1. Charge le prompt depuis l'URL publique
-  const siteUrl = getConfigValue("app_url");
+  const siteUrl = getConfig("app_url");
   const localPrompt = await fetchPublicSystemPrompt(siteUrl);
   if (localPrompt) {
     basePrompt += localPrompt;
   } else {
     // 2. Fallback avec le vault ou les variables d'environnement
-    const envPrompt = getConfigValue("bob_system_prompt");
+    const envPrompt = getConfig("bob_system_prompt");
     if (envPrompt) {
       basePrompt += envPrompt;
     } else {
       // 3. Fallback par défaut (utilise le vault si disponible)
-      const city = getConfigValue("city_name");
-      const movement = getConfigValue("movement_name");
-      const bot = getConfigValue("bot_name");
+      const city = getConfig("city_name");
+      const movement = getConfig("movement_name");
+      const bot = getConfig("bot_name");
       basePrompt += `
       **Rôle :** Tu es **${bot}**, l'assistant citoyen du mouvement **${movement}** pour la commune de **${city}**.
 
@@ -2615,9 +2608,9 @@ const handler = async (request) => {
   console.log(`[EdgeFunction] 📏 System prompt: ${systemPrompt.length} caractères`);
 
   // 11.5. Initialise les clients (vault avec fallback env automatique)
-  const supabaseUrl = getConfigValue("supabase_url");
-  const supabaseKey = getConfigValue("supabase_service_role_key");
-  const supabaseAnonKey = getConfigValue("supabase_anon_key");
+  const supabaseUrl = getConfig("supabase_url");
+  const supabaseKey = getConfig("supabase_service_role_key");
+  const supabaseAnonKey = getConfig("supabase_anon_key");
   const supabaseAdmin = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
   // Extract user from Authorization header
@@ -2649,7 +2642,7 @@ const handler = async (request) => {
   // Fallback to admin client for read-only / system operations if no user
   const supabase = supabaseUser || supabaseAdmin;
 
-  const openaiApiKey = getConfigValue("openai_api_key");
+  const openaiApiKey = getConfig("openai_api_key");
   const openai = new OpenAI({ apiKey: openaiApiKey });
 
   const sanitizePostgresUrl = (value) => {
@@ -2660,7 +2653,7 @@ const handler = async (request) => {
   };
 
   const configuredPostgresUrl = sanitizePostgresUrl(
-    getConfigValue("postgres_url") || getConfigValue("database_url") || null
+    getConfig("postgres_url") || getConfig("database_url") || null
   );
   const requestPostgresUrl = sanitizePostgresUrl(
     typeof body?.postgres_url === "string"
@@ -2776,10 +2769,10 @@ const handler = async (request) => {
             // GESTION SPÉCIFIQUE POUR LA CLÉ API - Vault avec fallback env automatique
             let apiKey;
             if (provider === "google") {
-              apiKey = getConfigValue("gemini_api_key");
+              apiKey = getConfig("gemini_api_key");
             } else {
               const keyName = `${provider.toLowerCase()}_api_key`;
-              apiKey = getConfigValue(keyName);
+              apiKey = getConfig(keyName);
             }
             if (!apiKey) {
               console.log(`[EdgeFunction] ⏭️ Skipping ${provider} (no API key)`);
@@ -3023,7 +3016,7 @@ async function* runConversationalAgent({
   context = {},
 }) {
   let toolCallCount = 0;
-  const idleTimeoutMs = getConfigValue("llm_stream_timeout_ms") || 30000;
+  const idleTimeoutMs = getConfig("llm_stream_timeout_ms") || 30000;
   const agentStartMs = Date.now();
 
   let messages = [
@@ -3427,7 +3420,7 @@ async function* runConversationalAgent({
 
 async function runHuggingFaceAgent(userQuestion, systemPrompt, modelMode) {
   const provider = "huggingface";
-  const apiKey = getConfigValue("huggingface_api_key");
+  const apiKey = getConfig("huggingface_api_key");
   if (!apiKey) throw new Error("Clé API manquante pour huggingface");
 
   const model =

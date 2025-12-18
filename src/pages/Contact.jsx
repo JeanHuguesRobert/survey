@@ -9,8 +9,7 @@ export default function Contact() {
   const { config } = useInstanceConfig();
   // Email de l'éditeur du site - Information légale obligatoire (LCEN)
   // Utilise le vault si disponible, sinon fallback sur env vars
-  const email =
-    config?.contact_email || import.meta.env.VITE_CONTACT_EMAIL || "jean_hugues_robert@yahoo.com";
+  const email = config?.contact_email || "jean_hugues_robert@yahoo.com";
   const { currentUser } = useCurrentUser();
 
   const isAdmin = currentUser?.email === email;

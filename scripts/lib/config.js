@@ -4,7 +4,6 @@
 // - lit le vault (instance_config)
 // - répare les entrées dont is_secret est NULL uniquement si suspectes
 // - aligne le vault sur .env (valeurs explicites + autodécouverte whitelistée)
-// - injecte DEFAULT_VALUES en base si absents (et absents de .env)
 // - recharge le vault pour retourner un snapshot stable
 //
 // Politique secrets :
@@ -25,7 +24,7 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, "..", "..", ".env") });
 
 // ============================================================================
-// 1) MAPPINGS EXPLICITES + DEFAULTS
+// 1) MAPPINGS EXPLICITES
 // ============================================================================
 
 const ENV_KEY_MAPPING = {
@@ -89,14 +88,6 @@ const ENV_KEY_MAPPING = {
   cop_network_id: ["COP_NETWORK_ID"],
   cop_node_id: ["COP_NODE_ID"],
   cop_base_url: ["COP_BASE_URL"],
-};
-
-const DEFAULT_VALUES = {
-  supabase_storage_bucket: "public-documents",
-  openai_model: "gpt-4o-mini",
-  openai_moderation_model: "omni-moderation-latest",
-  city_name: "Corte",
-  app_url: "https://lepp.fr",
 };
 
 // ============================================================================
@@ -547,32 +538,9 @@ export async function loadConfig(forceRefresh = false) {
       }
     }
 
-    // 3) Injecter defaults -> vault si absents du vault et absents de .env explicite
-    const defaults_to_inject = {};
-    for (const [k, v] of Object.entries(DEFAULT_VALUES)) {
-      if (!hasOwn(dbConfig, k) && !hasOwn(envExplicit, k)) {
-        defaults_to_inject[k] = v;
-      }
-    }
-
-    const vars_to_upload = {};
-    for (const k of to_align_env) vars_to_upload[k] = envExplicit[k];
-    for (const [k, v] of Object.entries(defaults_to_inject)) vars_to_upload[k] = v;
-
-    if (Object.keys(vars_to_upload).length > 0) {
-      await uploadToVault(vars_to_upload);
-    }
-
     // 4) Recharger vault après sync pour snapshot stable
     const dbAfter = await loadFromVault();
     configCache = { ...dbAfter, ...envExplicit };
-
-    // 5) Dernier filet (devrait devenir inutile après quelques builds)
-    for (const [k, v] of Object.entries(DEFAULT_VALUES)) {
-      if (!hasOwn(configCache, k) || configCache[k] === null || configCache[k] === "") {
-        configCache[k] = v;
-      }
-    }
 
     vaultChecked = true;
   }
@@ -581,18 +549,18 @@ export async function loadConfig(forceRefresh = false) {
   return configCache;
 }
 
-export function getConfigValue(key, defaultValue = undefined) {
+export function getConfig(key, defaultValue = undefined) {
   if (configCache && hasOwn(configCache, key)) {
     const v = configCache[key];
     if (v !== null && v !== undefined && v !== "") return v;
   }
   if (defaultValue !== undefined) return defaultValue;
-  return DEFAULT_VALUES[key] ?? null;
+  return null;
 }
 
 export function createSupabaseClient() {
-  const url = process.env.SUPABASE_URL || getConfigValue("supabase_url");
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || getConfigValue("supabase_service_role_key");
+  const url = process.env.SUPABASE_URL || getConfig("supabase_url");
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || getConfig("supabase_service_role_key");
   if (!url || !key) throw new Error("SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY sont requis");
   return createClient(url, key, { auth: { persistSession: false } });
 }

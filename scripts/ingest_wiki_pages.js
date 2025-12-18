@@ -4,12 +4,7 @@
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
-import {
-  loadConfig,
-  getConfigValue,
-  createSupabaseClient,
-  createOpenAIClient,
-} from "./lib/config.js";
+import { loadConfig, getConfig, createSupabaseClient, createOpenAIClient } from "./lib/config.js";
 
 // Charger la configuration
 await loadConfig();
@@ -21,7 +16,7 @@ const EMBEDDING_BATCH_SIZE = 20;
 const MAX_TOKENS_PER_CHUNK = 1500;
 const MAX_EMBEDDING_TOKENS = 8000;
 const argv = process.argv.slice(2);
-const DRY_RUN = argv.includes("--dry-run") || getConfigValue("dry_run") === "1";
+const DRY_RUN = argv.includes("--dry-run") || getConfig("dry_run") === "1";
 const FORCE = argv.includes("--force");
 const RECURSIVE = argv.includes("--recursive");
 const LIMIT_IDX = argv.indexOf("--limit");

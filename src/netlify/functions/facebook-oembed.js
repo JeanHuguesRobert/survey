@@ -3,7 +3,7 @@
 // ES Module (Node) version: top-level imports for `node-fetch` and `cheerio`.
 import fetch from "node-fetch";
 import { load } from "cheerio";
-import { getFacebookConfig } from "../../common/config/instanceConfig.backend.js";
+import { getConfig } from "../../common/config/instanceConfig.backend.js";
 
 function parseUrl(raw) {
   try {
@@ -108,8 +108,9 @@ export const handler = async (event) => {
       };
     }
 
-    const { appId, clientSecret, token: configToken } = await getFacebookConfig();
-    const explicitToken = configToken;
+    const appId = getConfig("facebook_app_id");
+    const clientSecret = getConfig("facebook_app_client_secret");
+    const explicitToken = getConfig("facebook_app_access_token");
     const access_token =
       explicitToken || (appId && clientSecret ? `${appId}|${clientSecret}` : null);
     if (!access_token)

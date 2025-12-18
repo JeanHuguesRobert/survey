@@ -2,7 +2,7 @@
 // TOOLS - Définition et exécution centralisée
 // ============================================================================
 
-import { getConfigValue } from "../../../../common/config/instanceConfig.edge.js";
+import { getConfig } from "../../../../common/config/instanceConfig.edge.js";
 import { AgentExecutorService } from "../../../../common/services/AgentExecutorService.js";
 
 const agentExecutor = new AgentExecutorService();
@@ -50,7 +50,7 @@ export const TOOLS = {
  */
 async function performWebSearch(query) {
   console.log(`[WebSearch] ➜ request query=${query.slice(0, 100)}`);
-  const apiKey = getConfigValue("brave_search_api_key");
+  const apiKey = getConfig("brave_search_api_key");
   if (!apiKey) {
     console.warn("[WebSearch] ⚠️ BRAVE_SEARCH_API_KEY manquant");
     return `Recherche web non configurée pour: "${query}". Réponds en t'excusant et en proposant une alternative si possible.`;

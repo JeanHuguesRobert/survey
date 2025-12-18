@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { loadInstanceConfig, getConfigValue } from "../common/config/instanceConfig.core.js";
+import { loadInstanceConfig, getConfig } from "../common/config/instanceConfig.core.js";
 
 // A simple in-memory cache for the config to avoid re-fetching if already loaded
 let configCache = null;
@@ -45,9 +45,9 @@ export function useInstanceConfig() {
     }
   };
 
-  // Helper to get a specific config value, similar to the old getConfigValue
+  // Helper to get a specific config value
   const get = (key, defaultValue = null) => {
-    return getConfigValue(key, defaultValue);
+    return getConfig(key, defaultValue);
   };
 
   return { config, loading, error, refresh, get };

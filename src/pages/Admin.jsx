@@ -30,7 +30,7 @@ export default function Admin() {
       }
     } catch (err) {
       // Fallback: prompt to contact the admin
-      const contact = getConfig("contact_email", import.meta.env.VITE_CONTACT_EMAIL || "");
+      const contact = getConfig("contact_email");
       if (contact) {
         window.location.href = `mailto:${contact}?subject=Export%20request&body=Please%20export%20my%20data%20for%20user%20id%20${currentUser.id}`;
       } else {

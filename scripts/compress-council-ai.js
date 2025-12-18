@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import Anthropic from "@anthropic-ai/sdk";
-import { loadConfig, getConfigValue } from "./lib/config.js";
+import { loadConfig, getConfig } from "./lib/config.js";
 
 // Charger la configuration
 await loadConfig();
@@ -9,7 +9,7 @@ await loadConfig();
 const INPUT_FILE = path.resolve("public", "docs", "conseils", "conseil-consolidated.optimized.md");
 const OUTPUT_FILE = INPUT_FILE.replace(".optimized.md", ".compressed.md");
 
-const anthropic = new Anthropic({ apiKey: getConfigValue("anthropic_api_key") });
+const anthropic = new Anthropic({ apiKey: getConfig("anthropic_api_key") });
 
 // ============================================================================
 // Chunking intelligent
@@ -96,7 +96,7 @@ COMPRESSION (factuelle, aucun oubli de chiffre/vote):`;
 // ============================================================================
 
 async function main() {
-  if (!getConfigValue("anthropic_api_key")) {
+  if (!getConfig("anthropic_api_key")) {
     console.error("❌ ANTHROPIC_API_KEY manquant");
     process.exit(1);
   }

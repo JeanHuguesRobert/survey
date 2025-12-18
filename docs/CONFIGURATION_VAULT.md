@@ -20,7 +20,7 @@ Un système à trois niveaux avec fallback automatique :
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    getConfigValue("key")                │
+│                    getConfig("key")                     │
 └─────────────────────────────────────────────────────────┘
                            │
                            ▼
@@ -76,63 +76,42 @@ CREATE INDEX IF NOT EXISTS idx_instance_config_key ON instance_config(key);
 ### Pattern de base
 
 ```javascript
-import { loadConfig, getConfigValue } from "./lib/instanceConfig.js";
+import { loadConfig, getConfig } from "./lib/instanceConfig.js";
 
 // Charger la configuration (une fois au démarrage)
 await loadConfig();
 
 // Récupérer une valeur
-const apiKey = getConfigValue("openai_api_key");
+const apiKey = getConfig("openai_api_key");
 
 // Avec valeur par défaut
-const cityName = getConfigValue("city_name", "Corte");
+const cityName = getConfig("city_name", "Corte");
 ```
 
 ### Dans les scripts CLI
 
 ```javascript
-import {
-  loadConfig,
-  getConfigValue,
-  createSupabaseClient,
-  createOpenAIClient,
-} from "./lib/config.js";
+import { initializeConfig_Backend, newSupabase, getConfig } from "TODO";
 
-await loadConfig();
+await initialize();
 
 // Clients pré-configurés
-const supabase = createSupabaseClient();
-const openai = createOpenAIClient();
+const supabase = newSupabase();
 
 // Accès aux valeurs
-const model = getConfigValue("openai_heavy_model", "gpt-4o");
+const model = getConfig("openai_heavy_model", "gpt-4o");
 ```
 
 ### Dans les Netlify Functions (Node.js)
 
 ```javascript
-import { loadConfig, getConfigValue, createSupabaseClient } from "../lib/instanceConfig.js";
+import { initializeConfig_Edge, getConfig, newSupabase } from "TODO";
 
 export async function handler(event, context) {
-  await loadConfig();
+  await initializeConfig_Edge();
 
-  const supabase = createSupabaseClient();
-  const cityName = getConfigValue("city_name");
-
-  // ...
-}
-```
-
-### Dans les Edge Functions (Deno)
-
-```javascript
-import { loadConfig, getConfigValue, createSupabaseClient } from "./lib/instanceConfig.js";
-
-export default async function handler(request) {
-  await loadConfig();
-
-  const supabase = createSupabaseClient();
-  const model = getConfigValue("openai_heavy_model", "gpt-4o");
+  const supabase = newSupabase();
+  const cityName = getConfig("city_name");
 
   // ...
 }
@@ -247,7 +226,7 @@ const DEFAULT_VALUES = {
 ### 3. Utiliser dans le code
 
 ```javascript
-const maValeur = getConfigValue("ma_nouvelle_cle", "fallback");
+const maValeur = getConfig("ma_nouvelle_cle", "fallback");
 ```
 
 ---
@@ -307,7 +286,7 @@ DELETE FROM instance_config WHERE key = 'city_name';
 ```javascript
 // Vérifier que loadConfig() est appelé
 await loadConfig();
-console.log("Config loaded:", getConfigValue("city_name"));
+console.log("Config loaded:", getConfig("city_name"));
 ```
 
 ### Valeur incorrecte retournée

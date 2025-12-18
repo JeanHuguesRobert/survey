@@ -3,7 +3,7 @@
 // POST /api/ophelia
 
 import { getOpheliaAnswer } from "../edge-functions/lib/lib/getOpheliaAnswer.js";
-import { loadInstanceConfig, getConfigValue } from "../../common/config/instanceConfig.backend.js";
+import { loadInstanceConfig, getConfig } from "../../common/config/instanceConfig.backend.js";
 
 export default async (req, context) => {
   // Charger la configuration
@@ -18,7 +18,7 @@ export default async (req, context) => {
   }
 
   // 2. Authentification par clé API (header: x-api-key)
-  const API_KEY = getConfigValue("ophelia_api_key", "dev-demo-key");
+  const API_KEY = getConfig("ophelia_api_key", "dev-demo-key");
   const apiKey = req.headers.get("x-api-key");
   if (!apiKey || apiKey !== API_KEY) {
     return new Response(JSON.stringify({ error: "Unauthorized: invalid or missing API key" }), {

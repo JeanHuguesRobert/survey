@@ -8,7 +8,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import OpenAI from "https://esm.sh/openai@4";
-import { getConfigValue } from "../../common/config/instanceConfig.edge.js";
+import { getConfig } from "../../common/config/instanceConfig.edge.js";
 
 // ============================================================================
 // CONFIGURATION
@@ -251,7 +251,7 @@ export default async function handler(request) {
   // Authenticate: either cron key or user auth
   const cronKey = request.headers.get("X-Cron-Key");
   const authHeader = request.headers.get("Authorization");
-  const expectedCronKey = getConfigValue("cron_api_key");
+  const expectedCronKey = getConfig("cron_api_key");
 
   let isAuthenticated = false;
   let userId = null;
@@ -261,8 +261,8 @@ export default async function handler(request) {
     console.log("[SyncRAG] ✅ Authenticated via cron key");
   } else if (authHeader) {
     // Verify user auth
-    const supabaseUrl = getConfigValue("supabase_url");
-    const supabaseAnonKey = getConfigValue("supabase_anon_key");
+    const supabaseUrl = getConfig("supabase_url");
+    const supabaseAnonKey = getConfig("supabase_anon_key");
 
     if (supabaseUrl && supabaseAnonKey) {
       const token = authHeader.replace("Bearer ", "");
@@ -299,9 +299,9 @@ export default async function handler(request) {
   }
 
   // Initialize clients (vault first, then env)
-  const supabaseUrl = getConfigValue("supabase_url");
-  const supabaseKey = getConfigValue("supabase_service_role_key");
-  const openaiKey = getConfigValue("openai_api_key");
+  const supabaseUrl = getConfig("supabase_url");
+  const supabaseKey = getConfig("supabase_service_role_key");
+  const openaiKey = getConfig("openai_api_key");
 
   if (!supabaseUrl || !supabaseKey) {
     return new Response(JSON.stringify({ error: "Supabase not configured" }), {

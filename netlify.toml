@@ -30,6 +30,10 @@
   function = "root-redirect"
 
 [[edge_functions]]
+  path = "/api/config"
+  function = "config"
+
+[[edge_functions]]
   path = "/api/chat-stream"
   function = "rag_chatbot.v3"
 

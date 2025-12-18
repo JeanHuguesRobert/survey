@@ -10,15 +10,15 @@ import fetch from "node-fetch";
 import path from "path";
 import fs from "fs/promises";
 import os from "os";
-import { loadConfig, getConfigValue, createSupabaseClient } from "./lib/config.js";
+import { loadConfig, getConfig, createSupabaseClient } from "./lib/config.js";
 
 // Charger la configuration
 await loadConfig();
 
-const API_KEY = getConfigValue("google_filesearch_api_key") || getConfigValue("gemini_api_key");
-const SUPABASE_URL = getConfigValue("supabase_url");
-const SUPABASE_KEY = getConfigValue("supabase_service_role_key");
-const STORAGE_BUCKET = getConfigValue("supabase_storage_bucket", "public-documents");
+const API_KEY = getConfig("google_filesearch_api_key") || getConfig("gemini_api_key");
+const SUPABASE_URL = getConfig("supabase_url");
+const SUPABASE_KEY = getConfig("supabase_service_role_key");
+const STORAGE_BUCKET = getConfig("supabase_storage_bucket", "public-documents");
 
 if (!API_KEY || !SUPABASE_URL || !SUPABASE_KEY) {
   console.error("❌ Error: Missing required environment variables");

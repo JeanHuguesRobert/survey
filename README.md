@@ -426,31 +426,7 @@ leur engagement concret pour la transparence **avant même d'être élues**.
 Le projet utilise un système de configuration centralisé qui permet de :
 
 - Stocker la configuration en base de données (table `instance_config`)
-- Avoir un fallback automatique vers les variables d'environnement
 - Gérer des valeurs par défaut cohérentes
-
-### Ordre de priorité
-
-1. **Vault** (base de données Supabase)
-2. **Variables d'environnement** (`.env` ou Netlify)
-3. **Valeurs par défaut** (définies dans le code)
-
-### Modules disponibles
-
-- `src/lib/instanceConfig.js` — Frontend React
-- `netlify/lib/instanceConfig.js` — Netlify Functions (Node.js)
-- `netlify/edge-functions/lib/instanceConfig.js` — Edge Functions (Deno)
-- `scripts/lib/config.js` — Scripts CLI
-
-### Utilisation
-
-```javascript
-import { loadConfig, getConfigValue } from "./lib/instanceConfig.js";
-
-await loadConfig();
-const apiKey = getConfigValue("openai_api_key");
-const cityName = getConfigValue("city_name", "Corte");
-```
 
 Voir `docs/CONFIGURATION_VAULT.md` pour la documentation complète.
 
@@ -511,8 +487,6 @@ pour faciliter les évolutions futures :
 }
 ```
 
-Pensez à configurer les règles RLS (Row Level Security) selon vos besoins.
-
 </details>
 
 <details>
@@ -525,11 +499,9 @@ netlify dev
 # Build de production
 npm run build
 
-# Lister les variables d'environnement
+# Lister les variables d'environnement (nécessaires pour les connexion Supabase)
 netlify env:list
 
-# Migrations Supabase
-supabase db diff
 ```
 
 </details>

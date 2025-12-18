@@ -23,7 +23,7 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getConfigValue } from "../../common/config/instanceConfig.edge.js";
+import { getConfig } from "../../common/config/instanceConfig.edge.js";
 import { isAdmin as permIsAdmin, getUserRole } from "./lib/permissions.js";
 
 // ============================================================================
@@ -823,8 +823,8 @@ export default async function handler(request, context) {
 
   try {
     // Initialize Supabase
-    const supabaseUrl = getConfigValue("supabase_url");
-    const supabaseKey = getConfigValue("supabase_service_role_key");
+    const supabaseUrl = getConfig("supabase_url");
+    const supabaseKey = getConfig("supabase_service_role_key");
 
     if (!supabaseUrl || !supabaseKey) {
       return errorResponse("Missing Supabase configuration", 500);

@@ -54,8 +54,7 @@ export default function RGPDSettings() {
 
   // Utiliser le vault pour l'email de contact
   const { config } = useInstanceConfig();
-  const contactEmail =
-    config?.contact_email || import.meta.env.VITE_CONTACT_EMAIL || "jean_hugues_robert@yahoo.com";
+  const contactEmail = config?.contact_email || "jean_hugues_robert@yahoo.com";
 
   useEffect(() => {
     if (currentUser?.id) {

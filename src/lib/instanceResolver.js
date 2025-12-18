@@ -14,37 +14,10 @@
 // ============================================================================
 
 // Domaine de base pour la détection des sous-domaines
-const BASE_DOMAINS = [
-  "transparence.corsica",
-  "transparence-corte.fr",
-  "transparence-commune.fr",
-  "kudocracy.org",
-];
+const BASE_DOMAINS = ["lepp.fr", "kudocracy.org"];
 
 // Sous-domaines à ignorer (pas des instances)
 const IGNORED_SUBDOMAINS = ["www", "app", "api", "admin", "staging", "preview"];
-
-// ============================================================================
-// REGISTRE STATIQUE (fallback si registre central indisponible)
-// ============================================================================
-
-// Ce registre peut être généré au build ou chargé dynamiquement
-// Format : { subdomain: { supabaseUrl, supabaseAnonKey, displayName, metadata } }
-const STATIC_REGISTRY = {
-  // Instance par défaut (Corte)
-  corte: {
-    subdomain: "corte",
-    displayName: "Ville de Corte",
-    supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-    supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-    metadata: {
-      insee: "2B096",
-      type: "municipality",
-      region: "COR",
-    },
-  },
-  // Ajouter d'autres instances ici ou charger dynamiquement
-};
 
 // ============================================================================
 // ÉTAT GLOBAL
@@ -170,14 +143,6 @@ async function lookupInstance(subdomain) {
   if (remoteInstance) {
     return remoteInstance;
   }
-
-  // 2. Fallback sur le registre statique
-  if (STATIC_REGISTRY[subdomain]) {
-    console.log(`📦 Instance trouvée dans registre statique: ${subdomain}`);
-    return STATIC_REGISTRY[subdomain];
-  }
-
-  // 3. Non trouvé
   console.warn(`⚠️ Instance non trouvée: ${subdomain}`);
   return null;
 }
@@ -230,15 +195,7 @@ function getDefaultInstance() {
 
   if (!supabaseUrl || !supabaseAnonKey) {
     console.error("❌ VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY requis");
-    return {
-      subdomain: "default",
-      displayName: "Instance par défaut",
-      supabaseUrl: null,
-      supabaseAnonKey: null,
-      isDefault: true,
-      isConfigured: false,
-      source: "default",
-    };
+    return null;
   }
 
   return {

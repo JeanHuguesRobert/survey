@@ -1,5 +1,6 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getConfigValue } from "../../common/config/instanceConfig.edge.js";
+// src/netlify/edge-functions/fil-vote.js
+
+import { getConfig, getSupabase } from "../../common/config/instanceConfig.edge.js";
 
 export default async (request, context) => {
   // Handle CORS preflight
@@ -18,17 +19,7 @@ export default async (request, context) => {
   }
 
   try {
-    const supabaseUrl = getConfigValue("supabase_url");
-    const supabaseKey = getConfigValue("supabase_service_role_key");
-
-    if (!supabaseUrl || !supabaseKey) {
-      return new Response(JSON.stringify({ error: "Missing Supabase configuration" }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = getSupabase();
 
     // Get the user from the request authorization header
     const authHeader = request.headers.get("Authorization");

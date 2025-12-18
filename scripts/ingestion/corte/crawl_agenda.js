@@ -1,6 +1,6 @@
 import * as cheerio from "cheerio";
 import { createClient } from "@supabase/supabase-js";
-import { loadConfig, getConfigValue } from "../../../lib/config.js";
+import { loadConfig, getConfig } from "../../../lib/config.js";
 import {
   fetchAndStoreRawDocument,
   ensureSource,
@@ -11,10 +11,10 @@ import {
 // Load config
 await loadConfig();
 
-const SUPABASE_URL = getConfigValue("supabase_url");
-const SUPABASE_SERVICE_ROLE_KEY = getConfigValue("supabase_service_role_key");
+const SUPABASE_URL = getConfig("supabase_url");
+const SUPABASE_SERVICE_ROLE_KEY = getConfig("supabase_service_role_key");
 const AGENDA_URL =
-  getConfigValue("MAIRIE_AGENDA_URL") ||
+  getConfig("MAIRIE_AGENDA_URL") ||
   "https://www.mairie-corte.fr/modules.php?name=Calendrier&op=listemanifs";
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {

@@ -1,4 +1,4 @@
-# Architecture Multi-Instance Ophélia
+# Architecture Multi-Instance Ophélia, Work In Progress (WIP)
 
 ## Vue d'ensemble
 
@@ -487,10 +487,11 @@ CREATE TABLE instance_config (
 ### Utilisation côté JavaScript
 
 ```javascript
-import { loadInstanceConfig, getConfig, isFeatureEnabled } from "./lib/instanceConfig";
+import { initializeConfig_Client, getConfig, isFeatureEnabled } from "TODO";
 
-// Au démarrage de l'app
-await loadInstanceConfig();
+// Au démarrage de l'app. Utiliser initializeConfig_Backend() or initializeConfig_Edge()
+// when running as Netlify functions. Use _initializeConfigAdmin_XXXX() when needed.
+await initializeConfig_Client();
 
 // Lecture d'une config
 const communityName = getConfig("community_name", "Corte");
@@ -508,8 +509,7 @@ const { config, loading } = useInstanceConfig();
 
 ✅ **Un seul endroit** pour toute la config ✅ **UI admin** possible pour modifier sans déploiement
 ✅ **Audit trail** avec versioning et previous_value ✅ **RLS sécurisé** : secrets protégés par rôle
-admin ✅ **Cache intelligent** : TTL de 5 minutes ✅ **Fallback .env** : compatibilité si DB
-indisponible
+admin ✅ **Cache intelligent** : TTL de 5 minutes
 
 ---
 
@@ -522,19 +522,18 @@ Le wiki doit être personnalisé par communauté :
 - Contenu spécifique (pages, délibérations)
 - Historique Git des modifications
 - Backup externe (hors Supabase)
-- Possibilité de contribution via PR
 
 ### Solution : Un repo Git par communauté
 
 ```
-Organisation GitHub: CORSICA-Association (ou JeanHuguesRobert)
+Organisation GitHub: JeanHuguesRobert/Survey
 │
 ├── survey (code source commun)
 │   ├── src/
 │   ├── supabase/
 │   └── public/
 │
-├── ophelia-wiki-corte
+├── ophelia-bastia
 │   ├── pages/
 │   │   ├── accueil.md
 │   │   ├── conseil-municipal/
@@ -542,14 +541,14 @@ Organisation GitHub: CORSICA-Association (ou JeanHuguesRobert)
 │   └── assets/
 │       └── images/
 │
-├── ophelia-wiki-universite-corse
+├── ophelia-universite-corse
 │   ├── pages/
 │   │   ├── accueil.md
 │   │   ├── conseil-administration/
 │   │   └── vie-etudiante/
 │   └── assets/
 │
-└── ophelia-wiki-copro-marina
+└── ophelia-copro-marina
     ├── pages/
     └── assets/
 ```
@@ -588,45 +587,15 @@ INSERT INTO instance_config (key, value, category, is_secret) VALUES
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-1. **Modification dans Supabase** (via UI) → Push automatique vers GitHub
-2. **Modification dans GitHub** (PR/commit) → Webhook déclenche sync vers DB
-3. **Les embeddings RAG** sont recalculés après chaque sync
-
-### Script de sync (edge function)
-
-```javascript
-// netlify/functions/sync-wiki-to-github.js
-import { Octokit } from "@octokit/rest";
-
-export async function handler(event) {
-  const { page_id, content, path } = JSON.parse(event.body);
-
-  // Récupérer le token depuis le vault
-  const { data: token } = await supabase.rpc("get_instance_config", {
-    p_key: "github_token",
-  });
-
-  const octokit = new Octokit({ auth: token });
-
-  // Push vers GitHub
-  await octokit.repos.createOrUpdateFileContents({
-    owner: "CORSICA-Association",
-    repo: "ophelia-wiki-corte",
-    path: `pages/${path}.md`,
-    message: `Update ${path} via Ophélia`,
-    content: Buffer.from(content).toString("base64"),
-    branch: "main",
-  });
-
-  return { statusCode: 200 };
-}
-```
+1. **Modification dans Supabase** (via UI) → Push à la demande vers GitHub
+2. **Modification dans GitHub** (PR/commit) → TODO: Webhook déclenche sync vers DB
+3. **Les embeddings RAG** TODO: sont recalculés après chaque sync
 
 ---
 
 ## 4. Déploiement d'une nouvelle instance
 
-### Étapes automatisables
+### TODO: Étapes automatisables
 
 ```bash
 # 1. Créer le projet Supabase
@@ -672,46 +641,9 @@ Tout le reste est dans la table `instance_config` !
 
 ## 5. UI Admin pour le Vault
 
-### Page `/admin/config`
+### TODO: Page `/admin/config`
 
-```jsx
-// src/pages/admin/InstanceConfig.jsx
-import { useInstanceConfig, updateConfigs } from "../../lib/instanceConfig";
-
-export default function InstanceConfigAdmin() {
-  const { config, loading, refresh } = useInstanceConfig();
-  const [updates, setUpdates] = useState({});
-
-  const categories = ["identity", "branding", "features", "chatbot", "map"];
-
-  const handleSave = async () => {
-    const result = await updateConfigs(updates);
-    if (result.success) {
-      toast.success("Configuration sauvegardée");
-      refresh();
-    }
-  };
-
-  return (
-    <div className="admin-config">
-      <h1>Configuration de l'instance</h1>
-
-      {categories.map((cat) => (
-        <ConfigSection
-          key={cat}
-          category={cat}
-          values={config}
-          onChange={(key, value) => setUpdates((u) => ({ ...u, [key]: value }))}
-        />
-      ))}
-
-      <button onClick={handleSave}>Sauvegarder</button>
-    </div>
-  );
-}
-```
-
-### Avantages de l'UI
+### TODO: Avantages de l'UI
 
 - Modifier les configs **sans redéployer**
 - Activer/désactiver des features en temps réel
@@ -727,7 +659,7 @@ export default function InstanceConfigAdmin() {
 1. **RLS strict** : seuls les admins lisent `is_secret = true`
 2. **Vue masquée** : `instance_config_admin` affiche `***HIDDEN***`
 3. **Pas de logs** : les secrets ne sont jamais loggés
-4. **Chiffrement optionnel** : pgcrypto disponible pour at-rest
+4. **Chiffrement optionnel** : TODO: pgcrypto disponible pour at-rest
 
 ### Audit trail
 
@@ -744,43 +676,8 @@ ORDER BY version DESC;
 ## 7. Migration depuis .env
 
 > **Important** : Avec l'architecture multi-instances, les variables d'environnement sont réduites
-> au strict minimum. Seules `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY` sont nécessaires, le
-> reste vient du vault.
-
-### Script de migration
-
-```javascript
-// scripts/migrate-env-to-vault.js
-import { createClient } from "@supabase/supabase-js";
-import dotenv from "dotenv";
-
-dotenv.config();
-
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-
-const mappings = {
-  VITE_COMMUNITY_NAME: "community_name",
-  VITE_COMMUNITY_TYPE: "community_type",
-  VITE_CITY_TAGLINE: "community_tagline",
-  VITE_COMMUNE_INSEE: "community_code",
-  VITE_MOVEMENT_NAME: "movement_name",
-  VITE_BOT_NAME: "bot_name",
-  VITE_HASHTAG: "hashtag",
-  // ... autres mappings
-};
-
-async function migrate() {
-  for (const [envKey, configKey] of Object.entries(mappings)) {
-    const value = process.env[envKey];
-    if (value) {
-      await supabase.from("instance_config").update({ value }).eq("key", configKey);
-      console.log(`✓ ${configKey} = ${value}`);
-    }
-  }
-}
-
-migrate();
-```
+> au strict minimum. Seules `SUPABASE_URL` et `SUPABASE_ANON_KEY` sont nécessaires, le reste vient
+> du vault. Plus `SUPABASE_SERVICE_ROLE_KEY`, seulement pour l'adminitration.
 
 ---
 
@@ -792,7 +689,7 @@ migrate();
 | -------------------- | ---------------------------- | ------------------- | --------------------------- |
 | **Sous-domaines** ✅ | `corte.transparence.corsica` | SEO, isolation, pro | Config DNS                  |
 | **Paramètre URL**    | `?instance=corte`            | Simple              | URLs moches, perte du param |
-| **Path-based**       | `/corte/accueil`             | Un domaine          | Conflits routes             |
+|  |
 
 **Recommandation** : Sous-domaines avec fallback paramètre pour le dev.
 
@@ -824,7 +721,7 @@ migrate();
 │                    ▼                                                │
 │  5. Chargement du Vault                                             │
 │     → loadConfig() depuis instance_config                           │
-│     → getConfigValue('community_name') → "Corte"                    │
+│     → getConfig('community_name') → "Corte"                         │
 │                    │                                                │
 │                    ▼                                                │
 │  6. Rendu React                                                     │

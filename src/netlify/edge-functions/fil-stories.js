@@ -1,5 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getConfigValue } from "../../common/config/instanceConfig.edge.js";
+import { getConfig, getSupabase } from "../../common/config/instanceConfig.edge.js";
 
 export const config = { path: "/api/fil/stories" };
 
@@ -9,9 +8,7 @@ export default async function handler(request) {
   const limit = Math.min(parseInt(url.searchParams.get("limit") || "30"), 100);
   const pretty = url.searchParams.get("print") === "pretty";
 
-  const supabaseUrl = getConfigValue("supabase_url");
-  const supabaseAnonKey = getConfigValue("supabase_anon_key");
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const supabase = getSupabase();
 
   let query = supabase
     .from("posts")

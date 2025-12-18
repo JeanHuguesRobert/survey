@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { getConfigValue } from "../../common/config/instanceConfig.backend.js";
+import { getConfig } from "../../common/config/instanceConfig.backend.js";
 
 // This function expects the following env vars set in Netlify:
 // - SUPABASE_URL
@@ -12,8 +12,8 @@ export const handler = async (event) => {
 
   // Charger la configuration
   await loadInstanceConfig();
-  const supabaseUrl = getConfigValue("supabase_url");
-  const supabaseKey = getConfigValue("supabase_service_role_key");
+  const supabaseUrl = getConfig("supabase_url");
+  const supabaseKey = getConfig("supabase_service_role_key");
   if (!supabaseUrl || !supabaseKey) {
     return { statusCode: 500, body: "Server misconfiguration: missing Supabase keys" };
   }
@@ -40,7 +40,7 @@ export const handler = async (event) => {
   }
 
   // Validate that requestorId matches the auth user id for the contact email
-  const contactEmail = getConfigValue("contact_email");
+  const contactEmail = getConfig("contact_email");
   if (!contactEmail) {
     return { statusCode: 500, body: "Server misconfiguration: missing contact email" };
   }

@@ -1,20 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
-import { GITHUB_CONFIG } from "../functions/constants.js";
-import {
-  loadInstanceConfig,
-  getConfigValue,
-  getOpenAIConfig,
-} from "../../common/config/instanceConfig.backend.js";
+import { loadInstanceConfig, getConfig } from "../../common/config/instanceConfig.backend.js";
 
 // Supabase client initialisé de façon lazy
 let _supabase = null;
 function getSupabase() {
   if (!_supabase) {
-    _supabase = createClient(
-      getConfigValue("supabase_url"),
-      getConfigValue("supabase_service_role_key")
-    );
+    _supabase = createClient(getConfig("supabase_url"), getConfig("supabase_service_role_key"));
   }
   return _supabase;
 }
@@ -24,7 +16,8 @@ function getSupabase() {
 // ============================================================================
 
 async function generatePageSummary(pageContent, pageTitle) {
-  const { apiKey, model } = await getOpenAIConfig();
+  const apiKey = getConfig("openai_api_key");
+  const model = getConfig("openai_model");
   if (!apiKey) {
     console.warn("OPENAI_API_KEY manquant pour la génération de résumé.");
     return null;
@@ -171,6 +164,7 @@ export default async (req, context) => {
     const content = frontmatter + page.content;
 
     // 4. Commit sur GitHub
+    const wikiPath = getConfig("");
     const filePath = `${GITHUB_CONFIG.wikiPath}/${page.slug}.md`;
     const commitSha = await commitToGitHub(filePath, content, page.title);
 
@@ -258,7 +252,10 @@ export default async (req, context) => {
 };
 
 async function commitToGitHub(path, content, title) {
-  const { owner, repo, branch, token } = GITHUB_CONFIG;
+  const owner = getConfig("github_wiki_owner");
+  const repo = getConfig("github_wiki_repo");
+  const branch = getConfig("github_wiki_branch") || "main";
+  const token = getConfig("github_wiki_token");
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
 
   // 1. Vérifier si le fichier existe déjà

@@ -7,18 +7,19 @@
 import { initializeConfigCore } from "./instanceConfig.core.js";
 import { createClient } from "@supabase/supabase-js";
 
+// Use dotenv to load .env
+import dotenv from "dotenv";
+dotenv.config();
+
 // Fonction pour récupérer les variables d'environnement côté backend (Node.js)
-const getEnvValueBackend = (key) => {
-  // process.env est la manière standard d'accéder aux variables d'environnement en Node.js
-  // Nous utilisons une convention de nommage pour les variables d'environnement
-  const envKey = key.toUpperCase(); // Les variables d'environnement sont souvent en majuscules
-  return process.env[envKey] || null;
-};
+function getenv(key) {
+  return process.env[key];
+}
 
 // Fonction pour créer une instance Supabase côté backend
-const createSupabaseClientBackend = () => {
-  const supabaseUrl = getEnvValueBackend("SUPABASE_URL");
-  const supabaseServiceRoleKey = getEnvValueBackend("SUPABASE_SERVICE_ROLE_KEY"); // Utilisation de la clé de rôle de service pour le backend
+const createSupabase_Backend = (admin = true) => {
+  const supabaseUrl = getenv("SUPABASE_URL");
+  const supabaseServiceRoleKey = getenv("SUPABASE_SERVICE_ROLE_KEY");
 
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     console.warn(
@@ -27,19 +28,25 @@ const createSupabaseClientBackend = () => {
     return null;
   }
 
+  if (!admin) {
+    // TODO: handle non admin connections
+    console.warn("Should create a non admin supabase connection.");
+  }
   // Pour le backend, il est courant d'utiliser la clé de rôle de service pour des opérations privilégiées
   return createClient(supabaseUrl, supabaseServiceRoleKey);
 };
 
-// Instance Supabase (peut être null si les clés ne sont pas disponibles)
-const supabaseClientInstance = createSupabaseClientBackend();
+export async function newSupabase(admin = true) {
+  return createSupabase_Backend(admin);
+}
 
-// Initialiser le module de configuration core avec les fonctions spécifiques au backend
-initializeConfigCore({
-  getEnvValue: getEnvValueBackend,
-  createSupabaseClient: createSupabaseClientBackend,
-  supabaseInstance: supabaseClientInstance,
-});
+export async function initializeConfigBackend(supabase = null, admin = false) {
+  return initializeConfigCore(supabase, getenv, newSupabase, admin);
+}
+
+export async function initializeConfigAdminBackend(supabase = null) {
+  return initializeConfigCore(supabase, getenv, newSupabase, true);
+}
 
 // Ré-exporter tout de instanceConfig.core.js pour une utilisation facile dans le backend
 export * from "./instanceConfig.core.js";

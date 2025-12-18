@@ -1,5 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 
+import {
+  getConfig as getInstanceConfig,
+  getAllConfigKeys as getAllInstanceConfigKeys,
+} from "../common/config/instanceConfig.core.js";
+
 // ============================================================================
 // SUPABASE DYNAMIQUE MULTI-INSTANCES
 // ============================================================================
@@ -107,6 +112,7 @@ export function initSupabaseWithInstance(instanceConfig) {
     instanceConfig.supabaseAnonKey,
     instanceConfig.subdomain || "default"
   );
+  instanceConfig.supabase = supabseInstance;
 
   console.log(
     `✅ Supabase initialisé pour: ${instanceConfig.displayName || instanceConfig.subdomain}`
@@ -118,6 +124,7 @@ export function initSupabaseWithInstance(instanceConfig) {
       subdomain: instanceConfig.subdomain,
       displayName: instanceConfig.displayName,
       source: instanceConfig.source,
+      supabase: supabaseInstance,
     };
   }
 
@@ -158,24 +165,6 @@ export async function initSupabase() {
 }
 
 // ============================================================================
-// COMPATIBILITÉ : EXPORT SYNCHRONE
-// ============================================================================
-
-// Pour la compatibilité avec le code existant, on crée un client par défaut
-// Ce client sera remplacé par initSupabase() au démarrage de l'app
-
-const defaultUrl = import.meta.env.VITE_SUPABASE_URL;
-const defaultAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-// Client par défaut (sera remplacé par initSupabase au boot)
-const defaultClient =
-  defaultUrl && defaultAnonKey ? createLoggingClient(defaultUrl, defaultAnonKey, "default") : null;
-
-// Export synchrone pour compatibilité
-// ATTENTION: Préférer getSupabase() après initSupabase()
-export const supabase = defaultClient;
-
-// ============================================================================
 // ACCESSEURS
 // ============================================================================
 
@@ -186,11 +175,6 @@ export const supabase = defaultClient;
  */
 export function getSupabase() {
   if (!supabaseInstance) {
-    // Fallback sur le client par défaut
-    if (defaultClient) {
-      console.warn("⚠️ Utilisation du client Supabase par défaut (initSupabase non appelé)");
-      return defaultClient;
-    }
     throw new Error("Supabase non initialisé. Appeler initSupabase() d'abord.");
   }
   return supabaseInstance;
@@ -200,7 +184,7 @@ export function getSupabase() {
  * Récupère la configuration de l'instance actuelle
  * @returns {Object|null}
  */
-export function getInstanceConfig() {
+export function getInstance() {
   return currentInstanceConfig;
 }
 
@@ -232,7 +216,18 @@ export function resetSupabase() {
 /**
  * Hook to get current authenticated user (deprecated - use useSupabase context instead)
  */
-export function useAuth() {
+export function deprecated_useAuth() {
   console.warn("useAuth is deprecated. Use useSupabase context instead.");
   return { user: null, loading: false };
+}
+
+export function getConfig(key) {
+  if (!currentInstanceConfig) {
+    throw new Error("Instance non configurée. Appeler initSupabase() d'abord.");
+  }
+  return getInstanceConfig(key);
+}
+
+export function getAllConfigKeys() {
+  return getAllInstanceConfigKeys();
 }

@@ -499,14 +499,16 @@ export default function SiteFooter({
           return;
         }
 
-        const res = await fetch("/api/site-config");
+        const res = await fetch("/api/config");
         if (!res.ok) {
           if (mounted) setSiteConfig(null);
           return;
         }
         const json = await res.json();
         if (!mounted) return;
-        setSiteConfig(json.site_config || null);
+        // Debug log
+        console.log("SiteFooter: siteConfig", json);
+        setSiteConfig(json || null);
       } catch (e) {
         // ignore
       } finally {

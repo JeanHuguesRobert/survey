@@ -4,21 +4,13 @@ import { InferenceClient } from "@huggingface/inference";
 import fs from "fs";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
-import {
-  getBranding,
-  getOpenAIConfig,
-  loadInstanceConfig,
-  getConfigValue,
-} from "../../common/config/instanceConfig.backend.js";
+import { getConfig, loadInstanceConfig } from "../../common/config/instanceConfig.backend.js";
 
 // Supabase client initialisé de façon lazy
 let _supabase = null;
 function getSupabase() {
   if (!_supabase) {
-    _supabase = createClient(
-      getConfigValue("supabase_url"),
-      getConfigValue("supabase_service_role_key")
-    );
+    _supabase = createClient(getConfig("supabase_url"), getConfig("supabase_service_role_key"));
   }
   return _supabase;
 }
@@ -36,27 +28,29 @@ const resolveModel = (alias) => MODEL_ALIASES[alias] || alias;
 
 async function getShareSystemPrompt() {
   // Utiliser le vault pour les valeurs de branding
-  const branding = await getBranding();
-  const { botName, cityName, movementName, partyName, hashtag } = branding;
+  const botName = getConfig("bot_name");
+  const cityName = getConfig("city_name");
+  const movementName = getConfig("movement_name");
+  const partyName = getConfig("party_name");
+  const hashtag = getConfig("hashtag");
 
   return `Tu es l'assistant citoyen ${botName} du mouvement/parti ${movementName} (${partyName}) ${hashtag} pour la commune de ${cityName}. Ton rôle est d'aider à rédiger des messages de partage concis et engageants pour les réseaux sociaux. Le message doit être adapté à la plateforme de destination et au contenu de la page Wiki. Réponds uniquement avec le texte de partage généré, sans fioritures ni explications supplémentaires.`;
 }
 
 async function runOpenAIAgent({ prompt }) {
   // Utiliser le vault pour la config OpenAI
-  const openaiConfig = await getOpenAIConfig();
-  const apiKey = openaiConfig.apiKey;
+  const apiKey = getConfig("openai_api_key");
   console.log("OpenAI API Key (first 5 chars):", apiKey ? apiKey.substring(0, 5) : "Not set");
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY manquant");
   }
 
-  const model = openaiConfig.model;
+  const model = getConfig("openai_model") || "gpt-4o-mini";
   console.log("OpenAI Model:", model);
 
   console.log(`[OpenAI] Démarrage avec modèle: ${model}`);
 
-  const client = new OpenAI({ apiKey, baseURL: openaiConfig.baseUrl });
+  const client = new OpenAI({ apiKey, baseURL: getConfig("openai_base_url") });
 
   try {
     const response = await client.chat.completions.create({

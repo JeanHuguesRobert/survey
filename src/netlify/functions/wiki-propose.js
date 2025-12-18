@@ -1,10 +1,8 @@
 import {
   loadInstanceConfig,
-  getFederationConfig,
-  getConfigValue,
-  getSecret,
+  newSupabase,
+  getConfig,
 } from "../../common/config/instanceConfig.backend.js";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import wikiFederation from "../../lib/wikiFederation.js";
 
 export default async (req, context) => {
@@ -20,10 +18,7 @@ export default async (req, context) => {
     if (!slug) return new Response(JSON.stringify({ error: "slug required" }), { status: 400 });
 
     // Ensure page exists locally
-    const supabaseUrl = getConfigValue("supabase_url") || process.env.SUPABASE_URL;
-    const supabaseRoleKey =
-      getConfigValue("supabase_service_role_key") || process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const localSupabase = createSupabaseClient(supabaseUrl, supabaseRoleKey);
+    const localSupabase = await newSupabase();
     const { data: local, error: findErr } = await localSupabase
       .from("wiki_pages")
       .select("*")
@@ -34,7 +29,7 @@ export default async (req, context) => {
 
     // Mark as proposed upstream locally and optionally notify parent
     // Prefer vault-stored secret (server-side) for secure forwarding
-    const parentApiKeyVault = await getSecret("parent_hub_api_key");
+    const parentApiKeyVault = await getConfig("parent_hub_api_key");
     // For security, do NOT trust client-provided API keys. Only use vault-stored or env var keys.
     const parentApiKey = parentApiKeyVault || process.env.PARENT_HUB_API_KEY || null;
     const res = await wikiFederation.proposeToParent({

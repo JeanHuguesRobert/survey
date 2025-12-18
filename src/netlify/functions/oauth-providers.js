@@ -1,5 +1,5 @@
 import { PROVIDERS } from "../edge-functions/lib/lib/oauthProviders.js";
-import { loadInstanceConfig, getConfigValue } from "../../common/config/instanceConfig.backend.js";
+import { loadInstanceConfig, getConfig } from "../../common/config/instanceConfig.backend.js";
 
 export const handler = async (event) => {
   await loadInstanceConfig();
@@ -10,7 +10,7 @@ export const handler = async (event) => {
     // Check if the Client ID environment variable is set and not empty
     // Map the env var name to our config key format (e.g., GITHUB_CLIENT_ID -> github_client_id)
     const configKey = conf.clientIdEnv.toLowerCase();
-    if (getConfigValue(configKey)) {
+    if (getConfig(configKey)) {
       enabledProviders.push({
         id: key,
         name: conf.name,

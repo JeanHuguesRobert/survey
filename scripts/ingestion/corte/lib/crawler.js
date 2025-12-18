@@ -1,13 +1,13 @@
 import crypto from "crypto";
 import axios from "axios";
 import { createClient } from "@supabase/supabase-js";
-import { loadConfig, getConfigValue } from "../../../lib/config.js";
+import { loadConfig, getConfig } from "../../../lib/config.js";
 
 // Load configuration
 await loadConfig();
 
-const SUPABASE_URL = getConfigValue("supabase_url");
-const SUPABASE_SERVICE_ROLE_KEY = getConfigValue("supabase_service_role_key");
+const SUPABASE_URL = getConfig("supabase_url");
+const SUPABASE_SERVICE_ROLE_KEY = getConfig("supabase_service_role_key");
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");

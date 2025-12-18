@@ -1,7 +1,7 @@
 import { PROVIDERS } from "../edge-functions/lib/lib/oauthProviders.js";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
-import { loadInstanceConfig, getConfigValue } from "../../common/config/instanceConfig.backend.js";
+import { loadInstanceConfig, getConfig } from "../../common/config/instanceConfig.backend.js";
 
 export const handler = async (event) => {
   // Charger la configuration
@@ -17,7 +17,7 @@ export const handler = async (event) => {
     };
   }
 
-  const appBaseUrl = getConfigValue("app_base_url", "http://localhost:8888");
+  const appBaseUrl = getConfig("app_base_url", "http://localhost:8888");
   const redirectUri = `${appBaseUrl}${conf.redirectPath}`;
 
   // Enforce Authorization header (Supabase session access token)
@@ -29,8 +29,8 @@ export const handler = async (event) => {
   const accessToken = authHeader.split(" ")[1];
 
   // Validate session token and extract user id
-  const SUPABASE_URL = getConfigValue("supabase_url");
-  const SUPABASE_SERVICE_ROLE_KEY = getConfigValue("supabase_service_role_key");
+  const SUPABASE_URL = getConfig("supabase_url");
+  const SUPABASE_SERVICE_ROLE_KEY = getConfig("supabase_service_role_key");
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return {
       statusCode: 500,
@@ -97,7 +97,7 @@ export const handler = async (event) => {
   // Get client_id using the config key format (e.g., GITHUB_CLIENT_ID -> github_client_id)
   const clientIdConfigKey = conf.clientIdEnv.toLowerCase();
   const params = new URLSearchParams({
-    client_id: getConfigValue(clientIdConfigKey),
+    client_id: getConfig(clientIdConfigKey),
     redirect_uri: redirectUri,
     response_type: "code",
     scope: conf.scopes.join(" "),

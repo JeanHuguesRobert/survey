@@ -10,7 +10,7 @@ import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
-import { loadConfig, getConfigValue, createSupabaseClient } from "./lib/config.js";
+import { loadConfig, getConfig, createSupabaseClient } from "./lib/config.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,7 +21,7 @@ await loadConfig();
 // Supabase client
 const supabase = createSupabaseClient();
 
-const STORAGE_BUCKET = getConfigValue("supabase_storage_bucket", "public-documents");
+const STORAGE_BUCKET = getConfig("supabase_storage_bucket", "public-documents");
 const SUPPORTED_EXTENSIONS = [
   ".txt",
   ".md",

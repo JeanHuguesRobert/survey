@@ -1,6 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getConfigValue } from "../../common/config/instanceConfig.edge.js";
-
+import { getConfig, getSupabase } from "../../common/config/instanceConfig.edge.js";
 export const config = { path: "/api/rag/ingest" };
 
 export default async function handler(request) {
@@ -21,8 +19,8 @@ export default async function handler(request) {
   }
 
   const token = authHeader.slice(7);
-  const supabaseUrl = getConfigValue("supabase_url");
-  const supabaseAnonKey = getConfigValue("supabase_anon_key");
+  const supabaseUrl = getConfig("supabase_url");
+  const supabaseAnonKey = getConfig("supabase_anon_key");
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: `Bearer ${token}` } },
   });

@@ -5,7 +5,7 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 import fs from "fs";
 import path from "path";
-import { loadConfig, getConfigValue, createSupabaseClient } from "./lib/config.js";
+import { loadConfig, getConfig, createSupabaseClient } from "./lib/config.js";
 
 // Charger la configuration
 await loadConfig();
@@ -25,8 +25,8 @@ const MAX_PAGES_PER_CATEGORY = 100;
 const COOLDOWN_HOURS = 24;
 const OUT_FILE_PATH = path.join(process.cwd(), "public", "docs", "cortideri.md");
 
-const SUPABASE_URL = getConfigValue("supabase_url");
-const SUPABASE_SERVICE_ROLE_KEY = getConfigValue("supabase_service_role_key");
+const SUPABASE_URL = getConfig("supabase_url");
+const SUPABASE_SERVICE_ROLE_KEY = getConfig("supabase_service_role_key");
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");

@@ -1,13 +1,14 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getEnvVar } from "./lib/env-utils.js";
 
 export default async (request, context) => {
   const url = new URL(request.url);
   const path = url.pathname;
 
   // Environment variables are available via context or Deno.env
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("VITE_SUPABASE_URL");
+  const SUPABASE_URL = getEnvVar("SUPABASE_URL") || getEnvVar("VITE_SUPABASE_URL");
   const SUPABASE_ANON_KEY =
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("VITE_SUPABASE_ANON_KEY");
+    getEnvVar("SUPABASE_SERVICE_ROLE_KEY") || getEnvVar("VITE_SUPABASE_ANON_KEY");
 
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     return new Response(JSON.stringify({ error: "Missing Supabase configuration" }), {

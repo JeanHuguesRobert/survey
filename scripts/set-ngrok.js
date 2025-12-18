@@ -4,15 +4,15 @@
 
 import ngrok from "ngrok";
 import minimist from "minimist";
-import { loadConfig, getConfigValue } from "./lib/config.js";
+import { loadConfig, getConfig } from "./lib/config.js";
 
 // Charger la configuration
 await loadConfig();
 
 const argv = minimist(process.argv.slice(2));
-const PORT = argv.port || getConfigValue("port", 8888);
-const SUPABASE_URL = getConfigValue("supabase_url");
-const SERVICE_KEY = getConfigValue("supabase_service_role_key");
+const PORT = argv.port || getConfig("port", 8888);
+const SUPABASE_URL = getConfig("supabase_url");
+const SERVICE_KEY = getConfig("supabase_service_role_key");
 if (!SUPABASE_URL || !SERVICE_KEY) {
   console.error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required.");
   process.exit(1);
@@ -49,10 +49,10 @@ async function patchSiteConfig({ enabled, url }) {
 
 async function notifyDeployedControl() {
   const controlUrl =
-    getConfigValue("deployed_control_url") ||
-    ((getConfigValue("app_base_url") || getConfigValue("deploy_url")) &&
-      `${(getConfigValue("app_base_url") || getConfigValue("deploy_url")).replace(/\/$/, "")}/.netlify/functions/ngrok-control`);
-  const secret = getConfigValue("ngrok_control_secret");
+    getConfig("deployed_control_url") ||
+    ((getConfig("app_base_url") || getConfig("deploy_url")) &&
+      `${(getConfig("app_base_url") || getConfig("deploy_url")).replace(/\/$/, "")}/.netlify/functions/ngrok-control`);
+  const secret = getConfig("ngrok_control_secret");
   if (!controlUrl || !secret) {
     console.log("No deployed control URL or NGROK_CONTROL_SECRET set; skipping deployed notify.");
     return;

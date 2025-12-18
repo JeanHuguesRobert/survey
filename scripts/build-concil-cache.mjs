@@ -1,14 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { loadConfig, getConfigValue } from "./lib/config.js";
+import { loadConfig, getConfig } from "./lib/config.js";
 
 // Charger la configuration
 await loadConfig();
 
 const COUNCIL_ROOT_DIR = path.resolve("public", "docs", "conseils");
 const OUTPUT_FILE = path.join(COUNCIL_ROOT_DIR, "conseil-consolidated.md");
-const COUNCIL_MAX_CHARS = Number(getConfigValue("council_max_chars", 500_000));
+const COUNCIL_MAX_CHARS = Number(getConfig("council_max_chars", 500_000));
 const COUNCIL_FILE_EXT = new Set([".md", ".txt"]);
 
 function* walkDir(dirAbs) {
