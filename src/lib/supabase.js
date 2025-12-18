@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { resolveInstance } from "./instanceResolver.js";
 
 import {
   getConfig as getInstanceConfig,
@@ -147,9 +148,6 @@ export async function initSupabase() {
   }
 
   initPromise = (async () => {
-    // Import dynamique pour éviter les dépendances circulaires
-    const { resolveInstance } = await import("./instanceResolver.js");
-
     const instance = await resolveInstance();
 
     if (!instance.isConfigured && !instance.supabaseUrl) {
