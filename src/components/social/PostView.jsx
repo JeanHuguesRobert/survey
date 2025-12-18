@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { isDeleted, getMetadata } from "../../lib/metadata";
 import {
   getPostTitle,
@@ -87,7 +87,7 @@ export default function PostView({ currentUser }) {
       setError(null);
 
       // Charger le post
-      const { data: postData, error: postError } = await supabase
+      const { data: postData, error: postError } = await getSupabase()
         .from("posts")
         .select("*, users(id, display_name, metadata)")
         .eq("id", id)
@@ -108,7 +108,7 @@ export default function PostView({ currentUser }) {
       // Charger le groupe si le post appartient à un groupe
       const groupId = getPostGroupId(postData);
       if (groupId) {
-        const { data: groupData } = await supabase
+        const { data: groupData } = await getSupabase()
           .from("groups")
           .select("*")
           .eq("id", groupId)
@@ -123,14 +123,14 @@ export default function PostView({ currentUser }) {
       if (hasLinkedEntity(postData)) {
         const linked = getLinkedEntity(postData);
         if (linked.type === "wiki_page") {
-          const { data } = await supabase
+          const { data } = await getSupabase()
             .from("wiki_pages")
             .select("id, title")
             .eq("id", linked.id)
             .single();
           setLinkedEntity({ type: "wiki_page", data });
         } else if (linked.type === "proposition") {
-          const { data } = await supabase
+          const { data } = await getSupabase()
             .from("propositions")
             .select("id, title")
             .eq("id", linked.id)
@@ -149,7 +149,7 @@ export default function PostView({ currentUser }) {
   async function trackView() {
     // Incrémenter le compteur de vues (sans attendre la réponse)
     try {
-      const { data: currentPost } = await supabase
+      const { data: currentPost } = await getSupabase()
         .from("posts")
         .select("metadata")
         .eq("id", id)
@@ -157,7 +157,7 @@ export default function PostView({ currentUser }) {
 
       if (currentPost) {
         const updated = incrementViewCount(currentPost);
-        await supabase.from("posts").update({ metadata: updated.metadata }).eq("id", id);
+        await getSupabase().from("posts").update({ metadata: updated.metadata }).eq("id", id);
       }
     } catch (err) {
       console.error("Error tracking view:", err);
@@ -166,7 +166,7 @@ export default function PostView({ currentUser }) {
 
   async function loadSubPosts() {
     try {
-      const { data, error: fetchError } = await supabase
+      const { data, error: fetchError } = await getSupabase()
         .from("posts")
         .select("*, users(id, display_name, metadata), comments(count)")
         .eq("metadata->>parent_id", id)
@@ -197,7 +197,7 @@ export default function PostView({ currentUser }) {
     if (!confirm("Êtes-vous sûr de vouloir supprimer ce post ?")) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from("posts")
         .update({
           metadata: {

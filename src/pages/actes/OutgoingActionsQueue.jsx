@@ -6,7 +6,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { useSupabase } from "../../contexts/SupabaseContext";
 import SiteFooter from "../../components/layout/SiteFooter";
 
@@ -440,12 +440,12 @@ export default function OutgoingActionsQueue() {
   // Fetch actions
   useEffect(() => {
     const fetchActions = async () => {
-      if (!supabase) return;
+      if (!getSupabase()) return;
 
       setLoading(true);
 
       try {
-        let query = supabase
+        let query = getSupabase()
           .from("v_actions_pending")
           .select("*")
           .order("priority", { ascending: true })
@@ -455,7 +455,7 @@ export default function OutgoingActionsQueue() {
           // Pour PENDING, on utilise la vue déjà filtrée
           // Pour les autres statuts, on requête directement la table
           if (filter !== "PENDING") {
-            query = supabase
+            query = getSupabase()
               .from("outgoing_action")
               .select(
                 `
@@ -498,7 +498,7 @@ export default function OutgoingActionsQueue() {
     if (!user?.id) return;
 
     try {
-      const { error: rpcError } = await supabase.rpc("approve_outgoing_action", {
+      const { error: rpcError } = await getSupabase().rpc("approve_outgoing_action", {
         p_action_id: actionId,
         p_validator_id: user.id,
         p_note: note || null,
@@ -519,7 +519,7 @@ export default function OutgoingActionsQueue() {
     if (!user?.id) return;
 
     try {
-      const { error: rpcError } = await supabase.rpc("reject_outgoing_action", {
+      const { error: rpcError } = await getSupabase().rpc("reject_outgoing_action", {
         p_action_id: actionId,
         p_validator_id: user.id,
         p_reason: reason,
@@ -540,7 +540,7 @@ export default function OutgoingActionsQueue() {
     if (!user?.id) return;
 
     try {
-      const { error: rpcError } = await supabase.rpc("mark_action_sent", {
+      const { error: rpcError } = await getSupabase().rpc("mark_action_sent", {
         p_action_id: actionId,
         p_sender_id: user.id,
         p_method: method,

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import SiteFooter from "../components/layout/SiteFooter";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { useVoiceInterface } from "../hooks/useVoiceInterface";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 
 export default function CafePage() {
   const { currentUser } = useCurrentUser();
@@ -101,7 +101,7 @@ export default function CafePage() {
   // 3. Realtime Subscription (Supabase)
   useEffect(() => {
     if (!session) return;
-    const channel = supabase
+    const channel = getSupabase()
       .channel(`cop-${session.id}`)
       .on(
         "postgres_changes",
@@ -140,7 +140,7 @@ export default function CafePage() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      getSupabase().removeChannel(channel);
     };
   }, [session, participant]);
 

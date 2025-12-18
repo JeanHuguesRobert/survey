@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 
 export default function ShareDialog({ post, onShare, onCancel }) {
   const [gazettes, setGazettes] = useState([]);
@@ -9,7 +9,7 @@ export default function ShareDialog({ post, onShare, onCancel }) {
   useEffect(() => {
     async function load() {
       try {
-        const { data } = await supabase
+        const { data } = await getSupabase()
           .from("posts")
           .select("metadata->>gazette as gazette")
           .not("metadata->>gazette", "is", null)

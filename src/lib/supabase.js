@@ -112,7 +112,7 @@ export function initSupabaseWithInstance(instanceConfig) {
     instanceConfig.supabaseAnonKey,
     instanceConfig.subdomain || "default"
   );
-  instanceConfig.supabase = supabseInstance;
+  instanceConfig.supabase = supabaseInstance;
 
   console.log(
     `✅ Supabase initialisé pour: ${instanceConfig.displayName || instanceConfig.subdomain}`

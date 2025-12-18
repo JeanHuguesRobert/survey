@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { useSupabase } from "../contexts/SupabaseContext";
 import IframeViewer from "../components/collector/IframeViewer";
 import CollectorPanel from "../components/collector/CollectorPanel";
@@ -29,7 +29,7 @@ export function DataCollector() {
     }
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from("collected_data")
         .select("*")
         .eq("user_id", user.id)
@@ -61,7 +61,7 @@ export function DataCollector() {
       }
 
       try {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from("collected_data")
           .insert([
             {
@@ -93,7 +93,7 @@ export function DataCollector() {
   // Update data
   const handleUpdateData = useCallback(async (id, newValue) => {
     try {
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from("collected_data")
         .update({
           value: newValue,
@@ -115,7 +115,7 @@ export function DataCollector() {
   // Remove data
   const handleRemoveData = useCallback(async (id) => {
     try {
-      const { error } = await supabase.from("collected_data").delete().eq("id", id);
+      const { error } = await getSupabase().from("collected_data").delete().eq("id", id);
 
       if (error) throw error;
 
@@ -131,7 +131,7 @@ export function DataCollector() {
     if (!confirm("Êtes-vous sûr de vouloir tout effacer ?")) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from("collected_data")
         .delete()
         .eq("user_id", user.id)

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { createGroupMetadata, appendOrMergeLastModifiedBy } from "../../lib/socialMetadata";
 import { getDisplayName } from "../../lib/userDisplay";
 
@@ -76,7 +76,7 @@ export default function MissionForm({ mission = null, currentUser }) {
 
       if (isEditing) {
         // Update existing mission (group)
-        const { error: updateError } = await supabase
+        const { error: updateError } = await getSupabase()
           .from("groups")
           .update({
             name: formData.title,
@@ -90,7 +90,7 @@ export default function MissionForm({ mission = null, currentUser }) {
         navigate(`/missions/${mission.id}`);
       } else {
         // Create new mission (group)
-        const { data: newMission, error: insertError } = await supabase
+        const { data: newMission, error: insertError } = await getSupabase()
           .from("groups")
           .insert({
             name: formData.title,
@@ -104,15 +104,17 @@ export default function MissionForm({ mission = null, currentUser }) {
         if (insertError) throw insertError;
 
         // Add creator as organizer (member)
-        await supabase.from("group_members").insert({
-          group_id: newMission.id,
-          user_id: currentUser.id,
-          metadata: {
-            role: "organizer",
-            status: "confirmed",
-            schemaVersion: 1,
-          },
-        });
+        await getSupabase()
+          .from("group_members")
+          .insert({
+            group_id: newMission.id,
+            user_id: currentUser.id,
+            metadata: {
+              role: "organizer",
+              status: "confirmed",
+              schemaVersion: 1,
+            },
+          });
 
         navigate(`/missions/${newMission.id}`);
       }

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import PropositionCard from "./PropositionCard";
 import { useCurrentUser } from "../../lib/useCurrentUser";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 
 export default function PropositionList() {
   const { currentUser } = useCurrentUser();
@@ -17,7 +17,7 @@ export default function PropositionList() {
 
   useEffect(() => {
     console.log("PropositionList: Component mounted, initializing...");
-    if (!supabase) {
+    if (!getSupabase()) {
       console.log("PropositionList: Supabase client not yet available, waiting...");
       return undefined;
     }
@@ -25,7 +25,7 @@ export default function PropositionList() {
     loadTags();
     loadPropositions(true);
     console.log("PropositionList: Setting up real-time subscription...");
-    const subscription = supabase
+    const subscription = getSupabase()
       .channel("propositions_changes")
       .on(
         "postgres_changes",
@@ -45,16 +45,16 @@ export default function PropositionList() {
   }, [retryCount]);
 
   const loadTags = async () => {
-    if (!supabase) return;
-    const { data, error } = await supabase.from("tags").select("*").order("name");
+    if (!getSupabase()) return;
+    const { data, error } = await getSupabase().from("tags").select("*").order("name");
     if (!error && data) {
       setTags(data);
     }
   };
 
   const loadPropositions = async (showSpinner = false) => {
-    console.log("PropositionList: loadPropositions called, supabase available:", !!supabase);
-    if (!supabase) {
+    console.log("PropositionList: loadPropositions called, supabase available:", !!getSupabase());
+    if (!getSupabase()) {
       console.warn("PropositionList: Supabase client not available");
       setError("Connexion à la base de données non disponible");
       setLoading(false);
@@ -69,7 +69,7 @@ export default function PropositionList() {
       const startTime = Date.now();
       // First try a simple query without joins
       console.log("PropositionList: Trying simple query first...");
-      const { data: simpleData, error: simpleError } = await supabase
+      const { data: simpleData, error: simpleError } = await getSupabase()
         .from("propositions")
         .select("id, title, status, created_at")
         .eq("status", "active")
@@ -79,7 +79,7 @@ export default function PropositionList() {
         data: simpleData,
         error: simpleError,
       });
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from("propositions")
         .select(
           `
@@ -109,7 +109,7 @@ export default function PropositionList() {
       // Check if propositions exist but don't have status = 'active'
       if (data && data.length === 0) {
         console.log("PropositionList: No active propositions found, checking all propositions...");
-        const { data: allProps, error: allError } = await supabase
+        const { data: allProps, error: allError } = await getSupabase()
           .from("propositions")
           .select("id, title, status, created_at")
           .order("created_at", { ascending: false })

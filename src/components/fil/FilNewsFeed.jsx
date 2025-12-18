@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 
 /**
  * Compact news feed component showing recent Fil items.
@@ -13,7 +13,7 @@ export default function FilNewsFeed({ limit = 5 }) {
   useEffect(() => {
     async function fetchItems() {
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from("posts")
         .select("id, metadata, created_at")
         .ilike("metadata->>type", "fil_%")

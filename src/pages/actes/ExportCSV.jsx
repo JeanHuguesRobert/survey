@@ -6,7 +6,7 @@
 
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { useSupabase } from "../../contexts/SupabaseContext";
 import SiteFooter from "../../components/layout/SiteFooter";
 
@@ -252,7 +252,7 @@ export default function ExportCSV() {
       const entityConfig = EXPORT_ENTITIES[entity];
 
       // Build query
-      let query = supabase.from(entityConfig.table).select(selectedColumns.join(","));
+      let query = getSupabase().from(entityConfig.table).select(selectedColumns.join(","));
 
       // Apply filters
       if (dateFrom) {

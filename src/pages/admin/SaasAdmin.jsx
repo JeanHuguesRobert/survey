@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import { getUserRole, ROLE_ADMIN } from "../../lib/permissions";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import SiteFooter from "../../components/layout/SiteFooter";
 
 // Communes du Centre Corse (pilote)
@@ -53,7 +53,7 @@ export default function SaasAdmin() {
   async function loadInstances() {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from("saas_instances")
         .select("*")
         .order("created_at", { ascending: false });

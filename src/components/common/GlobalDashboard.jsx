@@ -4,7 +4,7 @@ import { useCurrentUser } from "../../lib/useCurrentUser.js";
 import { Link } from "react-router-dom";
 import { getTaskTitleFromPost } from "../../lib/taskHelpers.js";
 import { TASK_STATUS_LABELS } from "../../lib/taskMetadata.js";
-import { supabase } from "../../lib/supabase.js";
+import { getSupabase } from "../../lib/supabase.js";
 import {
   BarChart,
   Bar,
@@ -51,7 +51,7 @@ export default function GlobalDashboard() {
   }, [currentUser]);
 
   const fetchDashboardData = async () => {
-    if (!supabase || !currentUser?.id) {
+    if (!getSupabase() || !currentUser?.id) {
       setMissionInvolvement([]);
       setTaskAssignments([]);
       return;
@@ -78,30 +78,36 @@ export default function GlobalDashboard() {
         tasksAssignedRes,
         tasksAssignedListRes,
       ] = await Promise.all([
-        supabase.from("propositions").select("id", { count: "exact" }).eq("author_id", userId),
-        supabase.from("votes").select("id", { count: "exact" }).eq("user_id", userId),
-        supabase.from("delegations").select("id", { count: "exact" }).eq("delegator_id", userId),
-        supabase.from("wiki_pages").select("id", { count: "exact" }).eq("author_id", userId),
-        supabase.from("posts").select("id", { count: "exact" }).eq("author_id", userId),
-        supabase.from("comments").select("id", { count: "exact" }).eq("user_id", userId),
-        supabase.from("chat_interactions").select("id", { count: "exact" }).eq("user_id", userId),
-        supabase.from("group_members").select("group_id").eq("user_id", userId),
-        supabase
+        getSupabase().from("propositions").select("id", { count: "exact" }).eq("author_id", userId),
+        getSupabase().from("votes").select("id", { count: "exact" }).eq("user_id", userId),
+        getSupabase()
+          .from("delegations")
+          .select("id", { count: "exact" })
+          .eq("delegator_id", userId),
+        getSupabase().from("wiki_pages").select("id", { count: "exact" }).eq("author_id", userId),
+        getSupabase().from("posts").select("id", { count: "exact" }).eq("author_id", userId),
+        getSupabase().from("comments").select("id", { count: "exact" }).eq("user_id", userId),
+        getSupabase()
+          .from("chat_interactions")
+          .select("id", { count: "exact" })
+          .eq("user_id", userId),
+        getSupabase().from("group_members").select("group_id").eq("user_id", userId),
+        getSupabase()
           .from("groups")
           .select("id", { count: "exact", head: true })
           .eq("created_by", userId)
           .eq("metadata->>type", "mission"),
-        supabase
+        getSupabase()
           .from("posts")
           .select("id", { count: "exact", head: true })
           .eq("author_id", userId)
           .eq("metadata->>type", "task"),
-        supabase
+        getSupabase()
           .from("posts")
           .select("id", { count: "exact", head: true })
           .eq("metadata->>type", "task")
           .contains("metadata->task_details->assignees", [userId]),
-        supabase
+        getSupabase()
           .from("posts")
           .select("id, content, metadata, updated_at")
           .eq("metadata->>type", "task")
@@ -134,7 +140,7 @@ export default function GlobalDashboard() {
       let missionsJoined = 0;
       if (missionMemberships.length > 0) {
         const groupIds = missionMemberships.map((row) => row.group_id);
-        const { data: missionGroups, error: missionGroupsError } = await supabase
+        const { data: missionGroups, error: missionGroupsError } = await getSupabase()
           .from("groups")
           .select("id, name, metadata")
           .in("id", groupIds);
@@ -170,7 +176,7 @@ export default function GlobalDashboard() {
 
         let projectMap = {};
         if (projectIds.length > 0) {
-          const { data: taskProjects, error: taskProjectsError } = await supabase
+          const { data: taskProjects, error: taskProjectsError } = await getSupabase()
             .from("groups")
             .select("id, name")
             .in("id", projectIds);
@@ -254,38 +260,38 @@ export default function GlobalDashboard() {
   };
 
   const fetchRecentActivity = async (userId) => {
-    if (!supabase) {
+    if (!getSupabase()) {
       return;
     }
 
     try {
       // Fetch recent items from all tables
       const [propositions, wikiPages, posts, comments, chatInteractions] = await Promise.all([
-        supabase
+        getSupabase()
           .from("propositions")
           .select("id, title, created_at")
           .eq("author_id", userId)
           .order("created_at", { ascending: false })
           .limit(5),
-        supabase
+        getSupabase()
           .from("wiki_pages")
           .select("id, title, created_at")
           .eq("author_id", userId)
           .order("created_at", { ascending: false })
           .limit(5),
-        supabase
+        getSupabase()
           .from("posts")
           .select("id, content, created_at")
           .eq("author_id", userId)
           .order("created_at", { ascending: false })
           .limit(5),
-        supabase
+        getSupabase()
           .from("comments")
           .select("id, content, created_at")
           .eq("user_id", userId)
           .order("created_at", { ascending: false })
           .limit(5),
-        supabase
+        getSupabase()
           .from("chat_interactions")
           .select("id, question, created_at")
           .eq("user_id", userId)

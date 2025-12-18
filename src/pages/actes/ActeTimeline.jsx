@@ -6,7 +6,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import SiteFooter from "../../components/layout/SiteFooter";
 
 // ============================================================================
@@ -191,7 +191,7 @@ export default function ActeTimeline() {
   // Fetch data
   useEffect(() => {
     const fetchData = async () => {
-      if (!supabase) return;
+      if (!getSupabase()) return;
 
       setLoading(true);
 
@@ -200,7 +200,7 @@ export default function ActeTimeline() {
 
         if (id) {
           // Single acte timeline
-          const { data: acteData, error: acteError } = await supabase
+          const { data: acteData, error: acteError } = await getSupabase()
             .from("acte")
             .select("*, acte_version(*)")
             .eq("id", id)
@@ -249,7 +249,7 @@ export default function ActeTimeline() {
           }
 
           // Demandes liées
-          const { data: demandes } = await supabase
+          const { data: demandes } = await getSupabase()
             .from("demande_admin")
             .select("*")
             .eq("acte_id", id)
@@ -283,7 +283,7 @@ export default function ActeTimeline() {
           });
 
           // Preuves liées
-          const { data: proofs } = await supabase
+          const { data: proofs } = await getSupabase()
             .from("proof")
             .select("*")
             .eq("acte_id", id)
@@ -302,7 +302,7 @@ export default function ActeTimeline() {
           since.setDate(since.getDate() - ZOOM_LEVELS[zoomLevel].days);
 
           // Recent actes
-          const { data: actes } = await supabase
+          const { data: actes } = await getSupabase()
             .from("acte")
             .select("id, titre, created_at, date_transmission, date_affichage")
             .gte("created_at", since.toISOString())
@@ -319,7 +319,7 @@ export default function ActeTimeline() {
           });
 
           // Recent demandes
-          const { data: demandes } = await supabase
+          const { data: demandes } = await getSupabase()
             .from("demande_admin")
             .select("id, type_demande, objet, date_envoi, created_at")
             .gte("created_at", since.toISOString())

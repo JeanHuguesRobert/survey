@@ -6,7 +6,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import SiteFooter from "../../components/layout/SiteFooter";
 
 // ============================================================================
@@ -168,7 +168,7 @@ export default function StatsDashboard() {
   // Fetch stats
   useEffect(() => {
     const fetchStats = async () => {
-      if (!supabase) return;
+      if (!getSupabase()) return;
 
       setLoading(true);
 
@@ -179,7 +179,7 @@ export default function StatsDashboard() {
           : null;
 
         // Actes stats
-        const { data: actes, count: actesTotal } = await supabase
+        const { data: actes, count: actesTotal } = await getSupabase()
           .from("acte")
           .select("id, type_acte, statut, created_at", { count: "exact" });
 
@@ -200,7 +200,7 @@ export default function StatsDashboard() {
           }, {}) || {};
 
         // Demandes stats
-        const { data: demandes, count: demandesTotal } = await supabase
+        const { data: demandes, count: demandesTotal } = await getSupabase()
           .from("demande_admin")
           .select("id, type_demande, statut, date_limite_reponse, created_at", { count: "exact" });
 
@@ -238,7 +238,7 @@ export default function StatsDashboard() {
         });
 
         // Proofs stats
-        const { data: proofs, count: proofsTotal } = await supabase
+        const { data: proofs, count: proofsTotal } = await getSupabase()
           .from("proof")
           .select("id, verified_at", { count: "exact" });
 

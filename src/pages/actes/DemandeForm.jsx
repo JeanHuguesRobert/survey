@@ -6,7 +6,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { useSupabase } from "../../contexts/SupabaseContext";
 import SiteFooter from "../../components/layout/SiteFooter";
 
@@ -173,9 +173,9 @@ export default function DemandeForm() {
   // Fetch collectivites on mount
   useEffect(() => {
     const fetchCollectivites = async () => {
-      if (!supabase) return;
+      if (!getSupabase()) return;
 
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from("collectivite")
         .select("id, nom, code_insee")
         .order("nom");
@@ -193,9 +193,9 @@ export default function DemandeForm() {
   // Fetch actes for linking
   useEffect(() => {
     const fetchActes = async () => {
-      if (!supabase || !formData.collectivite_id) return;
+      if (!getSupabase() || !formData.collectivite_id) return;
 
-      let query = supabase
+      let query = getSupabase()
         .from("v_actes_current")
         .select("id, numero_interne, objet_court, date_acte, type_acte")
         .eq("collectivite_id", formData.collectivite_id)
@@ -216,9 +216,9 @@ export default function DemandeForm() {
   // Fetch linked acte info if provided
   useEffect(() => {
     const fetchLinkedActe = async () => {
-      if (!linkedActeId || !supabase) return;
+      if (!linkedActeId || !getSupabase()) return;
 
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from("v_actes_current")
         .select("id, collectivite_id, numero_interne, objet_court")
         .eq("id", linkedActeId)
@@ -239,12 +239,12 @@ export default function DemandeForm() {
   // Fetch existing demande if editing
   useEffect(() => {
     const fetchDemande = async () => {
-      if (!isEditing || !supabase || !id) return;
+      if (!isEditing || !getSupabase() || !id) return;
 
       setLoadingData(true);
 
       try {
-        const { data, error: fetchError } = await supabase
+        const { data, error: fetchError } = await getSupabase()
           .from("demande_admin")
           .select("*")
           .eq("id", id)
@@ -338,7 +338,7 @@ export default function DemandeForm() {
       };
 
       if (isEditing) {
-        const { error: updateError } = await supabase
+        const { error: updateError } = await getSupabase()
           .from("demande_admin")
           .update(payload)
           .eq("id", id);
@@ -350,7 +350,7 @@ export default function DemandeForm() {
       } else {
         payload.created_by = user.id;
 
-        const { data, error: insertError } = await supabase
+        const { data, error: insertError } = await getSupabase()
           .from("demande_admin")
           .insert(payload)
           .select("id")

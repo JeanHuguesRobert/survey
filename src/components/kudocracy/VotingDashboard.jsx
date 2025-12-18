@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import {
   BarChart,
   Bar,
@@ -25,7 +25,7 @@ export default function VotingDashboard() {
   useEffect(() => {
     loadStats();
 
-    const subscription = supabase
+    const subscription = getSupabase()
       .channel("votes_changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "votes" }, () => {
         loadStats();
@@ -41,14 +41,14 @@ export default function VotingDashboard() {
     setLoading(true);
 
     const [propositionsRes, votesRes, delegationsRes, usersRes, tagsRes] = await Promise.all([
-      supabase
+      getSupabase()
         .from("propositions")
         .select("*, proposition_tags(tag:tags(*))")
         .eq("status", "active"),
-      supabase.from("votes").select("*"),
-      supabase.from("delegations").select("*"),
-      supabase.from("users").select("id"),
-      supabase.from("tags").select("*"),
+      getSupabase().from("votes").select("*"),
+      getSupabase().from("delegations").select("*"),
+      getSupabase().from("users").select("id"),
+      getSupabase().from("tags").select("*"),
     ]);
 
     if (

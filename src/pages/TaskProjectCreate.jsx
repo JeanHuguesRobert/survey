@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { DEFAULT_WORKFLOW_STATES } from "../lib/taskMetadata";
 import SiteFooter from "../components/layout/SiteFooter";
@@ -44,7 +44,7 @@ export default function TaskProjectCreate() {
     async function loadMissions() {
       try {
         setMissionsLoading(true);
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from("groups")
           .select("id, name, metadata")
           .eq("metadata->>type", "mission")
@@ -82,7 +82,7 @@ export default function TaskProjectCreate() {
       setError(null);
 
       // Create group with task_project type
-      const { data: project, error: createError } = await supabase
+      const { data: project, error: createError } = await getSupabase()
         .from("groups")
         .insert({
           name: name.trim(),
@@ -122,14 +122,16 @@ export default function TaskProjectCreate() {
       if (createError) throw createError;
 
       // Add creator as member
-      const { error: memberError } = await supabase.from("group_members").insert({
-        group_id: project.id,
-        user_id: currentUser.id,
-        metadata: {
-          role: "admin",
-          joined_at: new Date().toISOString(),
-        },
-      });
+      const { error: memberError } = await getSupabase()
+        .from("group_members")
+        .insert({
+          group_id: project.id,
+          user_id: currentUser.id,
+          metadata: {
+            role: "admin",
+            joined_at: new Date().toISOString(),
+          },
+        });
 
       if (memberError) {
         console.error("Error adding creator as member:", memberError);
@@ -146,7 +148,7 @@ export default function TaskProjectCreate() {
           linked_task_project_ids: Array.from(new Set([...existingProjectIds, project.id])),
         };
 
-        const { error: missionUpdateError } = await supabase
+        const { error: missionUpdateError } = await getSupabase()
           .from("groups")
           .update({ metadata: updatedMissionMetadata })
           .eq("id", linkedMissionId);

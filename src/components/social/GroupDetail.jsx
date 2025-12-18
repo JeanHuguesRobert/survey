@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { isDeleted, getMetadata } from "../../lib/metadata";
 import { getGroupType } from "../../lib/socialMetadata";
 import { detectGazetteAssignments } from "../../lib/gazetteAssignments";
@@ -44,7 +44,7 @@ export default function GroupDetail({ currentUser }) {
       setError(null);
 
       // Charger le groupe
-      const { data: groupData, error: groupError } = await supabase
+      const { data: groupData, error: groupError } = await getSupabase()
         .from("groups")
         .select("*")
         .eq("id", id)
@@ -58,7 +58,7 @@ export default function GroupDetail({ currentUser }) {
       setGroup(groupData);
 
       // Charger les membres
-      const { data: membersData, error: membersError } = await supabase
+      const { data: membersData, error: membersError } = await getSupabase()
         .from("group_members")
         .select("*, users(id, display_name, metadata)")
         .eq("group_id", id);
@@ -85,7 +85,7 @@ export default function GroupDetail({ currentUser }) {
 
       // Charger les posts du groupe et des gazettes associées
       const postQueries = [
-        supabase
+        getSupabase()
           .from("posts")
           .select("*, users(id, display_name, metadata)")
           .eq("metadata->>groupId", id)
@@ -95,7 +95,7 @@ export default function GroupDetail({ currentUser }) {
 
       gazetteAssignments.forEach((gazetteName) => {
         postQueries.push(
-          supabase
+          getSupabase()
             .from("posts")
             .select("*, users(id, display_name, metadata)")
             .eq("metadata->>gazette", gazetteName)
@@ -156,11 +156,13 @@ export default function GroupDetail({ currentUser }) {
 
     try {
       setMembershipLoading(true);
-      const { error } = await supabase.from("group_members").insert({
-        group_id: id,
-        user_id: currentUser.id,
-        metadata: { schemaVersion: 1 },
-      });
+      const { error } = await getSupabase()
+        .from("group_members")
+        .insert({
+          group_id: id,
+          user_id: currentUser.id,
+          metadata: { schemaVersion: 1 },
+        });
 
       if (error) throw error;
 
@@ -178,7 +180,7 @@ export default function GroupDetail({ currentUser }) {
 
     try {
       setMembershipLoading(true);
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from("group_members")
         .delete()
         .eq("group_id", id)

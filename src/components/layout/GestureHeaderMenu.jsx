@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { MOVEMENT_NAME, PARTY_NAME, CITY_NAME } from "../../constants";
 import { useCurrentUser } from "../../lib/useCurrentUser";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import FacebookPagePlugin from "../common/FacebookPagePlugin";
 
 // This component replaces the modal hamburger menu with a gesture-revealed header menu
@@ -624,7 +624,7 @@ export default function GestureHeaderMenu({ activeEdges = ["top"] }) {
                     </Link>
                     <button
                       onClick={async () => {
-                        await supabase.auth.signOut();
+                        await getSupabase().auth.signOut();
                         closeMenu();
                       }}
                       style={{

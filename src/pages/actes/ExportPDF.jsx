@@ -6,7 +6,7 @@
 
 import React, { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { useSupabase } from "../../contexts/SupabaseContext";
 import SiteFooter from "../../components/layout/SiteFooter";
 
@@ -450,7 +450,7 @@ export default function ExportPDF() {
 
       // Fetch data based on type
       if (exportType === "ACTE_COMPLET") {
-        const { data: acte, error: acteError } = await supabase
+        const { data: acte, error: acteError } = await getSupabase()
           .from("acte")
           .select("*, acte_version(*)")
           .eq("id", entityId)
@@ -463,18 +463,21 @@ export default function ExportPDF() {
 
         // Fetch proofs
         if (includeProofs) {
-          const { data: proofs } = await supabase.from("proof").select("*").eq("acte_id", entityId);
+          const { data: proofs } = await getSupabase()
+            .from("proof")
+            .select("*")
+            .eq("acte_id", entityId);
           data.proofs = proofs || [];
         }
 
         // Fetch demandes
-        const { data: demandes } = await supabase
+        const { data: demandes } = await getSupabase()
           .from("demande_admin")
           .select("*")
           .eq("acte_id", entityId);
         data.demandes = demandes || [];
       } else if (exportType === "DEMANDE_DOSSIER") {
-        const { data: demande, error: demandeError } = await supabase
+        const { data: demande, error: demandeError } = await getSupabase()
           .from("demande_admin")
           .select("*")
           .eq("id", entityId)
@@ -486,7 +489,7 @@ export default function ExportPDF() {
         data.title = `Demande - ${demande.reference || demande.objet}`;
 
         // Fetch responses
-        const { data: responses } = await supabase
+        const { data: responses } = await getSupabase()
           .from("demande_response")
           .select("*")
           .eq("demande_admin_id", entityId)
@@ -495,7 +498,7 @@ export default function ExportPDF() {
 
         // Fetch proofs
         if (includeProofs) {
-          const { data: proofs } = await supabase
+          const { data: proofs } = await getSupabase()
             .from("proof")
             .select("*")
             .eq("demande_admin_id", entityId);

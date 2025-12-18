@@ -6,7 +6,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { useSupabase } from "../../contexts/SupabaseContext";
 import SiteFooter from "../../components/layout/SiteFooter";
 
@@ -115,9 +115,9 @@ export default function ActeForm() {
   // Fetch collectivites on mount
   useEffect(() => {
     const fetchCollectivites = async () => {
-      if (!supabase) return;
+      if (!getSupabase()) return;
 
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from("collectivite")
         .select("id, nom, code_insee")
         .order("nom");
@@ -136,12 +136,12 @@ export default function ActeForm() {
   // Fetch existing acte if editing
   useEffect(() => {
     const fetchActe = async () => {
-      if (!isEditing || !supabase || !id) return;
+      if (!isEditing || !getSupabase() || !id) return;
 
       setLoadingData(true);
 
       try {
-        const { data, error: fetchError } = await supabase
+        const { data, error: fetchError } = await getSupabase()
           .from("v_actes_current")
           .select("*")
           .eq("id", id)
@@ -242,7 +242,7 @@ export default function ActeForm() {
           return;
         }
 
-        const { error: updateError } = await supabase.rpc("update_acte_versioned", {
+        const { error: updateError } = await getSupabase().rpc("update_acte_versioned", {
           p_acte_id: id,
           p_user_id: user.id,
           p_change_reason: formData.notes,
@@ -273,7 +273,7 @@ export default function ActeForm() {
           is_current: true,
         };
 
-        const { data, error: insertError } = await supabase
+        const { data, error: insertError } = await getSupabase()
           .from("acte")
           .insert(insertData)
           .select("id")

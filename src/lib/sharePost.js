@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { getSupabase } from "./supabase";
 import { createSharePostMetadata } from "./socialMetadata";
 import { isShare, getPostShareInfo } from "./postPredicates";
 
@@ -13,7 +13,7 @@ export async function resolveToOriginal(postId) {
 
   while (depth < MAX_DEPTH) {
     // Fetch current post
-    const { data: post, error } = await supabase
+    const { data: post, error } = await getSupabase()
       .from("posts")
       .select("*, author_id(*)")
       .eq("id", currentId)
@@ -59,7 +59,7 @@ export async function sharePost(postId, target, currentUser, comment = "") {
 
   const content = comment || `Je partage: ${original.metadata?.title || "ce post"}`;
 
-  const { data: sharePost, error } = await supabase
+  const { data: sharePost, error } = await getSupabase()
     .from("posts")
     .insert({
       author_id: currentUser.id,
@@ -84,7 +84,7 @@ export async function sharePost(postId, target, currentUser, comment = "") {
  * Adds share to the original post's tracking array.
  */
 async function trackShare(originalId, sharePost) {
-  const { data: original, error: fetchErr } = await supabase
+  const { data: original, error: fetchErr } = await getSupabase()
     .from("posts")
     .select("metadata")
     .eq("id", originalId)
@@ -105,7 +105,7 @@ async function trackShare(originalId, sharePost) {
     isDeleted: false,
   });
 
-  await supabase
+  await getSupabase()
     .from("posts")
     .update({
       metadata: {
@@ -126,7 +126,7 @@ export async function markShareDeleted(deletedSharePost) {
 
   const originalId = shareInfo.entityId;
 
-  const { data: original, error } = await supabase
+  const { data: original, error } = await getSupabase()
     .from("posts")
     .select("metadata")
     .eq("id", originalId)
@@ -139,7 +139,7 @@ export async function markShareDeleted(deletedSharePost) {
     s.sharePostId === deletedSharePost.id ? { ...s, isDeleted: true } : s
   );
 
-  await supabase
+  await getSupabase()
     .from("posts")
     .update({
       metadata: {
@@ -160,7 +160,7 @@ export async function markShareDeleted(deletedSharePost) {
  * Increments user's share count in metadata.
  */
 async function incrementUserShareCount(userId) {
-  const { data: user, error: fetchErr } = await supabase
+  const { data: user, error: fetchErr } = await getSupabase()
     .from("users")
     .select("metadata")
     .eq("id", userId)
@@ -171,7 +171,7 @@ async function incrementUserShareCount(userId) {
   const metadata = user.metadata || {};
   const currentCount = metadata.shareCount || 0;
 
-  await supabase
+  await getSupabase()
     .from("users")
     .update({
       metadata: {
@@ -186,7 +186,7 @@ async function incrementUserShareCount(userId) {
  * Decrements user's share count in metadata.
  */
 async function decrementUserShareCount(userId) {
-  const { data: user, error: fetchErr } = await supabase
+  const { data: user, error: fetchErr } = await getSupabase()
     .from("users")
     .select("metadata")
     .eq("id", userId)
@@ -197,7 +197,7 @@ async function decrementUserShareCount(userId) {
   const metadata = user.metadata || {};
   const currentCount = metadata.shareCount || 0;
 
-  await supabase
+  await getSupabase()
     .from("users")
     .update({
       metadata: {

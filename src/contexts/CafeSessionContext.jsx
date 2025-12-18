@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "../lib/supabase"; // Correct path
+import { getSupabase } from "../lib/supabase"; // Correct path
 import cafeApi from "../services/cafe-api";
 
 const CafeSessionContext = createContext();
@@ -34,15 +34,19 @@ export const CafeSessionProvider = ({ children, initialSessionId }) => {
     const fetchData = async () => {
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await getSupabase().auth.getUser();
       if (user) setUserId(user.id);
 
       // Load session data from COP (cop_topic)
-      const { data: s } = await supabase.from("cop_topic").select("*").eq("id", sessionId).single();
+      const { data: s } = await getSupabase()
+        .from("cop_topic")
+        .select("*")
+        .eq("id", sessionId)
+        .single();
       setSession(s);
 
       // Load participants from cop_participants
-      const { data: p } = await supabase
+      const { data: p } = await getSupabase()
         .from("cop_participants")
         .select("*")
         .eq("topic_id", sessionId);
@@ -50,7 +54,7 @@ export const CafeSessionProvider = ({ children, initialSessionId }) => {
 
       // Load existing messages from COP (cop_event) and map to utterances
       try {
-        const { data: u } = await supabase
+        const { data: u } = await getSupabase()
           .from("cop_event")
           .select("*")
           .eq("topic_id", sessionId)
@@ -108,7 +112,7 @@ export const CafeSessionProvider = ({ children, initialSessionId }) => {
 
     // Subscribe to Realtime
     // Subscribe to COP events (cop_event) for this conversation/topic
-    const channel = supabase
+    const channel = getSupabase()
       .channel(`cop_topic:${sessionId}`)
       .on(
         "postgres_changes",
@@ -173,7 +177,7 @@ export const CafeSessionProvider = ({ children, initialSessionId }) => {
       });
 
     return () => {
-      supabase.removeChannel(channel);
+      getSupabase().removeChannel(channel);
     };
   }, [sessionId]);
 
@@ -201,7 +205,7 @@ export const CafeSessionProvider = ({ children, initialSessionId }) => {
   const joinSession = async (display_name, role) => {
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await getSupabase().auth.getUser();
     const guestId = localStorage.getItem(`cop_guest_id_${sessionId}`);
     try {
       const p = await cafeApi.joinSession(

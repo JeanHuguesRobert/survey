@@ -17,7 +17,7 @@ export default async (request, context) => {
     });
   }
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const getSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // Router
   if (path.endsWith("/api/municipal/pois")) {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { isDeleted } from "../lib/metadata";
 import IncidentEditorForm from "../components/incidents/IncidentEditorForm";
@@ -27,7 +27,7 @@ export default function IncidentEditor() {
     async function loadPost() {
       try {
         setLoading(true);
-        const { data: postData, error: postError } = await supabase
+        const { data: postData, error: postError } = await getSupabase()
           .from("posts")
           .select("*, users(id, display_name, metadata)")
           .eq("id", id)
@@ -39,7 +39,7 @@ export default function IncidentEditor() {
         if (postData.author_id !== currentUser.id) {
           const gaz = postData?.metadata?.gazette || null;
           // check membership
-          const { data: group } = await supabase
+          const { data: group } = await getSupabase()
             .from("groups")
             .select("id")
             .eq(
@@ -53,7 +53,7 @@ export default function IncidentEditor() {
             )
             .single();
           if (!group) throw new Error("Vous n'êtes pas autorisé à modifier ce post");
-          const { data: member } = await supabase
+          const { data: member } = await getSupabase()
             .from("group_members")
             .select("id")
             .eq("group_id", group.id)

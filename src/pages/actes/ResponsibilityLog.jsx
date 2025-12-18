@@ -6,7 +6,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { useSupabase } from "../../contexts/SupabaseContext";
 import SiteFooter from "../../components/layout/SiteFooter";
 
@@ -263,12 +263,12 @@ export default function ResponsibilityLog() {
   // Fetch entries
   useEffect(() => {
     const fetchEntries = async () => {
-      if (!supabase) return;
+      if (!getSupabase()) return;
 
       setLoading(true);
 
       try {
-        let query = supabase.from("responsibility_log").select("*", { count: "exact" });
+        let query = getSupabase().from("responsibility_log").select("*", { count: "exact" });
 
         if (filterType) {
           query = query.eq("responsibility_type", filterType);

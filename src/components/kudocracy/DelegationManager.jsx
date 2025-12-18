@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 
 export default function DelegationManager({ user }) {
   const [delegations, setDelegations] = useState([]);
@@ -16,7 +16,7 @@ export default function DelegationManager({ user }) {
   }, [user]);
 
   const loadDelegations = async () => {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("delegations")
       .select(
         `
@@ -33,7 +33,7 @@ export default function DelegationManager({ user }) {
   };
 
   const loadTags = async () => {
-    const { data, error } = await supabase.from("tags").select("*").order("name");
+    const { data, error } = await getSupabase().from("tags").select("*").order("name");
 
     if (!error && data) {
       setTags(data);
@@ -41,7 +41,7 @@ export default function DelegationManager({ user }) {
   };
 
   const loadUsers = async () => {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("users")
       .select("id, display_name")
       .neq("id", user.id)
@@ -67,7 +67,7 @@ export default function DelegationManager({ user }) {
     setLoading(true);
 
     try {
-      const { error } = await supabase.from("delegations").insert({
+      const { error } = await getSupabase().from("delegations").insert({
         delegator_id: user.id,
         delegate_id: selectedDelegate,
         tag_id: selectedTag,
@@ -90,7 +90,7 @@ export default function DelegationManager({ user }) {
     if (!confirm("Supprimer cette délégation ?")) return;
 
     try {
-      const { error } = await supabase.from("delegations").delete().eq("id", delegationId);
+      const { error } = await getSupabase().from("delegations").delete().eq("id", delegationId);
 
       if (error) throw error;
 

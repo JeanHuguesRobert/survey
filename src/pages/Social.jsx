@@ -5,7 +5,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import GroupList from "../components/social/GroupList";
 import PostList from "../components/social/PostList";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { GROUP_TYPES, POST_TYPES } from "../lib/socialMetadata";
 import { canWrite } from "../lib/permissions";
 import SiteFooter from "../components/layout/SiteFooter";
@@ -54,7 +54,7 @@ export default function Social() {
       if (groupIdParam) {
         setContextTitle(null);
         setGroupMembership((prev) => ({ ...prev, loading: true }));
-        const { data: group, error: groupError } = await supabase
+        const { data: group, error: groupError } = await getSupabase()
           .from("groups")
           .select("id,name,description,metadata")
           .eq("id", groupIdParam)
@@ -65,7 +65,7 @@ export default function Social() {
         setGroupGazettes(gazetteAssignments);
 
         if (currentUser?.id) {
-          const { data: membershipData, error: membershipError } = await supabase
+          const { data: membershipData, error: membershipError } = await getSupabase()
             .from("group_members")
             .select("user_id")
             .eq("group_id", groupIdParam)
@@ -84,7 +84,7 @@ export default function Social() {
       setGroupMembership({ loading: false, isMember: false });
 
       if (linkedTypeParam === "post" && linkedIdParam) {
-        const { data } = await supabase
+        const { data } = await getSupabase()
           .from("posts")
           .select("id,title,metadata")
           .eq("id", linkedIdParam)
@@ -123,7 +123,7 @@ export default function Social() {
     async function loadGazettes() {
       try {
         // Load gazette names from posts metadata
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from("posts")
           .select("metadata->>gazette as gazette")
           .not("metadata->>gazette", "is", null)
@@ -186,11 +186,13 @@ export default function Social() {
       return;
     }
     try {
-      const { error } = await supabase.from("group_members").insert({
-        group_id: groupIdParam,
-        user_id: currentUser.id,
-        metadata: { schemaVersion: 1 },
-      });
+      const { error } = await getSupabase()
+        .from("group_members")
+        .insert({
+          group_id: groupIdParam,
+          user_id: currentUser.id,
+          metadata: { schemaVersion: 1 },
+        });
       if (error) throw error;
       refreshContext();
     } catch (err) {
@@ -202,7 +204,7 @@ export default function Social() {
   async function handleLeaveGroup() {
     if (!groupIdParam || !currentUser) return;
     try {
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from("group_members")
         .delete()
         .eq("group_id", groupIdParam)

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "./supabase";
+import { getSupabase } from "./supabase";
 
 /**
  * Hook pour gérer les notifications temps réel des abonnements

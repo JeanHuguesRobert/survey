@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import SiteFooter from "../components/layout/SiteFooter";
 
@@ -20,7 +20,7 @@ export default function CivicNetwork() {
     setLoading(true);
     try {
       // 1. My Delegates (People I give power to)
-      const { data: delegates, error: err1 } = await supabase
+      const { data: delegates, error: err1 } = await getSupabase()
         .from("delegations")
         .select(
           `
@@ -36,7 +36,7 @@ export default function CivicNetwork() {
       setMyDelegates(delegates);
 
       // 2. My Delegators (People giving me power)
-      const { data: delegators, error: err2 } = await supabase
+      const { data: delegators, error: err2 } = await getSupabase()
         .from("delegations")
         .select(
           `
@@ -60,7 +60,7 @@ export default function CivicNetwork() {
   const handleRevoke = async (delegationId) => {
     if (!window.confirm("Êtes-vous sûr de vouloir révoquer cette délégation ?")) return;
     try {
-      const { error } = await supabase.from("delegations").delete().eq("id", delegationId);
+      const { error } = await getSupabase().from("delegations").delete().eq("id", delegationId);
       if (error) throw error;
       loadNetwork(); // Reload
     } catch (e) {

@@ -20,7 +20,7 @@ import GestureHeaderMenu from "../layout/GestureHeaderMenu";
 import SiteFooter from "../layout/SiteFooter";
 import AuthModal from "../common/AuthModal";
 import FacebookPagePlugin from "../common/FacebookPagePlugin";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import { getDisplayName } from "../../lib/userDisplay";
 import {
@@ -252,7 +252,7 @@ export default function ConsultationLayout({
                         </Link>
                         <button
                           onClick={async () => {
-                            await supabase.auth.signOut();
+                            await getSupabase().auth.signOut();
                             closeMenu();
                           }}
                           className="w-full px-3 py-2 text-sm bg-accent text-light font-bold border-2 border-light hover:opacity-90"

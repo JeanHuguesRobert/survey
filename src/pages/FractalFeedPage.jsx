@@ -3,7 +3,7 @@ import SiteFooter from "../components/layout/SiteFooter";
 import FeedReader from "../components/federation/FeedReader";
 import FractalGraph from "../components/federation/FractalGraph";
 import { useCurrentUser } from "../lib/useCurrentUser";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { useNavigate } from "react-router-dom";
 
 export default function FractalFeedPage() {
@@ -59,7 +59,7 @@ export default function FractalFeedPage() {
     }
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from("propositions")
         .insert({
           title: `[IMPORT] ${item.title}`,

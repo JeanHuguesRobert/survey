@@ -10,7 +10,7 @@ import useChatLogic from "./useChatLogic";
 import AuthModal from "../../common/AuthModal";
 import { useGlobalStatus as useOpStatus } from "../../../lib/useStatusOperations";
 import SiteFooter from "../../layout/SiteFooter";
-import { supabase } from "../../../lib/supabase";
+import { getSupabase } from "../../../lib/supabase";
 import QUESTION_POOL from "../questions/questionPool";
 
 /**
@@ -61,7 +61,7 @@ export default function ChatWindowV2({ useV2 = true, ...props }) {
         onSignIn={() => logic.openAuthModal()}
         onSignOut={async () => {
           try {
-            await supabase.auth.signOut();
+            await getSupabase().auth.signOut();
           } catch (_) {}
         }}
       />

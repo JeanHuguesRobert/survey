@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { createSubPostMetadata, getPostTitle } from "../../lib/socialMetadata";
 import { getMetadata } from "../../lib/metadata";
 import { getDisplayName } from "../../lib/userDisplay";
@@ -31,7 +31,7 @@ export default function SubPostEditor({ parentPost, currentUser, onSubmit, onCan
         tags: getMetadata(parentPost, "tags", []),
       });
 
-      const { data: newPost, error: insertError } = await supabase
+      const { data: newPost, error: insertError } = await getSupabase()
         .from("posts")
         .insert({
           author_id: currentUser.id,
@@ -44,7 +44,7 @@ export default function SubPostEditor({ parentPost, currentUser, onSubmit, onCan
       if (insertError) throw insertError;
 
       // Auto-subscribe to the new post
-      await supabase.from("content_subscriptions").insert({
+      await getSupabase().from("content_subscriptions").insert({
         user_id: currentUser.id,
         content_type: "post",
         content_id: newPost.id,

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import FeedReader from "../components/federation/FeedReader";
 import FeedManager from "../components/federation/FeedManager";
@@ -19,7 +19,7 @@ export default function HomeDashboard() {
 
   async function fetchSubscriptions() {
     setLoading(true);
-    const { data } = await supabase
+    const { data } = await getSupabase()
       .from("user_feed_subscriptions")
       .select(
         `

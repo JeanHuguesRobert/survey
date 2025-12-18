@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import { useInstanceConfig } from "../../lib/useInstanceConfig.js";
 
@@ -64,7 +64,7 @@ export default function RGPDSettings() {
 
   const loadConsents = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from("user_consents")
         .select("consent_type, granted")
         .eq("user_id", currentUser.id);
@@ -97,7 +97,7 @@ export default function RGPDSettings() {
     setMessage(null);
 
     try {
-      const { error } = await supabase.from("user_consents").upsert(
+      const { error } = await getSupabase().from("user_consents").upsert(
         {
           user_id: currentUser.id,
           consent_type: consentType,
@@ -112,7 +112,7 @@ export default function RGPDSettings() {
 
       // Synchroniser avec l'ancien champ rgpd_consent_accepted pour rétrocompatibilité
       if (consentType === "rgpd_general") {
-        await supabase
+        await getSupabase()
           .from("users")
           .update({
             rgpd_consent_accepted: granted,
@@ -139,7 +139,7 @@ export default function RGPDSettings() {
     setMessage(null);
 
     try {
-      const { data: session } = await supabase.auth.getSession();
+      const { data: session } = await getSupabase().auth.getSession();
       if (!session?.session?.access_token) {
         throw new Error("Session expirée");
       }
@@ -180,7 +180,7 @@ export default function RGPDSettings() {
     setMessage(null);
 
     try {
-      const { data: session } = await supabase.auth.getSession();
+      const { data: session } = await getSupabase().auth.getSession();
       if (!session?.session?.access_token) {
         throw new Error("Session expirée");
       }
@@ -200,7 +200,7 @@ export default function RGPDSettings() {
       }
 
       // Déconnexion après suppression
-      await supabase.auth.signOut();
+      await getSupabase().auth.signOut();
       window.location.href = "/";
     } catch (error) {
       console.error("Erreur suppression:", error);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { getDisplayName } from "../../lib/userDisplay";
 
 export default function TopCuratorsLeaderboard({ limit = 10 }) {
@@ -10,7 +10,7 @@ export default function TopCuratorsLeaderboard({ limit = 10 }) {
     async function loadCurators() {
       try {
         // Simple query using cached shareCount in user metadata
-        const { data: users, error } = await supabase
+        const { data: users, error } = await getSupabase()
           .from("users")
           .select("id, display_name, metadata")
           .not("metadata->>shareCount", "is", null)

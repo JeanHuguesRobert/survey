@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import wikiFederation from "../lib/wikiFederation";
 
 export default function WikiCreate() {
@@ -55,7 +55,7 @@ export default function WikiCreate() {
 
   const handleSave = async () => {
     try {
-      const { data: existing, error: slugError } = await supabase
+      const { data: existing, error: slugError } = await getSupabase()
         .from("wiki_pages")
         .select("*")
         .eq("slug", slug)

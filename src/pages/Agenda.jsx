@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { isDeleted } from "../lib/metadata";
 import { enrichUserMetadata } from "../lib/userTransform";
 import { getDisplayName } from "../lib/userDisplay";
@@ -50,7 +50,7 @@ export default function Agenda() {
       try {
         setLoading(true);
         setError(null);
-        const { data, error: supabaseError } = await supabase
+        const { data, error: supabaseError } = await getSupabase()
           .from("posts")
           .select("*, users(id, display_name, metadata)")
           .eq("metadata->>subtype", "event")
@@ -158,7 +158,7 @@ export default function Agenda() {
 
   const handleLocationSuccess = async () => {
     // Reload events to reflect the updated location
-    const { data, error: supabaseError } = await supabase
+    const { data, error: supabaseError } = await getSupabase()
       .from("posts")
       .select("*, users(id, display_name, metadata)")
       .eq("metadata->>subtype", "event")

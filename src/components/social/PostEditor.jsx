@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import {
   createPostMetadata,
   POST_TYPES,
@@ -237,7 +237,7 @@ export default function PostEditor({ post = null, currentUser }) {
           throw new Error("Impossible de mettre à jour : 'post.id' manquant");
         }
 
-        const { data: updatedPost, error: updateError } = await supabase
+        const { data: updatedPost, error: updateError } = await getSupabase()
           .from("posts")
           .update({
             content: formData.content,
@@ -259,7 +259,7 @@ export default function PostEditor({ post = null, currentUser }) {
         navigate(`/posts/${post.id}`);
       } else {
         // Create new post
-        const { data: newPost, error: insertError } = await supabase
+        const { data: newPost, error: insertError } = await getSupabase()
           .from("posts")
           .insert({
             author_id: currentUser.id,
@@ -272,7 +272,7 @@ export default function PostEditor({ post = null, currentUser }) {
         if (insertError) throw insertError;
 
         // Auto-subscribe to created post
-        await supabase.from("content_subscriptions").insert({
+        await getSupabase().from("content_subscriptions").insert({
           user_id: currentUser.id,
           content_type: "post",
           content_id: newPost.id,
@@ -730,7 +730,7 @@ async function checkEditorForGazette(gazetteName, userId) {
     );
   }
   try {
-    const { data: group } = await supabase
+    const { data: group } = await getSupabase()
       .from("groups")
       .select("id")
       .eq("name", targetGroupName)
@@ -738,7 +738,7 @@ async function checkEditorForGazette(gazetteName, userId) {
     if (!group) return false;
     // Check membership for current user (must be passed by callers who have currentUser in scope)
     if (!userId) return false;
-    const { data: member } = await supabase
+    const { data: member } = await getSupabase()
       .from("group_members")
       .select("id")
       .eq("group_id", group.id)

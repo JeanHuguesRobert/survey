@@ -4,7 +4,7 @@
  * Utilities for working with task metadata, commands, and state transitions
  */
 
-import { supabase } from "./supabase";
+import { getSupabase } from "./supabase";
 import { getMetadata, setMetadata } from "./metadata";
 import { TASK_STATUSES, TASK_COMMANDS, isValidStatus, isValidPriority } from "./taskMetadata";
 
@@ -128,7 +128,7 @@ export function parseTaskCommand(content) {
 export async function executeTaskCommand(taskId, command, userId, commentId) {
   try {
     // Fetch current task
-    const { data: task, error: fetchError } = await supabase
+    const { data: task, error: fetchError } = await getSupabase()
       .from("posts")
       .select("*")
       .eq("id", taskId)
@@ -218,7 +218,7 @@ export async function executeTaskCommand(taskId, command, userId, commentId) {
       ...updates,
     };
 
-    const { data: updatedPost, error: updateError } = await supabase
+    const { data: updatedPost, error: updateError } = await getSupabase()
       .from("posts")
       .update({
         metadata: updatedMetadata,
@@ -231,7 +231,7 @@ export async function executeTaskCommand(taskId, command, userId, commentId) {
     if (updateError) throw updateError;
 
     // Update comment metadata to mark it as a command
-    await supabase
+    await getSupabase()
       .from("comments")
       .update({
         metadata: {
@@ -282,7 +282,7 @@ async function handleStatusChange(task, newStatus, userId, commentId) {
  */
 async function handleAssign(task, username, userId) {
   // Find user by display name
-  const { data: users } = await supabase
+  const { data: users } = await getSupabase()
     .from("users")
     .select("id")
     .ilike("display_name", username)
@@ -317,7 +317,7 @@ async function handleUnassign(task, username, userId) {
 
   if (username) {
     // Unassign specific user
-    const { data: users } = await supabase
+    const { data: users } = await getSupabase()
       .from("users")
       .select("id")
       .ilike("display_name", username)
@@ -396,7 +396,7 @@ function normalizePriorityArg(arg) {
  */
 export async function transitionTaskStatus(taskId, newStatus, userId, reason = "Drag & drop") {
   try {
-    const { data: task, error: fetchError } = await supabase
+    const { data: task, error: fetchError } = await getSupabase()
       .from("posts")
       .select("*")
       .eq("id", taskId)
@@ -405,7 +405,7 @@ export async function transitionTaskStatus(taskId, newStatus, userId, reason = "
     if (fetchError) throw fetchError;
 
     // Create a system comment for the transition
-    const { data: comment, error: commentError } = await supabase
+    const { data: comment, error: commentError } = await getSupabase()
       .from("comments")
       .insert({
         post_id: taskId,
@@ -434,7 +434,7 @@ export async function transitionTaskStatus(taskId, newStatus, userId, reason = "
       ...updates,
     };
 
-    const { data: updatedPost, error: updateError } = await supabase
+    const { data: updatedPost, error: updateError } = await getSupabase()
       .from("posts")
       .update({
         metadata: updatedMetadata,

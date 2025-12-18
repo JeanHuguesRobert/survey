@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "./supabase";
+import { getSupabase } from "./supabase";
 
 /**
  * Types de contenu supportés pour les abonnements
@@ -42,7 +42,7 @@ export function useSubscription(contentType, contentId, currentUser) {
   useEffect(() => {
     if (!contentType || !contentId) return;
 
-    const channel = supabase
+    const channel = getSupabase()
       .channel(`subscriptions:${contentType}:${contentId}`)
       .on(
         "postgres_changes",
@@ -59,7 +59,7 @@ export function useSubscription(contentType, contentId, currentUser) {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      getSupabase().removeChannel(channel);
     };
   }, [contentType, contentId]);
 
@@ -69,7 +69,7 @@ export function useSubscription(contentType, contentId, currentUser) {
 
       // Charger le statut d'abonnement de l'utilisateur
       if (currentUser?.id) {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from("content_subscriptions")
           .select("id")
           .eq("user_id", currentUser.id)
@@ -92,7 +92,7 @@ export function useSubscription(contentType, contentId, currentUser) {
 
   async function loadSubscriberCount() {
     try {
-      const { count, error } = await supabase
+      const { count, error } = await getSupabase()
         .from("content_subscriptions")
         .select("*", { count: "exact", head: true })
         .eq("content_type", contentType)
@@ -116,7 +116,7 @@ export function useSubscription(contentType, contentId, currentUser) {
       setIsSubscribed(true);
       setSubscriberCount((prev) => prev + 1);
 
-      const { error } = await supabase.from("content_subscriptions").insert({
+      const { error } = await getSupabase().from("content_subscriptions").insert({
         user_id: currentUser.id,
         content_type: contentType,
         content_id: contentId,
@@ -146,7 +146,7 @@ export function useSubscription(contentType, contentId, currentUser) {
       setIsSubscribed(false);
       setSubscriberCount((prev) => Math.max(0, prev - 1));
 
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from("content_subscriptions")
         .delete()
         .eq("user_id", currentUser.id)

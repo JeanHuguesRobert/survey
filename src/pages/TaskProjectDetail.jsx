@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { getMetadata } from "../lib/metadata";
 import { DEFAULT_WORKFLOW_STATES, PROJECT_VIEW_MODES } from "../lib/taskMetadata";
@@ -28,7 +28,7 @@ export default function TaskProjectDetail() {
 
   const loadTasks = useCallback(async () => {
     try {
-      const { data: tasksData, error: tasksError } = await supabase
+      const { data: tasksData, error: tasksError } = await getSupabase()
         .from("posts")
         .select("*")
         .eq("metadata->>group_id", id)
@@ -54,7 +54,7 @@ export default function TaskProjectDetail() {
       setError(null);
 
       // Load project (group)
-      const { data: projectData, error: projectError } = await supabase
+      const { data: projectData, error: projectError } = await getSupabase()
         .from("groups")
         .select("*, users:created_by(id, display_name)")
         .eq("id", id)
@@ -77,7 +77,7 @@ export default function TaskProjectDetail() {
         setLinkedMission(missionFromMetadata);
       } else if (missionIdFromMetadata) {
         try {
-          const { data: missionData, error: missionError } = await supabase
+          const { data: missionData, error: missionError } = await getSupabase()
             .from("groups")
             .select("id, name, metadata")
             .eq("id", missionIdFromMetadata)
@@ -100,7 +100,7 @@ export default function TaskProjectDetail() {
       }
 
       // Load members
-      const { data: membersData, error: membersError } = await supabase
+      const { data: membersData, error: membersError } = await getSupabase()
         .from("group_members")
         .select("*, users(id, display_name, metadata)")
         .eq("group_id", id);

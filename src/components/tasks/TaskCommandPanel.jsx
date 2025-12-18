@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { parseTaskCommand, executeTaskCommand } from "../../lib/taskHelpers";
 import { TASK_COMMAND_HELP } from "../../lib/taskMetadata";
 
@@ -23,7 +23,7 @@ export default function TaskCommandPanel({ taskId, currentUser, onCommandExecute
       return;
     }
 
-    if (!supabase) {
+    if (!getSupabase()) {
       setErrorMessage("Supabase n'est pas configuré.");
       setSuccessMessage("");
       return;
@@ -48,7 +48,7 @@ export default function TaskCommandPanel({ taskId, currentUser, onCommandExecute
     setSuccessMessage("");
 
     try {
-      const { data: comment, error: commentError } = await supabase
+      const { data: comment, error: commentError } = await getSupabase()
         .from("comments")
         .insert({
           post_id: taskId,

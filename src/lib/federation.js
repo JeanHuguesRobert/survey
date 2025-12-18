@@ -2,7 +2,7 @@
 // Module de fédération des consultations
 // Permet l'import/export de consultations entre instances du réseau
 
-import { supabase } from "./supabase";
+import { getSupabase } from "./supabase";
 import { createClient } from "@supabase/supabase-js";
 import {
   COMMUNITY_NAME,
@@ -50,7 +50,7 @@ export const INSTANCE_TYPES = {
 export async function getRegisteredInstances(options = {}) {
   const { type = null, regionCode = null, hubOnly = false } = options;
 
-  let query = supabase
+  let query = getSupabase()
     .from("federation_registry")
     .select("*")
     .eq("status", "active")
@@ -262,7 +262,7 @@ export async function importConsultation(remoteConsultation, options = {}) {
     }
 
     // Vérifier qu'on n'a pas déjà importé cette consultation
-    const { data: existing } = await supabase
+    const { data: existing } = await getSupabase()
       .from("consultations")
       .select("id")
       .eq("source_instance", remoteConsultation.source_instance)
@@ -281,7 +281,7 @@ export async function importConsultation(remoteConsultation, options = {}) {
     const localSlug = customSlug || `imported-${remoteConsultation.slug}`;
     const localTitle = customTitle || `${remoteConsultation.title} (${COMMUNITY_NAME})`;
 
-    const { data: localConsultation, error: createError } = await supabase
+    const { data: localConsultation, error: createError } = await getSupabase()
       .from("consultations")
       .insert({
         slug: localSlug,
@@ -313,7 +313,7 @@ export async function importConsultation(remoteConsultation, options = {}) {
     }
 
     // Enregistrer l'import
-    await supabase.from("consultation_imports").insert({
+    await getSupabase().from("consultation_imports").insert({
       local_consultation_id: localConsultation.id,
       source_instance: remoteConsultation.source_instance,
       source_consultation_id: remoteConsultation.id,
@@ -344,7 +344,7 @@ export async function importConsultation(remoteConsultation, options = {}) {
 export async function syncResponsesToSource(consultationId) {
   try {
     // Récupérer la consultation et ses infos de sync
-    const { data: consultation, error: consultationError } = await supabase
+    const { data: consultation, error: consultationError } = await getSupabase()
       .from("consultations")
       .select("*")
       .eq("id", consultationId)
@@ -360,7 +360,7 @@ export async function syncResponsesToSource(consultationId) {
     }
 
     // Récupérer les réponses en attente de sync
-    const { data: pendingResponses, error: fetchError } = await supabase
+    const { data: pendingResponses, error: fetchError } = await getSupabase()
       .from("consultation_responses")
       .select("*")
       .eq("consultation_id", consultationId)
@@ -409,7 +409,7 @@ export async function syncResponsesToSource(consultationId) {
 
         if (syncError) {
           // Marquer comme échoué
-          await supabase
+          await getSupabase()
             .from("consultation_responses")
             .update({
               sync_status: "failed",
@@ -420,7 +420,7 @@ export async function syncResponsesToSource(consultationId) {
           failed++;
         } else {
           // Marquer comme synchronisé
-          await supabase
+          await getSupabase()
             .from("consultation_responses")
             .update({
               sync_status: "synced",
@@ -432,7 +432,7 @@ export async function syncResponsesToSource(consultationId) {
           synced++;
         }
       } catch (err) {
-        await supabase
+        await getSupabase()
           .from("consultation_responses")
           .update({
             sync_status: "failed",
@@ -445,7 +445,7 @@ export async function syncResponsesToSource(consultationId) {
     }
 
     // Mettre à jour les stats de sync de la consultation
-    await supabase
+    await getSupabase()
       .from("consultations")
       .update({
         last_synced_at: new Date().toISOString(),
@@ -471,7 +471,7 @@ export async function syncResponsesToSource(consultationId) {
  */
 export async function retrySyncFailures(consultationId, maxAttempts = 3) {
   // Remettre les réponses échouées en "pending" si elles n'ont pas atteint le max
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("consultation_responses")
     .update({ sync_status: "pending" })
     .eq("consultation_id", consultationId)
@@ -511,7 +511,7 @@ export async function publishConsultation(consultationId, options = {}) {
     anonymizeExport = false,
   } = options;
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("consultations")
     .update({
       federation_config: {
@@ -540,7 +540,7 @@ export async function publishConsultation(consultationId, options = {}) {
  * @returns {Promise<{success: boolean}>}
  */
 export async function unpublishConsultation(consultationId) {
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from("consultations")
     .update({
       "federation_config->allow_import": false,
@@ -580,19 +580,19 @@ export function canImportConsultation(consultation) {
  * @returns {Promise<Object>}
  */
 export async function getSyncStats(consultationId) {
-  const { data: consultation } = await supabase
+  const { data: consultation } = await getSupabase()
     .from("consultations")
     .select("synced_response_count, last_synced_at, response_count")
     .eq("id", consultationId)
     .single();
 
-  const { data: pending } = await supabase
+  const { data: pending } = await getSupabase()
     .from("consultation_responses")
     .select("id", { count: "exact" })
     .eq("consultation_id", consultationId)
     .eq("sync_status", "pending");
 
-  const { data: failed } = await supabase
+  const { data: failed } = await getSupabase()
     .from("consultation_responses")
     .select("id", { count: "exact" })
     .eq("consultation_id", consultationId)

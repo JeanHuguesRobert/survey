@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 
 const TAG_COLOR_MAP = {
   Titre: "bg-blue-100 text-blue-800",
@@ -40,7 +40,7 @@ export function CollectorPanel({ isOpen, data, onUpdate, onRemove, onClear, onRe
       // Check authentication
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await getSupabase().auth.getUser();
       if (!user) {
         alert("Vous devez être connecté pour sauvegarder les données");
         return;

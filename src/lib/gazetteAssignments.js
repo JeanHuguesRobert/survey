@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { getSupabase } from "./supabase";
 import { getConfig } from "../common/config/instanceConfig.client.js";
 
 /**
@@ -24,7 +24,7 @@ export async function detectGazetteAssignments(group) {
   }
 
   try {
-    const { data } = await supabase
+    const { data } = await getSupabase()
       .from("posts")
       .select("id")
       .eq("metadata->>gazette", groupName)

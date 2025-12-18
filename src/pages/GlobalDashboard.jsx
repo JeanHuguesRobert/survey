@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import {
   BarChart,
   Bar,
@@ -52,27 +52,27 @@ export default function GlobalDashboard() {
       setLoading(true);
 
       // Get total users
-      const { count: totalUsers } = await supabase
+      const { count: totalUsers } = await getSupabase()
         .from("profiles")
         .select("*", { count: "exact", head: true });
 
       // Get total propositions
-      const { count: totalPropositions } = await supabase
+      const { count: totalPropositions } = await getSupabase()
         .from("propositions")
         .select("*", { count: "exact", head: true });
 
       // Get total votes
-      const { count: totalVotes } = await supabase
+      const { count: totalVotes } = await getSupabase()
         .from("votes")
         .select("*", { count: "exact", head: true });
 
       // Get total delegations
-      const { count: totalDelegations } = await supabase
+      const { count: totalDelegations } = await getSupabase()
         .from("delegations")
         .select("*", { count: "exact", head: true });
 
       // Get total wiki pages
-      const { count: totalWikiPages } = await supabase
+      const { count: totalWikiPages } = await getSupabase()
         .from("wiki_pages")
         .select("*", { count: "exact", head: true });
 
@@ -80,19 +80,19 @@ export default function GlobalDashboard() {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const { data: recentPropositions } = await supabase
+      const { data: recentPropositions } = await getSupabase()
         .from("propositions")
         .select("id, title, created_at, author:profiles(display_name)")
         .gte("created_at", thirtyDaysAgo.toISOString())
         .order("created_at", { ascending: false })
         .limit(5);
 
-      const { data: recentVotes } = await supabase
+      const { data: recentVotes } = await getSupabase()
         .from("votes")
         .select("created_at")
         .gte("created_at", thirtyDaysAgo.toISOString());
 
-      const { data: recentWikiEdits } = await supabase
+      const { data: recentWikiEdits } = await getSupabase()
         .from("wiki_revisions")
         .select("created_at")
         .gte("created_at", thirtyDaysAgo.toISOString());
@@ -116,19 +116,19 @@ export default function GlobalDashboard() {
         // For now, let's use what we have, acknowledging it might be incomplete if volume is high.
 
         // Re-fetching full recent lists for accurate graph
-        const { count: dayPropositionsCount } = await supabase
+        const { count: dayPropositionsCount } = await getSupabase()
           .from("propositions")
           .select("*", { count: "exact", head: true })
           .gte("created_at", dayStart.toISOString())
           .lte("created_at", dayEnd.toISOString());
 
-        const { count: dayVotesCount } = await supabase
+        const { count: dayVotesCount } = await getSupabase()
           .from("votes")
           .select("*", { count: "exact", head: true })
           .gte("created_at", dayStart.toISOString())
           .lte("created_at", dayEnd.toISOString());
 
-        const { count: dayWikiEditsCount } = await supabase
+        const { count: dayWikiEditsCount } = await getSupabase()
           .from("wiki_revisions")
           .select("*", { count: "exact", head: true })
           .gte("created_at", dayStart.toISOString())
@@ -143,7 +143,9 @@ export default function GlobalDashboard() {
       }
 
       // Get proposition status distribution
-      const { data: propositionStatuses } = await supabase.from("propositions").select("status");
+      const { data: propositionStatuses } = await getSupabase()
+        .from("propositions")
+        .select("status");
 
       const statusCounts = {};
       propositionStatuses?.forEach((p) => {
@@ -165,7 +167,7 @@ export default function GlobalDashboard() {
       }));
 
       // Get most active users (top 10 by proposition count)
-      const { data: userActivity } = await supabase
+      const { data: userActivity } = await getSupabase()
         .from("propositions")
         .select(
           `
@@ -189,7 +191,7 @@ export default function GlobalDashboard() {
         });
 
       // Fetch recent votes for the new section
-      const { data: latestVotes, error: votesError } = await supabase
+      const { data: latestVotes, error: votesError } = await getSupabase()
         .from("votes")
         .select(
           `

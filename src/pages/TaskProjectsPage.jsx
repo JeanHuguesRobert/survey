@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { getMetadata } from "../lib/metadata";
 import TaskProjectCard from "../components/tasks/TaskProjectCard";
@@ -27,7 +27,7 @@ export default function TaskProjectsPage() {
       setLoading(true);
 
       // Fetch groups with metadata.type = 'task_project'
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from("groups")
         .select("*, group_members(count)")
         .order("created_at", { ascending: false });
@@ -44,7 +44,7 @@ export default function TaskProjectsPage() {
       const projectsWithStats = await Promise.all(
         taskProjects.map(async (project) => {
           // Get all tasks (posts) for this project
-          const { data: tasks, error: tasksError } = await supabase
+          const { data: tasks, error: tasksError } = await getSupabase()
             .from("posts")
             .select("metadata")
             .eq("metadata->>group_id", project.id);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { APP_VERSION, DEPLOY_DATE, VOLUNTEER_URL } from "../../constants";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import { getUserRole, ROLE_ADMIN } from "../../lib/permissions";
 import { getDisplayName } from "../../lib/userDisplay";
@@ -54,7 +54,7 @@ export default function SiteFooter({
     try {
       setIsCreatingOral(true);
       // 1. Check for recent active session in cop_topic (DB standard)
-      const { data: latestSession } = await supabase
+      const { data: latestSession } = await getSupabase()
         .from("cop_topic")
         .select("*")
         .order("created_at", { ascending: false })
@@ -621,7 +621,7 @@ export default function SiteFooter({
                     Votre profil
                   </Link>
                   <button
-                    onClick={async () => await supabase.auth.signOut()}
+                    onClick={async () => await getSupabase().auth.signOut()}
                     style={{ ...styles.authButton, ...styles.authButtonDanger }}
                   >
                     Déconnexion

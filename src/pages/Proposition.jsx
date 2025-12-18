@@ -9,7 +9,7 @@ import SubscribeButton from "../components/common/SubscribeButton";
 import FacebookShareButton from "../components/common/FacebookShareButton";
 import ShareMenu from "../components/common/ShareMenu";
 import { PetitionLinkCard } from "../components/common/PetitionLink";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import SiteFooter from "../components/layout/SiteFooter";
 import { getLatestModifier } from "../lib/socialMetadata";
 import { useVoteRecommendation } from "../hooks/useVoteRecommendation";
@@ -35,13 +35,13 @@ export default function Proposition() {
   );
 
   useEffect(() => {
-    if (!supabase || !id) return;
+    if (!getSupabase() || !id) return;
     const loadProposition = async () => {
       console.log("Loading proposition with id:", id);
       setLoading(true);
       setError(null);
       try {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from("propositions")
           .select(
             `
@@ -96,7 +96,7 @@ export default function Proposition() {
 
     try {
       // Fetch comments for context
-      const { data: comments } = await supabase
+      const { data: comments } = await getSupabase()
         .from("comments")
         .select("content")
         .eq("proposition_id", id)
@@ -130,8 +130,8 @@ export default function Proposition() {
   };
 
   const loadUserVote = async () => {
-    if (!currentUser || !supabase) return;
-    const { data, error } = await supabase
+    if (!currentUser || !getSupabase()) return;
+    const { data, error } = await getSupabase()
       .from("votes")
       .select("*")
       .eq("proposition_id", id)

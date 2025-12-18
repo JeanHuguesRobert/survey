@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 
 export default function VoteButton({ propositionId, userId, currentVote, onVoteChange }) {
   const [loading, setLoading] = useState(false);
@@ -55,10 +55,10 @@ export default function VoteButton({ propositionId, userId, currentVote, onVoteC
           // Special case: If toggling off False Choice, just delete.
           // If clicking False Choice again to change reason, it's an update.
           // However, simple alignment: click same button = remove.
-          await supabase.from("votes").delete().eq("id", currentVote.id);
+          await getSupabase().from("votes").delete().eq("id", currentVote.id);
         } else {
           // Update existing
-          await supabase
+          await getSupabase()
             .from("votes")
             .update({
               vote_value: voteValue,
@@ -69,7 +69,7 @@ export default function VoteButton({ propositionId, userId, currentVote, onVoteC
         }
       } else {
         // New vote
-        await supabase.from("votes").insert({
+        await getSupabase().from("votes").insert({
           user_id: userId,
           proposition_id: propositionId,
           vote_value: voteValue,

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import {
   createPostMetadata,
   POST_TYPES,
@@ -152,7 +152,7 @@ export default function IncidentEditorForm({ post, currentUser }) {
 
       if (isEditing) {
         if (!post?.id) throw new Error("Impossible de mettre à jour : 'post.id' manquant");
-        const { data: updatedPost, error: updateError } = await supabase
+        const { data: updatedPost, error: updateError } = await getSupabase()
           .from("posts")
           .update({ content: formData.content, metadata })
           .eq("id", post.id)
@@ -161,14 +161,14 @@ export default function IncidentEditorForm({ post, currentUser }) {
         if (updateError) throw updateError;
         navigate(`/incidents/${post.id}`);
       } else {
-        const { data: newPost, error: insertError } = await supabase
+        const { data: newPost, error: insertError } = await getSupabase()
           .from("posts")
           .insert({ author_id: currentUser.id, content: formData.content, metadata })
           .select()
           .single();
         if (insertError) throw insertError;
         // Auto-subscribe
-        await supabase
+        await getSupabase()
           .from("content_subscriptions")
           .insert({ user_id: currentUser.id, content_type: "post", content_id: newPost.id });
         navigate(`/incidents/${newPost.id}`);

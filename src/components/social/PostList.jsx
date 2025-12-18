@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { isDeleted } from "../../lib/metadata";
 import { enrichUserMetadata } from "../../lib/userTransform";
 import PostCard from "./PostCard";
@@ -44,7 +44,7 @@ export default function PostList({
         : [];
 
       const buildBaseQuery = () => {
-        let query = supabase.from("posts").select("*, users(id, display_name, metadata)");
+        let query = getSupabase().from("posts").select("*, users(id, display_name, metadata)");
 
         if (!shouldIgnoreLinkedFilters && linkedType) {
           query = query.eq("metadata->>linkedType", linkedType);

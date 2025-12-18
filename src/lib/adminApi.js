@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { getSupabase } from "./supabase";
 
 const tableMap = {
   users: "users",
@@ -18,7 +18,7 @@ export async function listEntities(type, { limit = 50 } = {}) {
   // Prefer ordering by `updated_at` if the column exists, falling back to `created_at` or no ordering.
   let res;
   try {
-    res = await supabase
+    res = await getSupabase()
       .from(table)
       .select("*")
       .order("updated_at", { ascending: false })
@@ -27,7 +27,7 @@ export async function listEntities(type, { limit = 50 } = {}) {
   } catch (err) {
     // If ordering by updated_at failed (maybe column doesn't exist), try created_at
     try {
-      res = await supabase
+      res = await getSupabase()
         .from(table)
         .select("*")
         .order("created_at", { ascending: false })
@@ -35,7 +35,7 @@ export async function listEntities(type, { limit = 50 } = {}) {
       if (res.error) throw res.error;
     } catch (err2) {
       // Last resort: select without ordering
-      const res3 = await supabase.from(table).select("*").limit(limit);
+      const res3 = await getSupabase().from(table).select("*").limit(limit);
       if (res3.error) throw res3.error;
       res = res3;
     }
@@ -48,7 +48,7 @@ export async function listEntities(type, { limit = 50 } = {}) {
   let usersById = {};
   if (userIds.length > 0) {
     try {
-      const { data: users, error: usersErr } = await supabase
+      const { data: users, error: usersErr } = await getSupabase()
         .from("users")
         .select("id, display_name, email")
         .in("id", userIds);
@@ -86,14 +86,19 @@ export async function listEntities(type, { limit = 50 } = {}) {
 
 export async function getEntity(type, id) {
   const table = tableFor(type);
-  const { data, error } = await supabase.from(table).select("*").eq("id", id).single();
+  const { data, error } = await getSupabase().from(table).select("*").eq("id", id).single();
   if (error) throw error;
   return data;
 }
 
 export async function updateEntity(type, id, patch) {
   const table = tableFor(type);
-  const { data, error } = await supabase.from(table).update(patch).eq("id", id).select().single();
+  const { data, error } = await getSupabase()
+    .from(table)
+    .update(patch)
+    .eq("id", id)
+    .select()
+    .single();
   if (error) {
     // Build a SQL-like representation of the attempted update for debugging
     try {
@@ -134,7 +139,7 @@ export async function updateEntityAsAdmin(type, id, patch) {
 
   // Always delegate to the backend. Provide the current authenticated user's UUID
   // as `requestorId` so the backend can validate the caller.
-  const { data: userData, error: userErr } = await supabase.auth.getUser();
+  const { data: userData, error: userErr } = await getSupabase().auth.getUser();
   if (userErr || !userData || !userData.user) {
     throw new Error("Not authenticated: cannot determine requestor id");
   }
@@ -174,7 +179,7 @@ export async function updateEntityAsAdmin(type, id, patch) {
 
 export async function deleteEntity(type, id) {
   const table = tableFor(type);
-  const { data, error } = await supabase.from(table).delete().eq("id", id).select().single();
+  const { data, error } = await getSupabase().from(table).delete().eq("id", id).select().single();
   if (error) throw error;
   return data;
 }

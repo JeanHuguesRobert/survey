@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { ANONYMOUS_EMAIL } from "../../lib/permissions";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import { getConfig } from "../../common/config/instanceConfig.client.js";
@@ -18,7 +18,7 @@ export default function AuthModal({ onClose, onSuccess }) {
     setLoading(true);
     setError("");
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await getSupabase().auth.signInWithPassword({ email, password });
       if (error) throw error;
 
       if (refreshUser) {
@@ -45,7 +45,7 @@ export default function AuthModal({ onClose, onSuccess }) {
     setLoading(true);
     setError("");
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error } = await getSupabase().auth.signInWithPassword({
         email: ANONYMOUS_EMAIL,
         password: "Anonymous",
       });
@@ -74,7 +74,7 @@ export default function AuthModal({ onClose, onSuccess }) {
     setLoading(true);
     setError("");
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await getSupabase().auth.signInWithOAuth({
         provider: "facebook",
         options: {
           redirectTo: `${window.location.origin}/profile`,
@@ -93,7 +93,7 @@ export default function AuthModal({ onClose, onSuccess }) {
     setLoading(true);
     setError("");
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await getSupabase().auth.signInWithOAuth({
         provider: "github",
         options: {
           redirectTo: `${window.location.origin}/profile`,
@@ -118,7 +118,7 @@ export default function AuthModal({ onClose, onSuccess }) {
         return;
       }
 
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await getSupabase().auth.signUp({ email, password });
       if (error) throw error;
 
       if (data.user) {

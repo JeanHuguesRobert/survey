@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 
 /**
  * Reusable checkbox for publishing content to Le Fil.
@@ -25,7 +25,7 @@ export default function PublishToFilCheckbox({ url, title, description, checked,
 
       // Check if URL was posted to Fil in last 7 days
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from("posts")
         .select("id")
         .ilike("metadata->>type", "fil_%")

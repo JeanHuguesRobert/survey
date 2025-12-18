@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "./supabase";
+import { getSupabase } from "./supabase";
 
 /**
  * Hook pour récupérer et gérer le profil utilisateur complet
@@ -23,7 +23,11 @@ export function useUserProfile(userId) {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.from("users").select("*").eq("id", userId).single();
+      const { data, error } = await getSupabase()
+        .from("users")
+        .select("*")
+        .eq("id", userId)
+        .single();
 
       if (error) throw error;
       setProfile(data);
@@ -38,7 +42,7 @@ export function useUserProfile(userId) {
   const updateProfile = async (updates) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from("users")
         .update({
           ...updates,

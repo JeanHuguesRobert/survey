@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { isDeleted } from "../lib/metadata";
 import { isAdmin } from "../lib/permissions";
@@ -30,7 +30,7 @@ export default function GroupEdit() {
         setError(null);
 
         // Charger le groupe
-        const { data: groupData, error: groupError } = await supabase
+        const { data: groupData, error: groupError } = await getSupabase()
           .from("groups")
           .select("*")
           .eq("id", id)

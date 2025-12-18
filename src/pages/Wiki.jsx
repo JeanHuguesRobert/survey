@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Link, useParams, useNavigate } from "react-router-dom";
@@ -57,7 +57,7 @@ export default function Wiki() {
   }, [sidebarWidth]);
 
   const loadPages = async () => {
-    const { data } = await supabase
+    const { data } = await getSupabase()
       .from("wiki_pages")
       .select("*")
       .order("updated_at", { ascending: false });
@@ -65,7 +65,7 @@ export default function Wiki() {
   };
 
   const loadPageBySlug = async (slug) => {
-    const { data } = await supabase.from("wiki_pages").select("*").eq("slug", slug).single();
+    const { data } = await getSupabase().from("wiki_pages").select("*").eq("slug", slug).single();
     setActivePage(data || null);
   };
 

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import { getDisplayName } from "../../lib/userDisplay";
 import CitizenMap from "../map/CitizenMap";
@@ -85,7 +85,7 @@ export default function LocationContributionModal({ post, onClose, onSuccess }) 
         displayName: getDisplayName(currentUser),
       });
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await getSupabase()
         .from("posts")
         .update({ metadata: updatedMetadata, updated_at: new Date().toISOString() })
         .eq("id", post.id);

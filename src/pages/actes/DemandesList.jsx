@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { useSupabase } from "../../contexts/SupabaseContext";
 import SiteFooter from "../../components/layout/SiteFooter";
 
@@ -185,7 +185,7 @@ export default function DemandesList() {
   // Fetch data
   useEffect(() => {
     const fetchDemandes = async () => {
-      if (!supabase) {
+      if (!getSupabase()) {
         setError("Configuration Supabase manquante.");
         setLoading(false);
         return;
@@ -196,15 +196,17 @@ export default function DemandesList() {
 
       try {
         // Use the pending demandes view or fetch directly
-        let query = supabase.from("demande_admin").select(
-          `
+        let query = getSupabase()
+          .from("demande_admin")
+          .select(
+            `
             *,
             acte:acte_id (id, numero_interne, objet_court, type_acte),
             collectivite:collectivite_id (nom),
             reponses:reponse_admin (id)
           `,
-          { count: "exact" }
-        );
+            { count: "exact" }
+          );
 
         // Apply filters
         if (search) {
