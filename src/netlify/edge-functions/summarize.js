@@ -44,10 +44,12 @@ const PROVIDER_CONFIGS = {
   },
 };
 
-// Check which providers are available (vault first, then env)
+// Check which providers are available
 const isProviderAvailable = (provider) => {
   const keyName = `${provider.toLowerCase()}_api_key`;
   return Boolean(getConfig(keyName));
+  // TODO: there should be a mechanism to devalidate a provider when
+  // credit quota is exhausted
 };
 
 // Get first available provider
