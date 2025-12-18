@@ -43,7 +43,7 @@ import DataCollector from "./pages/DataCollector";
 const Admin = lazy(() => import("./pages/Admin"));
 const DataReview = lazy(() => import("./pages/admin/DataReview"));
 const Entities = lazy(() => import("./pages/admin/Entities"));
-const AdminAPI = lazy(() => import("./pages/admin/AdminAPI"));
+// JHR, un swagger is React 19 compatible, was: const AdminAPI = lazy(() => import("./pages/admin/AdminAPI"));
 const CopAdmin = lazy(() => import("./pages/admin/CopAdmin"));
 const SaasAdmin = lazy(() => import("./pages/admin/SaasAdmin"));
 const LeadsAdmin = lazy(() => import("./pages/admin/LeadsAdmin"));
@@ -174,14 +174,6 @@ export function App() {
           element={
             <LazyRoute>
               <DataReview />
-            </LazyRoute>
-          }
-        />
-        <Route
-          path="/admin/api"
-          element={
-            <LazyRoute>
-              <AdminAPI />
             </LazyRoute>
           }
         />

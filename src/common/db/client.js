@@ -5,14 +5,18 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "../schema/tables.js";
-import "dotenv/config";
+// import "dotenv/config";
 
 // 1. Get connection string from environment
-const connectionString = process.env.DATABASE_URL;
+const connectionString = null; // JHR, TODO. was: process.env.DATABASE_URL;
 
 if (!connectionString) {
   console.warn("⚠️ WARNING: DATABASE_URL is not defined in environment variables.");
   console.warn("Service layer database operations will fail until this is configured.");
+  const error = new Error("DATABASE_URL environment variable is required");
+  console.log("stack:", error.stack);
+  console.trace();
+  throw error;
 }
 
 // 2. Initialize Postgres client

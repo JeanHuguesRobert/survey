@@ -623,7 +623,6 @@
         "npm:stylelint-config-standard@^39.0.1",
         "npm:stylelint@^16.26.1",
         "npm:supabase@^2.65.8",
-        "npm:swagger-ui-react@^5.30.3",
         "npm:swr@^2.3.7",
         "npm:tailwindcss@^4.1.17",
         "npm:vite@^7.2.7"
