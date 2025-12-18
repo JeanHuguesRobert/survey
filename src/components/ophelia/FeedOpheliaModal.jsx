@@ -13,7 +13,7 @@ export default function FeedOpheliaModal({
   url,
 }) {
   const { currentUser } = useCurrentUser();
-  const botName = getConfig("bot_name", import.meta.env.VITE_BOT_NAME || "Ophélia");
+  const botName = getConfig("bot_name", "Ophélia");
   const [step, setStep] = useState("initial"); // initial, analyzing, review, ingesting, success
   const [analysis, setAnalysis] = useState(null);
   const [error, setError] = useState(null);

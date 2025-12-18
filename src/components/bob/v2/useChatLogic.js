@@ -906,7 +906,7 @@ export default function useChatLogic(initial = {}) {
   // Find related propositions using HF embeddings + Supabase RPC
   const findRelatedPropositions = useCallback(async (question) => {
     try {
-      const apiKey = getConfig("huggingface_api_key", import.meta.env.VITE_HUGGINGFACE_API_KEY);
+      const apiKey = getConfig("huggingface_api_key");
       if (!apiKey) return [];
       const embeddingResponse = await fetch(
         "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2",
@@ -935,7 +935,7 @@ export default function useChatLogic(initial = {}) {
   // Suggest tags for a question using HF embeddings + Supabase RPC
   const suggestTags = useCallback(async (question) => {
     try {
-      const apiKey = getConfig("huggingface_api_key", import.meta.env.VITE_HUGGINGFACE_API_KEY);
+      const apiKey = getConfig("huggingface_api_key");
       if (!apiKey) return [];
       const resp = await fetch(
         "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2",

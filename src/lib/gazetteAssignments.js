@@ -14,10 +14,7 @@ export async function detectGazetteAssignments(group) {
 
   const assignments = [];
   const groupName = group.name.trim();
-  const globalEditorName = getConfig(
-    "global_gazette_editor_group",
-    import.meta.env.VITE_GLOBAL_GAZETTE_EDITOR_GROUP || "La Gazette"
-  );
+  const globalEditorName = getConfig("global_gazette_editor_group", "La Gazette");
 
   if (groupName === globalEditorName) {
     assignments.push("global");

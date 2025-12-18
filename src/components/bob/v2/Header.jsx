@@ -9,7 +9,7 @@ export default function Header({
   onSignIn = () => {},
   onSignOut = () => {},
 }) {
-  const facebookPageUrl = getConfig("facebook_page_url", import.meta.env.VITE_FACEBOOK_PAGE_URL);
+  const facebookPageUrl = getConfig("facebook_page_url");
 
   return (
     <div className={`chat-header ${isMobile ? "mobile" : ""}`}>

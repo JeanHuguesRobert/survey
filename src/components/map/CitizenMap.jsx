@@ -21,13 +21,9 @@ function getDefaultCenter() {
   const lat = getConfig("map_default_lat");
   const lng = getConfig("map_default_lng");
   if (lat && lng) {
-    return [lat, lng];
+    return [Number(lat), Number(lng)];
   }
-  // Fallback sur env var
-  const envCenter = import.meta.env.VITE_MAP_DEFAULT_CENTER;
-  if (envCenter && envCenter.includes(",")) {
-    return envCenter.split(",").map(Number);
-  }
+  // Fallback
   return DEFAULT_COORDS;
 }
 
