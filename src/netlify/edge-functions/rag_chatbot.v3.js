@@ -3,10 +3,8 @@
 // ============================================================================
 // CONFIGURATION - Modèles et paramètres par défaut
 // ============================================================================
-// deno-lint-ignore-file no-import-prefix
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import postgres from "https://deno.land/x/postgresjs/mod.js";
+import { getConfig, getSupabase } from "../../common/config/instanceConfig.edge.js";
 
 import OpenAI from "https://esm.sh/openai@4";
 
@@ -562,749 +560,9 @@ const TOOL_HANDLERS = {
       return `⚠️ Erreur de recherche wiki: ${err.message}`;
     }
   },
-  async sql_query({ query, limit = 100, format = "json" }, { postgres, supabase }) {
-    console.log(`[SqlQuery] ➜ query=${previewForLog(query)}`);
-
-    const normalizedFormat =
-      String(format || "json").toLowerCase() === "markdown" ? "markdown" : "json";
-    const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(limit, 500) : 100;
-    const buildResponse = (payload) =>
-      normalizedFormat === "markdown"
-        ? sqlResultToMarkdown(payload)
-        : JSON.stringify(payload, null, 2);
-
-    // Basic validation: only allow SELECT
-    const trimmed = String(query || "").trim();
-    if (!trimmed || !/^(SELECT)\b/i.test(trimmed)) {
-      return buildResponse(
-        createSqlPayload({
-          status: "error",
-          source: "validation",
-          rows: [],
-          columns: [],
-          rowCount: 0,
-          limitApplied: safeLimit,
-          error: { message: "Seules les requêtes SELECT sont autorisées." },
-          metadata: buildSqlMetadata({
-            query,
-            limit: safeLimit,
-            format: normalizedFormat,
-            notes: ["Validation blocked non-SELECT statement"],
-          }),
-        })
-      );
-    }
-
-    // Helper: try Supabase REST fallback for simple COUNT queries
-    const trySupabaseCount = async () => {
-      if (!supabase) return null;
-      // naive parse: look for FROM <table>
-      const m = query.match(/FROM\s+([a-zA-Z0-9_]+)/i);
-      if (!m) return null;
-      const table = m[1];
-      try {
-        console.log(`[SqlQuery] ℹ️ Attempting Supabase fallback for table=${table}`);
-        // Use head + count to get exact count without rows
-        const { count, error } = await supabase
-          .from(table)
-          .select("*", { count: "exact", head: true });
-        if (error) {
-          console.warn("[SqlQuery] ⚠️ Supabase fallback returned error:", error.message || error);
-          return null;
-        }
-        if (typeof count === "number") {
-          return buildResponse(
-            createSqlPayload({
-              status: "ok",
-              source: "supabase-rest-count",
-              rows: [{ count }],
-              columns: ["count"],
-              rowCount: 1,
-              limitApplied: null,
-              metadata: buildSqlMetadata({
-                query,
-                limit: safeLimit,
-                format: normalizedFormat,
-                notes: ["Supabase REST head request", "Count inferred without row scan"],
-              }),
-            })
-          );
-        }
-      } catch (err) {
-        console.warn("[SqlQuery] ⚠️ Supabase fallback failed:", err?.message || err);
-      }
-      return null;
-    };
-
-    // If postgres client is available, try executing directly
-    if (postgres) {
-      try {
-        const limitedSql = wrapSqlWithLimit(query, safeLimit);
-        console.log(`[SqlQuery] 🗃️ Executing (limited): ${previewForLog(limitedSql)}`);
-        const start = performance.now();
-        const result = await postgres.unsafe(limitedSql);
-        const durationMs = performance.now() - start;
-        if (!result || result.length === 0) {
-          // If no result rows, still try supabase for COUNT-like queries
-          const fallback = await trySupabaseCount();
-          if (fallback) return fallback;
-          return buildResponse(
-            createSqlPayload({
-              status: "ok",
-              source: "postgres",
-              rows: [],
-              columns: [],
-              rowCount: 0,
-              limitApplied: safeLimit,
-              metadata: buildSqlMetadata({
-                query,
-                limit: safeLimit,
-                format: normalizedFormat,
-                notes: ["Query executed but returned 0 rows"],
-              }),
-            })
-          );
-        }
-
-        const columns = Object.keys(result[0] || {});
-        console.log(`[SqlQuery] ✅ ${result.length} rows returned`);
-        return buildResponse(
-          createSqlPayload({
-            status: "ok",
-            source: "postgres",
-            rows: sanitizeSqlRows(result, columns),
-            columns,
-            rowCount: result.length,
-            limitApplied: safeLimit,
-            durationMs,
-            metadata: buildSqlMetadata({
-              query,
-              limit: safeLimit,
-              format: normalizedFormat,
-              notes: ["Executed via Postgres client"],
-            }),
-          })
-        );
-      } catch (error) {
-        console.error(`[SqlQuery] ❌ Error executing Postgres query:`, error?.message || error);
-        // Try Supabase REST fallback before returning error
-        const fallback = await trySupabaseCount();
-        if (fallback) return fallback;
-        return buildResponse(
-          createSqlPayload({
-            status: "error",
-            source: "postgres",
-            rows: [],
-            columns: [],
-            rowCount: 0,
-            limitApplied: safeLimit,
-            error: serializeSqlError(error),
-            metadata: buildSqlMetadata({
-              query,
-              limit: safeLimit,
-              format: normalizedFormat,
-              notes: ["Postgres execution error"],
-            }),
-          })
-        );
-      }
-    }
-
-    // No Postgres client: attempt Supabase REST fallback
-    const supaResult = await trySupabaseCount();
-    if (supaResult) return supaResult;
-    return buildResponse(
-      createSqlPayload({
-        status: "error",
-        source: "unavailable",
-        rows: [],
-        columns: [],
-        rowCount: 0,
-        limitApplied: safeLimit,
-        error: {
-          message:
-            "Outil SQL non configuré (Postgres indisponible). Configurez SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY.",
-        },
-        metadata: buildSqlMetadata({
-          query,
-          limit: safeLimit,
-          format: normalizedFormat,
-          notes: ["Postgres client missing", "Supabase REST fallback did not apply"],
-        }),
-      })
-    );
-  },
-  async create_post({ content, title, group_id, tags = [] }, { supabase, user, context }) {
-    if (!user) return "⚠️ Vous devez être connecté pour publier.";
-    const groupId = group_id || context.groupId || null;
-
-    const { data, error } = await supabase
-      .from("posts")
-      .insert({
-        content,
-        title,
-        author_id: user.id,
-        metadata: {
-          type: "post",
-          groupId,
-          tags,
-          source: "agent",
-        },
-      })
-      .select()
-      .single();
-
-    if (error) return `❌ Erreur lors de la création du post : ${error.message}`;
-    return `✅ Post créé avec succès ! (ID: ${data.id})`;
-  },
-
-  async update_post({ id, content, title }, { supabase, user }) {
-    if (!user) return "⚠️ Connexion requise.";
-    const updates = {};
-    if (content) updates.content = content;
-    if (title) updates.title = title;
-
-    const { data, error } = await supabase
-      .from("posts")
-      .update(updates)
-      .eq("id", id)
-      .select()
-      .single();
-    if (error) return `❌ Erreur modification : ${error.message}`;
-    return `✅ Post mis à jour.`;
-  },
-
-  async list_posts({ group_id, limit = 10, query }, { supabase, context }) {
-    let qb = supabase
-      .from("posts")
-      .select("id, title, content, created_at, author:users(display_name)")
-      .order("created_at", { ascending: false })
-      .limit(limit);
-
-    const targetGroupId = group_id || context.groupId;
-    if (targetGroupId) {
-      qb = qb.eq("metadata->>groupId", targetGroupId);
-    }
-    if (query) {
-      qb = qb.ilike("content", `%${query}%`);
-    }
-
-    const { data, error } = await qb;
-    if (error) return `❌ Erreur lecture : ${error.message}`;
-    if (!data.length) return "Aucun post trouvé.";
-
-    return data
-      .map(
-        (p) =>
-          `- [${p.created_at.slice(0, 10)}] ${p.title || "Sans titre"}: ${p.content.slice(0, 50)}... (par ${p.author?.display_name})`
-      )
-      .join("\n");
-  },
-
-  async create_task(
-    { title, description, project_id, status = "todo", priority = "medium", assignee_id },
-    { supabase, user, context }
-  ) {
-    if (!user) return "⚠️ Connexion requise.";
-    const projectId = project_id || context.groupId; // Tasks are often in the current group context
-
-    const { data, error } = await supabase
-      .from("posts")
-      .insert({
-        title,
-        content: description || "",
-        author_id: user.id,
-        metadata: {
-          type: "task",
-          status,
-          priority,
-          groupId: projectId,
-          assigneeId: assignee_id,
-          source: "agent",
-        },
-      })
-      .select()
-      .single();
-
-    if (error) return `❌ Erreur création tâche : ${error.message}`;
-    return `✅ Tâche "${title}" créée ! (ID: ${data.id})`;
-  },
-
-  async update_task({ id, status, title, description, priority }, { supabase }) {
-    const updates = {};
-    if (title) updates.title = title;
-    if (description) updates.content = description;
-
-    // For metadata updates, we need to fetch first to merge, or use jsonb_set (complex via js client)
-    // Simplified: fetch current metadata, merge, update.
-    if (status || priority) {
-      const { data: current } = await supabase
-        .from("posts")
-        .select("metadata")
-        .eq("id", id)
-        .single();
-      if (current) {
-        updates.metadata = {
-          ...current.metadata,
-          ...(status ? { status } : {}),
-          ...(priority ? { priority } : {}),
-        };
-      }
-    }
-
-    const { data, error } = await supabase
-      .from("posts")
-      .update(updates)
-      .eq("id", id)
-      .select()
-      .single();
-    if (error) return `❌ Erreur mise à jour tâche : ${error.message}`;
-    return `✅ Tâche mise à jour.`;
-  },
-
-  async list_tasks({ project_id, status, assignee_id, limit = 20 }, { supabase, context, user }) {
-    let qb = supabase
-      .from("posts")
-      .select("id, title, metadata, created_at")
-      .eq("metadata->>type", "task")
-      .order("created_at", { ascending: false })
-      .limit(limit);
-
-    const targetProjectId = project_id || context.groupId;
-    if (targetProjectId) qb = qb.eq("metadata->>groupId", targetProjectId);
-    if (status) qb = qb.eq("metadata->>status", status);
-    if (assignee_id) {
-      const targetAssignee = assignee_id === "me" && user ? user.id : assignee_id;
-      qb = qb.eq("metadata->>assigneeId", targetAssignee);
-    }
-
-    const { data, error } = await qb;
-    if (error) return `❌ Erreur lecture tâches : ${error.message}`;
-    if (!data.length) return "Aucune tâche trouvée.";
-
-    return data
-      .map((t) => `- [${t.metadata.status?.toUpperCase() || "TODO"}] ${t.title} (ID: ${t.id})`)
-      .join("\n");
-  },
-
-  async create_mission({ name, description, location }, { supabase, user }) {
-    if (!user) return "⚠️ Connexion requise.";
-
-    const { data, error } = await supabase
-      .from("groups")
-      .insert({
-        name,
-        description,
-        created_by: user.id,
-        metadata: {
-          type: "mission",
-          location,
-          status: "active",
-          source: "agent",
-        },
-      })
-      .select()
-      .single();
-
-    if (error) return `❌ Erreur création mission : ${error.message}`;
-
-    // Auto-join creator
-    await supabase
-      .from("group_members")
-      .insert({ group_id: data.id, user_id: user.id, role: "admin" });
-
-    return `✅ Mission "${name}" créée ! (ID: ${data.id})`;
-  },
-
-  async update_mission({ id, name, description, location, status }, { supabase }) {
-    const updates = {};
-    if (name) updates.name = name;
-    if (description) updates.description = description;
-
-    if (location || status) {
-      const { data: current } = await supabase
-        .from("groups")
-        .select("metadata")
-        .eq("id", id)
-        .single();
-      if (current) {
-        updates.metadata = {
-          ...current.metadata,
-          ...(location ? { location } : {}),
-          ...(status ? { status } : {}),
-        };
-      }
-    }
-
-    const { error } = await supabase.from("groups").update(updates).eq("id", id);
-    if (error) return `❌ Erreur mise à jour : ${error.message}`;
-    return `✅ Mission mise à jour.`;
-  },
-
-  async list_missions({ query, limit = 10 }, { supabase }) {
-    let qb = supabase
-      .from("groups")
-      .select("id, name, description, metadata")
-      .eq("metadata->>type", "mission")
-      .limit(limit);
-    if (query) qb = qb.ilike("name", `%${query}%`);
-
-    const { data, error } = await qb;
-    if (error) return `❌ Erreur lecture : ${error.message}`;
-    if (!data.length) return "Aucune mission trouvée.";
-
-    return data
-      .map(
-        (m) =>
-          `- ${m.name}: ${m.description || "Pas de description"} (Lieu: ${m.metadata?.location || "N/A"})`
-      )
-      .join("\n");
-  },
-
-  async join_group({ group_id }, { supabase, user }) {
-    if (!user) return "⚠️ Connexion requise.";
-    const { error } = await supabase.from("group_members").insert({
-      group_id,
-      user_id: user.id,
-      role: "member",
-    });
-    if (error) {
-      if (error.code === "23505") return "ℹ️ Vous êtes déjà membre de ce groupe.";
-      return `❌ Erreur : ${error.message}`;
-    }
-    return "✅ Groupe rejoint avec succès !";
-  },
-
-  async leave_group({ group_id }, { supabase, user }) {
-    if (!user) return "⚠️ Connexion requise.";
-    const { error } = await supabase
-      .from("group_members")
-      .delete()
-      .match({ group_id, user_id: user.id });
-    if (error) return `❌ Erreur : ${error.message}`;
-    return "✅ Vous avez quitté le groupe.";
-  },
-
-  async list_my_groups({}, { supabase, user }) {
-    if (!user) return "⚠️ Connexion requise.";
-    const { data, error } = await supabase
-      .from("group_members")
-      .select("group:groups(id, name, metadata)")
-      .eq("user_id", user.id);
-
-    if (error) return `❌ Erreur : ${error.message}`;
-    if (!data.length) return "Vous n'êtes membre d'aucun groupe.";
-
-    return data
-      .map((item) => `- ${item.group.name} (${item.group.metadata?.type || "groupe"})`)
-      .join("\n");
-  },
-
-  async create_proposition({ title, description, tags = [] }, { supabase, user }) {
-    if (!user) return "⚠️ Connexion requise.";
-
-    // 1. Create proposition
-    const { data: prop, error } = await supabase
-      .from("propositions")
-      .insert({
-        title,
-        description,
-        author_id: user.id,
-        status: "active",
-      })
-      .select()
-      .single();
-
-    if (error) return `❌ Erreur création proposition : ${error.message}`;
-
-    // 2. Handle tags if any
-    if (tags.length > 0) {
-      // Resolve tag IDs (create if not exist)
-      const tagIds = [];
-      for (const tagName of tags) {
-        const cleanName = tagName.toLowerCase().trim();
-        let { data: tag } = await supabase.from("tags").select("id").eq("name", cleanName).single();
-        if (!tag) {
-          const { data: newTag } = await supabase
-            .from("tags")
-            .insert({ name: cleanName })
-            .select()
-            .single();
-          tag = newTag;
-        }
-        if (tag) tagIds.push(tag.id);
-      }
-
-      if (tagIds.length > 0) {
-        await supabase
-          .from("proposition_tags")
-          .insert(tagIds.map((tagId) => ({ proposition_id: prop.id, tag_id: tagId })));
-      }
-    }
-
-    return `✅ Proposition "${title}" créée ! (ID: ${prop.id})`;
-  },
-
-  async update_proposition({ id, status, title }, { supabase }) {
-    const updates = {};
-    if (status) updates.status = status;
-    if (title) updates.title = title;
-
-    const { error } = await supabase.from("propositions").update(updates).eq("id", id);
-    if (error) return `❌ Erreur mise à jour : ${error.message}`;
-    return `✅ Proposition mise à jour.`;
-  },
-
-  async list_propositions({ status = "active", tag, limit = 10 }, { supabase }) {
-    let qb = supabase
-      .from("propositions")
-      .select("id, title, status, created_at")
-      .eq("status", status)
-      .order("created_at", { ascending: false })
-      .limit(limit);
-
-    // Tag filtering is complex via simple join, simplified here to just list
-    // Ideally we'd use !inner join on proposition_tags
-
-    const { data, error } = await qb;
-    if (error) return `❌ Erreur lecture : ${error.message}`;
-    if (!data.length) return "Aucune proposition trouvée.";
-
-    return data.map((p) => `- [${p.status}] ${p.title} (ID: ${p.id})`).join("\n");
-  },
-
-  async vote_proposition({ proposition_id, value }, { supabase, user }) {
-    if (!user) return "⚠️ Connexion requise.";
-
-    if (value === 0) {
-      // Remove vote
-      const { error } = await supabase
-        .from("votes")
-        .delete()
-        .match({ proposition_id, user_id: user.id });
-      if (error) return `❌ Erreur suppression vote : ${error.message}`;
-      return "✅ Vote retiré.";
-    } else {
-      // Upsert vote
-      const { error } = await supabase.from("votes").upsert(
-        {
-          proposition_id,
-          user_id: user.id,
-          vote_value: value,
-        },
-        { onConflict: "proposition_id, user_id" }
-      );
-
-      if (error) return `❌ Erreur vote : ${error.message}`;
-      return `✅ A voté ${value > 0 ? "POUR" : "CONTRE"}.`;
-    }
-  },
-
-  async create_wiki_page({ title, content, summary }, { supabase, user }) {
-    if (!user) return "⚠️ Connexion requise.";
-
-    const { data, error } = await supabase
-      .from("wiki_pages")
-      .insert({
-        title,
-        content,
-        summary,
-        author_id: user.id,
-        status: "published",
-      })
-      .select()
-      .single();
-
-    if (error) return `❌ Erreur création wiki : ${error.message}`;
-    return `✅ Page Wiki "${title}" créée ! (ID: ${data.id})`;
-  },
-
-  async update_wiki_page({ id, content, summary }, { supabase }) {
-    const updates = {};
-    if (content) updates.content = content;
-    if (summary) updates.summary = summary;
-
-    const { error } = await supabase.from("wiki_pages").update(updates).eq("id", id);
-    if (error) return `❌ Erreur mise à jour : ${error.message}`;
-    return `✅ Page Wiki mise à jour.`;
-  },
-
-  async get_wiki_page({ id, title }, { supabase }) {
-    let qb = supabase.from("wiki_pages").select("*");
-    if (id) qb = qb.eq("id", id);
-    else if (title) qb = qb.eq("title", title);
-    else return "⚠️ ID ou Titre requis.";
-
-    const { data, error } = await qb.single();
-    if (error) return `❌ Erreur lecture : ${error.message}`;
-    return `📄 **${data.title}**\n\n${data.content}`;
-  },
-
-  async add_reaction({ post_id, emoji }, { supabase, user }) {
-    if (!user) return "⚠️ Connexion requise.";
-    const { error } = await supabase.from("reactions").insert({
-      post_id,
-      user_id: user.id,
-      emoji,
-    });
-    if (error) {
-      if (error.code === "23505") return "ℹ️ Réaction déjà ajoutée.";
-      return `❌ Erreur : ${error.message}`;
-    }
-    return `✅ Réaction ${emoji} ajoutée.`;
-  },
-
-  async create_comment({ post_id, content }, { supabase, user }) {
-    if (!user) return "⚠️ Connexion requise.";
-    const { error } = await supabase.from("comments").insert({
-      post_id,
-      user_id: user.id,
-      content,
-    });
-    if (error) return `❌ Erreur commentaire : ${error.message}`;
-    return "✅ Commentaire ajouté.";
-  },
-
-  async get_schema_info({ table }) {
-    const schema = {
-      posts:
-        "id, content, title, author_id, metadata (type, groupId, tags, status, priority, assigneeId)",
-      groups: "id, name, description, metadata (type, location, status)",
-      propositions: "id, title, description, status, author_id",
-      wiki_pages: "id, title, content, summary, status",
-      users: "id, display_name, metadata",
-      comments: "id, post_id, content, user_id",
-      reactions: "id, post_id, emoji, user_id",
-      votes: "id, proposition_id, user_id, vote_value",
-    };
-
-    if (table) {
-      return schema[table] ? `Table ${table}: ${schema[table]}` : "Table inconnue.";
-    }
-    return (
-      "Schéma simplifié :\n" +
-      Object.entries(schema)
-        .map(([k, v]) => `- ${k}: ${v}`)
-        .join("\n")
-    );
-  },
-
-  async get_user_context({}, { user, context }) {
-    if (!user) return "Utilisateur non connecté.";
-    return JSON.stringify(
-      {
-        user: { id: user.id, email: user.email },
-        context: context || {},
-      },
-      null,
-      2
-    );
-  },
-
-  async list_capabilities() {
-    return Object.values(TOOLS)
-      .map((t) => `- ${t.name}: ${t.description}`)
-      .join("\n");
-  },
 
   // Ajoute d'autres handlers ici
 };
-
-function wrapSqlWithLimit(query, limit) {
-  const trimmed = query.trim().replace(/;\s*$/, "");
-  if (/limit\s+\d+/i.test(trimmed)) {
-    return trimmed;
-  }
-  return `SELECT * FROM (${trimmed}) AS _limited_subquery LIMIT ${limit}`;
-}
-
-function sanitizeSqlRows(rows, columns) {
-  if (!Array.isArray(rows)) return [];
-  return rows.map((row) => {
-    const cleanRow = {};
-    columns.forEach((col) => {
-      const value = row?.[col];
-      cleanRow[col] = normalizeSqlValue(value);
-    });
-    return cleanRow;
-  });
-}
-
-function normalizeSqlValue(value) {
-  if (typeof value === "bigint") return value.toString();
-  if (value instanceof Date) return value.toISOString();
-  if (value && typeof Buffer !== "undefined" && Buffer.isBuffer?.(value)) {
-    return value.toString("utf-8");
-  }
-  return value;
-}
-
-function serializeSqlError(error) {
-  if (!error) return null;
-  return {
-    message: error.message || String(error),
-    code: error.code || null,
-    detail: error.detail || null,
-    hint: error.hint || null,
-    position: error.position || null,
-  };
-}
-
-function createSqlPayload({
-  status,
-  source,
-  rows,
-  columns,
-  rowCount,
-  limitApplied,
-  metadata = {},
-  error = null,
-  durationMs = null,
-}) {
-  return {
-    status,
-    source,
-    rows,
-    columns,
-    rowCount,
-    limitApplied,
-    durationMs,
-    metadata,
-    error,
-  };
-}
-
-function buildSqlMetadata({ query, limit, format, notes = [] }) {
-  return {
-    format,
-    introspection: {
-      allowedStatements: ["SELECT"],
-      defaultLimit: limit,
-      capabilities: ["json", "markdown", "supabase-count-fallback"],
-    },
-    limitRequested: limit,
-    queryPreview: previewForLog(query, 200),
-    notes,
-  };
-}
-
-function sqlResultToMarkdown(payload) {
-  const { status, rows, columns, rowCount, source, error } = payload;
-  if (status !== "ok") {
-    const err = error || { message: "Erreur inconnue" };
-    return `⚠️ Erreur SQL (${source || "n/a"}): ${err.message}`;
-  }
-  if (!rows || rows.length === 0) {
-    return `Aucun résultat (${source || "postgres"}).`;
-  }
-  let table = `📊 Résultats (${rowCount} lignes via ${source}):\n\n`;
-  table += `| ${columns.join(" | ")} |\n`;
-  table += `| ${columns.map(() => "---").join(" | ")} |\n`;
-  rows.forEach((row) => {
-    table += `| ${columns.map((col) => formatMarkdownCell(row[col])).join(" | ")} |\n`;
-  });
-  return table;
-}
 
 function formatMarkdownCell(value) {
   if (value == null) return "";
@@ -1347,7 +605,7 @@ function cosineSimilarity(a, b) {
 
 async function performWebSearch(query) {
   console.log(`[WebSearch] ➜ request query=${previewForLog(query)}`);
-  const apiKey = Deno.env.get("BRAVE_SEARCH_API_KEY");
+  const apiKey = getConfig("BRAVE_SEARCH_API_KEY");
   if (!apiKey) {
     console.warn("[WebSearch] ⚠️ BRAVE_SEARCH_API_KEY manquant");
     return `Recherche web non configurée pour: "${query}". Réponds en t'excusant et en proposant une alternative si possible.`;
@@ -1428,7 +686,6 @@ async function executeToolCalls(
   fallbackContext = {},
   supabase,
   openai,
-  postgres,
   metaCollector = null,
   toolEventEmitter = null,
   debugMode = false
@@ -1513,7 +770,7 @@ async function executeToolCalls(
         argumentsPreview: previewForLog(args, 200),
       });
       const t0 = Date.now();
-      const output = await handler(args, { supabase, openai, postgres, debugMode });
+      const output = await handler(args, { supabase, openai, debugMode });
       const t1 = Date.now();
       console.log(
         `[${provider}] ⬅ Tool result for ${toolName} preview: ${previewForLog(output, 400)}`
@@ -1635,9 +892,9 @@ async function callLLMAPI({
   // GESTION SPÉCIFIQUE POUR LA CLÉ API GEMINI
   let apiKey;
   if (provider === "google") {
-    apiKey = Deno.env.get("GEMINI_API_KEY");
+    apiKey = getConfig("GEMINI_API_KEY");
   } else {
-    apiKey = Deno.env.get(`${provider.toUpperCase()}_API_KEY`);
+    apiKey = getConfig(`${provider.toUpperCase()}_API_KEY`);
   }
   if (!apiKey) throw new Error(`Clé API manquante pour ${provider}`);
 
@@ -2014,11 +1271,11 @@ const detectModelProvider = (model) => {
 };
 
 const PROVIDER_ENV_CHECKERS = {
-  anthropic: () => Boolean(Deno.env.get("ANTHROPIC_API_KEY")),
-  openai: () => Boolean(Deno.env.get("OPENAI_API_KEY")),
-  mistral: () => Boolean(Deno.env.get("MISTRAL_API_KEY")),
-  huggingface: () => Boolean(Deno.env.get("HUGGINGFACE_API_KEY")),
-  google: () => Boolean(Deno.env.get("GEMINI_API_KEY")),
+  anthropic: () => Boolean(getConfig("ANTHROPIC_API_KEY")),
+  openai: () => Boolean(getConfig("OPENAI_API_KEY")),
+  mistral: () => Boolean(getConfig("MISTRAL_API_KEY")),
+  huggingface: () => Boolean(getConfig("HUGGINGFACE_API_KEY")),
+  google: () => Boolean(getConfig("GEMINI_API_KEY")),
 };
 const isProviderAvailable = (provider) => Boolean(PROVIDER_ENV_CHECKERS[provider]?.());
 
@@ -2027,7 +1284,7 @@ const isMistralCapacityError = (error) => {
   return /service_tier_capacity_exceeded|capacity|3505|429/i.test(msg);
 };
 
-const SHOULD_RANDOMIZE_PROVIDERS = Deno.env.get("DISABLE_PROVIDER_RANDOMIZATION") !== "1";
+const SHOULD_RANDOMIZE_PROVIDERS = true; // TODO: jhr, was: getConfig("DISABLE_PROVIDER_RANDOMIZATION") !== "1";
 const shuffleProviders = (providers) => {
   const arr = [...providers];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -2250,20 +1507,20 @@ async function getSystemPrompt() {
   let basePrompt = `📅 **Date actuelle :** ${currentDate}\n\n`;
 
   // 1. Charge le prompt depuis l'URL publique
-  const siteUrl = Deno.env.get("URL") || Deno.env.get("DEPLOY_PRIME_URL");
+  const siteUrl = getConfig("URL") || getConfig("DEPLOY_PRIME_URL");
   const localPrompt = await fetchPublicSystemPrompt(siteUrl);
   if (localPrompt) {
     basePrompt += localPrompt;
   } else {
     // 2. Fallback avec les variables d'environnement
-    const envPrompt = Deno.env.get("BOB_SYSTEM_PROMPT");
+    const envPrompt = getConfig("BOB_SYSTEM_PROMPT");
     if (envPrompt) {
       basePrompt += envPrompt;
     } else {
       // 3. Fallback par défaut
-      const city = Deno.env.get("CITY_NAME") || "Corte";
-      const movement = Deno.env.get("MOVEMENT_NAME") || "Pertitellu";
-      const bot = Deno.env.get("BOT_NAME") || "Ophélia";
+      const city = getConfig("CITY_NAME") || "Corte";
+      const movement = getConfig("MOVEMENT_NAME") || "Pertitellu";
+      const bot = getConfig("BOT_NAME") || "Ophélia";
       basePrompt += `
       **Rôle :** Tu es **${bot}**, l'assistant citoyen du mouvement **${movement}** pour la commune de **${city}**.
 
@@ -2283,8 +1540,8 @@ async function getSystemPrompt() {
 
   // 4. Charge le wiki consolidé depuis Supabase
   /* JHR 2024-06-10 : désactivé pour l'instant car trop volumineux et ralentit tout le système
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseUrl = getConfig("SUPABASE_URL");
+    const supabaseKey = getConfig("SUPABASE_SERVICE_ROLE_KEY");
     if (supabaseUrl && supabaseKey) {
       try {
         const response = await fetch(
@@ -2554,19 +1811,19 @@ const handler = async (request) => {
   console.log(`[EdgeFunction] 📏 System prompt: ${systemPrompt.length} caractères`);
 
   // 11.5. Initialise les clients
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const supabaseUrl = getConfig("SUPABASE_URL");
+  const supabaseKey = getConfig("SUPABASE_SERVICE_ROLE_KEY");
   const supabaseAdmin = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
   // Extract user from Authorization header
   let user = null;
   let supabaseUser = null; // Scoped client for RLS
   const authHeader = request.headers.get("Authorization");
-  if (authHeader && supabaseUrl && Deno.env.get("SUPABASE_ANON_KEY")) {
+  if (authHeader && supabaseUrl && getConfig("SUPABASE_ANON_KEY")) {
     try {
       const token = authHeader.replace("Bearer ", "");
       // Create a client with the user's token to respect RLS
-      supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY"), {
+      supabaseUser = createClient(supabaseUrl, getConfig("SUPABASE_ANON_KEY"), {
         global: { headers: { Authorization: `Bearer ${token}` } },
       });
       const {
@@ -2587,68 +1844,13 @@ const handler = async (request) => {
   // Fallback to admin client for read-only / system operations if no user
   const supabase = supabaseUser || supabaseAdmin;
 
-  const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
-
-  const sanitizePostgresUrl = (value) => {
-    if (!value || typeof value !== "string") return null;
-    const trimmed = value.trim();
-    if (!/^postgres(?:ql)?:\/\//i.test(trimmed)) return null;
-    return trimmed;
-  };
-
-  const configuredPostgresUrl = sanitizePostgresUrl(
-    Deno.env.get("POSTGRES_URL") || Deno.env.get("DATABASE_URL") || null
-  );
-  const requestPostgresUrl = sanitizePostgresUrl(
-    typeof body?.postgres_url === "string"
-      ? body.postgres_url
-      : typeof body?.postgresUrl === "string"
-        ? body.postgresUrl
-        : null
-  );
-  const directivePostgresUrl = sanitizePostgresUrl(directiveDbUrl);
-  if (directiveDbUrl && !directivePostgresUrl) {
-    console.warn(
-      "[EdgeFunction] ⚠️ Ignoring db= directive because it is not a valid postgres connection string"
-    );
-  }
-
-  const effectivePostgresUrl = directivePostgresUrl || requestPostgresUrl || configuredPostgresUrl;
-
-  const postgresSource = directivePostgresUrl
-    ? "directive"
-    : requestPostgresUrl
-      ? "request"
-      : configuredPostgresUrl
-        ? "env"
-        : null;
-
-  // Construct postgres client safely based on resolved URL.
-  let postgresClient = null;
-  try {
-    if (effectivePostgresUrl) {
-      postgresClient = new postgres(effectivePostgresUrl);
-      console.log(
-        `[EdgeFunction] ℹ️ Postgres client initialized (${postgresSource || "env"} connection string)`
-      );
-    } else {
-      console.warn(
-        "[EdgeFunction] ⚠️ No POSTGRES_URL provided; SQL tooling will fall back to Supabase REST"
-      );
-    }
-  } catch (err) {
-    console.error(
-      "[EdgeFunction] ❌ Unexpected error while initializing Postgres client:",
-      err?.message || err
-    );
-    postgresClient = null;
-  }
+  const openai = new OpenAI({ apiKey: getConfig("OPENAI_API_KEY") });
 
   // 11.6. Retrieve local vector-search context and append to system prompt
   try {
     const vectorContext = await TOOL_HANDLERS.vector_search(
       { query: userQuestion, limit: 5 },
-      { supabase, openai, postgres: postgresClient }
+      { supabase, openai }
     );
     if (vectorContext && typeof vectorContext === "string" && vectorContext.trim()) {
       // Keep inserted context concise to avoid prompt bloat
@@ -2713,9 +1915,9 @@ const handler = async (request) => {
             // GESTION SPÉCIFIQUE POUR LA CLÉ API GEMINI
             let apiKey;
             if (provider === "google") {
-              apiKey = Deno.env.get("GEMINI_API_KEY");
+              apiKey = getConfig("GEMINI_API_KEY");
             } else {
-              apiKey = Deno.env.get(`${provider.toUpperCase()}_API_KEY`);
+              apiKey = getConfig(`${provider.toUpperCase()}_API_KEY`);
             }
             if (!apiKey) {
               console.log(`[EdgeFunction] ⏭️ Skipping ${provider} (no API key)`);
@@ -2758,7 +1960,6 @@ const handler = async (request) => {
                 modelMode: effectiveModelMode,
                 supabase,
                 openai,
-                postgres: postgresClient,
                 metaCollector: agentMeta,
                 toolTraceEmitter: emitToolTrace,
                 debugMode,
@@ -2951,7 +2152,6 @@ async function* runConversationalAgent({
   modelMode,
   supabase,
   openai,
-  postgres,
   metaCollector = null,
   toolTraceEmitter = null,
   debugMode = false,
@@ -2959,7 +2159,7 @@ async function* runConversationalAgent({
   context = {},
 }) {
   let toolCallCount = 0;
-  const idleTimeoutMs = Number(Deno.env.get("LLM_STREAM_TIMEOUT_MS")) || 30000;
+  const idleTimeoutMs = Number(getConfig("LLM_STREAM_TIMEOUT_MS")) || 30000;
   const agentStartMs = Date.now();
 
   let messages = [
@@ -3016,7 +2216,6 @@ async function* runConversationalAgent({
             },
             supabase,
             openai,
-            postgres,
             metaCollector,
             toolTraceEmitter,
             debugMode,
@@ -3120,7 +2319,6 @@ async function* runConversationalAgent({
             },
             supabase,
             openai,
-            postgres,
             metaCollector,
             toolTraceEmitter,
             debugMode,
@@ -3181,7 +2379,6 @@ async function* runConversationalAgent({
         },
         supabase,
         openai,
-        postgres,
         metaCollector,
         toolTraceEmitter,
         debugMode,
@@ -3320,7 +2517,6 @@ async function* runConversationalAgent({
             },
             supabase,
             openai,
-            postgres,
             metaCollector,
             toolTraceEmitter,
             debugMode,
@@ -3363,7 +2559,7 @@ async function* runConversationalAgent({
 
 async function runHuggingFaceAgent(userQuestion, systemPrompt, modelMode) {
   const provider = "huggingface";
-  const apiKey = Deno.env.get("HUGGINGFACE_API_KEY");
+  const apiKey = getConfig("HUGGINGFACE_API_KEY");
   if (!apiKey) throw new Error("Clé API manquante pour huggingface");
 
   const model =
