@@ -17,6 +17,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const outputPath = resolve(__dirname, "../public/meta-init.js");
 
 // Récupérer les valeurs (avec fallbacks)
+// TODO: should use Community name
 const CITY_NAME = getConfig("city_name", "Corte");
 const PARTY_NAME = getConfig("party_name", "Petit Parti");
 const SITE_URL = getConfig("app_url", "https://lepp.fr");
