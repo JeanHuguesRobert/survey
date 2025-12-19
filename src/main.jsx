@@ -17,7 +17,7 @@ import "./styles/index.css";
 // Import des modules multi-instances
 import { resolveInstance, getInstance } from "./lib/instanceResolver";
 import { initSupabaseWithInstance } from "./lib/supabase";
-import { initializeInstance_Client } from "./common/config/instanceConfig.client.js";
+import { initializeInstance_Client, getSupabase } from "./common/config/instanceConfig.client.js";
 
 // ============================================================================
 // LOADER PENDANT L'INIT
@@ -103,24 +103,29 @@ async function bootstrap() {
   showLoader();
 
   try {
-    // 1. Résoudre l'instance (sous-domaine ou paramètre)
+    // Initialiser la configuration globale, not admin / no secrets
+    await initializeInstance_Client(null, false);
+
+    // Résoudre l'instance (sous-domaine ou paramètre)
     const instance = await resolveInstance();
     console.log(
       `🏛️ Instance résolue: ${instance.displayName || instance.subdomain} (${instance.source})`
     );
 
-    // 2. Vérifier que l'instance est configurée
+    // Vérifier que l'instance est configurée
     if (!instance.isConfigured && !instance.supabaseUrl) {
       throw new Error(
         "Aucune configuration Supabase trouvée. Vérifiez vos variables d'environnement."
       );
     }
 
-    // 3. Initialiser Supabase avec cette instance
-    initSupabaseWithInstance(instance);
+    // TODO: handle not default case
+    instance.supabase = getSupabase();
 
-    // 4. Initialiser la configuration globale, not admin / no secrets
-    await initializeInstance_Client(instance.supabase, false);
+    // 3. Initialiser Supabase module  avec cette  supabaseClient
+    // Debug trace, is there or not a supabase instance already?
+    console.log(`🔧 initSupabaseWithInstance: ${instance.supabase ? "yes" : "no"}`);
+    initSupabaseWithInstance(instance);
 
     // 5. Stocker l'instance pour accès global
     window.__OPHELIA_INSTANCE__ = instance;

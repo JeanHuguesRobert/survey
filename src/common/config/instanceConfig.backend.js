@@ -16,36 +16,55 @@ function getenv(key) {
   return process.env[key];
 }
 
-// Fonction pour créer une instance Supabase côté backend
-const createSupabase_Backend = (admin = true) => {
+// Fonction pour créer une instance Supabase côté Nodejs backend
+const createSupabase_Backend = (admin = false, options = {}) => {
   const supabaseUrl = getenv("SUPABASE_URL");
   const supabaseServiceRoleKey = getenv("SUPABASE_SERVICE_ROLE_KEY");
+  const supabaseAnonKey = getenv("SUPABASE_ANON_KEY");
 
-  if (!supabaseUrl || !supabaseServiceRoleKey) {
+  const supabaseKey = admin ? supabaseServiceRoleKey : supabaseAnonKey;
+  if (!supabaseKey) {
     console.warn(
-      "Supabase URL or Service Role Key not found in backend environment. Supabase client will not be initialized."
+      `Supabase ${admin ? "Service Role" : "Anon"} Key not found in Deno Edge environment. Supabase client will not be initialized.`
     );
     return null;
   }
 
-  if (!admin) {
-    // TODO: handle non admin connections
-    console.warn("Should create a non admin supabase connection.");
+  // Debug, display options unless none
+  if (Object.keys(options).length > 0) {
+    console.log("Supabase Options:", options);
   }
-  // Pour le backend, il est courant d'utiliser la clé de rôle de service pour des opérations privilégiées
-  return createClient(supabaseUrl, supabaseServiceRoleKey);
+
+  // No need of auto refresh in auth option, unless specically asked for
+  if (!options.auth || !options.auth.autoRefreshToken) {
+    options.auth = {
+      ...options.auth,
+      autoRefreshToken: false,
+    };
+  }
+
+  // No need to persist session in auth option, unless specically asked for
+  if (!options.auth || !options.auth.persistSession) {
+    options.auth = {
+      ...options.auth,
+      persistSession: false,
+    };
+  }
+
+  // Pour les Edge Functions, comme pour le backend, il est courant d'utiliser la clé de rôle de service.
+  return createClient(supabaseUrl, supabaseKey, options);
 };
 
-export async function newSupabase(admin = true) {
-  return createSupabase_Backend(admin);
+export function newSupabase(admin = true, options = {}) {
+  return createSupabase_Backend(admin, options);
 }
 
-export async function initializeInstanceBackend(supabase = null, admin = false) {
-  return initializeInstanceCore(supabase, getenv, newSupabase, admin);
+export async function initializeInstance_Backend(supabase = null, admin = false, options = {}) {
+  return await initializeInstanceCore(supabase, getenv, newSupabase, admin, options);
 }
 
-export async function initializeInstanceAdminBackend(supabase = null) {
-  return initializeInstanceCore(supabase, getenv, newSupabase, true);
+export async function initializeInstanceAdmin_Backend(supabase = null, options = {}) {
+  return await initializeInstanceCore(supabase, getenv, newSupabase, true, options);
 }
 
 // Ré-exporter tout de instanceConfig.core.js pour une utilisation facile dans le backend

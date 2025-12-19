@@ -128,7 +128,7 @@ async function doResolveInstance() {
   }
 
   // 3. Fallback : variables d'environnement (instance par défaut)
-  console.log("📋 Instance par défaut (env vars)");
+  console.log("📋 Instance locale");
   return getDefaultInstance();
 }
 
@@ -153,6 +153,7 @@ async function lookupInstance(subdomain) {
  * @returns {Promise<InstanceConfig|null>}
  */
 async function lookupRemoteRegistry(subdomain) {
+  // TODO: should get this from vault
   const registryUrl = import.meta.env.VITE_REGISTRY_URL;
 
   if (!registryUrl) {
@@ -172,13 +173,7 @@ async function lookupRemoteRegistry(subdomain) {
 
     const data = await response.json();
     console.log(`🌐 Instance trouvée dans registre central: ${subdomain}`);
-    return {
-      subdomain: data.subdomain,
-      displayName: data.display_name,
-      supabaseUrl: data.supabase_url,
-      supabaseAnonKey: data.supabase_anon_key,
-      metadata: data.metadata || {},
-    };
+    return data;
   } catch (error) {
     console.debug("Registre central non disponible:", error.message);
     return null;
@@ -190,26 +185,15 @@ async function lookupRemoteRegistry(subdomain) {
  * @returns {InstanceConfig}
  */
 function getDefaultInstance() {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.error("❌ VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY requis");
-    return null;
-  }
-
   return {
     subdomain: "default",
-    displayName: import.meta.env.VITE_COMMUNITY_NAME || "Ma Communauté",
-    supabaseUrl,
-    supabaseAnonKey,
+    displayName: "local",
+    supabaseUrl: null,
+    supabaseAnonKey: null,
     isDefault: true,
     isConfigured: true,
-    source: "env-vars",
-    metadata: {
-      insee: import.meta.env.VITE_COMMUNE_INSEE,
-      type: import.meta.env.VITE_COMMUNITY_TYPE || "municipality",
-    },
+    source: "local",
+    metadata: {},
   };
 }
 

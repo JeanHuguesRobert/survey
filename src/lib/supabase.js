@@ -32,17 +32,19 @@ let initPromise = null;
  * @param {string} subdomain - Pour isoler les sessions
  * @returns {SupabaseClient}
  */
-function createLoggingClient(url, anonKey, subdomain = "default") {
-  const rawClient = createClient(url, anonKey, {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-      // Clé de stockage unique par instance (isole les sessions)
-      storageKey: `sb-${subdomain}-auth`,
-      storage: typeof window !== "undefined" ? window.localStorage : undefined,
-    },
-  });
+function createLoggingClient(url, anonKey, subdomain = "local", supabase_client = null) {
+  const rawClient =
+    supabase_client ||
+    createClient(url, anonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+        // Clé de stockage unique par instance (isole les sessions)
+        storageKey: `sb-${subdomain}-auth`,
+        storage: typeof window !== "undefined" ? window.localStorage : undefined,
+      },
+    });
 
   // Proxy de logging (même logique qu'avant)
   return new Proxy(rawClient, {
@@ -102,17 +104,34 @@ function createLoggingClient(url, anonKey, subdomain = "default") {
  * @returns {SupabaseClient|null}
  */
 export function initSupabaseWithInstance(instanceConfig) {
-  if (!instanceConfig?.supabaseUrl || !instanceConfig?.supabaseAnonKey) {
-    console.error("❌ Configuration Supabase invalide");
-    return null;
+  // We need either a supabase instance or a supabaseUrl and supabaseAnonKey
+  if (!instanceConfig.supabase) {
+    if (!instanceConfig?.supabaseUrl || !instanceConfig?.supabaseAnonKey) {
+      throw new Error("❌ Configuration Supabase invalide");
+    }
   }
 
   currentInstanceConfig = instanceConfig;
+  // Debug trace
+  console.log(
+    `🔧 Initializing Supabase for: ${instanceConfig.displayName || instanceConfig.subdomain}`
+  );
+  console.log(
+    `🔧 Config: ${JSON.stringify({
+      supabaseUrl: instanceConfig.supabaseUrl,
+      supabaseAnonKey: instanceConfig.supabaseAnonKey,
+      subdomain: instanceConfig.subdomain || "local",
+    })}`
+  );
+  // Debug trace, is there a supabase instance already?
+  console.log(`🔧 supabaseInstance: ${JSON.stringify(supabaseInstance)}`);
   supabaseInstance = createLoggingClient(
     instanceConfig.supabaseUrl,
     instanceConfig.supabaseAnonKey,
-    instanceConfig.subdomain || "default"
+    instanceConfig.subdomain || "local",
+    instanceConfig.supabase || null
   );
+  console.log(`🔧 Supabase Logging Client created`);
   instanceConfig.supabase = supabaseInstance;
 
   console.log(
@@ -137,6 +156,7 @@ export function initSupabaseWithInstance(instanceConfig) {
  * @returns {Promise<{supabase: SupabaseClient, instance: Object}>}
  */
 export async function initSupabase() {
+  console.log(`🔧 initSupabase: ${JSON.stringify(currentInstanceConfig)}`);
   // Éviter les initialisations multiples
   if (initPromise) {
     return initPromise;
@@ -154,6 +174,7 @@ export async function initSupabase() {
       throw new Error("Aucune configuration Supabase valide trouvée");
     }
 
+    console.log(`🔧 initSupabase: ${JSON.stringify(instance)}`);
     const client = initSupabaseWithInstance(instance);
 
     return { supabase: client, instance };
@@ -173,7 +194,7 @@ export async function initSupabase() {
  */
 export function getSupabase() {
   if (!supabaseInstance) {
-    throw new Error("Supabase non initialisé. Appeler initSupabase() d'abord.");
+    throw new Error("Supabase non initialisée. Appeler initSupabase() d'abord.");
   }
   return supabaseInstance;
 }
@@ -191,7 +212,7 @@ export function getInstance() {
  * @returns {boolean}
  */
 export function isSupabaseReady() {
-  return supabaseInstance !== null || defaultClient !== null;
+  return supabaseInstance !== null;
 }
 
 // ============================================================================

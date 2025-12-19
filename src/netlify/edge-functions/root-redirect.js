@@ -17,9 +17,11 @@ export default async (request, context) => {
   // Display instance's name
   console.log("Instance name:", getConfig("community_name"));
 
-  // Don't intercept /markdown-viewer requests && non-GET requests
-  if (url.pathname === "/markdown-viewer") return context.next();
-  if (request.method !== "GET" && request.method !== "HEAD") return context.next();
+  // If none, no need to go further, 100% broken, internal error somewhere
+  if (!getConfig("community_name")) {
+    console.error("No community name found, cannot continue");
+    throw new Error("No community name found, cannot continue");
+  }
 
   const should_redirect = getConfig("redirect_enabled");
   const redirect_url = getConfig("redirect_url");
@@ -34,9 +36,8 @@ export default async (request, context) => {
       viewerUrl.search = new URLSearchParams({ file: markdownTarget }).toString();
       return Response.redirect(viewerUrl.toString(), 302);
     }
+    return context.next();
   }
-
-  if (!should_redirect) return context.next();
 
   // Redirect only if required & appropriate, else process as usual
   try {

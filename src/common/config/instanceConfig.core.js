@@ -19,11 +19,11 @@ const GLOBAL_CACHE_KEY = "__INSTANCE_DATA_CACHE_V1__";
 // Idempotency, singleton, global instance stuff
 var init_done = false;
 function inited() {
-  return !!globalThis[GLOBAL_CACHE_KEY];
+  return init_done;
 }
 function set_init_done() {
   if (init_done) {
-    throw new Error("instanceConfig multiple instance init");
+    console.log("set_init_done: multiple calls, ignored");
   }
   init_done = true;
 }
@@ -36,6 +36,7 @@ function getGlobalCache() {
       loadedAt: 0,
       supabase: null,
       factory: null,
+      getenv: null,
       data: {},
     };
   }
@@ -71,30 +72,30 @@ async function fetchAllRows(supabaseClient) {
 }
 
 // Load the instance config from some supabase. Reload if forced.
-// Return false if premature call (with warning) or promise if already in flight.
-export async function loadConfigTable(supabaseClient, { force = false } = {}) {
-  if (!supabaseClient?.from) {
-    // Inspect the supabaseClient object
-    console.log("loadConfigTable: supabaseClient inspection:", supabaseClient);
-    throw new TypeError("loadConfigTable: supabaseClient invalide (attendu: client Supabase)");
-  }
-  if (!inited()) {
-    console.warn("instanceConfig.core: premature call to loadConfigTable, ingnored");
-    // Return as if inFlight
-    return false;
-  }
-
+export async function loadConfigTable(force = false) {
   const cache = getGlobalCache();
 
-  if (!force && cache.inFlight) return cache.inFlight;
+  if (!force && cache.inFlight) {
+    console.log("loadConfigTable: already running, return promise");
+    return cache.inFlight;
+  }
+
+  // If config is already in cache, no need to fetch it again
   if (!force && cache.config) return cache.config;
+
+  // Reuse supabase client or create a new (non admin) one
+  if (cache.supabase) {
+    console.log("loadConfigTable: using existing supabase client");
+  } else {
+    console.log("loadConfigTable: creating new supabase client");
+    cache.supabase = cache.factory(cache.admin, cache.getenv);
+  }
 
   cache.inFlight = (async () => {
     try {
-      const map = await fetchAllRows(supabaseClient);
+      const map = await fetchAllRows(cache.supabase);
       cache.config = map;
       cache.loadedAt = Date.now();
-      cache.supabase = supabaseClient;
       cache.forced = force;
       return map;
     } finally {
@@ -102,7 +103,7 @@ export async function loadConfigTable(supabaseClient, { force = false } = {}) {
     }
   })();
 
-  return !cache.inFlight;
+  return cache.inFlight;
 }
 
 /**
@@ -166,6 +167,11 @@ export function getSupabase() {
   if (!inited()) {
     console.warn("getSupabase: premature call");
   }
+  const cache = getGlobalCache();
+  if (!cache.supabase) {
+    console.warn("getSupabase: supabase not initialized, fatal");
+    throw new Error("getSupabase: supabase not initialized, fatal");
+  }
   return getGlobalCache().supabase;
 }
 
@@ -187,41 +193,61 @@ export function getInstanceData(key) {
 export async function initializeInstanceCore(supabase, getenv_impl, newSupabase_impl, admin) {
   // This function is called by either initializeInstance_Backend() or initializeInstance_Edge()
   // or initializeInstance_Client() depending on the the actual runtime
-  if (inited()) {
-    console.warn("initializeInstanceCore: multiple calls");
-    return getGlobalCache().factory;
+
+  // Adapters must be provided
+  if (!getenv_impl || !newSupabase_impl) {
+    throw new Error("initializeInstanceCore: getenv_impl and newSupabase_impl must be provided");
   }
-  if (!supabase) {
-    console.log("initializeInstanceCore: supabaseClient is null, trying to create a new one");
-  } else {
-    console.log("initializeInstanceCore: using existing supabaseClient");
+  // Admin option must be provided
+  if (admin === undefined) {
+    throw new Error("initializeInstanceCore: admin option must be provided");
   }
-  const notnull_supabase = supabase || (await newSupabase_impl(admin));
-  await loadConfigTable(notnull_supabase, { force: true });
+
+  getGlobalCache().admin = admin;
+  getGlobalCache().supabase = supabase;
   getGlobalCache().getenv = getenv_impl;
   getGlobalCache().factory = newSupabase_impl;
+  await loadConfigTable();
+  // Debug log
+  console.log("initializeInstanceCore: config loaded");
   set_init_done();
   // Returns a supabaseClient factory
   return newSupabase_impl;
 }
 
 export async function reloadInstanceConfig(force = false) {
-  const supabase = getSupabase();
-  if (!supabase) throw new Error("reloadInstanceConfig: supabaseClient non initialisé");
-  return loadConfigTable(supabase, { force });
+  // Valid only if already initialized
+  if (!inited()) {
+    console.warn("reloadInstanceConfig: not initialized, ignored");
+    return false;
+  }
+  return loadConfigTable(force);
 }
 
 export async function loadInstanceConfig() {
-  const supabase = getSupabase();
-  if (!supabase) throw new Error("loadInstanceConfig: supabaseClient non initialisé");
-  return loadConfigTable(supabase, { force: false });
+  // Invalid if not initialized properly
+  if (!inited()) {
+    console.warn("loadInstanceConfig: not initialized, fatal");
+    throw new Error("loadInstanceConfig: not initialized, fatal");
+  }
+  return loadConfigTable(false);
 }
 
 export function getenv(key) {
+  // Invalid if not initialized
+  if (!inited()) {
+    console.warn("getenv: not initialized, fatal");
+    throw new Error("getenv: not initialized, fatal");
+  }
   return getGlobalCache().getenv(key);
 }
 
 export function getFederationConfig() {
   // TODO: implement federation config
+  // Invalid if not initialized
+  if (!inited()) {
+    console.warn("getFederationConfig: not initialized, fatal");
+    throw new Error("getFederationConfig: not initialized, fatal.");
+  }
   return {};
 }

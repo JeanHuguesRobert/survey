@@ -16,7 +16,7 @@ const getenv = (key) => {
 };
 
 // Fonction pour créer une instance Supabase côté client
-const createSupabase_Client = () => {
+const createSupabase_Client = (admin = false, options = {}) => {
   const supabaseUrl = getenv("SUPABASE_URL");
   const supabaseAnonKey = getenv("SUPABASE_ANON_KEY");
 
@@ -27,20 +27,20 @@ const createSupabase_Client = () => {
     return null;
   }
 
-  return createClient(supabaseUrl, supabaseAnonKey);
+  return createClient(supabaseUrl, supabaseAnonKey, options);
 };
 
-export async function newSupabase() {
-  return createSupabase_Client();
+export function newSupabase(admin = false, options = {}) {
+  return createSupabase_Client(admin, options);
 }
 
 // Initialiser le module de configuration core avec les fonctions spécifiques au client
-export async function initializeInstance_Client(supabase, admin = false) {
+export async function initializeInstance_Client(supabase, admin = false, options = {}) {
   if (admin) {
     console.warn("Initializing admin Supabase client.");
     throw new Error("Admin Supabase client initialization is not supported on the client side.");
   }
-  return initializeInstanceCore(supabase, getenv, newSupabase);
+  return await initializeInstanceCore(supabase, getenv, newSupabase, admin, options);
 }
 
 // Ré-exporter tout de instanceConfig.core.js pour une utilisation facile dans le frontend
