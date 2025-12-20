@@ -23,7 +23,7 @@ function inited() {
 }
 function set_init_done() {
   if (init_done) {
-    console.log("set_init_done: multiple calls, ignored");
+    // console.log("set_init_done: multiple calls, ignored");
   }
   init_done = true;
 }
@@ -72,8 +72,16 @@ async function fetchAllRows(supabaseClient) {
 }
 
 // Load the instance config from some supabase. Reload if forced.
-export async function loadConfigTable(force = false) {
+export async function loadConfigTable(force = false, supabase_config = null) {
   const cache = getGlobalCache();
+
+  // If supabase config provided (url & keys), use them
+  cache.supabase_config = supabase_config;
+  if (supabase_config) {
+    supabase_config = getGlobalCache().supabase;
+    // TODO
+    console.log("loadInstanceConfig: TODO using supabase_config=", supabase_config);
+  }
 
   if (!force && cache.inFlight) {
     console.log("loadConfigTable: already running, return promise");
@@ -126,7 +134,11 @@ export function getAllConfigKeys() {
 export function getConfig(key, by_default = undefined) {
   if (!key) return undefined;
 
+  // Get from env vars first, if present
   const cache = getGlobalCache();
+  const envVal = cache.getenv(key);
+  if (envVal !== undefined) return envVal;
+
   const t = cache.config;
   if (!t) {
     return undefined;
@@ -172,7 +184,7 @@ export function getSupabase() {
     console.warn("getSupabase: supabase not initialized, fatal");
     throw new Error("getSupabase: supabase not initialized, fatal");
   }
-  return getGlobalCache().supabase;
+  return cache.supabase;
 }
 
 export function supabaseFactory() {
@@ -207,30 +219,27 @@ export async function initializeInstanceCore(supabase, getenv_impl, newSupabase_
   getGlobalCache().supabase = supabase;
   getGlobalCache().getenv = getenv_impl;
   getGlobalCache().factory = newSupabase_impl;
-  await loadConfigTable();
-  // Debug log
-  console.log("initializeInstanceCore: config loaded");
   set_init_done();
   // Returns a supabaseClient factory
   return newSupabase_impl;
 }
 
-export async function reloadInstanceConfig(force = false) {
+export async function reloadInstanceConfig() {
   // Valid only if already initialized
   if (!inited()) {
     console.warn("reloadInstanceConfig: not initialized, ignored");
     return false;
   }
-  return loadConfigTable(force);
+  return loadConfigTable(true);
 }
 
-export async function loadInstanceConfig() {
+export async function loadInstanceConfig(force = false, supabase_config = null) {
   // Invalid if not initialized properly
   if (!inited()) {
     console.warn("loadInstanceConfig: not initialized, fatal");
     throw new Error("loadInstanceConfig: not initialized, fatal");
   }
-  return loadConfigTable(false);
+  return loadConfigTable(force, supabase_config);
 }
 
 export function getenv(key) {
