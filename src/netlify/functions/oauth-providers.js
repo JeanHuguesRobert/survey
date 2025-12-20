@@ -2,6 +2,7 @@ import { PROVIDERS } from "../edge-functions/lib/lib/oauthProviders.js";
 import { loadInstanceConfig, getConfig } from "../../common/config/instanceConfig.backend.js";
 
 export const handler = async (event) => {
+  // Load instance config
   await loadInstanceConfig();
 
   const enabledProviders = [];

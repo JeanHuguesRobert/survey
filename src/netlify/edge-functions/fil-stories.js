@@ -1,4 +1,8 @@
-import { getConfig, getSupabase } from "../../common/config/instanceConfig.edge.js";
+import {
+  loadInstanceConfig,
+  getConfig,
+  getSupabase,
+} from "../../common/config/instanceConfig.edge.js";
 
 export const config = { path: "/api/fil/stories" };
 
@@ -8,6 +12,8 @@ export default async function handler(request) {
   const limit = Math.min(parseInt(url.searchParams.get("limit") || "30"), 100);
   const pretty = url.searchParams.get("print") === "pretty";
 
+  // Load instance config from supabase
+  await loadInstanceConfig();
   const supabase = getSupabase();
 
   let query = supabase

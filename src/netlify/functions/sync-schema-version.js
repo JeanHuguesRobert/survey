@@ -9,6 +9,7 @@
  * 2. Met à jour le registry du hub avec cette version
  */
 
+import { loadInstanceConfig, getConfig } from "../../common/config/instanceConfig.backend.js";
 import { createClient } from "@supabase/supabase-js";
 
 export async function handler(event) {
@@ -39,9 +40,12 @@ export async function handler(event) {
       };
     }
 
+    // Load instance config
+    await loadInstanceConfig();
+
     // Connexion au hub pour récupérer les infos de l'instance
-    const hubUrl = process.env.VITE_SUPABASE_URL;
-    const hubKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const hubUrl = getConfig("SUPABASE_URL");
+    const hubKey = getConfig("SUPABASE_SERVICE_ROLE_KEY");
 
     if (!hubUrl || !hubKey) {
       return {

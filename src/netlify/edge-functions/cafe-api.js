@@ -1,4 +1,8 @@
-import { getConfig, getSupabase } from "../../common/config/instanceConfig.edge.js";
+import {
+  loadInstanceConfig,
+  getConfig,
+  getSupabase,
+} from "../../common/config/instanceConfig.edge.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +14,9 @@ export default async (req, context) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  // Load instance config from supabase
+  await loadInstanceConfig();
 
   const supabase = getSupabase();
 

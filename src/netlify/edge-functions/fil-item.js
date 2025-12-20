@@ -1,4 +1,8 @@
-import { getConfig, getSupabase } from "../../common/config/instanceConfig.edge.js";
+import {
+  loadInstanceConfig,
+  getConfig,
+  getSupabase,
+} from "../../common/config/instanceConfig.edge.js";
 export const config = { path: "/api/fil/item/*" };
 
 export default async function handler(request) {
@@ -13,6 +17,8 @@ export default async function handler(request) {
     });
   }
 
+  // Load instance config from supabase
+  await loadInstanceConfig();
   const supabase = getSupabase();
 
   // Fetch post with author

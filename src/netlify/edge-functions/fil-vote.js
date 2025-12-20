@@ -1,6 +1,9 @@
 // src/netlify/edge-functions/fil-vote.js
-
-import { getConfig, getSupabase } from "../../common/config/instanceConfig.edge.js";
+import {
+  loadInstanceConfig,
+  getConfig,
+  getSupabase,
+} from "../../common/config/instanceConfig.edge.js";
 
 export default async (request, context) => {
   // Handle CORS preflight
@@ -19,6 +22,8 @@ export default async (request, context) => {
   }
 
   try {
+    // Load instance config from supabase
+    await loadInstanceConfig();
     const supabase = getSupabase();
 
     // Get the user from the request authorization header

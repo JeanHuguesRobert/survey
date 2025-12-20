@@ -9,6 +9,12 @@
 //
 // Le frontend lit ces headers pour initialiser le bon client Supabase
 
+import {
+  loadInstanceConfig,
+  getConfig,
+  getSupabase,
+} from "../../common/config/instanceConfig.edge.js";
+
 // ============================================================================
 // CONFIGURATION
 // ============================================================================

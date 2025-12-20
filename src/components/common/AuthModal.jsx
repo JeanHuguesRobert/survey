@@ -2,11 +2,7 @@ import { useState } from "react";
 import { getSupabase } from "../../lib/supabase";
 import { ANONYMOUS_EMAIL } from "../../lib/permissions";
 import { useCurrentUser } from "../../lib/useCurrentUser";
-import { getConfig } from "../../common/config/instanceConfig.client.js";
-const facebookAppId = getConfig("facebook_app_id");
-
-// Debug
-console.log("facebookAppId", facebookAppId);
+import { loadInstanceConfig, getConfig } from "../../common/config/instanceConfig.client.js";
 
 export default function AuthModal({ onClose, onSuccess }) {
   const [mode, setMode] = useState("signin");
@@ -21,6 +17,7 @@ export default function AuthModal({ onClose, onSuccess }) {
     setLoading(true);
     setError("");
     try {
+      await loadInstanceConfig();
       const { data, error } = await getSupabase().auth.signInWithPassword({ email, password });
       if (error) throw error;
 
@@ -48,6 +45,7 @@ export default function AuthModal({ onClose, onSuccess }) {
     setLoading(true);
     setError("");
     try {
+      await loadInstanceConfig();
       const { error } = await getSupabase().auth.signInWithPassword({
         email: ANONYMOUS_EMAIL,
         password: "Anonymous",
@@ -77,6 +75,7 @@ export default function AuthModal({ onClose, onSuccess }) {
     setLoading(true);
     setError("");
     try {
+      await loadInstanceConfig();
       const { data, error } = await getSupabase().auth.signInWithOAuth({
         provider: "facebook",
         options: {
@@ -96,6 +95,7 @@ export default function AuthModal({ onClose, onSuccess }) {
     setLoading(true);
     setError("");
     try {
+      await loadInstanceConfig();
       const { data, error } = await getSupabase().auth.signInWithOAuth({
         provider: "github",
         options: {
@@ -115,6 +115,7 @@ export default function AuthModal({ onClose, onSuccess }) {
     setLoading(true);
     setError("");
     try {
+      await loadInstanceConfig();
       if (!displayName) {
         setError("Veuillez entrer un nom d'affichage");
         setLoading(false);

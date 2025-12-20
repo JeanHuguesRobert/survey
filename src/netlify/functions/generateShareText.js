@@ -84,6 +84,9 @@ export const handler = async (event) => {
     };
   }
 
+  // Load instance config
+  await loadInstanceConfig();
+
   try {
     const { pageTitle, pageUrl, pageContent, selectedDestinations, currentShareText } = JSON.parse(
       event.body

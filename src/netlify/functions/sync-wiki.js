@@ -6,7 +6,7 @@ import { loadInstanceConfig, getConfig } from "../../common/config/instanceConfi
 let _supabase = null;
 function getSupabase() {
   if (!_supabase) {
-    _supabase = createClient(getConfig("supabase_url"), getConfig("supabase_service_role_key"));
+    _supabase = createClient(getConfig("SUPABASE_URL"), getConfig("SUPABASE_SERVICE_ROLE_KEY"));
   }
   return _supabase;
 }

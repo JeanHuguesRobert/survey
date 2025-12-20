@@ -14,45 +14,38 @@ export default async (request, context) => {
   // TODO: should look at subdomain or some arg to get instance config
   await initializeInstanceAdmin_Edge();
 
-  // Display instance's name
-  console.log("Instance name:", getConfig("community_name"));
-
-  // If none, no need to go further, 100% broken, internal error somewhere
-  if (!getConfig("community_name")) {
-    console.error("No community name found, cannot continue");
-    throw new Error("No community name found, cannot continue");
-  }
-
-  const should_redirect = getConfig("redirect_enabled");
-  const redirect_url = getConfig("redirect_url");
+  // Redirect or not based on Netlify env vars, used for dev only
+  const should_redirect = getConfig("REDIRECT_ENABLED");
+  const redirect_url = getConfig("REDIRECT_URL");
   //console.log("should_redirect=", should_redirect, ", redirecturl=", redirect_url);
 
-  if (!should_redirect) {
-    // If this is a markdown file request, redirect to /markdown-viewer
-    const markdownTarget = resolveMarkdownTarget(request, url);
-    if (markdownTarget) {
-      const viewerUrl = new URL(request.url);
-      viewerUrl.pathname = "/markdown-viewer";
-      viewerUrl.search = new URLSearchParams({ file: markdownTarget }).toString();
-      return Response.redirect(viewerUrl.toString(), 302);
+  if (should_redirect) {
+    // Redirect only if required & appropriate, else process as usual
+    try {
+      const target = new URL(redirect_url);
+      // bypass if same host
+      if (url.host === target.host) return context.next();
+      // bypass if developer sets cookie to skip (optional)
+      const cookie = request.headers.get("cookie") || "";
+      if (/ngrok_bypass=1/.test(cookie)) return context.next();
+      // Redirect to dev server thru ngrok tunnel
+      return Response.redirect(cfg.redirect_url, 302);
+    } catch (e) {
+      console.error("Error redirecting to", redirect_url, e);
     }
-    return context.next();
   }
 
-  // Redirect only if required & appropriate, else process as usual
-  try {
-    const target = new URL(redirect_url);
-    // bypass if same host
-    if (url.host === target.host) return context.next();
-    // bypass if developer sets cookie to skip (optional)
-    const cookie = request.headers.get("cookie") || "";
-    if (/ngrok_bypass=1/.test(cookie)) return context.next();
-    // Redirect to dev server thru ngrok tunnel
-    return Response.redirect(cfg.redirect_url, 302);
-  } catch (e) {
-    console.error("Error redirecting to", redirect_url, e);
-    return context.next();
+  // If this is a markdown file request, redirect to /markdown-viewer
+  const markdownTarget = resolveMarkdownTarget(request, url);
+  if (markdownTarget) {
+    const viewerUrl = new URL(request.url);
+    viewerUrl.pathname = "/markdown-viewer";
+    viewerUrl.search = new URLSearchParams({ file: markdownTarget }).toString();
+    return Response.redirect(viewerUrl.toString(), 302);
   }
+
+  // Process, most functions will to call loadInstanceConfig()
+  return context.next();
 };
 
 function resolveMarkdownTarget(request, url) {

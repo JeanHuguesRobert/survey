@@ -3,7 +3,7 @@
 // ES Module (Node) version: top-level imports for `node-fetch` and `cheerio`.
 import fetch from "node-fetch";
 import { load } from "cheerio";
-import { getConfig } from "../../common/config/instanceConfig.backend.js";
+import { loadInstanceConfig, getConfig } from "../../common/config/instanceConfig.backend.js";
 
 function parseUrl(raw) {
   try {
@@ -107,6 +107,9 @@ export const handler = async (event) => {
         }),
       };
     }
+
+    // Load instance config
+    await loadInstanceConfig();
 
     const appId = getConfig("facebook_app_id");
     const clientSecret = getConfig("facebook_app_client_secret");

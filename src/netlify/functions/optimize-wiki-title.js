@@ -1,5 +1,5 @@
 import { OpenAI } from "openai";
-import { getConfig } from "../../common/config/instanceConfig.backend.js";
+import { loadInstanceConfig, getConfig } from "../../common/config/instanceConfig.backend.js";
 
 export const handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -18,6 +18,9 @@ export const handler = async (event) => {
         body: JSON.stringify({ error: "defaultTitle et pageContent sont requis." }),
       };
     }
+
+    // Load instance config
+    await loadInstanceConfig();
 
     const openaiApiKey = getConfig("openai_api_key");
     if (!openaiApiKey) {

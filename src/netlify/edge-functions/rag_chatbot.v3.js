@@ -4,7 +4,11 @@
 // CONFIGURATION - Modèles et paramètres par défaut
 // ============================================================================
 
-import { getConfig, getSupabase } from "../../common/config/instanceConfig.edge.js";
+import {
+  loadInstanceConfig,
+  getConfig,
+  getSupabase,
+} from "../../common/config/instanceConfig.edge.js";
 
 import OpenAI from "https://esm.sh/openai@4";
 
@@ -1589,6 +1593,8 @@ async function getSystemPrompt() {
 // ============================================================================
 
 const handler = async (request) => {
+  // Load instance config from supabase
+  await loadInstanceConfig();
   // Quick healthcheck support (frontend calls GET /api/chat-stream?healthcheck=true)
   try {
     const url = new URL(request.url);

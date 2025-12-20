@@ -17,7 +17,12 @@ import "./styles/index.css";
 // Import des modules multi-instances
 import { resolveInstance, getInstance } from "./lib/instanceResolver";
 import { initSupabaseWithInstance } from "./lib/supabase";
-import { initializeInstance_Client, getSupabase } from "./common/config/instanceConfig.client.js";
+import {
+  initializeInstance_Client,
+  loadInstanceConfig,
+  getSupabase,
+  getConfig,
+} from "./common/config/instanceConfig.client.js";
 
 // ============================================================================
 // LOADER PENDANT L'INIT
@@ -105,6 +110,7 @@ async function bootstrap() {
   try {
     // Initialiser la configuration globale, not admin / no secrets
     await initializeInstance_Client(null, false);
+    await loadInstanceConfig();
 
     // Résoudre l'instance (sous-domaine ou paramètre)
     const instance = await resolveInstance();

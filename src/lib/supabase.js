@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { resolveInstance } from "./instanceResolver.js";
 
 import {
+  loadInstanceConfig,
   getConfig as getInstanceConfig,
   getAllConfigKeys as getAllInstanceConfigKeys,
 } from "../common/config/instanceConfig.core.js";
@@ -173,6 +174,9 @@ export async function initSupabase() {
     if (!instance.isConfigured && !instance.supabaseUrl) {
       throw new Error("Aucune configuration Supabase valide trouvée");
     }
+
+    // Load instance config from Supabase
+    await loadInstanceConfig(instance);
 
     console.log(`🔧 initSupabase: ${JSON.stringify(instance)}`);
     const client = initSupabaseWithInstance(instance);

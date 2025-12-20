@@ -1,4 +1,8 @@
-import { getConfig, getSupabase } from "../../common/config/instanceConfig.edge.js";
+import {
+  loadInstanceConfig,
+  getConfig,
+  getSupabase,
+} from "../../common/config/instanceConfig.edge.js";
 
 export default async (request, context) => {
   // CORS headers
@@ -23,6 +27,7 @@ export default async (request, context) => {
   const cursor = url.searchParams.get("cursor"); // timestamp for pagination
 
   // Initialize Supabase
+  await loadInstanceConfig();
   const supabase = getSupabase();
 
   // Instance Info (for metadata)
