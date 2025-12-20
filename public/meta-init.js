@@ -1,7 +1,7 @@
 // Dynamic metadata initialization
 // ⚠️ FICHIER GÉNÉRÉ AUTOMATIQUEMENT - NE PAS MODIFIER
 // Généré par scripts/generate-meta-init.js lors du build
-// Dernière génération: 2025-12-19T14:16:30.269Z
+// Dernière génération: 2025-12-20T11:54:08.909Z
 
 const CITY_NAME = "Corte";
 const PARTY_NAME = "Petit Parti";
