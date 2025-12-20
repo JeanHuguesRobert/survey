@@ -74,7 +74,10 @@
             }
           });
         } else {
-          console.warn("Skipping FB.getLoginStatus: HTTPS required by Facebook Login.");
+          // Warning unless localhost
+          if (window.location.hostname !== "localhost") {
+            console.warn("Skipping FB.getLoginStatus: HTTPS required by Facebook Login.");
+          }
         }
       };
 
