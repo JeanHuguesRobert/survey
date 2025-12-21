@@ -1,5 +1,7 @@
+// src/netlify/functions/analyze-content.js
+
 import OpenAI from "openai";
-import { getConfig } from "../../common/config/instanceConfig.backend.js";
+import { loadInstanceConfig, getConfig } from "../../common/config/instanceConfig.edge.js";
 
 export default async (req, context) => {
   if (req.method !== "POST") {
@@ -17,6 +19,7 @@ export default async (req, context) => {
     }
 
     // Utiliser le vault pour les configs
+    await loadInstanceConfig();
     const botName = getConfig("bot_name");
 
     const openai = new OpenAI({
