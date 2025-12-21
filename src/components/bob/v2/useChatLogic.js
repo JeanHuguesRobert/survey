@@ -50,9 +50,9 @@ export default function useChatLogic(initial = {}) {
   // Status hooks must be called at top-level of this hook (Rules of Hooks)
   const loadSettingsOp = useDataLoader();
   const loadChatHistoryOp = useDataLoader();
-  const sendMessageOp = useApiCaller("Sending message");
-  const matchOp = useApiCaller("Finding related propositions");
-  const suggestOp = useApiCaller("Suggesting tags");
+  const sendMessageOp = useApiCaller("Envoi du message");
+  const matchOp = useApiCaller("Recherche de propositions liées");
+  const suggestOp = useApiCaller("Suggestion de tags");
   const clearHistoryOp = useDataSaver();
   const syncHistoryOp = useDataSaver();
   const createPropositionOp = useDataSaver();
@@ -221,7 +221,7 @@ export default function useChatLogic(initial = {}) {
     const providerMatch = msg.match(/^(\w+)\s+API\s+(\d+):/i);
 
     if (quotaMatch || msg.includes("429")) {
-      const provider = providerMatch ? providerMatch[1] : "Provider";
+      const provider = providerMatch ? providerMatch[1] : "Fournisseur";
       const retrySeconds = retryMatch ? Math.ceil(parseFloat(retryMatch[1])) : null;
       let userMessage = `⚠️ ${provider} : Quota/limite dépassé(e)`;
       if (retrySeconds) {
@@ -239,7 +239,7 @@ export default function useChatLogic(initial = {}) {
     }
 
     if (msg.includes("rate") && msg.includes("limit")) {
-      const provider = providerMatch ? providerMatch[1] : "Provider";
+      const provider = providerMatch ? providerMatch[1] : "Fournisseur";
       const retrySeconds = retryMatch ? Math.ceil(parseFloat(retryMatch[1])) : 5;
       return {
         userMessage: `⏱️ ${provider} : Trop de requêtes — Réessayez dans ${retrySeconds}s`,
@@ -269,7 +269,7 @@ export default function useChatLogic(initial = {}) {
     const userMessage = provider
       ? `❌ ${provider}${statusCode ? ` (${statusCode})` : ""} : ${cleanMsg}`
       : `❌ ${cleanMsg}`;
-    const consoleMessage = hasJson ? `[${provider || "Error"}] Full error: ${msg}` : msg;
+    const consoleMessage = hasJson ? `[${provider || "Erreur"}] Full error: ${msg}` : msg;
     return { userMessage, consoleMessage, detailedLog: msg, shouldRetry: false };
   }, []);
 

@@ -1,44 +1,115 @@
 // src/components/bob/v2/Messages.jsx
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
+import { CaretRight, ArrowsClockwise, Wrench, ChartBar, Lightbulb } from "@phosphor-icons/react";
 
-// Helper to extract <Think>...</Think> content
-const extractThought = (text) => {
-  if (!text) return { thought: null, content: "" };
+// Helper to extract all <Think>...</Think> blocks
+const extractThoughts = (text) => {
+  if (!text) return { thoughts: [], content: "" };
 
-  // Match <Think>...</Think> (case insensitive)
-  // Handles both complete tags and streaming (incomplete) tags
-  const match = text.match(/<Think>([\s\S]*?)(?:<\/Think>|$)/i);
+  const thoughts = [];
 
-  if (match) {
-    const thought = match[1];
-    // Remove the thought block from the content
-    const content = text.replace(/<Think>[\s\S]*?(?:<\/Think>|$)/i, "").trim();
-    return { thought, content };
+  // Use a regex to find all <Think> blocks, including those that might not be closed yet (streaming)
+  // We look for <Think> followed by anything until </Think> or the end of the string
+  const thinkRegex = /<Think>([\s\S]*?)(?:<\/Think>|$)/gi;
+  let match;
+
+  while ((match = thinkRegex.exec(text)) !== null) {
+    const content = match[1].trim();
+    if (content) {
+      thoughts.push({
+        text: content,
+        isComplete: match[0].endsWith("</Think>"),
+      });
+    }
   }
 
-  return { thought: null, content: text };
+  // Remove all <Think> blocks from the content to be rendered as main message
+  const content = text.replace(/<Think>[\s\S]*?(?:<\/Think>|$)/gi, "").trim();
+
+  return { thoughts, content };
 };
 
-// Component to display thought
-const ThoughtBlock = ({ thought }) => {
+// Component to display a single thought
+const ThoughtItem = ({ thought, isStreaming }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const contentRef = useRef(null);
 
-  if (!thought) return null;
+  if (!thought || !thought.text) return null;
+
+  // Auto-open if it's the active streaming thought
+  useEffect(() => {
+    if (isStreaming && !thought.isComplete) {
+      setIsOpen(true);
+    }
+  }, [isStreaming, thought.isComplete]);
+
+  // Determine icon and label based on content
+  let Icon = Lightbulb;
+  let label = "Réflexion";
+  let type = "general";
+
+  const lowerText = thought.text.toLowerCase();
+  if (lowerText.includes("selecting provider") || lowerText.includes("choix du fournisseur")) {
+    Icon = ArrowsClockwise;
+    label = "Sélection du fournisseur";
+    type = "provider";
+  } else if (lowerText.includes("executing tool") || lowerText.includes("exécution de l'outil")) {
+    Icon = Wrench;
+    label = "Utilisation d'un outil";
+    type = "tool";
+  } else if (lowerText.includes("monitoring") || lowerText.includes("suivi")) {
+    Icon = ChartBar;
+    label = "Détails techniques";
+    type = "monitoring";
+  }
 
   return (
-    <div className="thought-block">
+    <div className={`thought-item thought-type-${type} ${!thought.isComplete ? "is-active" : ""}`}>
       <div
         className="thought-summary"
         onClick={() => setIsOpen(!isOpen)}
-        title="Cliquez pour voir le raisonnement du modèle"
+        title="Cliquez pour voir les détails"
       >
-        <span className={`thought-toggle-icon ${isOpen ? "open" : ""}`}>▶</span>
-        <span>Processus de réflexion</span>
+        <span className={`thought-toggle-icon ${isOpen ? "open" : ""}`}>
+          <CaretRight size={14} weight="bold" />
+        </span>
+        <span className="thought-icon">
+          <Icon size={16} weight="duotone" />
+        </span>
+        <span className="thought-label">{label}</span>
+        {!thought.isComplete && <span className="thought-pulse" />}
       </div>
-      {isOpen && <div className="thought-content">{thought}</div>}
+      <div
+        className={`thought-content-wrapper ${isOpen ? "is-open" : ""}`}
+        style={{ height: isOpen ? "auto" : 0 }}
+      >
+        <div
+          className="thought-content"
+          dangerouslySetInnerHTML={{
+            __html: DOMPurify.sanitize(marked.parse(thought.text)),
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+
+// Component to display all thoughts
+const ThoughtBlock = ({ thoughts, isStreaming }) => {
+  if (!thoughts || thoughts.length === 0) return null;
+
+  return (
+    <div className="thought-block">
+      {thoughts.map((thought, index) => (
+        <ThoughtItem
+          key={index}
+          thought={thought}
+          isStreaming={isStreaming && index === thoughts.length - 1}
+        />
+      ))}
     </div>
   );
 };
@@ -57,8 +128,18 @@ export default function Messages({
   messagesEndRef = null,
   onCreateProposition = null,
 }) {
+  const containerRef = useRef(null);
+
+  // Auto-scroll logic
+  useEffect(() => {
+    if (messagesEndRef?.current) {
+      const behavior = messages.some((m) => m.isStreaming) ? "auto" : "smooth";
+      messagesEndRef.current.scrollIntoView({ behavior });
+    }
+  }, [messages]);
+
   return (
-    <div className="messages-container">
+    <div className="messages-container" ref={containerRef}>
       {messages.length === 0 ? (
         <div className="welcome-message">
           <p>Je peux vous aider avec :</p>
@@ -131,10 +212,12 @@ export default function Messages({
                 ) : (
                   <>
                     {(() => {
-                      const { thought, content } = extractThought(msg.text);
+                      const { thoughts, content } = extractThoughts(msg.text);
                       return (
                         <>
-                          {thought && <ThoughtBlock thought={thought} />}
+                          {thoughts.length > 0 && (
+                            <ThoughtBlock thoughts={thoughts} isStreaming={msg.isStreaming} />
+                          )}
                           <div
                             className="message-text"
                             dangerouslySetInnerHTML={{
