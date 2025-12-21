@@ -53,7 +53,11 @@ async function fetchAllRows(supabaseClient) {
 
   const map = Object.create(null);
   for (const row of all) {
-    if (row?.key) map[row.key] = row;
+    if (row?.key) {
+      // On trim la clé et on la stocke en minuscule pour faciliter la recherche
+      const k = String(row.key).trim().toLowerCase();
+      map[k] = row;
+    }
   }
   return map;
 }
@@ -141,32 +145,32 @@ export function getAllConfigKeys() {
  * @returns {*} value_json si présent, sinon value, sinon undefined
  */
 export function getConfig(key, by_default = undefined) {
-  if (!key) return undefined;
+  if (!key) return by_default;
 
-  // Get from env vars first, if present
   const cache = getGlobalCache();
-  const envVal = cache.getenv(key);
-  if (envVal !== undefined) return envVal;
 
+  // 1. Priorité aux variables d'environnement
+  if (cache.getenv) {
+    const envVal = cache.getenv(key);
+    if (envVal !== undefined && envVal !== null && envVal !== "") return envVal;
+  }
+
+  // 2. Recherche dans la config chargée depuis Supabase
   const t = cache.config;
-  if (!t) {
-    return undefined;
+  if (t) {
+    const kLower = String(key).trim().toLowerCase();
+    const row = t[kLower];
+
+    if (row) {
+      // Priorité à value_json si présent
+      const val =
+        row.value_json !== null && row.value_json !== undefined ? row.value_json : row.value;
+
+      if (val !== null && val !== undefined && val !== "") return val;
+    }
   }
 
-  const k = String(key);
-  // Case insensitive search
-  const candidates = [k, k.toLowerCase(), k.toUpperCase()];
-
-  for (const c of candidates) {
-    const row = t[c];
-    if (!row) continue;
-
-    if (row.value_json !== null && row.value_json !== undefined) return row.value_json;
-    if (row.value !== null && row.value !== undefined) return row.value;
-    return undefined;
-  }
-
-  return by_default || undefined;
+  return by_default;
 }
 
 /** Optionnel: accès au timestamp du cache */

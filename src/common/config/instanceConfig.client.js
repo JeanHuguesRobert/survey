@@ -12,7 +12,8 @@ const getenv = (key) => {
   // import.meta.env est la manière standard d'accéder aux variables d'environnement dans Vite/React
   // Nous utilisons une convention de nommage pour les variables d'environnement
   const envKey = `VITE_${key}`;
-  return import.meta.env[envKey] || null;
+  const envKeyUpper = `VITE_${key.toUpperCase()}`;
+  return import.meta.env[envKey] || import.meta.env[envKeyUpper] || undefined;
 };
 
 // Fonction pour créer une instance Supabase côté client

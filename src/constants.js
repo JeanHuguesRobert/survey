@@ -33,7 +33,8 @@ import { getConfig as _getConfig } from "./common/config/instanceConfig.client.j
 const getConfig = (key, envValue) => {
   try {
     const val = _getConfig(key);
-    return val !== null && val !== undefined ? val : envValue;
+    // On considère que "" (chaîne vide) doit aussi déclencher le fallback
+    return val !== null && val !== undefined && val !== "" ? val : envValue;
   } catch {
     return envValue;
   }
