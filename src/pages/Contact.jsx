@@ -3,13 +3,12 @@ import { Link } from "react-router-dom";
 import { HASHTAG, CITY_NAME, getDynamicConfig } from "../constants";
 import CommentSection from "../components/common/CommentSection";
 import { useCurrentUser } from "../lib/useCurrentUser";
-import { useInstanceConfig } from "../lib/useInstanceConfig.js";
+import { getConfig } from "../common/config/instanceConfig.client.js";
 
 export default function Contact() {
-  const { config } = useInstanceConfig();
   // Email de l'éditeur du site - Information légale obligatoire (LCEN)
   // Utilise le vault si disponible, sinon fallback sur env vars
-  const email = config?.contact_email || "jean_hugues_robert@yahoo.com";
+  const email = getConfig("contact_email", "jean_hugues_robert@yahoo.com");
   const { currentUser } = useCurrentUser();
 
   const isAdmin = currentUser?.email === email;

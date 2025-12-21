@@ -13,6 +13,7 @@ export const handler = async function (event) {
   }
 
   // Load instance config
+
   await loadInstanceConfig();
 
   const appId = getConfig("facebook_app_id");

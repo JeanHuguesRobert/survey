@@ -8,7 +8,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getSupabase } from "../../lib/supabase";
 import { useCurrentUser } from "../../lib/useCurrentUser";
-import { useInstanceConfig } from "../../lib/useInstanceConfig.js";
+import { getConfig } from "../../common/config/instanceConfig.client.js";
 
 const CONSENT_TYPES = {
   rgpd_general: {
@@ -53,8 +53,7 @@ export default function RGPDSettings() {
   const [exporting, setExporting] = useState(false);
 
   // Utiliser le vault pour l'email de contact
-  const { config } = useInstanceConfig();
-  const contactEmail = config?.contact_email || "jean_hugues_robert@yahoo.com";
+  const contactEmail = getConfig("contact_email", "jean_hugues_robert@yahoo.com");
 
   useEffect(() => {
     if (currentUser?.id) {
