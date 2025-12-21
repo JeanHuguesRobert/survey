@@ -1,9 +1,6 @@
 // netlify/edge-functions/root-redirect.js
 
-import {
-  initializeInstanceAdmin_Edge,
-  getConfig,
-} from "../../common/config/instanceConfig.edge.js";
+import { initializeInstanceAdmin, getConfig } from "../../common/config/instanceConfig.edge.js";
 
 export default async (request, context) => {
   const url = new URL(request.url);
@@ -12,7 +9,7 @@ export default async (request, context) => {
   console.log(`[edge-function/root-redirect.js] Serving request for ${url.pathname}`);
 
   // TODO: should look at subdomain or some arg to get instance config
-  await initializeInstanceAdmin_Edge();
+  await initializeInstanceAdmin();
 
   // Redirect or not based on Netlify env vars, used for dev only
   const should_redirect = getConfig("REDIRECT_ENABLED");

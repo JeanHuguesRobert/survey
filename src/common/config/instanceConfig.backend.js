@@ -4,7 +4,7 @@
  * Gère l'accès aux variables d'environnement côté serveur et l'initialisation du client Supabase.
  */
 
-import { initializeInstanceCore } from "./instanceConfig.core.js";
+import { inited, initializeInstanceCore } from "./instanceConfig.core.js";
 import { createClient } from "@supabase/supabase-js";
 
 // Use dotenv to load .env
@@ -17,7 +17,7 @@ function getenv(key) {
 }
 
 // Fonction pour créer une instance Supabase côté Nodejs backend
-const createSupabase_Backend = (admin = false, options = {}) => {
+const createSupabase = (admin = false, options = {}) => {
   const supabaseUrl = getenv("SUPABASE_URL");
   const supabaseServiceRoleKey = getenv("SUPABASE_SERVICE_ROLE_KEY");
   const supabaseAnonKey = getenv("SUPABASE_ANON_KEY");
@@ -56,15 +56,23 @@ const createSupabase_Backend = (admin = false, options = {}) => {
 };
 
 export function newSupabase(admin = true, options = {}) {
-  return createSupabase_Backend(admin, options);
+  return createSupabase(admin, options);
 }
 
-export async function initializeInstance_Backend(supabase = null, admin = false, options = {}) {
+export async function initializeInstance(supabase = null, admin = false, options = {}) {
   return await initializeInstanceCore(supabase, getenv, newSupabase, admin, options);
 }
 
-export async function initializeInstanceAdmin_Backend(supabase = null, options = {}) {
+export async function initializeInstanceAdmin(supabase = null, options = {}) {
   return await initializeInstanceCore(supabase, getenv, newSupabase, true, options);
+}
+
+export async function loadInstanceConfig(force = false, supabase_config = null) {
+  if (!inited()) {
+    console.warn("loadInstanceConfig: calling initializeInstanceAdmin()");
+    await initializeInstanceAdmin();
+  }
+  return await loadInstanceConfigCore(force, supabase_config);
 }
 
 // Ré-exporter tout de instanceConfig.core.js pour une utilisation facile dans le backend

@@ -4,7 +4,7 @@
  * Gère l'accès aux variables d'environnement Netlify et l'initialisation du client Supabase.
  */
 
-import { initializeInstanceCore } from "./instanceConfig.core.js";
+import { inited, initializeInstanceCore, loadInstanceConfigCore } from "./instanceConfig.core.js";
 
 // Pour Deno Edge Functions, le client Supabase est généralement importé depuis un CDN ou un module spécifique à Deno.
 // Assurez-vous que cette importation est correcte pour votre environnement Deno.
@@ -66,14 +66,23 @@ export function newSupabase(admin = false, options = {}) {
   return createSupabase_Edge(admin, options);
 }
 
-export async function initializeInstance_Edge(supabase, admin = false) {
+export async function initializeInstance(supabase, admin = false) {
   return await initializeInstanceCore(supabase, getenv, newSupabase, admin);
 }
 
 // Edge functions should call this function very early on.
 // TODO: where should the instance be selected in the multi-instance case?
-export async function initializeInstanceAdmin_Edge(supabase) {
-  return initializeInstance_Edge(supabase, true);
+export async function initializeInstanceAdmin(supabase) {
+  return initializeInstance(supabase, true);
+}
+
+export async function loadInstanceConfig(force = false, supabase_config = null) {
+  // Invalid if not initialized properly
+  if (!inited()) {
+    console.warn("loadInstanceConfig: calling initializeInstanceAdmin()");
+    await initializeInstanceAdmin();
+  }
+  return await loadInstanceConfigCore(force, supabase_config);
 }
 
 // Ré-exporter tout de instanceConfig.core.js pour une utilisation facile dans les Edge Functions

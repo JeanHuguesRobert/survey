@@ -487,11 +487,10 @@ CREATE TABLE instance_config (
 ### Utilisation côté JavaScript
 
 ```javascript
-import { initializeInstance_Client, getConfig, isFeatureEnabled } from "TODO";
+import { initializeInstance, getConfig, isFeatureEnabled } from "TODO";
 
-// Au démarrage de l'app. Utiliser initializeInstance_Backend() or initializeInstance_Edge()
-// when running as Netlify functions. Use _initializeInstanceAdmin_XXXX() when needed.
-await initializeInstance_Client();
+// Au démarrage de l'app.
+await initializeInstance();
 
 // Lecture d'une config
 const communityName = getConfig("community_name", "Corte");

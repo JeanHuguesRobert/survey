@@ -18,7 +18,7 @@ import "./styles/index.css";
 import { resolveInstance, getInstance } from "./lib/instanceResolver";
 import { initSupabaseWithInstance } from "./lib/supabase";
 import {
-  initializeInstance_Client,
+  initializeInstance,
   loadInstanceConfig,
   getSupabase,
   getConfig,
@@ -108,10 +108,6 @@ async function bootstrap() {
   showLoader();
 
   try {
-    // Initialiser la configuration globale, not admin / no secrets
-    await initializeInstance_Client(null, false);
-    await loadInstanceConfig();
-
     // Résoudre l'instance (sous-domaine ou paramètre)
     const instance = await resolveInstance();
     console.log(
@@ -124,6 +120,10 @@ async function bootstrap() {
         "Aucune configuration Supabase trouvée. Vérifiez vos variables d'environnement."
       );
     }
+
+    // Initialiser la configuration globale, not admin / no secrets
+    await initializeInstance(null, false, instance);
+    await loadInstanceConfig();
 
     // TODO: handle not default case
     instance.supabase = getSupabase();

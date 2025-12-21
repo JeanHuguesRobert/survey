@@ -1,24 +1,11 @@
 // src/common/config/instanceConfig.core.js
 // Module de configuration centralisé (lecture seule)
 
-/**
- * loadConfigTable(supabaseClient, { force=false })
- * - Charge TOUTES les colonnes de public.instance_config
- * - Retourne un hashtable: { [key: string]: rowObject }
- * - Cache global cross-runtime via globalThis (Node / Deno / Netlify)
- * - Une seule requête effective, sauf force=true
- *
- * getConfig(key, { table, fallback=undefined })
- * - Cherche la clé en essayant : exact, lower, upper
- * - Prend value_json si présent, sinon value
- * - Optionnel: fallback
- */
-
 const GLOBAL_CACHE_KEY = "__INSTANCE_DATA_CACHE_V1__";
 
 // Idempotency, singleton, global instance stuff
 var init_done = false;
-function inited() {
+export function inited() {
   return init_done;
 }
 function set_init_done() {
@@ -78,7 +65,7 @@ export async function loadConfigTable(force = false, supabase_config = null) {
   // If supabase config provided (url & keys), use them
   cache.supabase_config = supabase_config;
   if (supabase_config) {
-    supabase_config = getGlobalCache().supabase;
+    supabase_config = getGlobalCache().supabase_config;
     // TODO
     console.log("loadInstanceConfig: TODO using supabase_config=", supabase_config);
   }
@@ -89,14 +76,36 @@ export async function loadConfigTable(force = false, supabase_config = null) {
   }
 
   // If config is already in cache, no need to fetch it again
-  if (!force && cache.config) return cache.config;
+  if (!force && cache.config) {
+    // Defensive: Double check that supabase client instance is really there
+    if (cache.supabase) return cache.config;
+    console.warn("loadConfigTable: supabase client is null, but config is in cache");
+  }
 
   // Reuse supabase client or create a new (non admin) one
   if (cache.supabase) {
     console.log("loadConfigTable: using existing supabase client");
   } else {
     console.log("loadConfigTable: creating new supabase client");
+    // TODO: should use supabase_config to create the client
     cache.supabase = cache.factory(cache.admin, cache.getenv);
+    // It should not be null
+    if (!cache.supabase) {
+      console.warn("loadInstanceConfig: supabase client is null, factory failed, fatal");
+      throw new Error("loadInstanceConfig: supabase client is null, factory failed, fatal");
+    }
+    // Defensive: make sure getSupabase() is ok, ie no exception
+    try {
+      const supabase = getSupabase();
+      // Assert it is the same
+      if (supabase !== cache.supabase) {
+        console.warn("loadInstanceConfig: getSupabase() returned a different client, fatal");
+        throw new Error("loadInstanceConfig: getSupabase() returned a different client, fatal");
+      }
+    } catch (e) {
+      console.warn("loadInstanceConfig: getSupabase() failed, fatal");
+      throw e;
+    }
   }
 
   cache.inFlight = (async () => {
@@ -177,9 +186,14 @@ export function getConfigInfo() {
 
 export function getSupabase() {
   if (!inited()) {
-    console.warn("getSupabase: premature call");
+    console.warn("getSupabase: premature call, fatal");
+    throw new Error("getSupabase: premature call, fatal");
   }
   const cache = getGlobalCache();
+  if (!cache) {
+    console.warn("getSupabase: cache is null, fatal");
+    throw new Error("getSupabase: cache is null, fatal");
+  }
   if (!cache.supabase) {
     console.warn("getSupabase: supabase not initialized, fatal");
     throw new Error("getSupabase: supabase not initialized, fatal");
@@ -189,9 +203,19 @@ export function getSupabase() {
 
 export function supabaseFactory() {
   if (!inited) {
-    console.warn("supabaseFactory: premature call");
+    console.warn("supabaseFactory: premature call, fatal");
+    throw new Error("supabaseFactory: premature call, fatal");
   }
-  return getGlobalCache().factory;
+  const cache = getGlobalCache();
+  if (!cache) {
+    console.warn("supabaseFactory: cache is null, fatal");
+    throw new Error("supabaseFactory: cache is null, fatal");
+  }
+  if (!cache.factory) {
+    console.warn("supabaseFactory: factory is null, fatal");
+    throw new Error("supabaseFactory: factory is null, fatal");
+  }
+  return cache.factory;
 }
 
 export function setInstanceData(key, val) {
@@ -203,8 +227,7 @@ export function getInstanceData(key) {
 }
 
 export async function initializeInstanceCore(supabase, getenv_impl, newSupabase_impl, admin) {
-  // This function is called by either initializeInstance_Backend() or initializeInstance_Edge()
-  // or initializeInstance_Client() depending on the the actual runtime
+  // This function is called by the runtime specific implementation of initializeInstance()
 
   // Adapters must be provided
   if (!getenv_impl || !newSupabase_impl) {
@@ -215,10 +238,18 @@ export async function initializeInstanceCore(supabase, getenv_impl, newSupabase_
     throw new Error("initializeInstanceCore: admin option must be provided");
   }
 
-  getGlobalCache().admin = admin;
-  getGlobalCache().supabase = supabase;
-  getGlobalCache().getenv = getenv_impl;
-  getGlobalCache().factory = newSupabase_impl;
+  const cache = getGlobalCache();
+  cache.admin = admin;
+  // Defensive: cache.supabase should not be nullized
+  if (supabase) {
+    if (cache.supabase && supabase !== cache.supabase) {
+      console.warn("initializeInstanceCore: supabase client changed, fatal");
+      throw new Error("initializeInstanceCore: supabase client changed, fatal");
+    }
+    cache.supabase = supabase;
+  }
+  cache.getenv = getenv_impl;
+  cache.factory = newSupabase_impl;
   set_init_done();
   // Returns a supabaseClient factory
   return newSupabase_impl;
@@ -233,20 +264,103 @@ export async function reloadInstanceConfig() {
   return loadConfigTable(true);
 }
 
-export async function loadInstanceConfig(force = false, supabase_config = null) {
+export async function loadInstanceConfigCore(force = false, supabase_config = null) {
   // Invalid if not initialized properly
   if (!inited()) {
-    console.warn("loadInstanceConfig: not initialized, fatal");
-    throw new Error("loadInstanceConfig: not initialized, fatal");
+    console.warn("loadInstanceConfig: initializeInstance() not initialized, fatal");
+    throw new Error("loadInstanceConfig: initializeInstance() not initialized, fatal");
   }
-  return loadConfigTable(force, supabase_config);
+  console.log("initializeInstanceCore ok, loading instance config");
+  const prev_cache = getGlobalCache();
+  // Debug. Make a "by value copy" for future comparison, using keys in cache
+  const prev_values = {};
+  if (prev_cache) {
+    for (const k of Object.keys(prev_cache)) {
+      prev_values[k] = prev_cache[k];
+    }
+  }
+  const prev_supabase = prev_cache.supabase;
+  const result = await loadConfigTable(force, supabase_config);
+  const new_cache = getGlobalCache();
+  const new_values = {};
+  if (new_cache) {
+    for (const k of Object.keys(new_cache)) {
+      new_values[k] = new_cache[k];
+    }
+  }
+  const new_supabase = new_cache?.supabase;
+  if (prev_supabase && new_supabase !== prev_supabase) {
+    if (!new_supabase) {
+      console.warn("loadInstanceConfig: supabase client became null, fatal");
+      throw new Error("loadInstanceConfig: supabase client became null, fatal");
+    }
+    console.warn("loadInstanceConfig: supabase client changed, fatal");
+    throw new Error("loadInstanceConfig: supabase client changed, fatal");
+  }
+  // Debug: detect changes, is it the same cache?
+  if (prev_cache && prev_cache !== new_cache) {
+    // If changed, that's a fatal error, unless first time
+    console.warn("loadInstanceConfig: cache changed, fatal");
+    throw new Error("loadInstanceConfig: cache changed, fatal");
+  }
+  // Debug: detect changes, what keys and what previous vs new values
+  const changed_keys = [];
+  for (const k of Object.keys(new_values)) {
+    if (prev_values[k] !== new_values[k]) {
+      changed_keys.push(k);
+    }
+  }
+  // Debug: log changed keys
+  console.log("loadInstanceConfig: cache changed keys:", changed_keys);
+  // Debug: detect changes, log previous vs new values
+  for (const k of changed_keys) {
+    if (prev_values[k] !== new_values[k]) {
+      if (new_values[k] !== null) {
+        if (prev_values[k] === null) {
+          console.log("loadInstanceConfig: cache value changed (was null), not null, key:", k);
+        } else {
+          console.log("loadInstanceConfig: cache value changed, was not null, not null, key:", k);
+        }
+      } else {
+        if (prev_values[k] !== null) {
+          console.log("loadInstanceConfig: cache value changed (became null), key:", k);
+        } else {
+          console.log("loadInstanceConfig: cache value changed, null, key:", k);
+        }
+      }
+    }
+    // Signal what was null and isn't anymore
+    if (prev_values[k] === null && new_values[k] !== null) {
+      console.log("loadInstanceConfig: cache changed (was null), key:", k);
+    }
+    // Signal what was not null and became null
+    if (prev_values[k] !== null && new_values[k] === null) {
+      console.log("loadInstanceConfig: cache changed (became null), key:", k);
+    }
+  }
+
+  // Defensive: make sure getSupabase() is ok, ie no exception
+  try {
+    getSupabase();
+  } catch (e) {
+    console.warn("loadInstanceConfig: getSupabase() failed, fatal");
+    throw e;
+  }
+  // Defensive: make sure getConfig() is ok, ie no exception
+  try {
+    getConfig("community_name");
+  } catch (e) {
+    console.warn("loadInstanceConfig: getConfig() failed, fatal");
+    throw e;
+  }
+  return result;
 }
 
 export function getenv(key) {
   // Invalid if not initialized
   if (!inited()) {
-    console.warn("getenv: not initialized, fatal");
-    throw new Error("getenv: not initialized, fatal");
+    console.warn("instanceConfigCore.getenv: not initialized, fatal");
+    throw new Error("InstanceConfigCore.getenv: not initialized, fatal");
   }
   return getGlobalCache().getenv(key);
 }
@@ -255,8 +369,8 @@ export function getFederationConfig() {
   // TODO: implement federation config
   // Invalid if not initialized
   if (!inited()) {
-    console.warn("getFederationConfig: not initialized, fatal");
-    throw new Error("getFederationConfig: not initialized, fatal.");
+    console.warn("instanceConfigCore.getFederationConfig: not initialized, fatal");
+    throw new Error("instanceConfigCore.getFederationConfig: not initialized, fatal.");
   }
   return {};
 }

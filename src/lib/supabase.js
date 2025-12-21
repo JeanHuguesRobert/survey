@@ -1,10 +1,11 @@
+// src/lib/supabase.js
 import { createClient } from "@supabase/supabase-js";
 import { resolveInstance } from "./instanceResolver.js";
 
 import {
-  loadInstanceConfig,
   getConfig as getInstanceConfig,
   getAllConfigKeys as getAllInstanceConfigKeys,
+  getSupabase as getInstanceSupabase,
 } from "../common/config/instanceConfig.core.js";
 
 // ============================================================================
@@ -34,8 +35,9 @@ let initPromise = null;
  * @returns {SupabaseClient}
  */
 function createLoggingClient(url, anonKey, subdomain = "local", supabase_client = null) {
+  const existing_supabase = supabase_client || getInstanceSupabase();
   const rawClient =
-    supabase_client ||
+    existing_supabase ||
     createClient(url, anonKey, {
       auth: {
         autoRefreshToken: true,
@@ -174,9 +176,6 @@ export async function initSupabase() {
     if (!instance.isConfigured && !instance.supabaseUrl) {
       throw new Error("Aucune configuration Supabase valide trouvée");
     }
-
-    // Load instance config from Supabase
-    await loadInstanceConfig(instance);
 
     console.log(`🔧 initSupabase: ${JSON.stringify(instance)}`);
     const client = initSupabaseWithInstance(instance);

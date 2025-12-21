@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { loadInstanceConfig, getConfig } from "../common/config/instanceConfig.core.js";
+import { loadInstanceConfig, getConfig } from "../common/config/instanceConfig.client.js";
 
 // A simple in-memory cache for the config to avoid re-fetching if already loaded
 let configCache = null;
