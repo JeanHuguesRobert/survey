@@ -1910,13 +1910,13 @@ const handler = async (request) => {
           if (trace.phase === "finish") {
             const dur = Number.isFinite(trace.durationMs) ? `${trace.durationMs}ms` : null;
             emitThink(
-              `Tool finished: ${trace.tool}${dur ? ` (${dur})` : ""}${
+              `Outil terminé : ${trace.tool}${dur ? ` (${dur})` : ""}${
                 trace.resultPreview ? ` — ${previewForLog(trace.resultPreview, 160)}` : ""
               }`
             );
           } else if (trace.phase === "error") {
             emitThink(
-              `Tool error: ${trace.tool}${trace.error ? ` — ${previewForLog(trace.error, 200)}` : ""}`
+              `Erreur outil : ${trace.tool}${trace.error ? ` — ${previewForLog(trace.error, 200)}` : ""}`
             );
           } else if (trace.phase === "notice" && trace.message) {
             emitThink(previewForLog(trace.message, 220));
@@ -1936,11 +1936,11 @@ const handler = async (request) => {
 
       // 13. Essaie chaque fournisseur dans l'ordre
       emitThink(
-        `Provider order: ${providerOrder.join(", ")}${
+        `Ordre des fournisseurs : ${providerOrder.join(", ")}${
           enforcedProvider
-            ? ` (enforced=${enforcedProvider})`
+            ? ` (forcé=${enforcedProvider})`
             : SHOULD_RANDOMIZE_PROVIDERS
-              ? " (randomized)"
+              ? " (aléatoire)"
               : ""
         }`
       );
@@ -1963,16 +1963,16 @@ const handler = async (request) => {
             const consecutiveErrors = entry?.metrics?.consecutiveErrors || 0;
             const lastErrorMessage = entry?.metrics?.lastError?.message;
             emitThink(
-              `Skipping provider ${provider}${modelName ? ` (${modelName})` : ""}: ${status}${
+              `Saut du fournisseur ${provider}${modelName ? ` (${modelName})` : ""}: ${status}${
                 lastErrorMessage
                   ? ` — ${previewForLog(lastErrorMessage, 160)}`
                   : consecutiveErrors
-                    ? ` — ${consecutiveErrors} consecutive errors`
+                    ? ` — ${consecutiveErrors} erreurs consécutives`
                     : ""
               }`
             );
           } catch {
-            emitThink(`Skipping provider ${provider}`);
+            emitThink(`Saut du fournisseur ${provider}`);
           }
           continue;
         }
@@ -1991,7 +1991,7 @@ const handler = async (request) => {
             }
             if (!apiKey) {
               console.log(`[EdgeFunction] ⏭️ Skipping ${provider} (no API key)`);
-              emitThink(`Skipping provider ${provider}: missing API key`);
+              emitThink(`Saut du fournisseur ${provider} : clé API manquante`);
               // Mark provider as failed/unavailable so we don't retry indefinitely
               try {
                 failedProviders.add(provider);
@@ -2011,8 +2011,8 @@ const handler = async (request) => {
             emitProviderMeta({ provider, model: resolvedModel });
             console.log(`[EdgeFunction] 🚀 Tentative avec ${provider} (model=${resolvedModel})...`);
             emitThink(
-              `Trying provider ${provider}${resolvedModel ? ` (${resolvedModel})` : ""}${
-                enforcedProvider ? ` — enforced=${enforcedProvider}` : ""
+              `Tentative avec le fournisseur ${provider}${resolvedModel ? ` (${resolvedModel})` : ""}${
+                enforcedProvider ? ` — forcé=${enforcedProvider}` : ""
               }`
             );
             if (provider === "huggingface") {
@@ -2072,7 +2072,9 @@ const handler = async (request) => {
               }
             }
             handled = true;
-            emitThink(`Provider success: ${provider}${resolvedModel ? ` (${resolvedModel})` : ""}`);
+            emitThink(
+              `Succès du fournisseur : ${provider}${resolvedModel ? ` (${resolvedModel})` : ""}`
+            );
             break;
           } catch (error) {
             const isForcedProvider = forcedProvider === provider;
@@ -2083,7 +2085,9 @@ const handler = async (request) => {
               console.warn(
                 `[EdgeFunction] ⚠️ ${provider} capacité atteinte, passage au fournisseur suivant.`
               );
-              emitThink(`Provider switch: ${provider} capacity exceeded — trying next provider`);
+              emitThink(
+                `Changement de fournisseur : ${provider} capacité dépassée — tentative avec le suivant`
+              );
               // In debug mode, show fallback info in UI
               if (debugMode) {
                 controller.enqueue(
@@ -2100,7 +2104,7 @@ const handler = async (request) => {
                 `[EdgeFunction] ⏳ ${provider} rate limit, retrying in ${delayMs}ms (attempt ${providerRetries + 1}/${maxProviderRetries + 1})`
               );
               emitThink(
-                `Retrying provider ${provider}: rate limited — waiting ${Math.round(delayMs)}ms (attempt ${providerRetries + 1}/${maxProviderRetries + 1})`
+                `Nouvelle tentative ${provider} : limite de débit atteinte — attente de ${Math.round(delayMs)}ms (tentative ${providerRetries + 1}/${maxProviderRetries + 1})`
               );
               await new Promise((resolve) => setTimeout(resolve, delayMs));
               providerRetries++;
@@ -2112,7 +2116,7 @@ const handler = async (request) => {
               // If this is a forced provider, show error to user (no fallback available)
               if (isForcedProvider) {
                 emitThink(
-                  `Provider failed (forced): ${provider} — not falling back${
+                  `Échec du fournisseur (forcé) : ${provider} — pas de repli possible${
                     errorDetail ? ` — ${previewForLog(errorDetail, 180)}` : ""
                   }`
                 );
@@ -2128,7 +2132,7 @@ const handler = async (request) => {
               // For automatic fallback: log in backend, don't show in UI (unless debug mode)
               console.warn(`[EdgeFunction] ⚠️ ${provider} failed, trying next provider...`);
               emitThink(
-                `Provider switch: ${provider} failed — trying next provider${
+                `Changement de fournisseur : ${provider} a échoué — tentative avec le suivant${
                   errorDetail ? ` — ${previewForLog(errorDetail, 160)}` : ""
                 }`
               );
@@ -2263,7 +2267,7 @@ async function* runConversationalAgent({
   while (toolCallCount < maxToolCalls) {
     const model = resolveModelForProvider(provider, modelMode);
     console.log(`[${provider}] 🔁 Appel LLM (model=${model}) - messages:${messages.length}`);
-    yield `<Think>LLM call: provider=${provider}${model ? ` model=${model}` : ""}, messages=${messages.length}, toolCallsUsed=${toolCallCount}/${maxToolCalls}</Think>\n`;
+    yield `<Think>Appel LLM : fournisseur=${provider}${model ? ` modèle=${model}` : ""}, messages=${messages.length}, outilsUtilisés=${toolCallCount}/${maxToolCalls}</Think>\n`;
     const streamOrDirect = await callLLMAPI({
       provider,
       model,
@@ -2298,7 +2302,7 @@ async function* runConversationalAgent({
             `[${provider}] 🛠 Executing ${valid.length} tool(s) (direct):`,
             valid.map((c) => c.function.name)
           );
-          yield `<Think>Tools requested (direct): ${valid
+          yield `<Think>Outils demandés (direct) : ${valid
             .map((c) => c.function?.name)
             .filter(Boolean)
             .join(", ")}</Think>\n`;
@@ -2317,10 +2321,10 @@ async function* runConversationalAgent({
             user,
             context
           );
-          yield `<Think>Tools executed (direct): ${valid
+          yield `<Think>Outils exécutés (direct) : ${valid
             .map((c) => c.function?.name)
             .filter(Boolean)
-            .join(", ")} — resuming LLM</Think>\n`;
+            .join(", ")} — reprise du LLM</Think>\n`;
           messages = [
             ...messages,
             {
@@ -2408,7 +2412,7 @@ async function* runConversationalAgent({
           }
 
           console.log(`[${provider}] 🛠 Executing tool now: ${fnName} (id=${call.id})`);
-          yield `<Think>Tool requested (stream): ${fnName} (id=${call?.id || "n/a"}) — executing</Think>\n`;
+          yield `<Think>Outil demandé (flux) : ${fnName} (id=${call?.id || "n/a"}) — exécution</Think>\n`;
           lastStreamToolInfo = { name: fnName, id: call?.id };
           const toolMessages = await executeToolCalls(
             [call],
@@ -2425,7 +2429,7 @@ async function* runConversationalAgent({
             user,
             context
           );
-          yield `<Think>Tool executed (stream): ${fnName} (id=${call?.id || "n/a"}) — resuming LLM</Think>\n`;
+          yield `<Think>Outil exécuté (flux) : ${fnName} (id=${call?.id || "n/a"}) — reprise du LLM</Think>\n`;
 
           messages = [
             ...messages,
@@ -2512,9 +2516,9 @@ async function* runConversationalAgent({
       `[${provider}] ⚠️ ${streamTimedOut ? "Stream timed out." : "No tool calls/content from stream."} Attempting direct fallback.`
     );
     if (streamTimedOut) {
-      yield `<Think>Stream idle timeout (${idleTimeoutMs}ms): switching to non-stream fallback</Think>\n`;
+      yield `<Think>Délai d'attente du flux dépassé (${idleTimeoutMs}ms) : basculement vers le mode direct</Think>\n`;
     } else {
-      yield `<Think>Stream ended with no content/tool calls: switching to non-stream fallback</Think>\n`;
+      yield `<Think>Flux terminé sans contenu ni appel d'outil : basculement vers le mode direct</Think>\n`;
     }
     const direct = await callLLMAPI({
       provider,
