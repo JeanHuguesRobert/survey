@@ -151,13 +151,30 @@ function parseToolArguments(raw) {
  * @param {Array} toolCalls - Liste des tool calls à exécuter
  * @param {string} provider - Nom du provider (pour les logs)
  * @param {Object} fallbackContext - Contexte de fallback pour les arguments manquants
+ * @param {Object} supabase - Client Supabase
+ * @param {Object} openai - Client OpenAI
+ * @param {Object} metaCollector - Collecteur de métadonnées
+ * @param {Object} toolEventEmitter - Émetteur d'événements pour les tools
+ * @param {boolean} debugMode - Mode debug
+ * @param {Object} user - Utilisateur actuel
+ * @param {Object} context - Contexte utilisateur
  * @returns {Promise<Array>} Messages de résultats des tools
  */
-export async function executeToolCalls(toolCalls, provider = "mistral", fallbackContext = {}) {
-  console.log(`[${provider}] 🔁 executeToolCalls called count=${toolCalls.length}`);
-  const results = [];
+export async function executeToolCalls(
+  toolCalls,
+  provider = "mistral",
+  fallbackContext = {},
+  supabase = null,
+  openai = null,
+  metaCollector = null,
+  toolEventEmitter = null,
+  debugMode = false,
+  user = null,
+  context = {}
+) {
+  console.log(`[${provider}] 🔁 executeToolCalls parallel called count=${toolCalls.length}`);
 
-  for (const call of toolCalls) {
+  const toolPromises = toolCalls.map(async (call) => {
     try {
       const toolName = call.function?.name || call.name;
       let args = parseToolArguments(call.function?.arguments || call.arguments);
@@ -196,38 +213,69 @@ export async function executeToolCalls(toolCalls, provider = "mistral", fallback
           console.warn(
             `[${provider}] ⚠️ Paramètres manquants pour ${toolName} (call id=${call.id}). Ignoré.`
           );
-          continue;
+          return null; // Skip this tool call
         }
       }
 
       const handler = TOOL_HANDLERS[toolName];
       if (!handler) {
         console.warn(`[${provider}] Outil non géré: ${toolName}`);
-        continue;
+        return null; // Skip this tool call
       }
 
       console.log(`[${provider}] 🛠 Exécution de ${toolName} avec:`, args);
-      const output = await handler(args);
+
+      // Trace the tool call if an emitter is provided
+      if (toolEventEmitter) {
+        toolEventEmitter.emit("tool_call", {
+          id: call.id,
+          name: toolName,
+          args,
+          provider,
+        });
+      }
+
+      // Call the handler with all available context
+      const output = await handler(args, {
+        supabase,
+        openai,
+        debugMode,
+        user,
+        context,
+        metaCollector,
+      });
+
       console.log(
         `[${provider}] ⬅ Tool result for ${toolName} preview: ${String(output).slice(0, 400)}`
       );
 
-      results.push({
+      // Trace the tool result if an emitter is provided
+      if (toolEventEmitter) {
+        toolEventEmitter.emit("tool_result", {
+          id: call.id,
+          name: toolName,
+          output,
+          provider,
+        });
+      }
+
+      return {
         role: "tool",
         tool_call_id: call.id,
         name: toolName,
-        content: output,
-      });
+        content: String(output),
+      };
     } catch (error) {
       console.error(`[${provider}] ❌ Erreur outil:`, error);
-      results.push({
+      return {
         role: "tool",
         tool_call_id: call.id,
         name: call.function?.name || call.name,
         content: `⚠️ Erreur: ${error.message}`,
-      });
+      };
     }
-  }
+  });
 
-  return results;
+  const results = await Promise.all(toolPromises);
+  return results.filter(Boolean); // Filter out skipped tool calls
 }

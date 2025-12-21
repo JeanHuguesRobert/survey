@@ -5,7 +5,7 @@ import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { CaretRight, ArrowsClockwise, Wrench, ChartBar, Lightbulb } from "@phosphor-icons/react";
 
-// Helper to extract all <Think>...</Think> blocks
+// Helper to extract all <Think>...</Think> blocks and regroup consecutive ones
 const extractThoughts = (text) => {
   if (!text) return { thoughts: [], content: "" };
 
@@ -15,15 +15,32 @@ const extractThoughts = (text) => {
   // We look for <Think> followed by anything until </Think> or the end of the string
   const thinkRegex = /<Think>([\s\S]*?)(?:<\/Think>|$)/gi;
   let match;
+  let lastMatchEnd = 0;
 
   while ((match = thinkRegex.exec(text)) !== null) {
     const content = match[1].trim();
     if (content) {
-      thoughts.push({
-        text: content,
-        isComplete: match[0].endsWith("</Think>"),
-      });
+      const startIndex = match.index;
+      const isComplete = match[0].endsWith("</Think>");
+
+      // Check if this block is consecutive with the previous one (only whitespace in between)
+      const gap = text.substring(lastMatchEnd, startIndex);
+      const isConsecutive = lastMatchEnd > 0 && gap.trim() === "";
+
+      if (isConsecutive && thoughts.length > 0) {
+        // Regroup with previous thought
+        const lastThought = thoughts[thoughts.length - 1];
+        lastThought.text += "\n\n" + content;
+        lastThought.isComplete = isComplete;
+      } else {
+        // New thought block
+        thoughts.push({
+          text: content,
+          isComplete: isComplete,
+        });
+      }
     }
+    lastMatchEnd = thinkRegex.lastIndex;
   }
 
   // Remove all <Think> blocks from the content to be rendered as main message
@@ -52,15 +69,33 @@ const ThoughtItem = ({ thought, isStreaming }) => {
   let type = "general";
 
   const lowerText = thought.text.toLowerCase();
-  if (lowerText.includes("selecting provider") || lowerText.includes("choix du fournisseur")) {
+  const hasProvider =
+    lowerText.includes("selecting provider") ||
+    lowerText.includes("fournisseur") ||
+    lowerText.includes("llm call");
+  const hasTool =
+    lowerText.includes("executing tool") ||
+    lowerText.includes("outil") ||
+    lowerText.includes("tool requested");
+  const hasMonitoring =
+    lowerText.includes("monitoring") ||
+    lowerText.includes("suivi") ||
+    lowerText.includes("technique") ||
+    lowerText.includes("metrics");
+
+  if (hasProvider && hasTool) {
+    Icon = Lightbulb;
+    label = "Analyse et exécution";
+    type = "general";
+  } else if (hasProvider) {
     Icon = ArrowsClockwise;
-    label = "Sélection du fournisseur";
+    label = "Configuration du modèle";
     type = "provider";
-  } else if (lowerText.includes("executing tool") || lowerText.includes("exécution de l'outil")) {
+  } else if (hasTool) {
     Icon = Wrench;
-    label = "Utilisation d'un outil";
+    label = "Utilisation d'outils";
     type = "tool";
-  } else if (lowerText.includes("monitoring") || lowerText.includes("suivi")) {
+  } else if (hasMonitoring) {
     Icon = ChartBar;
     label = "Détails techniques";
     type = "monitoring";

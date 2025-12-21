@@ -569,6 +569,65 @@ const TOOL_HANDLERS = {
     }
   },
 
+  async sql_query({ query }, { supabase }) {
+    console.log(`[SqlQuery] ➜ query=${previewForLog(query)}`);
+    if (!supabase) return "Base de données non configurée.";
+    try {
+      // Nettoyage basique
+      const cleanQuery = query.trim().replace(/;+$/, "");
+      if (
+        !cleanQuery.toLowerCase().startsWith("select") &&
+        !cleanQuery.toLowerCase().startsWith("with")
+      ) {
+        return "Erreur: Seules les requêtes SELECT (lecture seule) sont autorisées.";
+      }
+
+      // Tentative via RPC exec_sql (standard dans nos instances)
+      const { data, error } = await supabase.rpc("exec_sql", { sql_query: cleanQuery });
+      if (error) {
+        console.warn(
+          `[SqlQuery] ⚠️ RPC exec_sql failed, trying direct query if admin: ${error.message}`
+        );
+        // Fallback: si c'est un client admin, on pourrait tenter autre chose,
+        // mais l'RPC est la méthode privilégiée pour les Edge Functions.
+        return `Erreur SQL: ${error.message}`;
+      }
+
+      const rows = Array.isArray(data) ? data : data?.rows || [];
+      console.log(`[SqlQuery] ✅ ${rows.length} lignes retournées`);
+      return JSON.stringify(rows);
+    } catch (error) {
+      console.error(`[SqlQuery] ❌ Erreur:`, error);
+      return `⚠️ Erreur d'exécution SQL: ${error.message}`;
+    }
+  },
+
+  get_user_context(_, { user, context }) {
+    console.log(`[UserContext] ➜ user=${user?.id || "anonymous"}`);
+    return JSON.stringify({
+      user: user
+        ? {
+            id: user.id,
+            email: user.email,
+            metadata: user.user_metadata,
+            role: user.role,
+          }
+        : null,
+      navigation_context: context || {},
+      timestamp: new Date().toISOString(),
+    });
+  },
+
+  list_capabilities() {
+    console.log(`[Capabilities] ➜ listing ${Object.keys(TOOLS).length} tools`);
+    return JSON.stringify(
+      Object.values(TOOLS).map((t) => ({
+        name: t.name,
+        description: t.description,
+      }))
+    );
+  },
+
   // Ajoute d'autres handlers ici
 };
 
@@ -688,6 +747,7 @@ const isAsyncIterable = (value) =>
   Boolean(value && typeof value[Symbol.asyncIterator] === "function");
 
 // Update executeToolCalls to accept a fallbackContext for missing arguments
+// Update executeToolCalls to support parallel execution and pass user context
 async function executeToolCalls(
   toolCalls,
   provider = "mistral",
@@ -696,11 +756,12 @@ async function executeToolCalls(
   openai,
   metaCollector = null,
   toolEventEmitter = null,
-  debugMode = false
+  debugMode = false,
+  user = null,
+  context = {}
 ) {
-  console.log(`[${provider}] 🔁 executeToolCalls called count=${toolCalls.length}`);
-  const results = [];
-  for (const call of toolCalls) {
+  console.log(`[${provider}] 🔁 executeToolCalls parallel called count=${toolCalls.length}`);
+  const toolPromises = toolCalls.map(async (call) => {
     try {
       const toolName = call.function?.name || call.name;
       let args = parseToolArguments(call.function?.arguments || call.arguments);
@@ -709,7 +770,6 @@ async function executeToolCalls(
       // Apply fallback logic for web_search: use question if query is missing
       if (toolName === "web_search") {
         if (!args || !args.query) {
-          // fallbackContext may contain a default query string
           const fallbackQuery = fallbackContext?.web_search?.query || fallbackContext?.defaultQuery;
           if (fallbackQuery && typeof fallbackQuery === "string" && fallbackQuery.trim()) {
             args = { ...args, query: fallbackQuery };
@@ -738,14 +798,24 @@ async function executeToolCalls(
           console.warn(
             `[${provider}] ⚠️ Paramètres manquants pour ${toolName} (call id=${call.id}). Ignoré.`
           );
-          continue;
+          return {
+            role: "tool",
+            tool_call_id: call.id,
+            name: toolName,
+            content: `Erreur: Paramètres requis manquants pour ${toolName}.`,
+          };
         }
       }
 
       const handler = TOOL_HANDLERS[toolName];
       if (!handler) {
         console.warn(`[${provider}] Outil non géré: ${toolName}`);
-        continue;
+        return {
+          role: "tool",
+          tool_call_id: call.id,
+          name: toolName,
+          content: `Erreur: Outil "${toolName}" non supporté.`,
+        };
       }
 
       if (toolName === "sql_query" && debugMode) {
@@ -778,17 +848,12 @@ async function executeToolCalls(
         argumentsPreview: previewForLog(args, 200),
       });
       const t0 = Date.now();
-      const output = await handler(args, { supabase, openai, debugMode });
+      const output = await handler(args, { supabase, openai, debugMode, user, context });
       const t1 = Date.now();
       console.log(
         `[${provider}] ⬅ Tool result for ${toolName} preview: ${previewForLog(output, 400)}`
       );
-      results.push({
-        role: "tool",
-        tool_call_id: call.id,
-        name: toolName,
-        content: output,
-      });
+
       toolEventEmitter?.({
         phase: "finish",
         provider,
@@ -798,6 +863,7 @@ async function executeToolCalls(
         resultPreview: previewForLog(output, 200),
         timestamp: Date.now(),
       });
+
       if (toolName === "sql_query") {
         toolEventEmitter?.({
           phase: "notice",
@@ -808,6 +874,7 @@ async function executeToolCalls(
           timestamp: Date.now(),
         });
       }
+
       if (metaCollector) {
         metaCollector.tool_trace = metaCollector.tool_trace || [];
         metaCollector.tool_trace.push({
@@ -817,6 +884,13 @@ async function executeToolCalls(
           result_preview: previewForLog(output, 400),
         });
       }
+
+      return {
+        role: "tool",
+        tool_call_id: call.id,
+        name: toolName,
+        content: output,
+      };
     } catch (error) {
       console.error(`[${provider}] ❌ Erreur outil:`, error);
       toolEventEmitter?.({
@@ -827,15 +901,16 @@ async function executeToolCalls(
         error: error?.message || String(error),
         timestamp: Date.now(),
       });
-      results.push({
+      return {
         role: "tool",
         tool_call_id: call.id,
         name: call.function?.name || call.name,
         content: `⚠️ Erreur: ${error.message}`,
-      });
+      };
     }
-  }
-  return results;
+  });
+
+  return await Promise.all(toolPromises);
 }
 
 // ============================================================================
@@ -1732,13 +1807,16 @@ const handler = async (request) => {
     }
   }
 
-  // Ensure normalized structure: array of {role, content}
+  // Ensure normalized structure: array of {role, content} and strip <Think> blocks from assistant messages
   conversation_history = conversation_history.map((m) => {
     if (!m) return { role: "user", content: "" };
     if (typeof m === "string") return { role: "user", content: m };
-    if (typeof m === "object" && (m.role || m.content))
-      return { role: m.role || "user", content: String(m.content || "") };
-    return { role: "user", content: String(m) };
+    let content = String(m.content || "");
+    if (m.role === "assistant") {
+      // Remove all <Think> blocks from history sent to LLM
+      content = content.replace(/<Think>[\s\S]*?<\/Think>/gi, "").trim();
+    }
+    return { role: m.role || "user", content };
   });
 
   // Diagnostic logging to help frontend debugging: show counts and sample
@@ -1828,43 +1906,33 @@ const handler = async (request) => {
   console.log(`[EdgeFunction] 📏 System prompt: ${systemPrompt.length} caractères`);
 
   // 11.5. Initialise les clients
-  /* Older solution, before multi instance one
-  const supabaseUrl = getConfig("SUPABASE_URL");
-  const supabaseKey = getConfig("SUPABASE_SERVICE_ROLE_KEY");
-  // TODO: should NOT have super user access!
-  const supabaseAdmin = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supabaseKey) : null;
-
-  // Extract user from Authorization header
   let user = null;
-  let supabaseUser = null; // Scoped client for RLS
+  const context = body?.context || {}; // Extraire le contexte utilisateur si présent
   const authHeader = request.headers.get("Authorization");
-  if (authHeader && supabaseUrl && getConfig("SUPABASE_ANON_KEY")) {
+  const supabaseUrl = getConfig("SUPABASE_URL");
+  const supabaseAnonKey = getConfig("SUPABASE_ANON_KEY");
+
+  if (authHeader && supabaseUrl && supabaseAnonKey) {
     try {
       const token = authHeader.replace("Bearer ", "");
-      // Create a client with the user's token to respect RLS
-      supabaseUser = createClient(supabaseUrl, getConfig("SUPABASE_ANON_KEY"), {
+      // Create a temporary client to verify the user's token
+      const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
         global: { headers: { Authorization: `Bearer ${token}` } },
       });
       const {
         data: { user: authUser },
         error: authError,
-      } = await supabaseUser.auth.getUser();
+      } = await supabaseAuth.auth.getUser();
       if (!authError && authUser) {
         user = authUser;
         console.log(`[EdgeFunction] 👤 Authenticated user: ${user.id}`);
-      } else {
-        console.warn("[EdgeFunction] ⚠️ Invalid auth token:", authError?.message);
       }
     } catch (e) {
       console.warn("[EdgeFunction] ⚠️ Error parsing auth header:", e.message);
     }
   }
 
-  // Fallback to admin client for read-only / system operations if no user
-  const supabase = supabaseUser || supabaseAdmin;
-  */
-  // New solution: use the supabase client attached to the instance
-  // TODO: should we use the user client or the admin client?
+  // Use the supabase client attached to the instance (usually service role)
   const supabase = getSupabase();
 
   const openai = new OpenAI({ apiKey: getConfig("OPENAI_API_KEY") });
@@ -2088,14 +2156,6 @@ const handler = async (request) => {
               emitThink(
                 `Changement de fournisseur : ${provider} capacité dépassée — tentative avec le suivant`
               );
-              // In debug mode, show fallback info in UI
-              if (debugMode) {
-                controller.enqueue(
-                  encoder.encode(
-                    `[DEBUG] ${provider} capacité atteinte, tentative avec un autre fournisseur...\n\n`
-                  )
-                );
-              }
               failedProviders.add(provider);
               break; // Passe immédiatement au provider suivant
             } else if (rateLimitError && providerRetries < maxProviderRetries) {
@@ -2136,17 +2196,6 @@ const handler = async (request) => {
                   errorDetail ? ` — ${previewForLog(errorDetail, 160)}` : ""
                 }`
               );
-
-              // In debug mode, show fallback info in UI
-              if (debugMode) {
-                const truncatedError =
-                  errorDetail.length > 100 ? errorDetail.slice(0, 100) + "..." : errorDetail;
-                controller.enqueue(
-                  encoder.encode(
-                    `[DEBUG] ${provider} failed: ${truncatedError} — Fallback activé.\n\n`
-                  )
-                );
-              }
 
               failedProviders.add(provider);
               break; // move to next provider
@@ -2368,6 +2417,7 @@ async function* runConversationalAgent({
             console.warn(
               `[${provider}] ⚠️ Stream idle timeout (${idleTimeoutMs}ms). Falling back to direct call.`
             );
+            yield `<Think>Délai d'attente du flux dépassé (${idleTimeoutMs}ms) : passage en mode non-stream</Think>\n`;
             streamTimedOut = true;
             break;
           }
