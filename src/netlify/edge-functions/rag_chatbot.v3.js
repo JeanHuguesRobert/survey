@@ -10,6 +10,10 @@ import {
   getSupabase,
 } from "../../common/config/instanceConfig.edge.js";
 
+import createClient from "@supabase/supabase-js";
+
+// TODO: should load OpenAI from bundle, not from esm.sh
+// import OpenAI from "../../common/lib/openai.js";
 import OpenAI from "https://esm.sh/openai@4";
 
 const PROVIDER_META_PREFIX = "__PROVIDER_INFO__";
@@ -1595,6 +1599,11 @@ async function getSystemPrompt() {
 const handler = async (request) => {
   // Load instance config from supabase
   await loadInstanceConfig();
+  // Defensive: a supabase client should be available
+  if (!getSupabase()) {
+    console.warn("loadInstanceConfig: supabase client not available, fatal");
+    throw new Error("loadInstanceConfig: supabase client not available, fatal");
+  }
   // Quick healthcheck support (frontend calls GET /api/chat-stream?healthcheck=true)
   try {
     const url = new URL(request.url);
@@ -1819,10 +1828,11 @@ const handler = async (request) => {
   console.log(`[EdgeFunction] 📏 System prompt: ${systemPrompt.length} caractères`);
 
   // 11.5. Initialise les clients
+  /* Older solution, before multi instance one
   const supabaseUrl = getConfig("SUPABASE_URL");
   const supabaseKey = getConfig("SUPABASE_SERVICE_ROLE_KEY");
   // TODO: should NOT have super user access!
-  const supabaseAdmin = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+  const supabaseAdmin = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supabaseKey) : null;
 
   // Extract user from Authorization header
   let user = null;
@@ -1852,6 +1862,10 @@ const handler = async (request) => {
 
   // Fallback to admin client for read-only / system operations if no user
   const supabase = supabaseUser || supabaseAdmin;
+  */
+  // New solution: use the supabase client attached to the instance
+  // TODO: should we use the user client or the admin client?
+  const supabase = getSupabase();
 
   const openai = new OpenAI({ apiKey: getConfig("OPENAI_API_KEY") });
 
@@ -1883,10 +1897,30 @@ const handler = async (request) => {
       debugLogger?.attachStream(controller, encoder);
       const emitProviderMeta = (meta) =>
         controller.enqueue(encoder.encode(`${PROVIDER_META_PREFIX}${JSON.stringify(meta)}\n`));
+      const emitThink = (message) => {
+        const text = String(message || "").trim();
+        if (!text) return;
+        const safe = text.replaceAll("<Think>", "").replaceAll("</Think>", "");
+        controller.enqueue(encoder.encode(`<Think>${safe}</Think>\n`));
+      };
       const emitToolTrace = (trace) => {
         if (!trace) return;
         try {
           controller.enqueue(encoder.encode(`${TOOL_TRACE_PREFIX}${JSON.stringify(trace)}\n`));
+          if (trace.phase === "finish") {
+            const dur = Number.isFinite(trace.durationMs) ? `${trace.durationMs}ms` : null;
+            emitThink(
+              `Tool finished: ${trace.tool}${dur ? ` (${dur})` : ""}${
+                trace.resultPreview ? ` — ${previewForLog(trace.resultPreview, 160)}` : ""
+              }`
+            );
+          } else if (trace.phase === "error") {
+            emitThink(
+              `Tool error: ${trace.tool}${trace.error ? ` — ${previewForLog(trace.error, 200)}` : ""}`
+            );
+          } else if (trace.phase === "notice" && trace.message) {
+            emitThink(previewForLog(trace.message, 220));
+          }
         } catch (err) {
           console.warn("[EdgeFunction] ⚠️ Failed to emit tool trace:", err?.message || err);
         }
@@ -1901,18 +1935,45 @@ const handler = async (request) => {
       const lastError = null;
 
       // 13. Essaie chaque fournisseur dans l'ordre
+      emitThink(
+        `Provider order: ${providerOrder.join(", ")}${
+          enforcedProvider
+            ? ` (enforced=${enforcedProvider})`
+            : SHOULD_RANDOMIZE_PROVIDERS
+              ? " (randomized)"
+              : ""
+        }`
+      );
       for (let providerIndex = 0; providerIndex < providerOrder.length; providerIndex++) {
         const provider = providerOrder[providerIndex];
         const resolvedModel = resolveModelForProvider(provider, effectiveModelMode);
 
-        if (
-          shouldSkipProvider({
-            provider,
-            modelMode: effectiveModelMode,
-            enforcedProvider,
-            resolvedModel,
-          })
-        ) {
+        const skip = shouldSkipProvider({
+          provider,
+          modelMode: effectiveModelMode,
+          enforcedProvider,
+          resolvedModel,
+        });
+        if (skip) {
+          try {
+            const modelName =
+              resolvedModel || resolveModelForProvider(provider, effectiveModelMode);
+            const entry = modelName ? providerMetrics.get(provider, modelName) : null;
+            const status = entry?.status || "unknown";
+            const consecutiveErrors = entry?.metrics?.consecutiveErrors || 0;
+            const lastErrorMessage = entry?.metrics?.lastError?.message;
+            emitThink(
+              `Skipping provider ${provider}${modelName ? ` (${modelName})` : ""}: ${status}${
+                lastErrorMessage
+                  ? ` — ${previewForLog(lastErrorMessage, 160)}`
+                  : consecutiveErrors
+                    ? ` — ${consecutiveErrors} consecutive errors`
+                    : ""
+              }`
+            );
+          } catch {
+            emitThink(`Skipping provider ${provider}`);
+          }
           continue;
         }
 
@@ -1930,6 +1991,7 @@ const handler = async (request) => {
             }
             if (!apiKey) {
               console.log(`[EdgeFunction] ⏭️ Skipping ${provider} (no API key)`);
+              emitThink(`Skipping provider ${provider}: missing API key`);
               // Mark provider as failed/unavailable so we don't retry indefinitely
               try {
                 failedProviders.add(provider);
@@ -1948,6 +2010,11 @@ const handler = async (request) => {
             );
             emitProviderMeta({ provider, model: resolvedModel });
             console.log(`[EdgeFunction] 🚀 Tentative avec ${provider} (model=${resolvedModel})...`);
+            emitThink(
+              `Trying provider ${provider}${resolvedModel ? ` (${resolvedModel})` : ""}${
+                enforcedProvider ? ` — enforced=${enforcedProvider}` : ""
+              }`
+            );
             if (provider === "huggingface") {
               // HuggingFace a une API différente (non-streaming)
               const result = await runHuggingFaceAgent(
@@ -2005,6 +2072,7 @@ const handler = async (request) => {
               }
             }
             handled = true;
+            emitThink(`Provider success: ${provider}${resolvedModel ? ` (${resolvedModel})` : ""}`);
             break;
           } catch (error) {
             const isForcedProvider = forcedProvider === provider;
@@ -2015,6 +2083,7 @@ const handler = async (request) => {
               console.warn(
                 `[EdgeFunction] ⚠️ ${provider} capacité atteinte, passage au fournisseur suivant.`
               );
+              emitThink(`Provider switch: ${provider} capacity exceeded — trying next provider`);
               // In debug mode, show fallback info in UI
               if (debugMode) {
                 controller.enqueue(
@@ -2030,6 +2099,9 @@ const handler = async (request) => {
               console.warn(
                 `[EdgeFunction] ⏳ ${provider} rate limit, retrying in ${delayMs}ms (attempt ${providerRetries + 1}/${maxProviderRetries + 1})`
               );
+              emitThink(
+                `Retrying provider ${provider}: rate limited — waiting ${Math.round(delayMs)}ms (attempt ${providerRetries + 1}/${maxProviderRetries + 1})`
+              );
               await new Promise((resolve) => setTimeout(resolve, delayMs));
               providerRetries++;
               continue; // retry same provider
@@ -2039,6 +2111,11 @@ const handler = async (request) => {
 
               // If this is a forced provider, show error to user (no fallback available)
               if (isForcedProvider) {
+                emitThink(
+                  `Provider failed (forced): ${provider} — not falling back${
+                    errorDetail ? ` — ${previewForLog(errorDetail, 180)}` : ""
+                  }`
+                );
                 const errorMessage = `⚠️ Le fournisseur ${provider} que vous avez demandé n'est pas disponible actuellement.\n\n**Détails** : ${errorDetail}\n\n`;
                 console.error(
                   `[EdgeFunction] 🛑 Forced provider ${provider} failed, not falling back`
@@ -2050,6 +2127,11 @@ const handler = async (request) => {
 
               // For automatic fallback: log in backend, don't show in UI (unless debug mode)
               console.warn(`[EdgeFunction] ⚠️ ${provider} failed, trying next provider...`);
+              emitThink(
+                `Provider switch: ${provider} failed — trying next provider${
+                  errorDetail ? ` — ${previewForLog(errorDetail, 160)}` : ""
+                }`
+              );
 
               // In debug mode, show fallback info in UI
               if (debugMode) {
@@ -2179,12 +2261,12 @@ async function* runConversationalAgent({
 
   console.log(`[${provider}] ✅ runConversationalAgent initialized (maxToolCalls=${maxToolCalls})`);
   while (toolCallCount < maxToolCalls) {
-    console.log(
-      `[${provider}] 🔁 Appel LLM (model=${resolveModelForProvider(provider, modelMode)}) - messages:${messages.length}`
-    );
+    const model = resolveModelForProvider(provider, modelMode);
+    console.log(`[${provider}] 🔁 Appel LLM (model=${model}) - messages:${messages.length}`);
+    yield `<Think>LLM call: provider=${provider}${model ? ` model=${model}` : ""}, messages=${messages.length}, toolCallsUsed=${toolCallCount}/${maxToolCalls}</Think>\n`;
     const streamOrDirect = await callLLMAPI({
       provider,
-      model: resolveModelForProvider(provider, modelMode),
+      model,
       messages,
       tools: Object.values(TOOLS),
       toolChoice: "auto",
@@ -2216,6 +2298,10 @@ async function* runConversationalAgent({
             `[${provider}] 🛠 Executing ${valid.length} tool(s) (direct):`,
             valid.map((c) => c.function.name)
           );
+          yield `<Think>Tools requested (direct): ${valid
+            .map((c) => c.function?.name)
+            .filter(Boolean)
+            .join(", ")}</Think>\n`;
           const toolMessages = await executeToolCalls(
             valid,
             provider,
@@ -2231,6 +2317,10 @@ async function* runConversationalAgent({
             user,
             context
           );
+          yield `<Think>Tools executed (direct): ${valid
+            .map((c) => c.function?.name)
+            .filter(Boolean)
+            .join(", ")} — resuming LLM</Think>\n`;
           messages = [
             ...messages,
             {
@@ -2318,6 +2408,7 @@ async function* runConversationalAgent({
           }
 
           console.log(`[${provider}] 🛠 Executing tool now: ${fnName} (id=${call.id})`);
+          yield `<Think>Tool requested (stream): ${fnName} (id=${call?.id || "n/a"}) — executing</Think>\n`;
           lastStreamToolInfo = { name: fnName, id: call?.id };
           const toolMessages = await executeToolCalls(
             [call],
@@ -2334,6 +2425,7 @@ async function* runConversationalAgent({
             user,
             context
           );
+          yield `<Think>Tool executed (stream): ${fnName} (id=${call?.id || "n/a"}) — resuming LLM</Think>\n`;
 
           messages = [
             ...messages,
@@ -2419,6 +2511,11 @@ async function* runConversationalAgent({
     console.log(
       `[${provider}] ⚠️ ${streamTimedOut ? "Stream timed out." : "No tool calls/content from stream."} Attempting direct fallback.`
     );
+    if (streamTimedOut) {
+      yield `<Think>Stream idle timeout (${idleTimeoutMs}ms): switching to non-stream fallback</Think>\n`;
+    } else {
+      yield `<Think>Stream ended with no content/tool calls: switching to non-stream fallback</Think>\n`;
+    }
     const direct = await callLLMAPI({
       provider,
       model: resolveModelForProvider(provider, modelMode),
