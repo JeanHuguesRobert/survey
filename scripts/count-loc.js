@@ -47,18 +47,35 @@ console.log(colorize(`Analyzing: ${srcPath}`, "gray"));
 console.log("");
 
 /**
+ * Check if the project is a git repository
+ */
+function isGitRepo() {
+  try {
+    execSync("git rev-parse --is-inside-work-tree", {
+      cwd: projectRoot,
+      stdio: "ignore",
+    });
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
  * Get first commit date from git
  */
 function getFirstCommitDate() {
   try {
-    const output = execSync('git log --reverse --format="%ai" | Select-Object -First 1', {
+    const output = execSync('git log --reverse --format="%ai"', {
       cwd: projectRoot,
       encoding: "utf8",
-      shell: "powershell.exe",
     });
-    return new Date(output.trim());
+    const lines = output.trim().split("\n");
+    if (lines.length > 0 && lines[0]) {
+      return new Date(lines[0].trim());
+    }
+    return null;
   } catch (error) {
-    console.log(colorize("Warning: Could not retrieve git history", "yellow"));
     return null;
   }
 }
@@ -83,15 +100,19 @@ function getTotalCommits() {
  */
 function getContributors() {
   try {
-    const output = execSync('git log --format="%aN" | Sort-Object -Unique', {
+    // Get all author names and use a Set for uniqueness
+    const output = execSync('git log --format="%aN"', {
       cwd: projectRoot,
       encoding: "utf8",
-      shell: "powershell.exe",
     });
-    return output
-      .trim()
-      .split("\n")
-      .filter((line) => line.trim()).length;
+    const authors = new Set(
+      output
+        .trim()
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean)
+    );
+    return authors.size;
   } catch (error) {
     return null;
   }
@@ -205,9 +226,10 @@ console.log(colorize("========================================", "cyan"));
 console.log("");
 
 // Get git metrics and display velocity
-const firstCommitDate = getFirstCommitDate();
-const totalCommits = getTotalCommits();
-const contributors = getContributors();
+const gitAvailable = isGitRepo();
+const firstCommitDate = gitAvailable ? getFirstCommitDate() : null;
+const totalCommits = gitAvailable ? getTotalCommits() : null;
+const contributors = gitAvailable ? getContributors() : null;
 
 if (firstCommitDate) {
   const now = new Date();
@@ -235,6 +257,11 @@ if (firstCommitDate) {
 
   console.log("");
   console.log(colorize("========================================", "cyan"));
+  console.log("");
+} else if (gitAvailable) {
+  console.log(
+    colorize("Warning: Could not retrieve git history even though this is a git repo", "yellow")
+  );
   console.log("");
 }
 
@@ -311,6 +338,7 @@ Total Lines: ${formatNumber(totalLines)}
 `;
 
 if (firstCommitDate) {
+  const now = new Date();
   const daysSinceStart = Math.ceil((now - firstCommitDate) / (1000 * 60 * 60 * 24));
   const velocity = totalLines / daysSinceStart;
 
@@ -332,6 +360,8 @@ Velocity:         ${velocity.toFixed(2)} lines/day
     const commitsPerDay = totalCommits / daysSinceStart;
     reportContent += `Commits/Day:      ${commitsPerDay.toFixed(2)} commits/day\n`;
   }
+} else if (gitAvailable) {
+  reportContent += `\nWarning: Could not retrieve git history even though this is a git repo\n`;
 }
 
 reportContent += `
