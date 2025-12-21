@@ -499,9 +499,6 @@ const communityName = getConfig("community_name", "Corte");
 if (isFeatureEnabled("wiki")) {
   // ...
 }
-
-// Via hook React
-const { config, loading } = useInstanceConfig();
 ```
 
 ### Avantages

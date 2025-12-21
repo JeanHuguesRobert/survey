@@ -5293,7 +5293,7 @@ filtrées :
 ```javascript
 // Hook pour filtrer les données par périmètre de l'instance
 export function useInstanceBoundedData(table, query = {}) {
-  const { boundingBox } = useInstanceConfig();
+  const boundingBox = getConfig("map_bounding_box");
 
   return useQuery({
     queryKey: [table, query, boundingBox],
