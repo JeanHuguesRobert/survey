@@ -55,7 +55,7 @@ export default async (request, context) => {
       const { data, error } = await query;
       if (error) throw error;
 
-      items = data.map((post) => ({
+      items = (data || []).map((post) => ({
         id: post.id,
         url: `${instanceUrl}/posts/${post.id}`,
         title: post.metadata?.title || "Post",
@@ -89,7 +89,7 @@ export default async (request, context) => {
       const { data, error } = await query;
       if (error) throw error;
 
-      items = data.map((prop) => ({
+      items = (data || []).map((prop) => ({
         id: prop.id,
         url: `${instanceUrl}/propositions/${prop.id}`,
         title: prop.title,
@@ -122,7 +122,7 @@ export default async (request, context) => {
       const { data, error } = await query;
       if (error) throw error;
 
-      items = data.map((page) => ({
+      items = (data || []).map((page) => ({
         id: page.id,
         url: `${instanceUrl}/wiki/${page.slug}`,
         title: page.title,
@@ -145,6 +145,15 @@ export default async (request, context) => {
       // User Activity Feed
       const userId = paramId;
 
+      // Validate UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(userId)) {
+        return new Response(JSON.stringify({ error: "Invalid user ID format" }), {
+          status: 400,
+          headers,
+        });
+      }
+
       // Check public_profile
       const { data: user, error: userError } = await supabase
         .from("users")
@@ -152,8 +161,29 @@ export default async (request, context) => {
         .eq("id", userId)
         .single();
 
-      if (userError || !user) throw new Error("User not found");
-      if (user.public_profile === false) throw new Error("User profile is private");
+      if (userError) {
+        if (userError.code === "PGRST116") {
+          return new Response(JSON.stringify({ error: "User not found" }), {
+            status: 404,
+            headers,
+          });
+        }
+        throw userError;
+      }
+
+      if (!user) {
+        return new Response(JSON.stringify({ error: "User not found" }), {
+          status: 404,
+          headers,
+        });
+      }
+
+      if (user.public_profile === false) {
+        return new Response(JSON.stringify({ error: "User profile is private" }), {
+          status: 403,
+          headers,
+        });
+      }
 
       feedTitle = `${user.display_name} - Activity on ${instanceName}`;
 
@@ -176,12 +206,24 @@ export default async (request, context) => {
       if (error) throw error;
 
       // Fetch stats (simple count for now)
-      const { count: postCount } = await supabase
-        .from("posts")
-        .select("id", { count: "exact", head: true })
-        .eq("author_id", userId);
+      const [
+        { count: postCount, error: countError },
+        { count: propCount, error: propError },
+        { count: voteCount, error: voteError },
+      ] = await Promise.all([
+        supabase.from("posts").select("id", { count: "exact", head: true }).eq("author_id", userId),
+        supabase
+          .from("propositions")
+          .select("id", { count: "exact", head: true })
+          .eq("author_id", userId),
+        supabase.from("votes").select("id", { count: "exact", head: true }).eq("user_id", userId),
+      ]);
 
-      items = data.map((post) => ({
+      if (countError) console.error("Error fetching post count:", countError);
+      if (propError) console.error("Error fetching prop count:", propError);
+      if (voteError) console.error("Error fetching vote count:", voteError);
+
+      items = (data || []).map((post) => ({
         id: post.id,
         url: `${instanceUrl}/posts/${post.id}`,
         title: post.metadata?.title || "Activity",
@@ -204,8 +246,8 @@ export default async (request, context) => {
       // We'll add _stats object
       var feedStats = {
         posts: postCount || 0,
-        propositions: 0, // TODO
-        votes: 0, // TODO
+        propositions: propCount || 0,
+        votes: voteCount || 0,
       };
 
       // TODO: Add propositions and comments to this stream
