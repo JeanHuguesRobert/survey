@@ -18,9 +18,10 @@ function getenv(key) {
 
 // Fonction pour créer une instance Supabase côté Nodejs backend
 const createSupabase = (admin = false, options = {}) => {
-  const supabaseUrl = getenv("SUPABASE_URL");
-  const supabaseServiceRoleKey = getenv("SUPABASE_SERVICE_ROLE_KEY");
-  const supabaseAnonKey = getenv("SUPABASE_ANON_KEY");
+  const supabaseUrl = options.supabaseUrl || getenv("SUPABASE_URL");
+  const supabaseServiceRoleKey =
+    options.supabaseServiceRoleKey || getenv("SUPABASE_SERVICE_ROLE_KEY");
+  const supabaseAnonKey = options.supabaseAnonKey || getenv("SUPABASE_ANON_KEY");
 
   const supabaseKey = admin ? supabaseServiceRoleKey : supabaseAnonKey;
   if (!supabaseKey) {
@@ -67,7 +68,7 @@ export async function initializeInstanceAdmin(supabase = null, options = {}) {
   return await initializeInstanceCore(supabase, getenv, newSupabase, true, options);
 }
 
-export async function loadInstanceConfig(force = false, supabase_config = null) {
+export async function loadInstanceConfig(force = false, supabase_config = {}) {
   if (!inited()) {
     console.warn("loadInstanceConfig: calling initializeInstanceAdmin()");
     await initializeInstanceAdmin();

@@ -18,8 +18,8 @@ const getenv = (key) => {
 
 // Fonction pour créer une instance Supabase côté client
 const createSupabase_Client = (admin = false, options = {}) => {
-  const supabaseUrl = getenv("SUPABASE_URL");
-  const supabaseAnonKey = getenv("SUPABASE_ANON_KEY");
+  const supabaseUrl = options.supabaseUrl || getenv("SUPABASE_URL");
+  const supabaseAnonKey = options.supabaseAnonKey || getenv("SUPABASE_ANON_KEY");
 
   if (!supabaseUrl || !supabaseAnonKey) {
     console.warn(
@@ -44,10 +44,10 @@ export async function initializeInstance(supabase, admin = false, options = {}) 
   return await initializeInstanceCore(supabase, getenv, newSupabase, admin, options);
 }
 
-export async function loadInstanceConfig(force = false, supabase_config = null) {
+export async function loadInstanceConfig(force = false, supabase_config = {}) {
   if (!inited()) {
-    console.warn("loadInstanceConfig: calling initializeInstanceAdmin()");
-    await initializeInstanceAdmin();
+    console.warn("loadInstanceConfig: calling initializeInstance()");
+    await initializeInstance();
   }
   return await loadInstanceConfigCore(force, supabase_config);
 }

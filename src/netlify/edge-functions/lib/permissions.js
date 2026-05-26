@@ -7,7 +7,7 @@ export const ROLE_MODERATOR = "moderator";
 export const ROLE_ADMIN = "admin";
 export const ROLE_ANONYMOUS = "anonymous";
 export const ROLE_SUPER_ADMIN = "super_admin";
-export const ROLE_AGENT = "agent";
+export const ROLE_AGENT = "ai";
 
 const ANONYMOUS_EMAIL = "anonymous@lepp.com";
 

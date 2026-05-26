@@ -23,7 +23,6 @@
 [[edge_functions]]
   path = "/*"
   function = "instance-resolver"
-  excludedPath = ["/assets/*", "/images/*", "/fonts/*", "/_next/*", "/api/*"]
 
 [[edge_functions]]
   path = "/*"

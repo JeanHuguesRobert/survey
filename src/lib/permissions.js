@@ -44,7 +44,7 @@ export function getUserRole(user) {
   // Vérifier d'abord le rôle en base de données (si disponible dans le profil)
   // Ceci permet une migration progressive vers les rôles DB-based
   const dbRole = user.role || user.profile?.role;
-  if (dbRole && ["admin", "moderator", "user"].includes(dbRole)) {
+  if (dbRole && ["admin", "moderator", "user", "ai"].includes(dbRole)) {
     return dbRole;
   }
 
