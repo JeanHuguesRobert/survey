@@ -30,7 +30,7 @@ date: 2026-07-01
 | .github          | yes               | main   | all      | public     | full            |
 | acorsica.org     | yes               | main   | all      | public     | full            |
 
-## <!-- END_AUTO: registered_repos -->
+<!-- END_AUTO: registered_repos -->
 
 ## Cross-Reference Graph
 
@@ -131,7 +131,7 @@ graph LR
   r_marianivillage -->|1| r_institut_mariani
 ```
 
-## <!-- END_AUTO: graph -->
+<!-- END_AUTO: graph -->
 
 ## Concepts
 
@@ -536,7 +536,7 @@ _Referenced but undefined: `Democratic AI Safety`, `Cogentia Commons (déclinais
 `Cognitive Packet envelope/payload (Cogentia)`,
 `Auxilia (Inseme brique — human-scale Fractanet exchange)`._
 
-## <!-- END_AUTO: concept_graph -->
+<!-- END_AUTO: concept_graph -->
 
 ## Published
 
@@ -544,7 +544,7 @@ _Referenced but undefined: `Democratic AI Safety`, `Cogentia Commons (déclinais
 
 _(No public Published table rows.)_
 
-## <!-- END_AUTO: published -->
+<!-- END_AUTO: published -->
 
 ## What Is Proved
 
