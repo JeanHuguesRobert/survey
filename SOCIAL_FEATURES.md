@@ -1,3 +1,9 @@
+---
+document_role: "operational"
+document_kind: "feature-documentation"
+visibility: "public"
+---
+
 # Social Features - Forums, Blogs & Communities
 
 ## Vue d'ensemble

@@ -1,3 +1,9 @@
+---
+document_role: "source"
+document_kind: "repository-rules"
+visibility: "public"
+---
+
 # Repository Rules
 
 But: short, actionable rules to be enforced by humans and AI tools.

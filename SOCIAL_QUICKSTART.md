@@ -1,3 +1,9 @@
+---
+document_role: "operational"
+document_kind: "quickstart"
+visibility: "public"
+---
+
 # Guide de démarrage - Social Features
 
 ## Étape 1 : Exécuter la migration SQL

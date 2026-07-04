@@ -1,3 +1,9 @@
+---
+document_role: "source"
+document_kind: "governance"
+visibility: "public"
+---
+
 # Governance
 
 Kudocracy is a neutral open-source digital infrastructure.

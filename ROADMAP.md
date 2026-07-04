@@ -1,3 +1,11 @@
+---
+document_role: "operational"
+document_kind: "roadmap"
+visibility: "public"
+---
+
+# Roadmap
+
 Liste opérationnelle des services à offrir aux citoyens, présentée en cases à cocher, classée par
 priorité décroissante, avec un seul critère : maximiser la transparence réelle et le partage égal de
 l’information.

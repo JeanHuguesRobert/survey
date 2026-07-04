@@ -1,3 +1,9 @@
+---
+document_role: "operational"
+document_kind: "changelog"
+visibility: "public"
+---
+
 # Social Features - Changelog
 
 ## Fichiers créés
