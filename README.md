@@ -7,6 +7,18 @@ of projects.
 The Corte (Corsica) deployment is the first real-world pilot.
 [![Netlify Status](https://api.netlify.com/api/v1/badges/e01f01b7-130b-4749-abc7-7b81cfd591e0/deploy-status)](https://app.netlify.com/projects/lucky-concha-a9fcd2/deploys)
 
+## Documentation and corpus
+
+This repository contains the legacy Survey/Ophélia platform and its civic consultation tooling.
+For a maintained reading path, use:
+
+- [Research index](research/index.md) — curated architecture, API, product and deployment documents.
+- [Corpus status](research/corpus-status.md) — generated structural coverage and cross-repository links.
+- [Ophélia plan](docs/plan-ophelia.md) — centralization, openness and interoperability direction.
+- [Ophélia API](docs/API-OPHELIA.md) — public REST interface.
+- [Multi-instance architecture](docs/ARCHITECTURE_MULTI_INSTANCE.md) — deployment model.
+- [Governance](GOVERNANCE.md) and [roadmap](ROADMAP.md) — project rules and planned evolution.
+
 ## Neutrality & Scope
 
 Kudocracy is a neutral open-source infrastructure.
