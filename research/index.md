@@ -1,20 +1,31 @@
 ---
-title: "Research Index - Survey / Ophelia"
-description: "Public corpus entry point for the legacy Survey/Ophélia platform."
+title: Research Index - Survey / Ophelia
+description: Public corpus entry point for the legacy Survey/Ophélia platform.
 layout: default
 nav_order: 1
-date: 2026-07-01
-last_modified_at: 2026-07-01
+date: 2026-07-01T00:00:00.000Z
+last_modified_at: 2026-07-01T00:00:00.000Z
 license: MIT
 canonical_url: https://github.com/JeanHuguesRobert/survey/blob/main/research/index.md
-document_role: "index"
-document_kind: "research-index"
-visibility: "public"
-lifecycle_state: "active"
-classification_source: "cogentia.js"
+document_role: index
+document_kind: research-index
+visibility: public
+lifecycle_state: active
+classification_source: cogentia.js
 classification_version: "1"
-classification_rule: "research-index"
-classification_confidence: "strong"
+classification_rule: research-index
+classification_confidence: strong
+author: unknown
+provenance:
+  origin_type: unknown
+  origin_repository: unknown
+  origin_ref: unknown
+  origin_date: unknown
+  derived_from: []
+review:
+  status: unreviewed
+  reviewed_by: []
+update_policy: UP-DEFAULT-REVIEWED
 ---
 
 # Research Index - Survey / Ophélia
