@@ -1,3 +1,23 @@
+---
+title: Ophélia – CivicTech RAG Chatbot (Hugging Face Space)
+author: unknown
+date: "2025-11-27"
+document_role: source
+document_kind: documentation
+visibility: public
+lifecycle_state: working
+update_policy: UP-DEFAULT-REVIEWED
+provenance:
+  origin_type: repository
+  origin_repository: JeanHuguesRobert/survey
+  origin_ref: 0d59e22
+  origin_date: "2025-11-27"
+  derived_from: []
+review:
+  status: unreviewed
+  reviewed_by: []
+---
+
 # Ophélia – CivicTech RAG Chatbot (Hugging Face Space)
 
 Bienvenue sur le Space Hugging Face d’Ophélia, l’assistante citoyenne open source du "petit parti"

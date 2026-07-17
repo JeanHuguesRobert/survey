@@ -1,3 +1,23 @@
+---
+title: Ophélia npm package
+author: unknown
+date: "2025-11-30"
+document_role: source
+document_kind: documentation
+visibility: public
+lifecycle_state: working
+update_policy: UP-DEFAULT-REVIEWED
+provenance:
+  origin_type: repository
+  origin_repository: JeanHuguesRobert/survey
+  origin_ref: a6df813
+  origin_date: "2025-11-30"
+  derived_from: []
+review:
+  status: unreviewed
+  reviewed_by: []
+---
+
 // packages/ophelia/README.md
 
 # Ophélia npm package

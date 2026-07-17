@@ -1,3 +1,23 @@
+---
+title: COP Core — Cognitive Orchestration Protocol
+author: unknown
+date: "2025-12-14"
+document_role: source
+document_kind: documentation
+visibility: public
+lifecycle_state: working
+update_policy: UP-DEFAULT-REVIEWED
+provenance:
+  origin_type: repository
+  origin_repository: JeanHuguesRobert/survey
+  origin_ref: dc8ad08
+  origin_date: "2025-12-14"
+  derived_from: []
+review:
+  status: unreviewed
+  reviewed_by: []
+---
+
 # COP Core — Cognitive Orchestration Protocol
 
 `cop-core` is the **reference specification package** for the Cognitive Orchestration Protocol

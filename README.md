@@ -1,3 +1,23 @@
+---
+title: 📊 Kudocracy.Survey - Plateforme de Consultation Citoyenne
+author: unknown
+date: "2026-07-12"
+document_role: source
+document_kind: documentation
+visibility: public
+lifecycle_state: working
+update_policy: UP-DEFAULT-REVIEWED
+provenance:
+  origin_type: repository
+  origin_repository: JeanHuguesRobert/survey
+  origin_ref: 251c6c6
+  origin_date: "2026-07-12"
+  derived_from: []
+review:
+  status: unreviewed
+  reviewed_by: []
+---
+
 # 📊 Kudocracy.Survey - Plateforme de Consultation Citoyenne
 
 Kudocracy.Survey is a generic open-source platform for citizen consultation and participatory
@@ -9,11 +29,12 @@ The Corte (Corsica) deployment is the first real-world pilot.
 
 ## Documentation and corpus
 
-This repository contains the legacy Survey/Ophélia platform and its civic consultation tooling.
-For a maintained reading path, use:
+This repository contains the legacy Survey/Ophélia platform and its civic consultation tooling. For
+a maintained reading path, use:
 
 - [Research index](research/index.md) — curated architecture, API, product and deployment documents.
-- [Corpus status](research/corpus-status.md) — generated structural coverage and cross-repository links.
+- [Corpus status](research/corpus-status.md) — generated structural coverage and cross-repository
+  links.
 - [Ophélia plan](docs/plan-ophelia.md) — centralization, openness and interoperability direction.
 - [Ophélia API](docs/API-OPHELIA.md) — public REST interface.
 - [Multi-instance architecture](docs/ARCHITECTURE_MULTI_INSTANCE.md) — deployment model.
