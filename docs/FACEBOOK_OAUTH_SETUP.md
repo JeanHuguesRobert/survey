@@ -1,3 +1,14 @@
+---
+document_role: "operational"
+document_kind: "documentation"
+visibility: "public"
+lifecycle_state: "active"
+classification_source: "cogentia.js"
+classification_version: "1"
+classification_rule: "documentation"
+classification_confidence: "medium"
+---
+
 # Facebook OAuth & Supabase setup
 
 This document explains how to create a Facebook App, get the App ID and App Secret, and where to put

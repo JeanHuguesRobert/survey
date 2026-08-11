@@ -1,3 +1,14 @@
+---
+document_role: "operational"
+document_kind: "documentation"
+visibility: "public"
+lifecycle_state: "active"
+classification_source: "cogentia.js"
+classification_version: "1"
+classification_rule: "documentation"
+classification_confidence: "medium"
+---
+
 # Configuration des Avatars Sociaux (OAuth Custom)
 
 > [!IMPORTANT] Ce document décrit le **système OAuth custom** pour l'import manuel d'avatars. Pour

@@ -1,3 +1,14 @@
+---
+document_role: "operational"
+document_kind: "documentation"
+visibility: "public"
+lifecycle_state: "active"
+classification_source: "cogentia.js"
+classification_version: "1"
+classification_rule: "documentation"
+classification_confidence: "medium"
+---
+
 Version : 1.0 — Décembre 2025 Auteur : Association C.O.R.S.I.C.A., Institut Mariani, Pertitellu
 
 Table des matières
