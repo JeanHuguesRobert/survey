@@ -1,3 +1,23 @@
+---
+title: Survey (Kudocracy.Survey)
+author: unknown
+date: "2026-06-30"
+document_role: source
+document_kind: documentation
+visibility: public
+lifecycle_state: legacy_runtime
+update_policy: UP-DEFAULT-REVIEWED
+provenance:
+  origin_type: repository
+  origin_repository: JeanHuguesRobert/survey
+  origin_ref: main
+  origin_date: "2026-06-30"
+  derived_from: []
+review:
+  status: unreviewed
+  reviewed_by: []
+---
+
 # 📊 Survey. Consultation Citoyenne Petit Parti / Pertitellu
 
 Une plateforme de consultation citoyenne pour les élections municipales de Corte ou ailleurs,
@@ -5,6 +25,16 @@ incluant une IA conversationnelle, un wiki collaboratif et un système de propos
 (Kudocratie).
 
 Disponible en version [Prototype LePP.fr](http://lepp.fr/)
+
+## Orientation & Écosystème Cogentia
+
+- [`docs/plan-ophelia.md`](docs/plan-ophelia.md) — plan de médiation Ophélia et intégration
+- [`docs/API-OPHELIA.md`](docs/API-OPHELIA.md) — API Ophélia et interface d'intégration
+- [`research/index.md`](research/index.md) — catalogue de documentation
+- [`research/corpus-status.md`](research/corpus-status.md) — statut structurel du corpus
+- [`AGENTS.md`](AGENTS.md) — mandat agent et instructions partagées Cogentia
+- Dépôt parent plateforme : [`inseme`](https://github.com/JeanHuguesRobert/inseme) (runtime COP,
+  briques civiques)
 
 ## 🚀 Fonctionnalités principales
 

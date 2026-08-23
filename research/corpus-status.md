@@ -60,52 +60,55 @@ graph LR
   r_github[".github"]
   r_acorsica_org["acorsica.org"]
   r_structenv["StructEnv"]
-  r_cogentia -->|108| r_barons_mariani
+  r_cogentia -->|110| r_barons_mariani
+  r_jeanhuguesrobert -->|91| r_barons_mariani
   r_barons_mariani -->|71| r_cogentia
-  r_jeanhuguesrobert -->|68| r_barons_mariani
-  r_fractavolta -->|48| r_cogentia
+  r_jeanhuguesrobert -->|54| r_cogentia
+  r_fractavolta -->|52| r_cogentia
+  r_jeanhuguesrobert -->|39| r_marenostrum
   r_fractavolta -->|37| r_marenostrum
-  r_inseme -->|36| r_cogentia
-  r_jeanhuguesrobert -->|35| r_cogentia
-  r_cogentia -->|28| r_inseme
-  r_fractavolta -->|24| r_inseme
+  r_inseme -->|37| r_cogentia
+  r_cogentia -->|29| r_inseme
+  r_jeanhuguesrobert -->|26| r_fractavolta
+  r_jeanhuguesrobert -->|26| r_inseme
   r_barons_mariani -->|22| r_marenostrum
+  r_fractavolta -->|22| r_inseme
+  r_inseme -->|20| r_barons_mariani
+  r_jeanhuguesrobert -->|20| r_inox
   r_barons_mariani -->|19| r_fractavolta
   r_cogentia -->|19| r_marenostrum
   r_fractavolta -->|19| r_barons_mariani
-  r_inseme -->|19| r_barons_mariani
   r_barons_mariani -->|18| r_inseme
   r_inox -->|16| r_cogentia
-  r_jeanhuguesrobert -->|16| r_marenostrum
   r_marenostrum -->|16| r_cogentia
-  r_inseme -->|13| r_fractavolta
+  r_inseme -->|12| r_fractavolta
   r_inseme -->|12| r_inox
   r_marenostrum -->|12| r_fractavolta
   r_inox -->|11| r_barons_mariani
   r_marenostrum -->|11| r_barons_mariani
   r_inox -->|10| r_fractavolta
   r_inox -->|9| r_inseme
-  r_jeanhuguesrobert -->|9| r_fractavolta
   r_fractavolta -->|8| r_inox
   r_inox -->|8| r_marenostrum
-  r_jeanhuguesrobert -->|7| r_inseme
+  r_jeanhuguesrobert -->|8| r_ubikia
+  r_ubikia -->|8| r_cogentia
+  r_cogentia -->|7| r_jeanhuguesrobert
+  r_inseme -->|7| r_jeanhuguesrobert
   r_inseme -->|6| r_kudos
-  r_jeanhuguesrobert -->|6| r_inox
-  r_ubikia -->|6| r_cogentia
   r_barons_mariani -->|5| r_inox
   r_barons_mariani -->|5| r_jeanhuguesrobert
   r_cogentia -->|5| r_fractavolta
+  r_operium -->|5| r_cogentia
   r_ubikia -->|5| r_barons_mariani
   r_barons_mariani -->|4| r_ubikia
-  r_cogentia -->|4| r_jeanhuguesrobert
+  r_fractavolta -->|4| r_jeanhuguesrobert
   r_marianivillage -->|4| r_fractavolta
   r_operium -->|4| r_marenostrum
   r_ubikia -->|4| r_jeanhuguesrobert
   r_github -->|3| r_gouvernance
-  r_fractavolta -->|3| r_jeanhuguesrobert
-  r_inseme -->|3| r_jeanhuguesrobert
+  r_cogentia -->|3| r_operium
+  r_jeanhuguesrobert -->|3| r_institut_mariani
   r_kudos -->|3| r_barons_mariani
-  r_operium -->|3| r_cogentia
   r_operium -->|3| r_barons_mariani
   r_operium -->|3| r_inseme
   r_cogentia -->|2| r_inox
@@ -115,7 +118,6 @@ graph LR
   r_inseme -->|2| r_marenostrum
   r_institut_mariani -->|2| r_barons_mariani
   r_institut_mariani -->|2| r_fractavolta
-  r_jeanhuguesrobert -->|2| r_ubikia
   r_marenostrum -->|2| r_jeanhuguesrobert
   r_marenostrum -->|2| r_inseme
   r_marenostrum -->|2| r_inox
@@ -128,6 +130,8 @@ graph LR
   r_gouvernance -->|1| r_inox
   r_gouvernance -->|1| r_kudos
   r_gouvernance -->|1| r_marianivillage
+  r_inseme -->|1| r_operium
+  r_inseme -->|1| r_privai
   r_inseme -->|1| r_ubikia
   r_institut_mariani -->|1| r_privai
   r_institut_mariani -->|1| r_kudos
@@ -207,6 +211,9 @@ graph LR
   c_cogentia["Cogentia"]
   c_cogentigram["Cogentigram"]
   c_potentics["Potentics"]
+  c_the_possible["The Possible"]
+  c_the_realized["The Realized"]
+  c_spirit_of_synthesis["Spirit of Synthesis"]
   c_presencology["Presencology"]
   c_presence["Presence"]
   c_presence_map["Presence Map"]
@@ -358,6 +365,18 @@ graph LR
   c_potentics -.-> c_rational_odyssey
   c_potentics -.-> c_rational_exploration_of_the_possible
   c_potentics -.-> c_potentiality_map
+  c_the_possible -.-> c_potentics
+  c_the_possible -.-> c_the_realized
+  c_the_possible -.-> c_spirit_of_synthesis
+  c_the_possible -.-> c_projection_of_the_possible
+  c_the_possible -.-> c_presencology
+  c_the_realized -.-> c_the_possible
+  c_the_realized -.-> c_potentics
+  c_the_realized -.-> c_spirit_of_synthesis
+  c_spirit_of_synthesis -.-> c_the_possible
+  c_spirit_of_synthesis -.-> c_the_realized
+  c_spirit_of_synthesis -.-> c_potentics
+  c_spirit_of_synthesis -.-> c_rational_exploration_of_the_possible
   c_presence_map -.-> c_potentiality_map
   c_presence_map -.-> c_projection_of_the_possible
   c_presence_map -.-> c_latent_functional_map
@@ -501,6 +520,9 @@ graph LR
   click c_cogentia "https://github.com/JeanHuguesRobert/barons-Mariani/blob/main/research/concepts.md#cogentia" "Open Cogentia"
   click c_cogentigram "https://github.com/JeanHuguesRobert/barons-Mariani/blob/main/research/concepts.md#cogentigram" "Open Cogentigram"
   click c_potentics "https://github.com/JeanHuguesRobert/barons-Mariani/blob/main/research/concepts.md#potentics" "Open Potentics"
+  click c_the_possible "https://github.com/JeanHuguesRobert/barons-Mariani/blob/main/research/concepts.md#the-possible" "Open The Possible"
+  click c_the_realized "https://github.com/JeanHuguesRobert/barons-Mariani/blob/main/research/concepts.md#the-realized" "Open The Realized"
+  click c_spirit_of_synthesis "https://github.com/JeanHuguesRobert/barons-Mariani/blob/main/research/concepts.md#spirit-of-synthesis" "Open Spirit of Synthesis"
   click c_presencology "https://github.com/JeanHuguesRobert/barons-Mariani/blob/main/research/concepts.md#presencology" "Open Presencology"
   click c_presence "https://github.com/JeanHuguesRobert/barons-Mariani/blob/main/research/concepts.md#presence" "Open Presence"
   click c_presence_map "https://github.com/JeanHuguesRobert/barons-Mariani/blob/main/research/concepts.md#presence-map" "Open Presence Map"
@@ -577,8 +599,8 @@ _Referenced but undefined: `Democratic AI Safety`, `Cogentia Commons (déclinais
 `Rule 0 (seconde méthode)`, `DHITL Layer 5`, `Envelope (kind-agnostic metadata layer)`,
 `Payload (kind-specific content layer)`, `Continuation payload`, `Objection payload`,
 `Hypothesis payload`, `Decision payload`, `Failure payload`, `Routing payload`, `Source Document`,
-`DHITL`, `The Possible`, `Rational Odyssey`, `Rational Exploration of The Possible`,
-`Potentiality Map`, `Explicit Supermap`, `Rich Stigmergy`, `Flotilla Architecture`, `Cartographer`,
+`DHITL`, `Rational Odyssey`, `Rational Exploration of The Possible`, `Potentiality Map`,
+`Explicit Supermap`, `Rich Stigmergy`, `Flotilla Architecture`, `Cartographer`,
 `Possibilism (academic framework)`, `COP (stigmergic orchestration)`,
 `DHITL (democratic human-in-the-loop)`, `Digital twins as cognitive liberation`,
 `Attractor-based exploration`, `Stateless agents for scalable exploration`,
