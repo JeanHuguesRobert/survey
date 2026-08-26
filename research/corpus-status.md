@@ -183,6 +183,10 @@ graph LR
   c_kernel_extractor["Kernel Extractor"]
   c_kys_know_your_self_psychocognitive_analysis["KYS (Know Your Self) / Psychocognitive Analysis"]
   c_cogentia_workflows["Cogentia Workflows"]
+  c_packet_capsule["Packet Capsule"]
+  c_human_routed_handoff["Human-Routed Handoff"]
+  c_recursive_reality_test["Recursive Reality Test"]
+  c_eventual_reconciliation["Eventual Reconciliation"]
   c_cogentia["Cogentia"]
   c_cogentigram["Cogentigram"]
   c_ipn_inference_packet_network["IPN (Inference Packet Network)"]
@@ -492,6 +496,10 @@ graph LR
   click c_kernel_extractor "https://github.com/JeanHuguesRobert/cogentia/blob/main/research/concepts.md#kernel-extractor" "Open Kernel Extractor"
   click c_kys_know_your_self_psychocognitive_analysis "https://github.com/JeanHuguesRobert/cogentia/blob/main/research/concepts.md#kys-know-your-self-psychocognitive-analysis" "Open KYS (Know Your Self) / Psychocognitive Analysis"
   click c_cogentia_workflows "https://github.com/JeanHuguesRobert/cogentia/blob/main/research/concepts.md#cogentia-workflows" "Open Cogentia Workflows"
+  click c_packet_capsule "https://github.com/JeanHuguesRobert/cogentia/blob/main/research/concepts.md#packet-capsule" "Open Packet Capsule"
+  click c_human_routed_handoff "https://github.com/JeanHuguesRobert/cogentia/blob/main/research/concepts.md#human-routed-handoff" "Open Human-Routed Handoff"
+  click c_recursive_reality_test "https://github.com/JeanHuguesRobert/cogentia/blob/main/research/concepts.md#recursive-reality-test" "Open Recursive Reality Test"
+  click c_eventual_reconciliation "https://github.com/JeanHuguesRobert/cogentia/blob/main/research/concepts.md#eventual-reconciliation" "Open Eventual Reconciliation"
   click c_cogentia "https://github.com/JeanHuguesRobert/FractaVolta/blob/main/research/concepts.md#cogentia" "Open Cogentia"
   click c_cogentigram "https://github.com/JeanHuguesRobert/FractaVolta/blob/main/research/concepts.md#cogentigram" "Open Cogentigram"
   click c_ipn_inference_packet_network "https://github.com/JeanHuguesRobert/FractaVolta/blob/main/research/concepts.md#ipn-inference-packet-network" "Open IPN (Inference Packet Network)"
@@ -573,15 +581,16 @@ graph LR
 _Orphan concepts: `Civilizational Stakes` (cogentia), `Cogentia` (cogentia), `Cogentia Commons`
 (cogentia), `Sovereign Digital Twin` (cogentia), `Agent-Resumable CLI` (cogentia),
 `Kernel Extractor` (cogentia), `KYS (Know Your Self) / Psychocognitive Analysis` (cogentia),
-`Cogentia Workflows` (cogentia), `IPN (Inference Packet Network)` (FractaVolta),
-`EPN (Energy Packet Network)` (FractaVolta), `PGN (Power Generation Node)` (FractaVolta),
-`Packet Attractors (Fractanet routing)` (FractaVolta), `Packet as evolutionary attractor`
-(FractaVolta), `The Unconscious Grid` (FractaVolta), `Mariani Village` (FractaVolta),
-`Value-Shaped Solar` (FractaVolta), `Containerized Compute (Tera)` (FractaVolta),
-`Traceable Governance` (FractaVolta), `DHITL (Democratic Human In The Loop)` (marenostrum),
-`CXU (Compute and Exergy Unit)` (marenostrum), `Safe Compute Exergy` (marenostrum), `Constellia`
-(marenostrum), `Corsica Forest Synergies` (marenostrum), `Sun to Sovereignty` (marenostrum),
-`Civilizational Stakes` (barons-Mariani), `Cogentia` (barons-Mariani), `Presencology`
+`Cogentia Workflows` (cogentia), `Packet Capsule` (cogentia), `Human-Routed Handoff` (cogentia),
+`Recursive Reality Test` (cogentia), `Eventual Reconciliation` (cogentia),
+`IPN (Inference Packet Network)` (FractaVolta), `EPN (Energy Packet Network)` (FractaVolta),
+`PGN (Power Generation Node)` (FractaVolta), `Packet Attractors (Fractanet routing)` (FractaVolta),
+`Packet as evolutionary attractor` (FractaVolta), `The Unconscious Grid` (FractaVolta),
+`Mariani Village` (FractaVolta), `Value-Shaped Solar` (FractaVolta), `Containerized Compute (Tera)`
+(FractaVolta), `Traceable Governance` (FractaVolta), `DHITL (Democratic Human In The Loop)`
+(marenostrum), `CXU (Compute and Exergy Unit)` (marenostrum), `Safe Compute Exergy` (marenostrum),
+`Constellia` (marenostrum), `Corsica Forest Synergies` (marenostrum), `Sun to Sovereignty`
+(marenostrum), `Civilizational Stakes` (barons-Mariani), `Cogentia` (barons-Mariani), `Presencology`
 (barons-Mariani), `Presence` (barons-Mariani), `Projection of The Possible` (barons-Mariani),
 `Cognitive Waves` (barons-Mariani), `Mimetic Desynchronization` (barons-Mariani), `Invidia`
 (barons-Mariani), `Transition Markets` (barons-Mariani), `The Uchronian Museum` (barons-Mariani),
