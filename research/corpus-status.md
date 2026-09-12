@@ -60,24 +60,24 @@ graph LR
   r_github[".github"]
   r_acorsica_org["acorsica.org"]
   r_structenv["StructEnv"]
-  r_cogentia -->|110| r_barons_mariani
+  r_cogentia -->|116| r_barons_mariani
   r_jeanhuguesrobert -->|91| r_barons_mariani
-  r_barons_mariani -->|71| r_cogentia
-  r_jeanhuguesrobert -->|54| r_cogentia
+  r_barons_mariani -->|84| r_cogentia
+  r_jeanhuguesrobert -->|53| r_cogentia
   r_fractavolta -->|52| r_cogentia
+  r_inseme -->|42| r_cogentia
   r_jeanhuguesrobert -->|39| r_marenostrum
   r_fractavolta -->|37| r_marenostrum
-  r_inseme -->|37| r_cogentia
-  r_cogentia -->|29| r_inseme
+  r_cogentia -->|30| r_inseme
   r_jeanhuguesrobert -->|26| r_fractavolta
   r_jeanhuguesrobert -->|26| r_inseme
-  r_barons_mariani -->|22| r_marenostrum
+  r_barons_mariani -->|23| r_marenostrum
   r_fractavolta -->|22| r_inseme
+  r_fractavolta -->|21| r_barons_mariani
   r_inseme -->|20| r_barons_mariani
   r_jeanhuguesrobert -->|20| r_inox
   r_barons_mariani -->|19| r_fractavolta
   r_cogentia -->|19| r_marenostrum
-  r_fractavolta -->|19| r_barons_mariani
   r_barons_mariani -->|18| r_inseme
   r_inox -->|16| r_cogentia
   r_marenostrum -->|16| r_cogentia
@@ -92,17 +92,18 @@ graph LR
   r_inox -->|8| r_marenostrum
   r_jeanhuguesrobert -->|8| r_ubikia
   r_ubikia -->|8| r_cogentia
+  r_barons_mariani -->|7| r_inox
   r_cogentia -->|7| r_jeanhuguesrobert
   r_inseme -->|7| r_jeanhuguesrobert
+  r_barons_mariani -->|6| r_jeanhuguesrobert
   r_inseme -->|6| r_kudos
-  r_barons_mariani -->|5| r_inox
-  r_barons_mariani -->|5| r_jeanhuguesrobert
+  r_operium -->|6| r_cogentia
   r_cogentia -->|5| r_fractavolta
-  r_operium -->|5| r_cogentia
   r_ubikia -->|5| r_barons_mariani
   r_barons_mariani -->|4| r_ubikia
   r_fractavolta -->|4| r_jeanhuguesrobert
   r_marianivillage -->|4| r_fractavolta
+  r_operium -->|4| r_inseme
   r_operium -->|4| r_marenostrum
   r_ubikia -->|4| r_jeanhuguesrobert
   r_github -->|3| r_gouvernance
@@ -110,7 +111,6 @@ graph LR
   r_jeanhuguesrobert -->|3| r_institut_mariani
   r_kudos -->|3| r_barons_mariani
   r_operium -->|3| r_barons_mariani
-  r_operium -->|3| r_inseme
   r_cogentia -->|2| r_inox
   r_gouvernance -->|2| r_barons_mariani
   r_gouvernance -->|2| r_fractavolta
@@ -303,6 +303,7 @@ graph LR
   c_human_enacted_decision_artifact -.-> c_non_deterministic_cognitive_step
   c_human_enacted_decision_artifact -.-> c_rule_0_seconde_methode
   c_human_enacted_decision_artifact -.-> c_dhitl_layer_5
+  c_human_enacted_decision_artifact -.-> c_engagement_levels_e3_e4
   c_cop_invariants --> c_causal_trace_replay_auditable_causal_reconstruction
   c_machine_a_explorer --> c_causal_trace_replay_auditable_causal_reconstruction
   c_causal_trace_replay_auditable_causal_reconstruction -.-> c_continuation_protocol
@@ -606,15 +607,15 @@ _Referenced but undefined: `Democratic AI Safety`, `Cogentia Commons (déclinais
 `Concentration de compute (85% frontier)`, `Invidia (densité sociale destructrice)`,
 `DHITL (Compute Exergy comme unité traçable)`, `Map vs territory`, `Operational memory`,
 `Traceable agency`, `Non-deterministic Cognitive Step`, `Causal Trace Replay`, `COP/HITL Profile`,
-`Rule 0 (seconde méthode)`, `DHITL Layer 5`, `Envelope (kind-agnostic metadata layer)`,
-`Payload (kind-specific content layer)`, `Continuation payload`, `Objection payload`,
-`Hypothesis payload`, `Decision payload`, `Failure payload`, `Routing payload`, `Source Document`,
-`DHITL`, `Rational Odyssey`, `Rational Exploration of The Possible`, `Potentiality Map`,
-`Explicit Supermap`, `Rich Stigmergy`, `Flotilla Architecture`, `Cartographer`,
-`Possibilism (academic framework)`, `COP (stigmergic orchestration)`,
-`DHITL (democratic human-in-the-loop)`, `Digital twins as cognitive liberation`,
-`Attractor-based exploration`, `Stateless agents for scalable exploration`,
-`Joy as method (against grim optimization)`,
+`Rule 0 (seconde méthode)`, `DHITL Layer 5`, `Engagement levels (E3/E4)`,
+`Envelope (kind-agnostic metadata layer)`, `Payload (kind-specific content layer)`,
+`Continuation payload`, `Objection payload`, `Hypothesis payload`, `Decision payload`,
+`Failure payload`, `Routing payload`, `Source Document`, `DHITL`, `Rational Odyssey`,
+`Rational Exploration of The Possible`, `Potentiality Map`, `Explicit Supermap`, `Rich Stigmergy`,
+`Flotilla Architecture`, `Cartographer`, `Possibilism (academic framework)`,
+`COP (stigmergic orchestration)`, `DHITL (democratic human-in-the-loop)`,
+`Digital twins as cognitive liberation`, `Attractor-based exploration`,
+`Stateless agents for scalable exploration`, `Joy as method (against grim optimization)`,
 `Musée Mariani des Possibles (muséological application)`, `Applied Possibilism in agile style`,
 `Continuations as resumable exploration`, `Capabilities approach (Sen, Nussbaum)`,
 `Spécificité de phase`, `Flexibilité d'usage (redistributive vs. predatory)`,
