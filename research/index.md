@@ -12,7 +12,7 @@ document_kind: research-index
 visibility: public
 lifecycle_state: active
 classification_source: cogentia.js
-classification_version: "1"
+classification_version: '1'
 classification_rule: research-index
 classification_confidence: strong
 author: unknown
@@ -26,7 +26,11 @@ review:
   status: unreviewed
   reviewed_by: []
 update_policy: UP-DEFAULT-REVIEWED
+affiliation: Institut Mariani / C.O.R.S.I.C.A., 1 cours Paoli, F-20250 Corte, Corsica
+language: en
+status: working-paper
 ---
+
 
 # Research Index - Survey / Ophélia
 
