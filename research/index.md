@@ -88,3 +88,15 @@ excluded through `.cogentiaignore` until they receive a more precise curation po
 | Social Features             | [SOCIAL_FEATURES.md](../SOCIAL_FEATURES.md)     | Social feature overview.   |
 | Social Features - Changelog | [SOCIAL_CHANGELOG.md](../SOCIAL_CHANGELOG.md)   | Social feature changelog.  |
 | Social Quickstart           | [SOCIAL_QUICKSTART.md](../SOCIAL_QUICKSTART.md) | Social feature quickstart. |
+
+<!-- BEGIN_AUTO: index_catalog -->
+## Corpus catalog
+
+*Generated navigation. Editorial sections above remain human-maintained.*
+
+| Document | Role | Updated |
+|---|---|---|
+| [Stabiliser Ophélia avant migration vers inseme](../.cogentia/issues/jeanhuguesrobert-survey/issue-00013.md) | source | unknown |
+| [survey agent mandate](../AGENTS.md) | operational | 2026-08-03 |
+
+<!-- END_AUTO: index_catalog -->
