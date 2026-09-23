@@ -109,10 +109,10 @@ Structure du projet (extrait)
 ├─ .env                              # variables d'environnement locales (ne pas committer)
 ├─ package.json                      # dépendances & scripts (installer à la racine)
 ├─ netlify/
-│  └─ functions/
-│     ├─ rag_chatbot.js              # Netlify Function : RAG chatbot (HF / OpenAI)
-│     ├─ optimize-wiki-title.js      # Netlify Function : optimisation titre/slug
-│     └─ ...                         # autres fonctions serverless
+│  ├─ edge-functions/
+│  │  ├─ rag_chatbot.v3.js           # Edge Function : RAG chatbot
+│  │  └─ ...                         # autres fonctions Edge
+│  └─ functions/                     # fonctions serverless complémentaires
 ├─ public/                           # assets statiques (favicon, images...)
 ├─ src/
 │  ├─ components/
@@ -397,7 +397,8 @@ consultations locales lisibles, auditables et interopérables à l’échelle na
 - Création de propositions et tags directement depuis le chat (statut par défaut `active`)
 - Rendu des réponses en Markdown sécurisé (`marked` + `DOMPurify`), prompt système configurable
   (`public/prompts/bob-system.md` ou variables d’environnement)
-- Fonction serverless `netlify/functions/rag_chatbot.js` avec modération et routage léger/lourd
+- Edge Function `src/netlify/edge-functions/rag_chatbot.v3.js`, exposée sur `/api/chat-stream`, avec
+  modération et routage léger/lourd
 - Prise en charge des liens wiki dans le Markdown (`[label](wiki/adresse)` → `/wiki/:slug`)
 - Intégration aux routes de détail `/propositions/:id` lors de la création depuis le chat
 - Journaux et gestion d’erreurs renforcés côté fonctions et UI
@@ -429,7 +430,7 @@ npm install
 
 ```bash
 npm run dev          # Front + Vite
-netlify dev          # Fonctions serverless (rag_chatbot)
+netlify dev          # Fonctions Netlify, dont /api/chat-stream
 ```
 
 ## 4. Prompt système de Bob
@@ -537,7 +538,7 @@ supabase db diff   # si vous utilisez Supabase CLI
 - En local, `VITE_HUGGINGFACE_API_KEY` est optionnelle (désactive la recherche/suggestion de tags).
 - `cdn.tailwindcss.com` est utilisé uniquement en développement ; configurez Tailwind via PostCSS
   pour la production.
-- Les fonctions Netlify (`/.netlify/functions/rag_chatbot`) se lancent via `netlify dev`.
+- L'Edge Function RAG (`/api/chat-stream`) se lance via `netlify dev`.
 
 ## 📄 Licence
 
