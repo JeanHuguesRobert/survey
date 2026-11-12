@@ -2,6 +2,7 @@
 title: Survey (Kudocracy.Survey)
 author: unknown
 date: "2026-06-30"
+last_modified_at: '2026-11-13'
 document_role: source
 document_kind: documentation
 visibility: public
@@ -32,7 +33,7 @@ Une plateforme de consultation citoyenne pour les élections municipales de Cort
 incluant une IA conversationnelle, un wiki collaboratif et un système de propositions citoyennes
 (Kudocratie).
 
-Disponible en version [Prototype LePP.fr](http://lepp.fr/)
+**Statut du prototype :** l'ancienne adresse `http://lepp.fr/` ne résout pas en DNS lors du contrôle du 13 novembre 2026. Ce dépôt reste accessible comme source historique du prototype ; ne pas présenter l'ancienne URL comme un service disponible. La migration vers la plateforme Inseme est suivie par [inseme #59](https://github.com/JeanHuguesRobert/inseme/issues/59).
 
 ## Orientation & Écosystème Cogentia
 
