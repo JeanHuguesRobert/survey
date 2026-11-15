@@ -22,3 +22,18 @@ jobs:
           node-version-file: .node-version
       - run: npm ci
       - run: npm run build
+
+  cop-core:
+    needs: prettier
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - name: Install isolated COP type package
+        run: npm ci --prefix packages/cop-core
+      - name: Check COP interfaces
+        run: npm test --prefix packages/cop-core
+      - name: Build COP declarations
+        run: npm run build --prefix packages/cop-core
