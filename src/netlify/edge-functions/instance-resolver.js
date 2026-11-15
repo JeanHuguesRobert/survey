@@ -13,7 +13,9 @@ import {
   loadInstanceConfig,
   getConfig,
   getSupabase,
+  newSupabase,
 } from "../../common/config/instanceConfig.edge.js";
+import { injectMetadata } from "./lib/html-injector.js";
 
 // ============================================================================
 // CONFIGURATION
@@ -36,32 +38,34 @@ export default async function handler(request, context) {
   // Extraire le sous-domaine
   const subdomain = extractSubdomain(hostname);
 
-  // Si pas de sous-domaine pertinent, passer
-  if (!subdomain) {
-    return addCorsHeaders(await context.next());
+  // Rechercher l'instance dans le registre (si sous-domaine présent)
+  const instance = subdomain ? await lookupInstance(subdomain) : null;
+
+  // Si on a un sous-domaine, on prévient les fonctions suivantes (comme root-redirect)
+  // qu'elles n'ont pas besoin d'injecter les métadonnées par défaut
+  if (subdomain) {
+    request.headers.set("X-Ophelia-Skip-Default-Injection", "true");
   }
 
-  console.log(`[instance-resolver] Subdomain: ${subdomain}`);
+  // Obtenir la réponse suivante (index.html ou autre asset)
+  let response = await context.next();
 
-  // Rechercher l'instance dans le registre
-  const instance = await lookupInstance(subdomain);
-
-  // Ajouter les headers d'instance à la réponse
-  const response = await context.next();
-
+  // 1. Gérer l'injection de métadonnées (uniquement si instance trouvée)
+  // Pour le domaine racine, c'est root-redirect qui s'en occupe.
   if (instance) {
-    // Injecter les infos d'instance dans les headers
+    response = await injectMetadata(response, instance, subdomain);
+  }
+
+  // 2. Gérer les headers d'instance
+  if (instance) {
     response.headers.set("X-Ophelia-Instance", subdomain);
     response.headers.set("X-Ophelia-Instance-Name", instance.display_name || subdomain);
     response.headers.set("X-Ophelia-Supabase-URL", instance.supabase_url);
     response.headers.set("X-Ophelia-Supabase-Anon-Key", instance.supabase_anon_key);
-
     console.log(`[instance-resolver] Instance found: ${instance.display_name}`);
-  } else {
-    // Instance non trouvée - header d'erreur
+  } else if (subdomain) {
     response.headers.set("X-Ophelia-Instance", subdomain);
     response.headers.set("X-Ophelia-Instance-Error", "not-found");
-
     console.log(`[instance-resolver] Instance not found: ${subdomain}`);
   }
 
@@ -106,6 +110,9 @@ function extractSubdomain(hostname) {
 // ============================================================================
 
 async function lookupInstance(subdomain) {
+  // On utilise initializeInstanceAdmin pour être sûr d'avoir accès aux variables d'env du hub
+  await loadInstanceConfig(false);
+
   // URL du registre central (hub)
   const registryUrl = getConfig("REGISTRY_SUPABASE_URL") || getConfig("SUPABASE_URL");
   const registryKey = getConfig("REGISTRY_SUPABASE_ANON_KEY") || getConfig("SUPABASE_ANON_KEY");
@@ -116,9 +123,13 @@ async function lookupInstance(subdomain) {
   }
 
   try {
-    const supabase = createClient(registryUrl, registryKey);
+    // Utilise la factory Deno avec les options de registre si définies
+    const supabase = newSupabase(false, {
+      supabaseUrl: registryUrl,
+      supabaseAnonKey: registryKey,
+    });
 
-    // TODO: use a REST API instead of a rpc
+    // Recherche de l'instance via RPC
     const { data, error } = await supabase.rpc("get_instance_by_subdomain", {
       p_subdomain: subdomain,
     });
