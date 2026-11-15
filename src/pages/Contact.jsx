@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { HASHTAG, CITY_NAME, getDynamicConfig } from "../constants";
 import CommentSection from "../components/common/CommentSection";
 import { useCurrentUser } from "../lib/useCurrentUser";
-import { getConfig } from "../common/config/instanceConfig.client.js";
 
 export default function Contact() {
   // Email de l'éditeur du site - Information légale obligatoire (LCEN)
@@ -63,11 +62,11 @@ export default function Contact() {
 
           {/* Admin section visible only to the configured contact email */}
           {isAdmin && (
-            <div className="mt-8 border-t pt-6">
-              <h2 className="text-xl font-semibold text-blue-800 mb-4">Admin</h2>
+            <div className="mt-8 border-t border-gray-700 pt-6">
+              <h2 className="text-xl font-semibold text-bauhaus-white mb-4">Admin</h2>
               <ul className="space-y-2">
                 <li>
-                  <Link to="/admin" className="text-blue-600 hover:underline font-medium">
+                  <Link to="/admin" className="text-bauhaus-yellow hover:underline font-medium">
                     Administration
                   </Link>
                 </li>
@@ -78,9 +77,9 @@ export default function Contact() {
           <div className="mt-8 text-center">
             <Link
               to="/"
-              className="px-4 py-2 bg-gray-100 text-blue-900 font-semibold hover:bg-gray-200"
+              className="px-6 py-2 bg-bauhaus-blue text-bauhaus-white font-bold hover:bg-opacity-90 transition-colors"
             >
-              Retour à la consultation
+              RETOUR À LA CONSULTATION
             </Link>
           </div>
         </div>
