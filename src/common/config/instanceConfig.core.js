@@ -63,15 +63,13 @@ async function fetchAllRows(supabaseClient) {
 }
 
 // Load the instance config from some supabase. Reload if forced.
-export async function loadConfigTable(force = false, supabase_config = null) {
+export async function loadConfigTable(force = false, supabase_config = {}) {
   const cache = getGlobalCache();
 
   // If supabase config provided (url & keys), use them
-  cache.supabase_config = supabase_config;
-  if (supabase_config) {
-    supabase_config = getGlobalCache().supabase_config;
-    // TODO
-    console.log("loadInstanceConfig: TODO using supabase_config=", supabase_config);
+  if (supabase_config && Object.keys(supabase_config).length > 0) {
+    cache.supabase_config = supabase_config;
+    console.log("loadInstanceConfig: using provided supabase_config");
   }
 
   if (!force && cache.inFlight) {
@@ -87,12 +85,17 @@ export async function loadConfigTable(force = false, supabase_config = null) {
   }
 
   // Reuse supabase client or create a new (non admin) one
-  if (cache.supabase) {
+  // IF a specific config is provided, we MUST create a new client
+  if (cache.supabase && !supabase_config) {
     console.log("loadConfigTable: using existing supabase client");
   } else {
-    console.log("loadConfigTable: creating new supabase client");
-    // TODO: should use supabase_config to create the client
-    cache.supabase = cache.factory(cache.admin, cache.getenv);
+    if (supabase_config) {
+      console.log("loadConfigTable: forcing new supabase client because config provided");
+    } else {
+      console.log("loadConfigTable: creating new supabase client");
+    }
+    // Pass cache.supabase_config to the factory if available
+    cache.supabase = cache.factory(cache.admin, cache.supabase_config);
     // It should not be null
     if (!cache.supabase) {
       console.warn("loadInstanceConfig: supabase client is null, factory failed, fatal");
@@ -158,15 +161,30 @@ export function getConfig(key, by_default = undefined) {
   // 2. Recherche dans la config chargée depuis Supabase
   const t = cache.config;
   if (t) {
-    const kLower = String(key).trim().toLowerCase();
-    const row = t[kLower];
+    const k = String(key).trim();
+    const kLower = k.toLowerCase();
+
+    // Recherche insensible à la casse et robuste
+    // On essaie d'abord la clé directe, puis la version minuscule
+    let row = t[k] || t[kLower];
+
+    // Si on ne trouve toujours pas, on fait une recherche exhaustive (au cas où)
+    if (!row) {
+      const allKeys = Object.keys(t);
+      const foundKey = allKeys.find((keyInMap) => keyInMap.toLowerCase() === kLower);
+      if (foundKey) row = t[foundKey];
+    }
 
     if (row) {
       // Priorité à value_json si présent
-      const val =
+      let val =
         row.value_json !== null && row.value_json !== undefined ? row.value_json : row.value;
 
-      if (val !== null && val !== undefined && val !== "") return val;
+      if (typeof val === "string") val = val.trim();
+
+      if (val !== null && val !== undefined && val !== "") {
+        return val;
+      }
     }
   }
 
@@ -230,6 +248,10 @@ export function getInstanceData(key) {
   return getGlobalCache().data[key];
 }
 
+export function getAllInstanceDataKeys() {
+  return Object.keys(getGlobalCache().data);
+}
+
 export async function initializeInstanceCore(supabase, getenv_impl, newSupabase_impl, admin) {
   // This function is called by the runtime specific implementation of initializeInstance()
 
@@ -268,7 +290,7 @@ export async function reloadInstanceConfig() {
   return loadConfigTable(true);
 }
 
-export async function loadInstanceConfigCore(force = false, supabase_config = null) {
+export async function loadInstanceConfigCore(force = false, supabase_config = {}) {
   // Invalid if not initialized properly
   if (!inited()) {
     console.warn("loadInstanceConfig: initializeInstance() not initialized, fatal");
