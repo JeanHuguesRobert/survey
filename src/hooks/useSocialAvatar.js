@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 
 export function useSocialAvatar(provider) {
   const [avatarUrl, setAvatarUrl] = useState(null);
@@ -12,7 +12,7 @@ export function useSocialAvatar(provider) {
     try {
       const {
         data: { session },
-      } = await supabase.auth.getSession();
+      } = await getSupabase().auth.getSession();
       const token = session?.access_token;
       if (!token) throw new Error("Not authenticated");
 
@@ -47,7 +47,7 @@ export function useSocialAvatar(provider) {
       try {
         const {
           data: { session },
-        } = await supabase.auth.getSession();
+        } = await getSupabase().auth.getSession();
         const token = session?.access_token;
         if (!token) throw new Error("Not authenticated");
 

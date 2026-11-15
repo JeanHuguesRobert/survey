@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import SiteFooter from "../components/layout/SiteFooter";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { BOT_NAME } from "../constants";
 
 // Catégories de communautés (niches)
@@ -268,25 +268,27 @@ export default function TransparenceLanding() {
 
     try {
       // Enregistrer le lead
-      const { error } = await supabase.from("transparency_leads").insert({
-        lead_type: formData.type || selectedType,
-        maturity_level: formData.maturity || selectedMaturity,
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone || null,
-        commune_name: formData.commune,
-        commune_insee: formData.communeInsee || null,
-        organization_name: formData.organization || null,
-        message: formData.message || null,
-        accepted_charter: formData.acceptCharter,
-        accepted_contact: formData.acceptContact,
-        source: "landing_page",
-        metadata: {
-          userAgent: navigator.userAgent,
-          referrer: document.referrer,
-          timestamp: new Date().toISOString(),
-        },
-      });
+      const { error } = await getSupabase()
+        .from("transparency_leads")
+        .insert({
+          lead_type: formData.type || selectedType,
+          maturity_level: formData.maturity || selectedMaturity,
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone || null,
+          commune_name: formData.commune,
+          commune_insee: formData.communeInsee || null,
+          organization_name: formData.organization || null,
+          message: formData.message || null,
+          accepted_charter: formData.acceptCharter,
+          accepted_contact: formData.acceptContact,
+          source: "landing_page",
+          metadata: {
+            userAgent: navigator.userAgent,
+            referrer: document.referrer,
+            timestamp: new Date().toISOString(),
+          },
+        });
 
       if (error) throw error;
       setSubmitted(true);

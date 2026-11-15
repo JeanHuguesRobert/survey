@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { isDeleted } from "../lib/metadata";
 import { getDisplayName, getUserInitials } from "../lib/userDisplay";
 import { getUserRole, ROLE_ADMIN } from "../lib/permissions";
@@ -33,7 +33,7 @@ export default function UserPage() {
   async function loadUser() {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from("users").select("*").eq("id", id).single();
+      const { data, error } = await getSupabase().from("users").select("*").eq("id", id).single();
       if (error) throw error;
       setUser(data);
 
@@ -50,13 +50,16 @@ export default function UserPage() {
       // Counts: posts total, followers (content_subscriptions where content_type='user'), following (subscriptions by this user to other users)
       const [{ count: postsCount }, { count: followersCount }, { count: followingCount }] =
         await Promise.all([
-          supabase.from("posts").select("id", { count: "exact", head: true }).eq("author_id", id),
-          supabase
+          getSupabase()
+            .from("posts")
+            .select("id", { count: "exact", head: true })
+            .eq("author_id", id),
+          getSupabase()
             .from("content_subscriptions")
             .select("id", { count: "exact", head: true })
             .eq("content_type", "user")
             .eq("content_id", id),
-          supabase
+          getSupabase()
             .from("content_subscriptions")
             .select("id", { count: "exact", head: true })
             .eq("content_type", "user")
@@ -70,7 +73,7 @@ export default function UserPage() {
       });
       // Check reciprocity: does the profile follow the current user?
       if (currentUser?.id) {
-        const { data: followerEntry } = await supabase
+        const { data: followerEntry } = await getSupabase()
           .from("content_subscriptions")
           .select("id")
           .eq("content_type", "user")

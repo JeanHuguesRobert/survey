@@ -7,6 +7,13 @@ build/**
 *.min.js
 *.bundle.js
 
+# cogentia.js-generated corpus views (BEGIN_AUTO/END_AUTO blocks) — prettier's
+# table/blank-line rewrites fight the generator and cause perpetual re-diffing
+research/corpus-status.md
+research/index.md
+research/documents.md
+research/concepts.md
+
 # Large data files
 **/*.json
 !package.json

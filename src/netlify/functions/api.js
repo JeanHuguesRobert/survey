@@ -1,11 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getConfigValue } from "../../common/config/instanceConfig.backend.js";
+import { getConfig } from "../../common/config/instanceConfig.backend.js";
 
 export default async (request, context) => {
   // Charger la configuration
-  await loadInstanceConfig();
-  const supabaseUrl = getConfigValue("supabase_url");
-  const supabaseAnonKey = getConfigValue("supabase_anon_key");
+  const supabaseUrl = getConfig("SUPABASE_URL");
+  const supabaseAnonKey = getConfig("SUPABASE_ANON_KEY");
 
   // CORS headers
   const headers = {

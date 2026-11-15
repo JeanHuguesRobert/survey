@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { isDeleted } from "../../lib/metadata";
 import { getParentCommentId, isReply, isEdited } from "../../lib/socialMetadata";
 import CommentForm from "../social/CommentForm";
@@ -52,7 +52,7 @@ export default function CommentSection({
 
     loadComments();
 
-    const channel = supabase
+    const channel = getSupabase()
       .channel(`comments:${discussionPost.id}`)
       .on(
         "postgres_changes",
@@ -67,14 +67,14 @@ export default function CommentSection({
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      getSupabase().removeChannel(channel);
     };
   }, [discussionPost?.id]);
 
   async function loadDiscussionPost() {
     await loadDiscussionPostOp(async () => {
       // Cherche un article de discussion existant pour ce contenu
-      const { data: existingPosts, error: searchError } = await supabase
+      const { data: existingPosts, error: searchError } = await getSupabase()
         .from("posts")
         .select("*")
         .eq("metadata->>linkedType", linkedType)
@@ -98,7 +98,7 @@ export default function CommentSection({
     if (!currentUser) return null;
 
     return await createDiscussionPostOp(async () => {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from("posts")
         .insert({
           user_id: currentUser.id,
@@ -126,7 +126,7 @@ export default function CommentSection({
     if (!discussionPost?.id) return;
 
     await loadCommentsOp(async () => {
-      const { data, error: fetchError } = await supabase
+      const { data, error: fetchError } = await getSupabase()
         .from("comments")
         .select("*, users(id, display_name, metadata)")
         .eq("post_id", discussionPost.id)
@@ -160,15 +160,17 @@ export default function CommentSection({
         if (!post) throw new Error("Impossible de créer la discussion");
       }
 
-      const { error } = await supabase.from("comments").insert({
-        post_id: post.id,
-        user_id: currentUser.id,
-        content,
-        metadata: {
-          schemaVersion: 1,
-          parentCommentId: parentId || null,
-        },
-      });
+      const { error } = await getSupabase()
+        .from("comments")
+        .insert({
+          post_id: post.id,
+          user_id: currentUser.id,
+          content,
+          metadata: {
+            schemaVersion: 1,
+            parentCommentId: parentId || null,
+          },
+        });
 
       if (error) throw error;
 
@@ -184,7 +186,7 @@ export default function CommentSection({
       const comment = comments.find((c) => c.id === commentId);
       if (!comment) return;
 
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from("comments")
         .update({
           metadata: {
@@ -227,7 +229,7 @@ export default function CommentSection({
 
     async function handleEdit() {
       await editCommentOp(async () => {
-        const { error } = await supabase
+        const { error } = await getSupabase()
           .from("comments")
           .update({
             content: editContent,

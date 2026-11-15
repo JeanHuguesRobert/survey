@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 import fs from "node:fs/promises";
-import { loadConfig, getConfigValue, createSupabaseClient } from "./lib/config.js";
+import { loadConfig, getConfig, createSupabaseClient } from "./lib/config.js";
 
 // Charger la configuration
 await loadConfig();
 
-const OPENAI_KEY = getConfigValue("openai_api_key");
-const SUPABASE_URL = getConfigValue("supabase_url");
-const SUPABASE_SERVICE_ROLE_KEY = getConfigValue("supabase_service_role_key");
+const OPENAI_KEY = getConfig("openai_api_key");
+const SUPABASE_URL = getConfig("supabase_url");
+const SUPABASE_SERVICE_ROLE_KEY = getConfig("supabase_service_role_key");
 
 let supabaseClient = null;
 function getSupabaseClient() {
@@ -19,8 +19,8 @@ function getSupabaseClient() {
   return supabaseClient;
 }
 
-const EMBEDDING_MODEL = getConfigValue("openai_embedding_model", "text-embedding-3-small");
-const CHAT_MODEL = getConfigValue("openai_model", "gpt-3.5-turbo");
+const EMBEDDING_MODEL = getConfig("openai_embedding_model", "text-embedding-3-small");
+const CHAT_MODEL = getConfig("openai_model", "gpt-3.5-turbo");
 const DEFAULT_SQL_LIMIT = 100;
 const DEFAULT_SQL_FORMAT = "json";
 const DEFAULT_CHAT_PATH = "/api/chat-stream";
@@ -106,9 +106,9 @@ function parseCliArgs(argv) {
 function resolveSqlEndpoint(cliOverride) {
   const source =
     (cliOverride && cliOverride.trim()) ||
-    (getConfigValue("rag_sql_endpoint") || "").trim() ||
-    (getConfigValue("rag_chat_endpoint") || "").trim() ||
-    (getConfigValue("app_url") || "").trim();
+    (getConfig("rag_sql_endpoint") || "").trim() ||
+    (getConfig("rag_chat_endpoint") || "").trim() ||
+    (getConfig("app_url") || "").trim();
   if (!source) {
     throw new Error(
       "Missing SQL endpoint. Set RAG_SQL_ENDPOINT, RAG_CHAT_ENDPOINT, or URL environment variable."
@@ -122,12 +122,12 @@ function resolveSqlEndpoint(cliOverride) {
 
 function buildSqlHeaders(cliTokenOverride, authTokenOverride) {
   const headers = { "Content-Type": "application/json" };
-  const cliToken = (cliTokenOverride || getConfigValue("cli_token") || "").trim();
+  const cliToken = (cliTokenOverride || getConfig("cli_token") || "").trim();
   if (cliToken) headers["x-cli-token"] = cliToken;
   const bearer = (
     authTokenOverride ||
-    getConfigValue("sql_auth_token") ||
-    getConfigValue("supabase_jwt") ||
+    getConfig("sql_auth_token") ||
+    getConfig("supabase_jwt") ||
     ""
   ).trim();
   if (bearer) headers.Authorization = `Bearer ${bearer}`;

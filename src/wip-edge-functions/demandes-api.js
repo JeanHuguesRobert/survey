@@ -15,8 +15,7 @@
  * - POST   /demandes/:id/responses - Add response to demande
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getConfigValue } from "../../common/config/instanceConfig.edge.js";
+import { getSupabase } from "../../common/config/instanceConfig.edge.js";
 
 // ============================================================================
 // CORS and Response Helpers
@@ -550,14 +549,7 @@ export default async function handler(request, context) {
   }
 
   try {
-    const supabaseUrl = getConfigValue("supabase_url");
-    const supabaseKey = getConfigValue("supabase_service_role_key");
-
-    if (!supabaseUrl || !supabaseKey) {
-      return errorResponse("Missing Supabase configuration", 500);
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = getSupabase();
 
     // Authenticate
     const authHeader = request.headers.get("Authorization");

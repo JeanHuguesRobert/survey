@@ -183,7 +183,18 @@ export class OpenAIProvider extends BaseProvider {
   /**
    * Conversation complète avec gestion des tool calls
    */
-  async *chat({ messages, tools = TOOLS, maxToolCalls = 2, modelMode, question }) {
+  async *chat({
+    messages,
+    tools = TOOLS,
+    maxToolCalls = 2,
+    modelMode,
+    question,
+    supabase = null,
+    openai = null,
+    debugMode = false,
+    user = null,
+    context = {},
+  }) {
     let toolCallCount = 0;
     let conversationMessages = [...messages];
 
@@ -232,13 +243,24 @@ export class OpenAIProvider extends BaseProvider {
           if (validCalls.length > 0) {
             toolCallCount++;
             console.log(
-              `[${this.name}] 🛠 Executing ${validCalls.length} tool(s):`,
+              `[${this.name}] 🛠 Executing ${validCalls.length} tool(s) in parallel:`,
               validCalls.map((c) => c.function.name)
             );
-            const toolMessages = await executeToolCalls(validCalls, this.name, {
-              web_search: { query: question },
-              defaultQuery: question,
-            });
+            const toolMessages = await executeToolCalls(
+              validCalls,
+              this.name,
+              {
+                web_search: { query: question },
+                defaultQuery: question,
+              },
+              supabase,
+              openai,
+              null, // metaCollector
+              null, // toolEventEmitter
+              debugMode,
+              user,
+              context
+            );
 
             conversationMessages = [
               ...conversationMessages,

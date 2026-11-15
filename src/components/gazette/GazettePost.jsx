@@ -2,7 +2,7 @@ import React from "react";
 import ReactMarkdown from "react-markdown";
 import { Link } from "react-router-dom";
 import FacebookEmbed from "../FacebookEmbed";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { getPostTitle, getPostSubtitle } from "../../lib/socialMetadata";
 import {
   isFacebookPost,
@@ -35,7 +35,7 @@ export default function GazettePost({ post, isEditor = false, gazetteName = null
   async function handleDelete() {
     if (!confirm("Êtes-vous sûr de vouloir supprimer cet article de la Gazette ?")) return;
     try {
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from("posts")
         .update({
           metadata: {

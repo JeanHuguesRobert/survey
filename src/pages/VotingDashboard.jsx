@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import {
   BarChart,
   Bar,
@@ -34,7 +34,7 @@ export default function VotingDashboard() {
   const checkAuth = async () => {
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await getSupabase().auth.getUser();
     if (user) {
       setCurrentUser(user);
       loadDashboardData(user);
@@ -51,10 +51,10 @@ export default function VotingDashboard() {
       // Load personal stats
       const [propositionsRes, votesRes, delegationsGivenRes, delegationsReceivedRes] =
         await Promise.all([
-          supabase.from("propositions").select("id").eq("author_id", user.id),
-          supabase.from("votes").select("id, vote_value, created_at").eq("user_id", user.id),
-          supabase.from("delegations").select("id").eq("delegator_id", user.id),
-          supabase.from("delegations").select("id").eq("delegate_id", user.id),
+          getSupabase().from("propositions").select("id").eq("author_id", user.id),
+          getSupabase().from("votes").select("id, vote_value, created_at").eq("user_id", user.id),
+          getSupabase().from("delegations").select("id").eq("delegator_id", user.id),
+          getSupabase().from("delegations").select("id").eq("delegate_id", user.id),
         ]);
 
       const propositionsCreated = propositionsRes.data?.length || 0;
@@ -82,7 +82,7 @@ export default function VotingDashboard() {
         .sort((a, b) => a.date.localeCompare(b.date));
 
       // Recent propositions
-      const { data: recentProps } = await supabase
+      const { data: recentProps } = await getSupabase()
         .from("propositions")
         .select("id, title, description, created_at, status")
         .eq("author_id", user.id)
@@ -90,7 +90,7 @@ export default function VotingDashboard() {
         .limit(5);
 
       // Recent votes with proposition details
-      const { data: recentVts } = await supabase
+      const { data: recentVts } = await getSupabase()
         .from("votes")
         .select(
           `
@@ -108,7 +108,7 @@ export default function VotingDashboard() {
         .limit(5);
 
       // Active delegations (given and received)
-      const { data: delegationsGivenData } = await supabase
+      const { data: delegationsGivenData } = await getSupabase()
         .from("delegations")
         .select(
           `
@@ -120,7 +120,7 @@ export default function VotingDashboard() {
         )
         .eq("delegator_id", user.id);
 
-      const { data: delegationsReceivedData } = await supabase
+      const { data: delegationsReceivedData } = await getSupabase()
         .from("delegations")
         .select(
           `

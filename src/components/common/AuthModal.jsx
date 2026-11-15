@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { ANONYMOUS_EMAIL } from "../../lib/permissions";
 import { useCurrentUser } from "../../lib/useCurrentUser";
-import { getConfig } from "../../common/config/instanceConfig.client.js";
-const facebookAppId = getConfig("facebook_app_id", import.meta.env.VITE_FACEBOOK_APP_ID);
+import { loadInstanceConfig, getConfig } from "../../common/config/instanceConfig.client.js";
 
 export default function AuthModal({ onClose, onSuccess }) {
   const [mode, setMode] = useState("signin");
@@ -18,7 +17,8 @@ export default function AuthModal({ onClose, onSuccess }) {
     setLoading(true);
     setError("");
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      await loadInstanceConfig();
+      const { data, error } = await getSupabase().auth.signInWithPassword({ email, password });
       if (error) throw error;
 
       if (refreshUser) {
@@ -45,7 +45,8 @@ export default function AuthModal({ onClose, onSuccess }) {
     setLoading(true);
     setError("");
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      await loadInstanceConfig();
+      const { error } = await getSupabase().auth.signInWithPassword({
         email: ANONYMOUS_EMAIL,
         password: "Anonymous",
       });
@@ -74,7 +75,8 @@ export default function AuthModal({ onClose, onSuccess }) {
     setLoading(true);
     setError("");
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      await loadInstanceConfig();
+      const { data, error } = await getSupabase().auth.signInWithOAuth({
         provider: "facebook",
         options: {
           redirectTo: `${window.location.origin}/profile`,
@@ -93,7 +95,8 @@ export default function AuthModal({ onClose, onSuccess }) {
     setLoading(true);
     setError("");
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      await loadInstanceConfig();
+      const { data, error } = await getSupabase().auth.signInWithOAuth({
         provider: "github",
         options: {
           redirectTo: `${window.location.origin}/profile`,
@@ -112,13 +115,14 @@ export default function AuthModal({ onClose, onSuccess }) {
     setLoading(true);
     setError("");
     try {
+      await loadInstanceConfig();
       if (!displayName) {
         setError("Veuillez entrer un nom d'affichage");
         setLoading(false);
         return;
       }
 
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await getSupabase().auth.signUp({ email, password });
       if (error) throw error;
 
       if (data.user) {

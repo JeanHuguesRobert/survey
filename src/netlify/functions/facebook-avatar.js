@@ -1,4 +1,4 @@
-import { getFacebookConfig } from "../../common/config/instanceConfig.backend.js";
+import { loadInstanceConfig, getConfig } from "../../common/config/instanceConfig.backend.js";
 
 export const handler = async function (event) {
   const params = event.queryStringParameters || {};
@@ -12,7 +12,12 @@ export const handler = async function (event) {
     };
   }
 
-  const { appId, clientSecret, token: configToken } = await getFacebookConfig();
+  // Load instance config
+
+  await loadInstanceConfig();
+
+  const appId = getConfig("facebook_app_id");
+  const clientSecret = getConfig("facebook_app_client_secret");
   const token = configToken || (appId && clientSecret ? `${appId}|${clientSecret}` : null);
 
   if (!token) {

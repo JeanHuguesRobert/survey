@@ -1,12 +1,12 @@
-import { loadInstanceConfig, getConfigValue } from "../../common/config/instanceConfig.backend.js";
+import { loadInstanceConfig, getConfig } from "../../common/config/instanceConfig.backend.js";
 
 export const handler = async (event) => {
   // Charger la configuration
   await loadInstanceConfig();
 
-  const secret = getConfigValue("ngrok_control_secret");
-  const SUPABASE_URL = getConfigValue("supabase_url");
-  const SERVICE_KEY = getConfigValue("supabase_service_role_key");
+  const secret = getConfig("ngrok_control_secret");
+  const SUPABASE_URL = getConfig("supabase_url");
+  const SERVICE_KEY = getConfig("supabase_service_role_key");
 
   const auth =
     (event.headers && (event.headers.authorization || event.headers.Authorization)) || "";

@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { useSupabase } from "../../contexts/SupabaseContext";
 import SiteFooter from "../../components/layout/SiteFooter";
 import { CITY_NAME, HASHTAG } from "../../constants";
@@ -182,7 +182,7 @@ export default function ActesList() {
   // Fetch data
   useEffect(() => {
     const fetchActes = async () => {
-      if (!supabase) {
+      if (!getSupabase()) {
         setError("Configuration Supabase manquante.");
         setLoading(false);
         return;
@@ -192,7 +192,7 @@ export default function ActesList() {
       setError(null);
 
       try {
-        let query = supabase.from("v_actes_synthetiques").select("*", { count: "exact" });
+        let query = getSupabase().from("v_actes_synthetiques").select("*", { count: "exact" });
 
         // Apply filters
         if (search) {

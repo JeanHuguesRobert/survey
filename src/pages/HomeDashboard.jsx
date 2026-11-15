@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { supabase, useAuth } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
+import { useCurrentUser } from "../lib/useCurrentUser";
 import FeedReader from "../components/federation/FeedReader";
 import FeedManager from "../components/federation/FeedManager";
 import { Link } from "react-router-dom";
 
 export default function HomeDashboard() {
-  const { user } = useAuth(); // You might need to adjust this depending on your auth implementation
+  const { user } = useCurrentUser(); // JHR, was: useAuth();
   const [activeTab, setActiveTab] = useState("inbox");
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,7 +19,7 @@ export default function HomeDashboard() {
 
   async function fetchSubscriptions() {
     setLoading(true);
-    const { data } = await supabase
+    const { data } = await getSupabase()
       .from("user_feed_subscriptions")
       .select(
         `

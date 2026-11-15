@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { useNavigate } from "react-router-dom";
 
 const STORAGE_BUCKET = "public-documents";
@@ -40,7 +40,7 @@ export default function DocumentManagement() {
   async function checkAuth() {
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await getSupabase().auth.getUser();
     if (!user) {
       navigate("/login");
     }
@@ -48,7 +48,7 @@ export default function DocumentManagement() {
 
   async function loadDocuments() {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("document_sources")
       .select("*")
       .eq("status", "active")
@@ -93,7 +93,7 @@ export default function DocumentManagement() {
 
       // 2. Check for duplicates
       setUploadProgress("Checking for duplicates...");
-      const { data: existing } = await supabase
+      const { data: existing } = await getSupabase()
         .from("document_sources")
         .select("*")
         .eq("content_hash", contentHash)
@@ -113,8 +113,8 @@ export default function DocumentManagement() {
       const sanitized = sanitizeFilename(selectedFile.name);
       const storagePath = `${timestamp}_${sanitized}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from(STORAGE_BUCKET)
+      const { error: uploadError } = await getSupabase()
+        .storage.from(STORAGE_BUCKET)
         .upload(storagePath, selectedFile, {
           contentType: selectedFile.type,
           upsert: false,
@@ -123,15 +123,17 @@ export default function DocumentManagement() {
       if (uploadError) throw uploadError;
 
       // 4. Get public URL
-      const { data: urlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(storagePath);
+      const { data: urlData } = getSupabase()
+        .storage.from(STORAGE_BUCKET)
+        .getPublicUrl(storagePath);
 
       // 5. Insert into database
       setUploadProgress("Saving to database...");
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await getSupabase().auth.getUser();
 
-      const { error: dbError } = await supabase.from("document_sources").insert({
+      const { error: dbError } = await getSupabase().from("document_sources").insert({
         filename: sanitized,
         content_hash: contentHash,
         public_url: urlData.publicUrl,
@@ -164,7 +166,7 @@ export default function DocumentManagement() {
   async function handleDelete(docId) {
     if (!confirm("Are you sure you want to archive this document?")) return;
 
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from("document_sources")
       .update({ status: "archived" })
       .eq("id", docId);

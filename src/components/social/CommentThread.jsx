@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { isDeleted } from "../../lib/metadata";
 import { getParentCommentId, isReply, isEdited } from "../../lib/socialMetadata";
 import CommentForm from "./CommentForm";
@@ -22,7 +22,7 @@ export default function CommentThread({ postId, currentUser }) {
       loadComments();
 
       // Subscribe to realtime changes
-      const channel = supabase
+      const channel = getSupabase()
         .channel(`comments:${postId}`)
         .on(
           "postgres_changes",
@@ -37,7 +37,7 @@ export default function CommentThread({ postId, currentUser }) {
         .subscribe();
 
       return () => {
-        supabase.removeChannel(channel);
+        getSupabase().removeChannel(channel);
       };
     }
   }, [postId]);
@@ -47,7 +47,7 @@ export default function CommentThread({ postId, currentUser }) {
       setLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
+      const { data, error: fetchError } = await getSupabase()
         .from("comments")
         .select("*, users(id, display_name, metadata)")
         .eq("post_id", postId)
@@ -78,15 +78,17 @@ export default function CommentThread({ postId, currentUser }) {
     }
 
     try {
-      const { error } = await supabase.from("comments").insert({
-        post_id: postId,
-        user_id: currentUser.id,
-        content,
-        metadata: {
-          schemaVersion: 1,
-          parentCommentId: parentId || null,
-        },
-      });
+      const { error } = await getSupabase()
+        .from("comments")
+        .insert({
+          post_id: postId,
+          user_id: currentUser.id,
+          content,
+          metadata: {
+            schemaVersion: 1,
+            parentCommentId: parentId || null,
+          },
+        });
 
       if (error) throw error;
 
@@ -105,7 +107,7 @@ export default function CommentThread({ postId, currentUser }) {
       const comment = comments.find((c) => c.id === commentId);
       if (!comment) return;
 
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from("comments")
         .update({
           metadata: {
@@ -152,7 +154,7 @@ export default function CommentThread({ postId, currentUser }) {
 
     async function handleEdit() {
       try {
-        const { error } = await supabase
+        const { error } = await getSupabase()
           .from("comments")
           .update({
             content: editContent,

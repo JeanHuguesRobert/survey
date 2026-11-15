@@ -1,22 +1,10 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getSupabase } from "./lib/supabase.js";
 
 export default async (request, context) => {
   const url = new URL(request.url);
   const path = url.pathname;
 
-  // Environment variables are available via context or Deno.env
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("VITE_SUPABASE_URL");
-  const SUPABASE_ANON_KEY =
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("VITE_SUPABASE_ANON_KEY");
-
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    return new Response(JSON.stringify({ error: "Missing Supabase configuration" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const supabase = getSupabase();
 
   // Router
   if (path.endsWith("/api/municipal/pois")) {

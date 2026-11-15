@@ -27,6 +27,7 @@ export function SupabaseProvider({ children }) {
   try {
     client = getSupabase();
   } catch (e) {
+    console.error("SupabaseContext: Error initializing client:", e);
     client = null;
   }
 

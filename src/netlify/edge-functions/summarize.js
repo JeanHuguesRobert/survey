@@ -3,7 +3,7 @@
 // Provides text summarization service for the Data Collector feature
 // ============================================================================
 
-import { getConfigValue } from "../../common/config/instanceConfig.edge.js";
+import { loadInstanceConfig, getConfig } from "../../common/config/instanceConfig.edge.js";
 
 // Import shared utilities from rag_chatbot if needed
 const MODEL_MODES = {
@@ -44,10 +44,12 @@ const PROVIDER_CONFIGS = {
   },
 };
 
-// Check which providers are available (vault first, then env)
+// Check which providers are available
 const isProviderAvailable = (provider) => {
   const keyName = `${provider.toLowerCase()}_api_key`;
-  return Boolean(getConfigValue(keyName));
+  return Boolean(getConfig(keyName));
+  // TODO: there should be a mechanism to devalidate a provider when
+  // credit quota is exhausted
 };
 
 // Get first available provider
@@ -80,7 +82,7 @@ async function summarizeText(text, provider = null) {
 
   const config = PROVIDER_CONFIGS[provider];
   const keyName = `${provider.toLowerCase()}_api_key`;
-  const apiKey = getConfigValue(keyName);
+  const apiKey = getConfig(keyName);
 
   if (!apiKey) {
     throw new Error(`Clé API manquante pour ${provider}`);

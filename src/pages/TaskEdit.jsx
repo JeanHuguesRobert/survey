@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { DEFAULT_WORKFLOW_STATES } from "../lib/taskMetadata";
 import TaskForm from "../components/tasks/TaskForm";
@@ -56,9 +56,9 @@ export default function TaskEdit() {
           { data: taskData, error: taskError },
           { data: memberRows, error: membersError },
         ] = await Promise.all([
-          supabase.from("groups").select("*").eq("id", projectId).single(),
-          supabase.from("posts").select("*").eq("id", taskId).single(),
-          supabase
+          getSupabase().from("groups").select("*").eq("id", projectId).single(),
+          getSupabase().from("posts").select("*").eq("id", taskId).single(),
+          getSupabase()
             .from("group_members")
             .select("*, users(id, display_name, metadata)")
             .eq("group_id", projectId),
@@ -175,7 +175,7 @@ export default function TaskEdit() {
 
       const content = buildTaskContent(formValues.title, formValues.description);
 
-      const { data: updatedTask, error: updateError } = await supabase
+      const { data: updatedTask, error: updateError } = await getSupabase()
         .from("posts")
         .update({
           content,

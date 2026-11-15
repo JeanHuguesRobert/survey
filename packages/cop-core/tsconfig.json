@@ -4,9 +4,5 @@
     "noEmit": true,
     "incremental": true
   },
-  "include": [
-    "src/**/*.ts",
-    "test/**/*.ts",
-    "../cop-chat/src/types.ts"
-  ]
+  "include": ["src/**/*.ts", "test/**/*.ts", "../cop-chat/src/types.ts"]
 }

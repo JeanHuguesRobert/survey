@@ -160,9 +160,20 @@ export default function VaultConfig() {
   async function handleSave(key, value) {
     setSaving(true);
     try {
-      const { error: upsertError } = await supabase
-        .from("instance_config")
-        .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: "key" });
+      // Déterminer si la clé doit être publique (par défaut true pour les clés non sensibles)
+      const isSecret = SENSITIVE_KEYS.includes(key);
+      const isPublic = !isSecret;
+
+      const { error: upsertError } = await supabase.from("instance_config").upsert(
+        {
+          key,
+          value,
+          is_public: isPublic,
+          is_secret: isSecret,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "key" }
+      );
 
       if (upsertError) throw upsertError;
 

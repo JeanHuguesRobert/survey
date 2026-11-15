@@ -6,7 +6,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { useSupabase } from "../../contexts/SupabaseContext";
 import SiteFooter from "../../components/layout/SiteFooter";
 
@@ -424,12 +424,12 @@ export default function PublicationModeration() {
   // Fetch publications
   useEffect(() => {
     const fetchPublications = async () => {
-      if (!supabase) return;
+      if (!getSupabase()) return;
 
       setLoading(true);
 
       try {
-        let query = supabase
+        let query = getSupabase()
           .from("v_publications_pending")
           .select("*")
           .order("created_at", { ascending: true });
@@ -461,7 +461,7 @@ export default function PublicationModeration() {
     try {
       const newStatus = publishImmediately ? "PUBLISHED" : "APPROVED";
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await getSupabase()
         .from("publication_citoyenne")
         .update({
           status: newStatus,
@@ -475,7 +475,7 @@ export default function PublicationModeration() {
       if (updateError) throw updateError;
 
       // Log responsibility
-      await supabase.rpc("log_responsibility", {
+      await getSupabase().rpc("log_responsibility", {
         p_user_id: user.id,
         p_responsibility_type: "VALIDATION",
         p_entity_type: "publication_citoyenne",
@@ -497,7 +497,7 @@ export default function PublicationModeration() {
     if (!user?.id) return;
 
     try {
-      const { error: updateError } = await supabase
+      const { error: updateError } = await getSupabase()
         .from("publication_citoyenne")
         .update({
           status: "REJECTED",
@@ -510,7 +510,7 @@ export default function PublicationModeration() {
       if (updateError) throw updateError;
 
       // Log responsibility
-      await supabase.rpc("log_responsibility", {
+      await getSupabase().rpc("log_responsibility", {
         p_user_id: user.id,
         p_responsibility_type: "VALIDATION",
         p_entity_type: "publication_citoyenne",
@@ -532,7 +532,7 @@ export default function PublicationModeration() {
     if (!user?.id) return;
 
     try {
-      const { error: updateError } = await supabase
+      const { error: updateError } = await getSupabase()
         .from("publication_citoyenne")
         .update({
           status: "DRAFT",

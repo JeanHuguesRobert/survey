@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { REACTION_EMOJIS } from "../../lib/socialMetadata";
 
 /**
@@ -16,7 +16,7 @@ export default function ReactionPicker({ targetType, targetId, currentUser }) {
       loadReactions();
 
       // Subscribe to realtime changes
-      const channel = supabase
+      const channel = getSupabase()
         .channel(`reactions:${targetType}:${targetId}`)
         .on(
           "postgres_changes",
@@ -31,7 +31,7 @@ export default function ReactionPicker({ targetType, targetId, currentUser }) {
         .subscribe();
 
       return () => {
-        supabase.removeChannel(channel);
+        getSupabase().removeChannel(channel);
       };
     }
   }, [targetId, targetType]);
@@ -40,7 +40,7 @@ export default function ReactionPicker({ targetType, targetId, currentUser }) {
     try {
       setLoading(true);
 
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from("reactions")
         .select("*")
         .eq("target_type", targetType)
@@ -84,7 +84,7 @@ export default function ReactionPicker({ targetType, targetId, currentUser }) {
       if (existing) {
         // Remove reaction
         console.log("Removing reaction", existing.id);
-        const { error } = await supabase.from("reactions").delete().eq("id", existing.id);
+        const { error } = await getSupabase().from("reactions").delete().eq("id", existing.id);
 
         if (error) {
           console.error("Delete error:", error);
@@ -103,7 +103,7 @@ export default function ReactionPicker({ targetType, targetId, currentUser }) {
         };
         console.log("Insert data:", newReaction);
 
-        const { error, data } = await supabase.from("reactions").insert(newReaction).select();
+        const { error, data } = await getSupabase().from("reactions").insert(newReaction).select();
 
         console.log("Insert completed, error:", error, "data:", data);
 

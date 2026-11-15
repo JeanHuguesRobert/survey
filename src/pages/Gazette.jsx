@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { isDeleted } from "../lib/metadata";
 import { enrichUserMetadata } from "../lib/userTransform";
 import { useCurrentUser } from "../lib/useCurrentUser";
@@ -112,7 +112,7 @@ export default function Gazette() {
       }
 
       // Find group by name (case insensitive matching could be better but let's stick to exact for now as per request)
-      const { data: group } = await supabase
+      const { data: group } = await getSupabase()
         .from("groups")
         .select("id")
         .eq("name", targetGroupName)
@@ -120,7 +120,7 @@ export default function Gazette() {
 
       if (group) {
         // Check membership
-        const { data: member } = await supabase
+        const { data: member } = await getSupabase()
           .from("group_members")
           .select("id")
           .eq("group_id", group.id)
@@ -150,7 +150,7 @@ export default function Gazette() {
     try {
       setLoading(true);
 
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from("posts")
         .select("*, users(id, display_name, metadata)")
         .eq("metadata->>gazette", gazetteName)

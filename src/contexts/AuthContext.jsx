@@ -7,6 +7,7 @@ export function AuthProvider({ children }) {
   const supabase = useMemo(() => {
     const url = import.meta.env.VITE_SUPABASE_URL;
     const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    // TODO: should use instance's supabase client, see lib/supabase.js
     return createClient(url, key);
   }, []);
 

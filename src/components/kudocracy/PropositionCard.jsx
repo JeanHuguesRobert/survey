@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import VoteButton from "./VoteButton";
 import { canWrite } from "../../lib/permissions";
 import { PetitionLinkSimple } from "../common/PetitionLink";
@@ -43,8 +43,8 @@ export default function PropositionCard({ proposition, user }) {
   };
 
   const loadUserVote = async () => {
-    if (!user || !supabase) return;
-    const { data, error } = await supabase
+    if (!user || !getSupabase()) return;
+    const { data, error } = await getSupabase()
       .from("votes")
       .select("*")
       .eq("proposition_id", proposition.id)

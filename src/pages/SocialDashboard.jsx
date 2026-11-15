@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { getMetadata } from "../lib/metadata";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -28,7 +28,7 @@ export default function SocialDashboard() {
       setLoading(true);
 
       // Get posts created by user
-      const { data: userPosts, error: postsError } = await supabase
+      const { data: userPosts, error: postsError } = await getSupabase()
         .from("posts")
         .select("*")
         .eq("author_id", currentUser.id)
@@ -37,7 +37,7 @@ export default function SocialDashboard() {
       if (postsError) throw postsError;
 
       // Get comments by user
-      const { data: userComments, error: commentsError } = await supabase
+      const { data: userComments, error: commentsError } = await getSupabase()
         .from("comments")
         .select(
           `
@@ -51,7 +51,7 @@ export default function SocialDashboard() {
       if (commentsError) throw commentsError;
 
       // Get likes received on user's posts
-      const { data: postLikes, error: likesError } = await supabase
+      const { data: postLikes, error: likesError } = await getSupabase()
         .from("post_likes")
         .select("post_id")
         .in(
@@ -131,7 +131,7 @@ export default function SocialDashboard() {
         .slice(0, 5);
 
       // Get subscriber count
-      const { count: subscribersCount, error: subscribersError } = await supabase
+      const { count: subscribersCount, error: subscribersError } = await getSupabase()
         .from("content_subscriptions")
         .select("id", { count: "exact", head: true })
         .eq("target_user_id", currentUser.id);

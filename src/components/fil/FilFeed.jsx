@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import FilItemCard from "./FilItemCard";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import { Link } from "react-router-dom";
@@ -17,7 +17,7 @@ export default function FilFeed() {
 
   async function fetchItems() {
     setLoading(true);
-    let query = supabase
+    let query = getSupabase()
       .from("posts")
       .select(
         `

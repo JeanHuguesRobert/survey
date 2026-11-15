@@ -6,18 +6,21 @@
 import { writeFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
-import { loadConfig, getConfigValue } from "./lib/config.js";
+import { loadConfig, getConfig } from "./lib/config.js";
 
-// Charger la configuration
+console.log("generate-meta-init.js: début");
+
+// Charger la configuration (et la mettre à jour si nécessaire)
 await loadConfig();
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outputPath = resolve(__dirname, "../public/meta-init.js");
 
 // Récupérer les valeurs (avec fallbacks)
-const CITY_NAME = getConfigValue("city_name", "Corte");
-const PARTY_NAME = getConfigValue("party_name", "Petit Parti");
-const SITE_URL = getConfigValue("app_url", "https://lepp.fr");
+// TODO: should use Community name
+const CITY_NAME = getConfig("city_name", "Corte");
+const PARTY_NAME = getConfig("party_name", "Petit Parti");
+const SITE_URL = getConfig("app_url", "https://lepp.fr");
 
 const content = `// Dynamic metadata initialization
 // ⚠️ FICHIER GÉNÉRÉ AUTOMATIQUEMENT - NE PAS MODIFIER

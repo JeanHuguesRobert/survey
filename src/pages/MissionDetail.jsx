@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { getMetadata } from "../lib/metadata";
 import { getTaskTitleFromPost, getTaskStatus } from "../lib/taskHelpers";
@@ -35,7 +35,7 @@ export default function MissionDetail() {
       setLoading(true);
 
       // Load mission (group)
-      const { data: groupData, error: groupError } = await supabase
+      const { data: groupData, error: groupError } = await getSupabase()
         .from("groups")
         .select("*, users:created_by(id, display_name)")
         .eq("id", id)
@@ -45,7 +45,7 @@ export default function MissionDetail() {
       setMission(groupData);
 
       // Load members
-      const { data: membersData, error: membersError } = await supabase
+      const { data: membersData, error: membersError } = await getSupabase()
         .from("group_members")
         .select("*, users(id, display_name, metadata)")
         .eq("group_id", id);
@@ -76,7 +76,7 @@ export default function MissionDetail() {
         ? currentMission.metadata.linked_task_project_ids.filter(Boolean)
         : [];
 
-      const { data: directLinks, error: directLinksError } = await supabase
+      const { data: directLinks, error: directLinksError } = await getSupabase()
         .from("groups")
         .select("*")
         .eq("metadata->>type", "task_project")
@@ -90,7 +90,7 @@ export default function MissionDetail() {
       );
 
       if (missingIds.length > 0) {
-        const { data: fallbackProjects, error: fallbackError } = await supabase
+        const { data: fallbackProjects, error: fallbackError } = await getSupabase()
           .from("groups")
           .select("*")
           .in("id", missingIds);
@@ -109,7 +109,7 @@ export default function MissionDetail() {
       const taskMap = {};
       await Promise.all(
         combined.map(async (project) => {
-          const { data: projectTasks, error: tasksError } = await supabase
+          const { data: projectTasks, error: tasksError } = await getSupabase()
             .from("posts")
             .select("*")
             .eq("metadata->>group_id", project.id)

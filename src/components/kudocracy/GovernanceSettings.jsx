@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 
 export default function GovernanceSettings({ user }) {
   const [federationDelegate, setFederationDelegate] = useState(null);
@@ -14,14 +14,14 @@ export default function GovernanceSettings({ user }) {
 
   const loadSettings = async () => {
     // Check if user has delegated 'sys:federation'
-    const { data: tagData } = await supabase
+    const { data: tagData } = await getSupabase()
       .from("tags")
       .select("id")
       .eq("name", "sys:federation")
       .single();
 
     if (tagData) {
-      const { data: delegation } = await supabase
+      const { data: delegation } = await getSupabase()
         .from("delegations")
         .select("id, delegate:users!delegations_delegate_id_fkey(display_name, id)")
         .eq("delegator_id", user.id)
@@ -37,7 +37,7 @@ export default function GovernanceSettings({ user }) {
   };
 
   const loadUsers = async () => {
-    const { data } = await supabase
+    const { data } = await getSupabase()
       .from("users")
       .select("id, display_name")
       .neq("id", user.id)
@@ -51,7 +51,7 @@ export default function GovernanceSettings({ user }) {
     setLoading(true);
     try {
       // Get tag ID
-      const { data: tagData } = await supabase
+      const { data: tagData } = await getSupabase()
         .from("tags")
         .select("id")
         .eq("name", "sys:federation")
@@ -60,7 +60,7 @@ export default function GovernanceSettings({ user }) {
       if (!tagData) throw new Error("Tag system non trouvé");
 
       // Create delegation
-      await supabase.from("delegations").insert({
+      await getSupabase().from("delegations").insert({
         delegator_id: user.id,
         delegate_id: selectedUser,
         tag_id: tagData.id,
@@ -80,14 +80,14 @@ export default function GovernanceSettings({ user }) {
     if (!confirm("Arrêter la fédération automatique ?")) return;
     setLoading(true);
     try {
-      const { data: tagData } = await supabase
+      const { data: tagData } = await getSupabase()
         .from("tags")
         .select("id")
         .eq("name", "sys:federation")
         .single();
 
       if (tagData) {
-        await supabase
+        await getSupabase()
           .from("delegations")
           .delete()
           .eq("delegator_id", user.id)

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { getDisplayName } from "../../lib/userDisplay";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import { isAdmin } from "../../lib/permissions";
@@ -50,7 +50,7 @@ export default function FilItemCard({ post, rank, currentUserId, onVote }) {
     try {
       const {
         data: { session },
-      } = await supabase.auth.getSession();
+      } = await getSupabase().auth.getSession();
       const token = session?.access_token;
       if (!token) throw new Error("Session expirée");
 

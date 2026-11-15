@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 
 /**
  * Badge affichant le nombre de commentaires pour un contenu donné
@@ -28,7 +28,7 @@ export default function CommentCount({ linkedType, linkedId, showZero = false })
       setLoading(true);
 
       // Trouve le post de discussion lié
-      const { data: posts, error: postError } = await supabase
+      const { data: posts, error: postError } = await getSupabase()
         .from("posts")
         .select("id")
         .eq("metadata->>linkedType", linkedType)
@@ -44,7 +44,7 @@ export default function CommentCount({ linkedType, linkedId, showZero = false })
       }
 
       // Compte les commentaires non supprimés
-      const { count: commentCount, error: countError } = await supabase
+      const { count: commentCount, error: countError } = await getSupabase()
         .from("comments")
         .select("*", { count: "exact", head: true })
         .eq("post_id", posts[0].id)

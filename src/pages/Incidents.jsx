@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { useNavigate } from "react-router-dom";
 import { Link, useSearchParams } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { isDeleted } from "../lib/metadata";
 import { enrichUserMetadata } from "../lib/userTransform";
 import { getDisplayName } from "../lib/userDisplay";
@@ -58,7 +58,7 @@ export default function Incidents() {
     async function loadEditorGazettes() {
       if (!currentUser) return;
       try {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from("group_members")
           .select("group_id, groups(name)")
           .eq("user_id", currentUser.id);
@@ -77,7 +77,7 @@ export default function Incidents() {
       try {
         setLoading(true);
         setError(null);
-        const { data, error: supabaseError } = await supabase
+        const { data, error: supabaseError } = await getSupabase()
           .from("posts")
           .select("*, users(id, display_name, metadata)")
           .eq("metadata->>subtype", "incident")
@@ -182,7 +182,7 @@ export default function Incidents() {
 
   const handleLocationSuccess = async () => {
     // Reload incidents to reflect the updated location
-    const { data, error: supabaseError } = await supabase
+    const { data, error: supabaseError } = await getSupabase()
       .from("posts")
       .select("*, users(id, display_name, metadata)")
       .eq("metadata->>subtype", "incident")

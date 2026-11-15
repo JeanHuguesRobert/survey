@@ -1,7 +1,7 @@
 // src/components/bob/v2/useChatLogic.js
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { supabase } from "../../../lib/supabase";
+import { getSupabase } from "../../../lib/supabase";
 import { canWrite } from "../../../lib/permissions";
 import {
   useDataLoader,
@@ -50,9 +50,9 @@ export default function useChatLogic(initial = {}) {
   // Status hooks must be called at top-level of this hook (Rules of Hooks)
   const loadSettingsOp = useDataLoader();
   const loadChatHistoryOp = useDataLoader();
-  const sendMessageOp = useApiCaller("Sending message");
-  const matchOp = useApiCaller("Finding related propositions");
-  const suggestOp = useApiCaller("Suggesting tags");
+  const sendMessageOp = useApiCaller("Envoi du message");
+  const matchOp = useApiCaller("Recherche de propositions liées");
+  const suggestOp = useApiCaller("Suggestion de tags");
   const clearHistoryOp = useDataSaver();
   const syncHistoryOp = useDataSaver();
   const createPropositionOp = useDataSaver();
@@ -221,7 +221,7 @@ export default function useChatLogic(initial = {}) {
     const providerMatch = msg.match(/^(\w+)\s+API\s+(\d+):/i);
 
     if (quotaMatch || msg.includes("429")) {
-      const provider = providerMatch ? providerMatch[1] : "Provider";
+      const provider = providerMatch ? providerMatch[1] : "Fournisseur";
       const retrySeconds = retryMatch ? Math.ceil(parseFloat(retryMatch[1])) : null;
       let userMessage = `⚠️ ${provider} : Quota/limite dépassé(e)`;
       if (retrySeconds) {
@@ -239,7 +239,7 @@ export default function useChatLogic(initial = {}) {
     }
 
     if (msg.includes("rate") && msg.includes("limit")) {
-      const provider = providerMatch ? providerMatch[1] : "Provider";
+      const provider = providerMatch ? providerMatch[1] : "Fournisseur";
       const retrySeconds = retryMatch ? Math.ceil(parseFloat(retryMatch[1])) : 5;
       return {
         userMessage: `⏱️ ${provider} : Trop de requêtes — Réessayez dans ${retrySeconds}s`,
@@ -269,7 +269,7 @@ export default function useChatLogic(initial = {}) {
     const userMessage = provider
       ? `❌ ${provider}${statusCode ? ` (${statusCode})` : ""} : ${cleanMsg}`
       : `❌ ${cleanMsg}`;
-    const consoleMessage = hasJson ? `[${provider || "Error"}] Full error: ${msg}` : msg;
+    const consoleMessage = hasJson ? `[${provider || "Erreur"}] Full error: ${msg}` : msg;
     return { userMessage, consoleMessage, detailedLog: msg, shouldRetry: false };
   }, []);
 
@@ -711,34 +711,40 @@ export default function useChatLogic(initial = {}) {
           // Persist interaction to Supabase when possible
           if (user && canWrite(user)) {
             try {
-              await supabase.from("chat_interactions").insert([
-                {
-                  user_id: user.id,
-                  question: text,
-                  answer: full,
-                  sources: [],
-                  created_at: new Date().toISOString(),
-                },
-              ]);
+              await getSupabase()
+                .from("chat_interactions")
+                .insert([
+                  {
+                    user_id: user.id,
+                    question: text,
+                    answer: full,
+                    sources: [],
+                    created_at: new Date().toISOString(),
+                  },
+                ]);
               // If the response was served from cache, update cached_queries bookkeeping
               if (isCachedResponse) {
                 try {
-                  await supabase.from("cached_queries").upsert(
-                    [
-                      {
-                        query: text,
-                        answer: full,
-                        last_used: new Date().toISOString(),
-                        cache_key: cacheKey,
-                        use_count: 1,
-                      },
-                    ],
-                    { onConflict: ["query"] }
-                  );
+                  await getSupabase()
+                    .from("cached_queries")
+                    .upsert(
+                      [
+                        {
+                          query: text,
+                          answer: full,
+                          last_used: new Date().toISOString(),
+                          cache_key: cacheKey,
+                          use_count: 1,
+                        },
+                      ],
+                      { onConflict: ["query"] }
+                    );
                   // also increment cache hit counter via RPC when available
                   try {
                     if (cacheKey) {
-                      await supabase.rpc("increment_cache_hit", { key: cacheKey }).catch(() => {});
+                      await getSupabase()
+                        .rpc("increment_cache_hit", { key: cacheKey })
+                        .catch(() => {});
                     }
                   } catch (e) {
                     // ignore rpc errors
@@ -833,7 +839,7 @@ export default function useChatLogic(initial = {}) {
       if (user && canWrite(user)) {
         (async () => {
           try {
-            await supabase.from("chat_interactions").update({ feedback }).eq("id", messageId);
+            await getSupabase().from("chat_interactions").update({ feedback }).eq("id", messageId);
           } catch (e) {
             // ignore
           }
@@ -843,7 +849,7 @@ export default function useChatLogic(initial = {}) {
         if (msg && msg.cached) {
           (async () => {
             try {
-              await supabase.rpc("increment_feedback_count", { query: msg.text });
+              await getSupabase().rpc("increment_feedback_count", { query: msg.text });
             } catch (e) {
               // ignore
             }
@@ -900,7 +906,7 @@ export default function useChatLogic(initial = {}) {
   // Find related propositions using HF embeddings + Supabase RPC
   const findRelatedPropositions = useCallback(async (question) => {
     try {
-      const apiKey = getConfig("huggingface_api_key", import.meta.env.VITE_HUGGINGFACE_API_KEY);
+      const apiKey = getConfig("huggingface_api_key");
       if (!apiKey) return [];
       const embeddingResponse = await fetch(
         "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2",
@@ -913,7 +919,7 @@ export default function useChatLogic(initial = {}) {
       const [embedding] = await embeddingResponse.json();
       let result = [];
       await matchOp(async () => {
-        const { data } = await supabase.rpc("match_propositions_by_embedding", {
+        const { data } = await getSupabase().rpc("match_propositions_by_embedding", {
           query_embedding: embedding,
           match_threshold: 0.65,
           match_count: 3,
@@ -929,7 +935,7 @@ export default function useChatLogic(initial = {}) {
   // Suggest tags for a question using HF embeddings + Supabase RPC
   const suggestTags = useCallback(async (question) => {
     try {
-      const apiKey = getConfig("huggingface_api_key", import.meta.env.VITE_HUGGINGFACE_API_KEY);
+      const apiKey = getConfig("huggingface_api_key");
       if (!apiKey) return [];
       const resp = await fetch(
         "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2",
@@ -942,7 +948,7 @@ export default function useChatLogic(initial = {}) {
       const [embedding] = await resp.json();
       let result = [];
       await suggestOp(async () => {
-        const { data } = await supabase.rpc("find_similar_tags", {
+        const { data } = await getSupabase().rpc("find_similar_tags", {
           query_embedding: embedding,
           limit: 5,
         });
@@ -960,7 +966,7 @@ export default function useChatLogic(initial = {}) {
     if (!user || !canWrite(user)) return;
     let data = [];
     try {
-      const resp = await supabase
+      const resp = await getSupabase()
         .from("chat_interactions")
         .select("*")
         .eq("user_id", user.id)
@@ -1012,7 +1018,7 @@ export default function useChatLogic(initial = {}) {
     try {
       await clearHistoryOp(async () => {
         if (user) {
-          const { error } = await supabase
+          const { error } = await getSupabase()
             .from("chat_interactions")
             .delete()
             .eq("user_id", user.id);
@@ -1088,7 +1094,7 @@ export default function useChatLogic(initial = {}) {
     (async () => {
       await loadSettingsOp(async () => {
         try {
-          const { data } = await supabase.rpc("get_chatbot_settings");
+          const { data } = await getSupabase().rpc("get_chatbot_settings");
           if (data && data.length > 0) setChatbotSettings(data[0]);
         } catch (e) {
           // ignore
@@ -1155,7 +1161,7 @@ export default function useChatLogic(initial = {}) {
               }
             }
             if (interactionsToInsert.length > 0) {
-              await supabase
+              await getSupabase()
                 .from("chat_interactions")
                 .insert(interactionsToInsert)
                 .catch(() => {});
@@ -1204,7 +1210,7 @@ export default function useChatLogic(initial = {}) {
   // Subscribe to new propositions created by the chatbot
   useEffect(() => {
     if (!user) return;
-    const channel = supabase
+    const channel = getSupabase()
       .channel("new_propositions")
       .on(
         "postgres_changes",
@@ -1230,7 +1236,7 @@ export default function useChatLogic(initial = {}) {
       )
       .subscribe();
 
-    return () => supabase.removeChannel(channel);
+    return () => getSupabase().removeChannel(channel);
   }, [user]);
 
   const createProposition = useCallback(async ({ title, description, tags = [] }) => {
@@ -1325,7 +1331,7 @@ export default function useChatLogic(initial = {}) {
         if (!optimizeResponse.ok) throw new Error("Title optimization failed");
         const { optimizedTitle, optimizedSlug } = await optimizeResponse.json();
 
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from("wiki_pages")
           .insert([
             {

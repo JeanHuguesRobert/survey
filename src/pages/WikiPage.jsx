@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import wikiFederation from "../lib/wikiFederation";
 import ErrorBoundary from "../components/common/ErrorBoundary";
 import { marked } from "marked";
@@ -148,7 +148,7 @@ const WikiPage = () => {
 
   useEffect(() => {
     loadPages(async () => {
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from("wiki_pages")
         .select("*")
         .order("updated_at", { ascending: false });
@@ -170,7 +170,7 @@ const WikiPage = () => {
       // Try to fetch author information separately if author_id exists
       if (pageData && pageData.author_id) {
         try {
-          const { data: userData } = await supabase
+          const { data: userData } = await getSupabase()
             .from("users")
             .select("email")
             .eq("id", pageData.author_id)
@@ -182,7 +182,9 @@ const WikiPage = () => {
         } catch (authorError) {
           // If users table doesn't exist or error, try auth.users
           try {
-            const { data: authData } = await supabase.auth.admin.getUserById(pageData.author_id);
+            const { data: authData } = await getSupabase().auth.admin.getUserById(
+              pageData.author_id
+            );
             if (authData?.user) {
               pageData.author = { email: authData.user.email };
             }
@@ -199,7 +201,7 @@ const WikiPage = () => {
 
       // Fetch sync history if page exists
       if (pageData) {
-        const { data: syncData } = await supabase
+        const { data: syncData } = await getSupabase()
           .from("git_sync_log")
           .select("last_sync_date, commit_sha")
           .eq("page_id", pageData.id)

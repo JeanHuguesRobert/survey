@@ -1,3 +1,27 @@
+---
+title: Cognitive Orchestration Protocol (COP)
+author: Jean Hugues Noël Robert, baron Mariani
+affiliation: Institut Mariani / C.O.R.S.I.C.A., 1 cours Paoli, F-20250 Corte, Corsica
+date: "2026-09-15"
+last_modified_at: "2026-09-15"
+version: "0.1"
+status: working-paper
+license: CC BY-SA 4.0
+language: en
+document_role: archive
+document_kind: software-doc
+update_policy: UP-DEFAULT-REVIEWED
+provenance:
+  origin_type: repository
+  origin_repository: unknown
+  origin_ref: unknown
+  origin_date: "2026-09-15"
+  derived_from: []
+review:
+  status: unreviewed
+  reviewed_by: []
+---
+
 # Cognitive Orchestration Protocol (COP)
 
 # Architecture and Specification – Version 1.0
@@ -347,7 +371,7 @@ Agents are expected to be:
 
 - **stateless** between invocations (no hidden in-memory state required for correctness),
 - **idempotent** with respect to repeated Events,
-- fully determined by the input Event(s), their configuration, and the Store contents.
+- somehow determined by the input Event(s), their configuration, and the Store contents.
 
 COP does not prescribe how agents are implemented (LLM calls, classical programs, rule engines,
 etc.). It only constrains how they observe and mutate the shared world: via Events and the Store.
@@ -546,15 +570,6 @@ This specification defines three key profiles:
 
 Profiles MUST NOT contradict COP/Core, but MAY add additional constraints and semantics. Profiles
 are described in more detail in Section 10.
-
-Below is **Section 2 — Core Data Model**, written in full specification style, ready to paste into
-your new `Architecture.md`.
-
-It establishes the canonical JSON form of every COP object: Events, Topics, Tasks, Steps, Artifacts,
-and Continuations.
-
-After Section 2, the next logical step will be Section 3 (Causality, Ordering, Time), unless you
-prefer to adjust anything here first.
 
 ---
 
@@ -858,14 +873,6 @@ Compatibility rules:
 
 ---
 
-Below is **Section 3 — Causality, Ordering, and Time**, written in full, formal, specification
-style, ready to paste into `Architecture.md`.
-
-This section is foundational: it defines how COP guarantees deterministic replay, how events relate
-across topics, and how time is interpreted.
-
----
-
 # 3. Causality, Ordering, and Time
 
 This section defines COP’s formal model of ordering, causality, and temporal semantics. These rules
@@ -1038,20 +1045,23 @@ time sources where strong ordering is needed.
 ## 3.5 Replay Semantics and Determinism
 
 Replay is a foundational COP feature. Any COP-compliant implementation MUST support full or partial
-replay as defined below.
+replay as defined below, at least in some auditable way.
 
-### 3.5.1 Deterministic Replay
+### 3.5.1 Auditable Replay (Normative)
 
-Replaying the Events of a Topic in `topicSeq` order MUST produce:
+Replaying Events in `topicSeq` order MUST reconstruct:
 
-- the same Topic status,
-- the same Tasks with the same fields,
-- the same Steps with the same statuses and artifact references,
-- the same Artifacts (immutability guaranteed),
-- the same Continuations.
+- Topic status and metadata
+- Task/Step lifecycles and assignments
+- Artifact index and immutability
+- Continuation conditions
 
-Projectors MUST be **deterministic**. Given the same input sequence of Events, they MUST produce the
-same output state.
+**External effects** (LLM outputs, API results, human decisions) are recorded as immutable Artifacts
+at execution time. Replay reuses these recorded outcomes rather than re-executing external systems.
+
+Projectors MUST be **pure functions** over Events → Projections. Given identical Event sequences,
+projectors MUST produce identical projection state (excluding external timestamps, random seeds, or
+implementation-specific optimizations).
 
 ### 3.5.2 Replay of Cross-Topic Dependencies
 
@@ -1061,7 +1071,7 @@ Global replay MUST also respect causal dependencies:
   be able to load and apply P before E.
 
 Full DAG replay MAY be costly, but is required for correctness. Optimizations (e.g. partial replay
-or snapshotting) are allowed but MUST not break determinism.
+or snapshotting) are allowed but SHOULD not break determinism.
 
 ### 3.5.3 Snapshotting
 
@@ -1086,14 +1096,6 @@ Replay feeds only the Store, not the Agents.
 
 Agents SHOULD NOT be invoked during replay. Their behavior is driven by Event delivery, not by
 replay semantics.
-
----
-
-Below is **Section 4 — Projections and the COP Store**, written in complete specification style,
-ready to paste into `Architecture.md`.
-
-This is a crucial section: it defines what the Store _is_, what invariants it must respect, how
-projections behave, and how results and errors must be represented.
 
 ---
 
@@ -1155,7 +1157,7 @@ This store MUST:
 - expose projection state only,
 - never allow mutation via agent APIs,
 - return results wrapped in `COPResult<T>` structures,
-- behave deterministically during replay.
+- behave reasonnably deterministically during replay.
 
 ### 4.2.1 Reason for Read-Only Constraint
 
@@ -1169,7 +1171,7 @@ Agents influence the world **only** through Events.
 
 This guarantees:
 
-- determinism under replay,
+- best effort determinism under replay,
 - isolation between agents,
 - reproducibility,
 - auditability.
@@ -1298,13 +1300,13 @@ Replaying all Events in a Topic MUST produce:
 - the same Artifact index,
 - the same Continuation index.
 
-### 4.5.2 Deterministic Application
+### 4.5.2 Pure Projection Functions
 
-Projector logic MUST be:
+Projector logic MUST be pure:
 
-- deterministic,
-- pure (no side effects outside the Store),
-- referentially transparent (same input Event → same Store output).
+- Same Events → same Projections (modulo external time/randomness)
+- No side effects outside the Store
+- Idempotent application
 
 ### 4.5.3 Idempotent Application
 
@@ -1418,9 +1420,9 @@ A Projector MUST:
 
 ### 5.1.2 Determinism
 
-Projectors MUST be deterministic:
+Projectors SHOULD be deterministic:
 
-- Given the same sequence of Events, a Projector MUST produce the same Store state.
+- Given the same sequence of Events, a Projector MAY produce the same Store state.
 - Projectors MUST NOT depend on:
   - wall-clock time,
   - random values,
@@ -1666,14 +1668,6 @@ This separation is fundamental to COP’s correctness, replayability, and audita
 
 ---
 
-Below is **Section 6 — Transport and Interoperability**, written in full specification style, ready
-to paste into `Architecture.md`.
-
-This section formalizes how COP Events interoperate with external systems, in particular via
-**CloudEvents**, while preserving COP’s event-sourcing invariants.
-
----
-
 # 6. Transport and Interoperability
 
 COP is transport-agnostic. It defines _what_ an Event is and _how_ it behaves, but not _how_ it is
@@ -1858,14 +1852,6 @@ CloudEvents interoperability is compatible with:
 - **JSON Canonicalization Scheme (JCS)**:
   - JCS hashing MUST apply to the COP Event representation, not to the CloudEvent envelope.
   - The resulting hash MAY be exposed via the `copHash` extension.
-
----
-
-Below is **Section 7 — Semantic Layer (JSON-LD)**, written in formal specification style and ready
-to paste into `Architecture.md`.
-
-This section defines how COP gains explicit semantics without altering its core JSON model, and how
-COP objects can be represented as linked data.
 
 ---
 
@@ -2082,14 +2068,6 @@ However:
 
 ---
 
-Below is **Section 8 — References and Linking**, written in full specification style and ready to
-paste into `Architecture.md`.
-
-This section formalizes how COP objects reference each other and external resources, without
-introducing redundancy or breaking replay and integrity guarantees.
-
----
-
 # 8. References and Linking
 
 COP defines explicit rules for referencing and linking between objects, both **internally** (within
@@ -2112,7 +2090,7 @@ References in COP are governed by the following principles:
 
 3. **Replay safety**
    - All references MUST remain valid or explicitly broken during replay.
-   - Reference resolution MUST NOT affect replay determinism.
+   - Reference resolution MUST NOT affect replay optimisitic determinism.
 
 4. **Transport and format neutrality**
    - References are expressed using JSON-native mechanisms compatible with JSON-LD, CloudEvents, and
@@ -2296,14 +2274,6 @@ JSON-LD remains a semantic overlay; JSON Reference remains a structural linking 
 
 ---
 
-Below is **Section 9 — Integrity, Security, and Identity**, written in full specification style and
-ready to paste into `Architecture.md`.
-
-This section formalizes **hashing, integrity guarantees, identity, and the optional COP Ledger**,
-with an explicit eye toward auditability and legal/probative use cases.
-
----
-
 # 9. Integrity, Security, and Identity
 
 This section defines the integrity and identity mechanisms required to make COP systems **auditable,
@@ -2322,7 +2292,7 @@ objects.
 Canonical hashing is required to:
 
 - detect tampering,
-- enable deterministic replay verification,
+- enable deterministic audit verification,
 - support append-only ledgers,
 - allow cross-system verification of Events and Artifacts.
 
@@ -2589,15 +2559,6 @@ These mechanisms are sufficient to support:
 
 ---
 
-Understood. I will proceed with the **next logical section**, which is **Section 10 — Profiles**,
-completing what Section 9 prepared. (Repeating Section 9 would add no value; this continues the spec
-coherently.)
-
-Below is **Section 10 — Profiles (COP/Core, COP/HITL, COP/AI)**, ready to paste into
-`Architecture.md`.
-
----
-
 # 10. Profiles
 
 COP is designed as a **layered protocol**. The core defines universal invariants; profiles constrain
@@ -2632,7 +2593,7 @@ Any implementation claiming COP compatibility MUST implement COP/Core fully.
 
 COP/Core guarantees:
 
-- deterministic replay,
+- autitable replay and sometimes deterministic replay,
 - auditability,
 - stateless agent execution,
 - transport independence,
@@ -2797,11 +2758,6 @@ Profiles enable interoperability at multiple levels:
 
 Unknown profiles MUST be ignored safely.
 
-Below is **Section 11 — Conformance Levels and Compliance**, written in full specification style and
-ready to paste into `Architecture.md`.
-
-This final section closes the spec by defining _exactly_ what it means to “implement COP”.
-
 ---
 
 # 11. Conformance Levels and Compliance
@@ -2838,7 +2794,7 @@ A COP/Core–compliant implementation MUST:
    - cross-topic causal dependencies via `parentEventIds`.
 
 3. Implement **projection semantics** (Section 4):
-   - deterministic, replayable Store,
+   - auditable, sometimes replayable Store,
    - read-only store for Agents,
    - mutation only via Projectors.
 
@@ -2885,7 +2841,7 @@ An AI-capable implementation MUST:
 - Support agent lifecycle Events.
 - Support agent-produced Artifacts.
 - Support multi-step reasoning via Continuations.
-- Allow agents to resume execution deterministically.
+- Allow agents to resume execution, hopefully deterministically.
 
 Private reasoning MAY be redacted or summarized without violating compliance.
 
@@ -2971,7 +2927,7 @@ Example:
 
 COP compliance is testable via:
 
-- deterministic replay tests,
+- auditable replay tests,
 - hash verification tests,
 - causal ordering tests,
 - idempotence tests,

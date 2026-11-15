@@ -12,10 +12,12 @@ export default function SiteConfigEditor() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch("/api/site-config");
+        const res = await fetch("/api/config");
+        // Debug log
+        console.log("SiteConfigEditor: load", res, json);
         if (!res.ok) throw new Error("Failed to load site-config");
         const json = await res.json();
-        setCfg(json.site_config || { redirect_enabled: false, redirect_url: "" });
+        setCfg(json);
         setUserId(json.user_id || null);
       } catch (err) {
         console.error("Failed to load site-config", err);

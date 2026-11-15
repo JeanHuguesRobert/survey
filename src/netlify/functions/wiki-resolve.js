@@ -1,4 +1,13 @@
-import { getConfig } from "../../common/config/instanceConfig.backend.js";
+// @file: src/netlify/functions/wiki-resolve.js
+// @description: Resolve a wiki page key to a full page object, including metadata.
+// @params:
+//   - slug: The wiki page key to resolve.
+//   - extended: Whether to include extended metadata.
+// @returns:
+//   - page: The resolved wiki page object.
+//   - metadata: The metadata for the resolved page.
+
+import { loadInstanceConfig, getConfig } from "../../common/config/instanceConfig.backend.js";
 import wikiFederation from "../../lib/wikiFederation.js";
 
 export default async (req, context) => {

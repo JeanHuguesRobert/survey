@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { createGroupMetadata, GROUP_TYPES } from "../../lib/socialMetadata";
 
 /**
@@ -60,7 +60,7 @@ export default function GroupForm({ group = null, currentUser }) {
 
       if (isEditing) {
         // Update existing group
-        const { error: updateError } = await supabase
+        const { error: updateError } = await getSupabase()
           .from("groups")
           .update({
             name: formData.name,
@@ -74,7 +74,7 @@ export default function GroupForm({ group = null, currentUser }) {
         navigate(`/groups/${group.id}`);
       } else {
         // Create new group
-        const { data: newGroup, error: insertError } = await supabase
+        const { data: newGroup, error: insertError } = await getSupabase()
           .from("groups")
           .insert({
             name: formData.name,
@@ -88,11 +88,13 @@ export default function GroupForm({ group = null, currentUser }) {
         if (insertError) throw insertError;
 
         // Add creator as member
-        await supabase.from("group_members").insert({
-          group_id: newGroup.id,
-          user_id: currentUser.id,
-          metadata: { schemaVersion: 1 },
-        });
+        await getSupabase()
+          .from("group_members")
+          .insert({
+            group_id: newGroup.id,
+            user_id: currentUser.id,
+            metadata: { schemaVersion: 1 },
+          });
 
         navigate(`/groups/${newGroup.id}`);
       }

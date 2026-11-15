@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import SiteFooter from "../components/layout/SiteFooter";
 import CommentThread from "../components/social/CommentThread";
@@ -79,9 +79,9 @@ export default function TaskDetail() {
         { data: taskData, error: taskError },
         { data: memberRows, error: membersError },
       ] = await Promise.all([
-        supabase.from("groups").select("*").eq("id", projectId).single(),
-        supabase.from("posts").select("*").eq("id", taskId).single(),
-        supabase
+        getSupabase().from("groups").select("*").eq("id", projectId).single(),
+        getSupabase().from("posts").select("*").eq("id", taskId).single(),
+        getSupabase()
           .from("group_members")
           .select("*, users(id, display_name, metadata)")
           .eq("group_id", projectId),
@@ -132,7 +132,7 @@ export default function TaskDetail() {
 
     (async () => {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from("groups")
           .select("id, name, metadata")
           .eq("id", missionIdFromProject)
@@ -210,7 +210,7 @@ export default function TaskDetail() {
           },
         };
 
-        const { data: updatedTask, error: updateError } = await supabase
+        const { data: updatedTask, error: updateError } = await getSupabase()
           .from("posts")
           .update({
             metadata: updatedMetadata,

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { DEFAULT_WORKFLOW_STATES } from "../lib/taskMetadata";
 import TaskForm from "../components/tasks/TaskForm";
@@ -43,7 +43,7 @@ export default function TaskCreate() {
         setLoading(true);
         setError("");
 
-        const { data: projectData, error: projectError } = await supabase
+        const { data: projectData, error: projectError } = await getSupabase()
           .from("groups")
           .select("*")
           .eq("id", projectId)
@@ -60,7 +60,7 @@ export default function TaskCreate() {
 
         setProject(projectData);
 
-        const { data: memberRows, error: membersError } = await supabase
+        const { data: memberRows, error: membersError } = await getSupabase()
           .from("group_members")
           .select("*, users(id, display_name, metadata)")
           .eq("group_id", projectId);
@@ -130,7 +130,7 @@ export default function TaskCreate() {
 
       const content = buildTaskContent(formValues.title, formValues.description);
 
-      const { data: task, error: createError } = await supabase
+      const { data: task, error: createError } = await getSupabase()
         .from("posts")
         .insert({
           author_id: currentUser.id,

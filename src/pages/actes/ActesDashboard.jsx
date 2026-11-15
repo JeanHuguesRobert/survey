@@ -6,7 +6,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { useSupabase } from "../../contexts/SupabaseContext";
 import SiteFooter from "../../components/layout/SiteFooter";
 import { CITY_NAME, HASHTAG } from "../../constants";
@@ -175,7 +175,7 @@ export default function ActesDashboard() {
   // Fetch data
   useEffect(() => {
     const fetchDashboardData = async () => {
-      if (!supabase) {
+      if (!getSupabase()) {
         setError("Configuration Supabase manquante.");
         setLoading(false);
         return;
@@ -186,7 +186,7 @@ export default function ActesDashboard() {
 
       try {
         // 1. Fetch collectivities for filter
-        const { data: collData } = await supabase
+        const { data: collData } = await getSupabase()
           .from("collectivite")
           .select("id, nom_officiel, code_insee")
           .order("nom_officiel");
@@ -200,7 +200,7 @@ export default function ActesDashboard() {
         }
 
         // 2. Fetch transparency score
-        const { data: scoreData } = await supabase
+        const { data: scoreData } = await getSupabase()
           .from("v_transparence_score")
           .select("*")
           .limit(1)
@@ -209,7 +209,7 @@ export default function ActesDashboard() {
         if (scoreData) setTransparencyScore(scoreData);
 
         // 3. Fetch transmission stats
-        const { data: statsData } = await supabase
+        const { data: statsData } = await getSupabase()
           .from("v_stats_transmission")
           .select("*")
           .limit(1)
@@ -218,7 +218,7 @@ export default function ActesDashboard() {
         if (statsData) setStats(statsData);
 
         // 4. Fetch recent actes
-        const { data: actesData } = await supabase
+        const { data: actesData } = await getSupabase()
           .from("v_actes_synthetiques")
           .select("*")
           .order("date_acte", { ascending: false })
@@ -227,7 +227,7 @@ export default function ActesDashboard() {
         if (actesData) setRecentActes(actesData);
 
         // 5. Fetch upcoming deadlines
-        const { data: upcomingData } = await supabase
+        const { data: upcomingData } = await getSupabase()
           .from("v_deadlines_upcoming")
           .select("*")
           .order("due_date")
@@ -236,7 +236,7 @@ export default function ActesDashboard() {
         if (upcomingData) setUpcomingDeadlines(upcomingData);
 
         // 6. Fetch overdue deadlines
-        const { data: overdueData } = await supabase
+        const { data: overdueData } = await getSupabase()
           .from("v_deadlines_overdue")
           .select("*")
           .order("due_date")
@@ -245,7 +245,7 @@ export default function ActesDashboard() {
         if (overdueData) setOverdueDeadlines(overdueData);
 
         // 7. Fetch pending demandes
-        const { data: demandesData } = await supabase
+        const { data: demandesData } = await getSupabase()
           .from("demande_admin")
           .select("id, type_demande, reference_interne, objet, date_envoi, status")
           .eq("status", "EN_ATTENTE")

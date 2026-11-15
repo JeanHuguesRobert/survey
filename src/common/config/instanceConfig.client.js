@@ -4,21 +4,22 @@
  * Gère l'accès aux variables d'environnement côté client et l'initialisation du client Supabase.
  */
 
-import { initializeConfigCore } from "./instanceConfig.core.js";
+import { inited, initializeInstanceCore, loadInstanceConfigCore } from "./instanceConfig.core.js";
 import { createClient } from "@supabase/supabase-js";
 
 // Fonction pour récupérer les variables d'environnement côté client (React)
-const getEnvValueClient = (key) => {
+const getenv = (key) => {
   // import.meta.env est la manière standard d'accéder aux variables d'environnement dans Vite/React
   // Nous utilisons une convention de nommage pour les variables d'environnement
-  const envKey = `VITE_APP_${key.toUpperCase()}`;
-  return import.meta.env[envKey] || null;
+  const envKey = `VITE_${key}`;
+  const envKeyUpper = `VITE_${key.toUpperCase()}`;
+  return import.meta.env[envKey] || import.meta.env[envKeyUpper] || undefined;
 };
 
 // Fonction pour créer une instance Supabase côté client
-const createSupabaseClientClient = () => {
-  const supabaseUrl = getEnvValueClient("SUPABASE_URL");
-  const supabaseAnonKey = getEnvValueClient("SUPABASE_ANON_KEY");
+const createSupabase_Client = (admin = false, options = {}) => {
+  const supabaseUrl = options.supabaseUrl || getenv("SUPABASE_URL");
+  const supabaseAnonKey = options.supabaseAnonKey || getenv("SUPABASE_ANON_KEY");
 
   if (!supabaseUrl || !supabaseAnonKey) {
     console.warn(
@@ -27,18 +28,29 @@ const createSupabaseClientClient = () => {
     return null;
   }
 
-  return createClient(supabaseUrl, supabaseAnonKey);
+  return createClient(supabaseUrl, supabaseAnonKey, options);
 };
 
-// Instance Supabase (peut être null si les clés ne sont pas disponibles)
-const supabaseClientInstance = createSupabaseClientClient();
+export function newSupabase(admin = false, options = {}) {
+  return createSupabase_Client(admin, options);
+}
 
 // Initialiser le module de configuration core avec les fonctions spécifiques au client
-initializeConfigCore({
-  getEnvValue: getEnvValueClient,
-  createSupabaseClient: createSupabaseClientClient,
-  supabaseInstance: supabaseClientInstance,
-});
+export async function initializeInstance(supabase, admin = false, options = {}) {
+  if (admin) {
+    console.warn("Initializing admin Supabase client.");
+    throw new Error("Admin Supabase client initialization is not supported on the client side.");
+  }
+  return await initializeInstanceCore(supabase, getenv, newSupabase, admin, options);
+}
+
+export async function loadInstanceConfig(force = false, supabase_config = {}) {
+  if (!inited()) {
+    console.warn("loadInstanceConfig: calling initializeInstance()");
+    await initializeInstance();
+  }
+  return await loadInstanceConfigCore(force, supabase_config);
+}
 
 // Ré-exporter tout de instanceConfig.core.js pour une utilisation facile dans le frontend
 export * from "./instanceConfig.core.js";

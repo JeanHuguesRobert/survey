@@ -12,7 +12,7 @@ import OpenAI from 'openai';
 import { convertPdfToMarkdown } from '../src/lib/pdfToMarkdown.js';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { loadConfig, getConfigValue, createOpenAIClient } from './lib/config.js';
+import { loadConfig, getConfig, createOpenAIClient } from './lib/config.js';
 
 // Charger la configuration
 await loadConfig();
@@ -143,21 +143,21 @@ Sortie : JSON strictement conforme au schéma fourni. Aucune autre sortie.
 
 const execFileP = promisify(execFile);
 
-const OFFICIEL_DIR  = path.join(process.cwd(), 'public', 'docs', 'officiel');
-const CONSEIL_DIR   = path.join(process.cwd(), 'public', 'docs', 'conseils');     // PDFs OCR "searchable"
+const OFFICIEL_DIR = path.join(process.cwd(), 'public', 'docs', 'officiel');
+const CONSEIL_DIR = path.join(process.cwd(), 'public', 'docs', 'conseils');     // PDFs OCR "searchable"
 const CONSEILS_MD_DIR = path.join(process.cwd(), 'public', 'docs', 'conseils');  // Markdown extraits
 await fs.mkdir(CONSEIL_DIR, { recursive: true });
 await fs.mkdir(CONSEILS_MD_DIR, { recursive: true });
 
-const USE_MARKITDOWN = getConfigValue('use_markitdown', '1') !== '0';
-const CANON_MODEL = getConfigValue('canon_model', 'gpt-5');
-const JUDGE_MODEL = getConfigValue('judge_model', CANON_MODEL);
-const EMBED_MODEL = getConfigValue('embed_model', 'text-embedding-3-large');
+const USE_MARKITDOWN = getConfig('use_markitdown', '1') !== '0';
+const CANON_MODEL = getConfig('canon_model', 'gpt-5');
+const JUDGE_MODEL = getConfig('judge_model', CANON_MODEL);
+const EMBED_MODEL = getConfig('embed_model', 'text-embedding-3-large');
 
-function chunkText(txt, max=14000){ const o=[]; for(let i=0;i<txt.length;i+=max) o.push(txt.slice(i,i+max)); return o; }
-function normKey(s){ return String(s||'').trim().toLowerCase(); }
+function chunkText(txt, max = 14000) { const o = []; for (let i = 0; i < txt.length; i += max) o.push(txt.slice(i, i + max)); return o; }
+function normKey(s) { return String(s || '').trim().toLowerCase(); }
 
-const OCR_SAMPLE_PAGES = Number(getConfigValue('ocr_sample_pages', 3));
+const OCR_SAMPLE_PAGES = Number(getConfig('ocr_sample_pages', 3));
 
 async function collectPdfStats(pdfPath, standardFontDataUrl) {
   const bytes = (await fs.stat(pdfPath)).size;
@@ -179,7 +179,7 @@ async function collectPdfStats(pdfPath, standardFontDataUrl) {
       textChars += chars;
     }
     // extrapolation simple
-    textChars = Math.max(textChars, 0) * Math.max(Math.ceil(pages / Math.max(sample,1)), 1);
+    textChars = Math.max(textChars, 0) * Math.max(Math.ceil(pages / Math.max(sample, 1)), 1);
   } catch { /* ok, on tombera sur la 2) */ }
 
   // 2) densité d'images + fallback pages par regex
@@ -195,26 +195,26 @@ async function collectPdfStats(pdfPath, standardFontDataUrl) {
     }
   } catch { /* ignore */ }
 
-  return { bytes, pages: Math.max(pages,1), textChars: Math.max(textChars,0), imageMarkers };
+  return { bytes, pages: Math.max(pages, 1), textChars: Math.max(textChars, 0), imageMarkers };
 }
 
-const HI_BPP   = Number(getConfigValue('ocr_size_ppx_hi', 250_000)); // 250 kB/page
-const LO_BPP   = Number(getConfigValue('ocr_size_ppx_lo', 120_000)); // 120 kB/page
-const MIN_TPP  = Number(getConfigValue('ocr_text_per_page_min', 150));
-const MIN_TXT  = Number(getConfigValue('ocr_text_min', 800));
-const HI_IMGPP = Number(getConfigValue('ocr_img_per_page_hi', 1.0));
-const LO_IMGPP = Number(getConfigValue('ocr_img_per_page_lo', 0.5));
+const HI_BPP = Number(getConfig('ocr_size_ppx_hi', 250_000)); // 250 kB/page
+const LO_BPP = Number(getConfig('ocr_size_ppx_lo', 120_000)); // 120 kB/page
+const MIN_TPP = Number(getConfig('ocr_text_per_page_min', 150));
+const MIN_TXT = Number(getConfig('ocr_text_min', 800));
+const HI_IMGPP = Number(getConfig('ocr_img_per_page_hi', 1.0));
+const LO_IMGPP = Number(getConfig('ocr_img_per_page_lo', 0.5));
 
 function shouldOCR({ bytes, pages, textChars, imageMarkers }) {
-  const bpp  = bytes / Math.max(1,pages);
-  const tpp  = textChars / Math.max(1,pages);
-  const imgp = imageMarkers / Math.max(1,pages);
+  const bpp = bytes / Math.max(1, pages);
+  const tpp = textChars / Math.max(1, pages);
+  const imgp = imageMarkers / Math.max(1, pages);
 
   const strongScan = (bpp >= HI_BPP) || (imgp >= HI_IMGPP);
-  const weakScan   = (bpp >= LO_BPP) || (imgp >= LO_IMGPP);
+  const weakScan = (bpp >= LO_BPP) || (imgp >= LO_IMGPP);
 
   if (strongScan && tpp < MIN_TPP) return true;
-  if (weakScan   && textChars < MIN_TXT) return true;
+  if (weakScan && textChars < MIN_TXT) return true;
   return false;
 }
 
@@ -229,15 +229,15 @@ function shouldOCR({ bytes, pages, textChars, imageMarkers }) {
  * @returns {[string, string[]]} [cmd, preArgs]
  */
 export function pythonLauncher() {
-  const envCmd = getConfigValue('python_exe') || getConfigValue('python');
+  const envCmd = getConfig('python_exe') || getConfig('python');
   if (envCmd) return [envCmd, []];
 
   if (process.platform === 'win32') {
-    const ver = getConfigValue('py_pyver', '-3.13');
+    const ver = getConfig('py_pyver', '-3.13');
     return ['py', [ver]]; // ex: py -3.13 -m markitdown ...
   }
   // *nix
-  return [getConfigValue('py_cmd', 'python3'), []];
+  return [getConfig('py_cmd', 'python3'), []];
 }
 
 /**
@@ -303,7 +303,7 @@ export async function extractWithMarkitdown(srcPdfPath, opts = {}) {
     throw new Error(`markitdown a échoué: ${msg}`);
   } finally {
     // Nettoyage silencieux
-    try { await fs.rm(tmpDir, { recursive: true, force: true }); } catch {}
+    try { await fs.rm(tmpDir, { recursive: true, force: true }); } catch { }
   }
 }
 
@@ -333,41 +333,41 @@ function buildSafeBaseName(pdfUrl, dateLabel = '', docType = '') {
     const u = new URL(pdfUrl, 'http://x/');
     const base = path.posix.basename(u.pathname) || origName;
     if (/modules\.php$/i.test(base)) {
-      const lid  = u.searchParams.get('lid')  || '';
+      const lid = u.searchParams.get('lid') || '';
       const name = u.searchParams.get('name') || '';
       if (name && lid) origName = `${name}-${lid}.pdf`;
-      else if (name)  origName = `${name}.pdf`;
-      else if (lid)   origName = `document-${lid}.pdf`;
+      else if (name) origName = `${name}.pdf`;
+      else if (lid) origName = `document-${lid}.pdf`;
     } else {
       origName = base.endsWith('.pdf') ? base : `${base}.pdf`;
     }
-  } catch {}
+  } catch { }
 
   // 2) type/date
-  const typeMap = { odj:'convocation-odj', pv:'proces-verbal', delib:'deliberations', deliberation:'deliberations' };
-  const typeLabel = typeMap[String(docType||'').toLowerCase()] || 'document';
-  const datePart  = dateLabel ? String(dateLabel).replace(/[^0-9A-Za-z-_]/g,'') : String(Date.now());
+  const typeMap = { odj: 'convocation-odj', pv: 'proces-verbal', delib: 'deliberations', deliberation: 'deliberations' };
+  const typeLabel = typeMap[String(docType || '').toLowerCase()] || 'document';
+  const datePart = dateLabel ? String(dateLabel).replace(/[^0-9A-Za-z-_]/g, '') : String(Date.now());
 
   // 3) safe base sans extension
   const raw = `corte_${typeLabel}_${datePart}_${origName}`;
-  const safe = raw.normalize('NFKD').replace(/[^\w.\-]/g,'_').replace(/_+/g,'_').toLowerCase();
-  return safe.replace(/\.pdf$/i,''); // base sans .pdf
+  const safe = raw.normalize('NFKD').replace(/[^\w.\-]/g, '_').replace(/_+/g, '_').toLowerCase();
+  return safe.replace(/\.pdf$/i, ''); // base sans .pdf
 }
 
 function expectedPathsForDoc(pdfUrl, dateLabel, docType) {
   const base = buildSafeBaseName(pdfUrl, dateLabel, docType);
   return {
     pdf: path.join(process.cwd(), 'public', 'docs', 'officiel', `${base}.pdf`),
-    md:  path.join(process.cwd(), 'public', 'docs', 'conseils', `${base}.md`) // même dossier que votre code actuel
+    md: path.join(process.cwd(), 'public', 'docs', 'conseils', `${base}.md`) // même dossier que votre code actuel
   };
 }
 
 async function ensureSearchablePdf(srcOfficialPath) {
   const base = path.basename(srcOfficialPath);
-  const dst  = path.join(CONSEIL_DIR, base);
+  const dst = path.join(CONSEIL_DIR, base);
 
   // Cache
-  try { await fs.access(dst); return dst; } catch {}
+  try { await fs.access(dst); return dst; } catch { }
 
   // Heuristique préalable (taille/page + texte/page)
   const fontsUrl = resolveStandardFontDataUrl?.();
@@ -393,7 +393,7 @@ async function ensureSearchablePdf(srcOfficialPath) {
 
   try {
     console.log('  OCRmyPDF', srcOfficialPath, '->', dst);
-    const { stderr } = await execFileP(cmd, args, { windowsHide:true });
+    const { stderr } = await execFileP(cmd, args, { windowsHide: true });
     if (stderr?.trim()) console.warn(stderr.trim());
     await fs.copyFile(tmpOut, dst);
     console.log('  ✅ OCRmyPDF', srcOfficialPath, '->', dst);
@@ -403,25 +403,25 @@ async function ensureSearchablePdf(srcOfficialPath) {
       console.log('  MarkItDown', srcOfficialPath, '->', dst);
       const mdOrig = await extractWithMarkitdown(srcOfficialPath);
       console.log('  ✅ MarkItDown', srcOfficialPath, '->', dst);
-      const mdOCR  = await extractWithMarkitdown(dst);
+      const mdOCR = await extractWithMarkitdown(dst);
       console.log('  ✅ MarkItDown', dst, '->', dst);
-      if (mdOCR.replace(/\s+/g,'').length < mdOrig.replace(/\s+/g,'').length) {
+      if (mdOCR.replace(/\s+/g, '').length < mdOrig.replace(/\s+/g, '').length) {
         console.log('  ❌ MarkItDown', dst, '->', dst, 'apporte moins de texte que', srcOfficialPath);
         return srcOfficialPath;
       }
-    } catch {}
+    } catch { }
     console.log('  ✅ MarkItDown', dst, '->', dst);
     return dst;
   } catch (e) {
     console.error('  ❌ ocrmypdf a échoué :', e?.stderr?.toString?.() || e?.message || e);
     return srcOfficialPath;
   } finally {
-    try { await fs.rm(tmp, { recursive:true, force:true }); } catch {}
+    try { await fs.rm(tmp, { recursive: true, force: true }); } catch { }
   }
 }
 
 async function pdfToMarkdown(pdfPath, u8, opts = {}) {
-  const absIn  = path.resolve(pdfPath);
+  const absIn = path.resolve(pdfPath);
   const mdPath = absIn.replace(/\.pdf$/i, '.md');
 
   if (mdCache[mdPath]) return mdCache[mdPath];
@@ -433,13 +433,13 @@ async function pdfToMarkdown(pdfPath, u8, opts = {}) {
     const bytes = u8 instanceof Uint8Array ? u8 : new Uint8Array(await fs.readFile(absIn));
     const out = await convertPdfToMarkdown(bytes, opts);
     mdText = typeof out === 'string' ? out
-           : (typeof out?.markdown === 'string' ? out.markdown : '');
+      : (typeof out?.markdown === 'string' ? out.markdown : '');
     if (!mdText) return { error: 'convertPdfToMarkdown: markdown vide' };
   } else {
     // exécution MarkItDown via le lanceur Python
-    const tmpDir  = await fs.mkdtemp(path.join(os.tmpdir(), 'markitdown-'));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'markitdown-'));
     const outPath = path.join(tmpDir, path.basename(mdPath));
-    const launcher = process.platform === 'win32' ? 'py' : (getConfigValue('python', 'python3'));
+    const launcher = process.platform === 'win32' ? 'py' : (getConfig('python', 'python3'));
 
     try {
       console.log('  MarkItDown', absIn, '->', outPath);
@@ -457,7 +457,7 @@ async function pdfToMarkdown(pdfPath, u8, opts = {}) {
       return { error: msg };
     } finally {
       // nettoyage best-effort
-      try { await fs.rm(tmpDir, { recursive: true, force: true }); } catch {}
+      try { await fs.rm(tmpDir, { recursive: true, force: true }); } catch { }
     }
   }
 
@@ -468,19 +468,19 @@ async function pdfToMarkdown(pdfPath, u8, opts = {}) {
 }
 
 // ---------- Configuration ----------
-if (!getConfigValue('openai_api_key')) {
+if (!getConfig('openai_api_key')) {
   console.error('Erreur : OPENAI_API_KEY manquant (.env ou variable d’environnement).');
   process.exit(1);
 }
 const client = createOpenAIClient();
 
-const OCR_ENABLED = getConfigValue('ocr_enabled', '1') !== '0';
-const LOW_SIM  = Number.parseFloat(getConfigValue('low_sim', '0.55'));
-const HIGH_SIM = Number.parseFloat(getConfigValue('high_sim', '0.82'));
+const OCR_ENABLED = getConfig('ocr_enabled', '1') !== '0';
+const LOW_SIM = Number.parseFloat(getConfig('low_sim', '0.55'));
+const HIGH_SIM = Number.parseFloat(getConfig('high_sim', '0.82'));
 
 // ---------- Caches en mémoire ----------
 const pdfCache = new Map();           // key: `pdfText-<path>` -> string
-const mdCache  = Object.create(null); // key: md absolute path   -> string
+const mdCache = Object.create(null); // key: md absolute path   -> string
 
 // ---------- CLI ----------
 function parseArgs(argv) {
@@ -497,7 +497,7 @@ const args = parseArgs(process.argv);
 // ---------- HTTP utils ----------
 function absUrl(base, href) {
   try { return new URL(href, base).toString(); }
-  catch { return `${base.replace(/\/+$/,'')}/${href.replace(/^\/+/,'')}`; }
+  catch { return `${base.replace(/\/+$/, '')}/${href.replace(/^\/+/, '')}`; }
 }
 
 /**
@@ -560,9 +560,9 @@ function makeArchiveBaseName(fromUrl) {
       const lid = u.searchParams.get('lid') || '';
       const nameParam = u.searchParams.get('name') || '';
       if (nameParam && lid) origName = `${nameParam}-${lid}.pdf`;
-      else if (nameParam)  origName = `${nameParam}.pdf`;
-      else if (lid)        origName = `document-${lid}.pdf`;
-      else                 origName = 'document.pdf';
+      else if (nameParam) origName = `${nameParam}.pdf`;
+      else if (lid) origName = `document-${lid}.pdf`;
+      else origName = 'document.pdf';
     } else {
       origName = baseName;
     }
@@ -588,14 +588,14 @@ function mapDocType(docType) {
  */
 async function savePdfArchive(bytesUint8, url, dateLabel = '', docType = '') {
   const typeLabel = mapDocType(docType);
-  const datePart  = dateLabel ? String(dateLabel).replace(/[^0-9A-Za-z-_]/g, '') : String(Date.now());
-  const baseName  = makeArchiveBaseName(url);
-  const rawName   = `mairie-corte_${typeLabel}_${datePart}_${baseName}`;
-  const fileName  = safeFileName(rawName.endsWith('.pdf') ? rawName : `${rawName}.pdf`);
+  const datePart = dateLabel ? String(dateLabel).replace(/[^0-9A-Za-z-_]/g, '') : String(Date.now());
+  const baseName = makeArchiveBaseName(url);
+  const rawName = `mairie-corte_${typeLabel}_${datePart}_${baseName}`;
+  const fileName = safeFileName(rawName.endsWith('.pdf') ? rawName : `${rawName}.pdf`);
 
-  const primaryDir  = path.join(process.cwd(), 'public', 'docs', 'officiel');
+  const primaryDir = path.join(process.cwd(), 'public', 'docs', 'officiel');
   const fallbackDir = path.join(process.cwd(), 'tmp', 'officiel');
-  const systemDir   = path.join(os.tmpdir(), 'audit-odj-officiel');
+  const systemDir = path.join(os.tmpdir(), 'audit-odj-officiel');
 
   const tryWrite = async (dir) => {
     try {
@@ -629,10 +629,10 @@ async function savePdfArchive(bytesUint8, url, dateLabel = '', docType = '') {
  */
 async function getArchivedPdfPath(pdfUrl, dateLabel = '', docType = '') {
   const typeLabel = mapDocType(docType);
-  const datePart  = dateLabel ? String(dateLabel).replace(/[^0-9A-Za-z-_]/g, '') : String(Date.now());
-  const rawName   = `mairie-corte_${typeLabel}_${datePart}_${makeArchiveBaseName(pdfUrl)}`;
-  const safeName  = safeFileName(rawName.endsWith('.pdf') ? rawName : `${rawName}.pdf`);
-  const expected  = path.join(process.cwd(), 'public', 'docs', 'officiel', safeName);
+  const datePart = dateLabel ? String(dateLabel).replace(/[^0-9A-Za-z-_]/g, '') : String(Date.now());
+  const rawName = `mairie-corte_${typeLabel}_${datePart}_${makeArchiveBaseName(pdfUrl)}`;
+  const safeName = safeFileName(rawName.endsWith('.pdf') ? rawName : `${rawName}.pdf`);
+  const expected = path.join(process.cwd(), 'public', 'docs', 'officiel', safeName);
 
   try {
     await fs.access(expected);
@@ -710,9 +710,9 @@ async function getCachedPdfText(pdfPath, dateLabel, docType) {
 
 async function getCachedMarkdown(pdfUrl, dateLabel, docType) {
   const officialPdfPath = await getArchivedPdfPath(pdfUrl, dateLabel, docType);
-  const chosenPdfPath   = await ensureSearchablePdf(officialPdfPath);
+  const chosenPdfPath = await ensureSearchablePdf(officialPdfPath);
 
-   // Chemins attendus sans toucher au réseau
+  // Chemins attendus sans toucher au réseau
   const { pdf: expectedPdfPath, md: mdFilePath } = expectedPathsForDoc(pdfUrl, dateLabel, docType);
 
   // 1) cache mémoire
@@ -723,7 +723,7 @@ async function getCachedMarkdown(pdfUrl, dateLabel, docType) {
     const cachedMd = await fs.readFile(mdFilePath, 'utf8');
     mdCache[mdFilePath] = cachedMd;
     return cachedMd;
-  } catch {} // pas de MD, on continue
+  } catch { } // pas de MD, on continue
 
   // 3) sinon seulement maintenant on s’assure du PDF (download/ocr éventuel)
   const pdfPath = await getArchivedPdfPath(pdfUrl, dateLabel, docType); // utilise votre logique existante
@@ -741,72 +741,72 @@ async function getCachedMarkdown(pdfUrl, dateLabel, docType) {
 // ---------- Données ----------
 const BASE = 'https://www.mairie-corte.fr/';
 const ODJ = [
-  { date:'2025-10-28', href:'modules.php?name=Downloads&d_op=getit&lid=1910' },
-//  { date:'2025-07-01', href:'modules.php?name=Downloads&d_op=getit&lid=1912' },
-//  { date:'2025-04-08', href:'modules.php?name=Downloads&d_op=getit&lid=1913' },
-//  { date:'2025-03-18', href:'modules.php?name=Downloads&d_op=getit&lid=1914' },
-//  { date:'2024-12-23', href:'modules.php?name=Downloads&d_op=getit&lid=1915' },
-//  { date:'2024-12-16', href:'modules.php?name=Downloads&d_op=getit&lid=1916' },
-//  { date:'2024-12-09', href:'modules.php?name=Downloads&d_op=getit&lid=1917' },
-//  { date:'2024-10-28', href:'modules.php?name=Downloads&d_op=getit&lid=1772' },
-//  { date:'2024-09-23', href:'modules.php?name=Downloads&d_op=getit&lid=1751' },
-//  { date:'2024-07-01', href:'modules.php?name=Downloads&d_op=getit&lid=1753' },
-//  { date:'2024-04-22', href:'modules.php?name=Downloads&d_op=getit&lid=1717' },
-//  { date:'2024-04-08', href:'modules.php?name=Downloads&d_op=getit&lid=1718' },
-//  { date:'2024-03-25', href:'modules.php?name=Downloads&d_op=getit&lid=1719' },
-//  { date:'2024-02-12', href:'modules.php?name=Downloads&d_op=getit&lid=1642' },
-//  { date:'2023-11-20', href:'modules.php?name=Downloads&d_op=getit&lid=1615' },
-//  { date:'2023-10-30', href:'modules.php?name=Downloads&d_op=getit&lid=1592' },
-//  { date:'2023-07-24', href:'modules.php?name=Downloads&d_op=getit&lid=1596' },
-//  { date:'2023-04-11', href:'modules.php?name=Downloads&d_op=getit&lid=1597' },
-//  { date:'2023-03-20', href:'modules.php?name=Downloads&d_op=getit&lid=1600' },
-//  { date:'2023-02-13', href:'modules.php?name=Downloads&d_op=getit&lid=1599' },
+  { date: '2025-10-28', href: 'modules.php?name=Downloads&d_op=getit&lid=1910' },
+  //  { date:'2025-07-01', href:'modules.php?name=Downloads&d_op=getit&lid=1912' },
+  //  { date:'2025-04-08', href:'modules.php?name=Downloads&d_op=getit&lid=1913' },
+  //  { date:'2025-03-18', href:'modules.php?name=Downloads&d_op=getit&lid=1914' },
+  //  { date:'2024-12-23', href:'modules.php?name=Downloads&d_op=getit&lid=1915' },
+  //  { date:'2024-12-16', href:'modules.php?name=Downloads&d_op=getit&lid=1916' },
+  //  { date:'2024-12-09', href:'modules.php?name=Downloads&d_op=getit&lid=1917' },
+  //  { date:'2024-10-28', href:'modules.php?name=Downloads&d_op=getit&lid=1772' },
+  //  { date:'2024-09-23', href:'modules.php?name=Downloads&d_op=getit&lid=1751' },
+  //  { date:'2024-07-01', href:'modules.php?name=Downloads&d_op=getit&lid=1753' },
+  //  { date:'2024-04-22', href:'modules.php?name=Downloads&d_op=getit&lid=1717' },
+  //  { date:'2024-04-08', href:'modules.php?name=Downloads&d_op=getit&lid=1718' },
+  //  { date:'2024-03-25', href:'modules.php?name=Downloads&d_op=getit&lid=1719' },
+  //  { date:'2024-02-12', href:'modules.php?name=Downloads&d_op=getit&lid=1642' },
+  //  { date:'2023-11-20', href:'modules.php?name=Downloads&d_op=getit&lid=1615' },
+  //  { date:'2023-10-30', href:'modules.php?name=Downloads&d_op=getit&lid=1592' },
+  //  { date:'2023-07-24', href:'modules.php?name=Downloads&d_op=getit&lid=1596' },
+  //  { date:'2023-04-11', href:'modules.php?name=Downloads&d_op=getit&lid=1597' },
+  //  { date:'2023-03-20', href:'modules.php?name=Downloads&d_op=getit&lid=1600' },
+  //  { date:'2023-02-13', href:'modules.php?name=Downloads&d_op=getit&lid=1599' },
 ];
 const PV = [
-//  { date:'2025-07-01', href:'modules.php?name=Downloads&d_op=getit&lid=1911' },
-//  { date:'2025-04-08', href:'modules.php?name=Downloads&d_op=getit&lid=1920' },
-//  { date:'2024-12-23', href:'modules.php?name=Downloads&d_op=getit&lid=1923' },
-//  { date:'2024-12-16', href:'modules.php?name=Downloads&d_op=getit&lid=1924' },
-//  { date:'2024-12-09', href:'modules.php?name=Downloads&d_op=getit&lid=1918' },
-//  { date:'2024-10-28', href:'modules.php?name=Downloads&d_op=getit&lid=1928' },
-//  { date:'2024-09-23', href:'modules.php?name=Downloads&d_op=getit&lid=1771' },
-//  { date:'2024-07-01', href:'modules.php?name=Downloads&d_op=getit&lid=1752' },
-//  { date:'2024-04-22', href:'modules.php?name=Downloads&d_op=getit&lid=1714' },
-//  { date:'2024-04-08', href:'modules.php?name=Downloads&d_op=getit&lid=1713' },
-//  { date:'2024-03-25', href:'modules.php?name=Downloads&d_op=getit&lid=1715' },
-//  { date:'2024-02-13', href:'modules.php?name=Downloads&d_op=getit&lid=1712' },
-//  { date:'2023-11-20', href:'modules.php?name=Downloads&d_op=getit&lid=1716' },
-//  { date:'2023-10-30', href:'modules.php?name=Downloads&d_op=getit&lid=1617' },
-//  { date:'2023-07-24', href:'modules.php?name=Downloads&d_op=getit&lid=1604' },
-//  { date:'2023-04-11', href:'modules.php?name=Downloads&d_op=getit&lid=1594' },
-//  { date:'2023-03-20', href:'modules.php?name=Downloads&d_op=getit&lid=1593' },
-//  { date:'2023-02-13', href:'modules.php?name=Downloads&d_op=getit&lid=1598' },
+  //  { date:'2025-07-01', href:'modules.php?name=Downloads&d_op=getit&lid=1911' },
+  //  { date:'2025-04-08', href:'modules.php?name=Downloads&d_op=getit&lid=1920' },
+  //  { date:'2024-12-23', href:'modules.php?name=Downloads&d_op=getit&lid=1923' },
+  //  { date:'2024-12-16', href:'modules.php?name=Downloads&d_op=getit&lid=1924' },
+  //  { date:'2024-12-09', href:'modules.php?name=Downloads&d_op=getit&lid=1918' },
+  //  { date:'2024-10-28', href:'modules.php?name=Downloads&d_op=getit&lid=1928' },
+  //  { date:'2024-09-23', href:'modules.php?name=Downloads&d_op=getit&lid=1771' },
+  //  { date:'2024-07-01', href:'modules.php?name=Downloads&d_op=getit&lid=1752' },
+  //  { date:'2024-04-22', href:'modules.php?name=Downloads&d_op=getit&lid=1714' },
+  //  { date:'2024-04-08', href:'modules.php?name=Downloads&d_op=getit&lid=1713' },
+  //  { date:'2024-03-25', href:'modules.php?name=Downloads&d_op=getit&lid=1715' },
+  //  { date:'2024-02-13', href:'modules.php?name=Downloads&d_op=getit&lid=1712' },
+  //  { date:'2023-11-20', href:'modules.php?name=Downloads&d_op=getit&lid=1716' },
+  //  { date:'2023-10-30', href:'modules.php?name=Downloads&d_op=getit&lid=1617' },
+  //  { date:'2023-07-24', href:'modules.php?name=Downloads&d_op=getit&lid=1604' },
+  //  { date:'2023-04-11', href:'modules.php?name=Downloads&d_op=getit&lid=1594' },
+  //  { date:'2023-03-20', href:'modules.php?name=Downloads&d_op=getit&lid=1593' },
+  //  { date:'2023-02-13', href:'modules.php?name=Downloads&d_op=getit&lid=1598' },
 ];
 const DELIB_LISTES = [
-  { date:'2025-10-28', href:'modules.php?name=Downloads&d_op=getit&lid=1909' },
-//  { date:'2025-07-01', href:'modules.php?name=Downloads&d_op=getit&lid=1919' },
-//  { date:'2025-04-08', href:'modules.php?name=Downloads&d_op=getit&lid=1921' },
-//  { date:'2025-03-18', href:'modules.php?name=Downloads&d_op=getit&lid=1925' },
+  { date: '2025-10-28', href: 'modules.php?name=Downloads&d_op=getit&lid=1909' },
+  //  { date:'2025-07-01', href:'modules.php?name=Downloads&d_op=getit&lid=1919' },
+  //  { date:'2025-04-08', href:'modules.php?name=Downloads&d_op=getit&lid=1921' },
+  //  { date:'2025-03-18', href:'modules.php?name=Downloads&d_op=getit&lid=1925' },
 ];
 
 // ---------- Helpers ----------
-function clean(s = '') { return s.replace(/\r/g,'').replace(/[ \t]+/g,' ').trim(); }
+function clean(s = '') { return s.replace(/\r/g, '').replace(/[ \t]+/g, ' ').trim(); }
 function cosine(a, b) {
   let dot = 0, na = 0, nb = 0;
   for (let i = 0; i < a.length; i++) {
     dot += a[i] * b[i];
-    na  += a[i] * a[i];
-    nb  += b[i] * b[i];
+    na += a[i] * a[i];
+    nb += b[i] * b[i];
   }
   return dot / (Math.sqrt(na) * Math.sqrt(nb));
 }
 function mdTable(headers, rows) {
-  const head = `| ${headers.join(' | ')} |\n| ${headers.map(()=> '---').join(' | ')} |`;
+  const head = `| ${headers.join(' | ')} |\n| ${headers.map(() => '---').join(' | ')} |`;
   const body = rows.map(r => `| ${r.map(c => mdEscape(c)).join(' | ')} |`).join('\n');
   return `${head}\n${body}\n`;
 }
 function sstr(x) { return (typeof x === 'string') ? x : String(x ?? ''); }
-function mdEscape(s=''){ return sstr(s).replace(/\|/g,'\\|'); }
+function mdEscape(s = '') { return sstr(s).replace(/\|/g, '\\|'); }
 
 
 // ---------- LLM: canonisation ----------
@@ -814,17 +814,17 @@ function mdEscape(s=''){ return sstr(s).replace(/\|/g,'\\|'); }
 
 import crypto from 'node:crypto';
 
-const CANON_CACHE_DIR = getConfigValue('canon_cache_dir') ||
+const CANON_CACHE_DIR = getConfig('canon_cache_dir') ||
   path.join(process.cwd(), 'public', 'docs', 'conseils', 'cache', 'canon');
 
-const CANON_PROMPT_VERSION = getConfigValue('canon_prompt_version', 'v1'); // incrémentez si vous changez le prompt few-shot
-const CANON_CACHE_TTL_SEC = Number(getConfigValue('canon_cache_ttl_sec', 0)); // 0 = pas d’expiration
+const CANON_PROMPT_VERSION = getConfig('canon_prompt_version', 'v1'); // incrémentez si vous changez le prompt few-shot
+const CANON_CACHE_TTL_SEC = Number(getConfig('canon_cache_ttl_sec', 0)); // 0 = pas d’expiration
 
 // Mémoire (process) pour accélérer les re-calls instantanés
 const memCache = new Map();
 
 /** Normalise le texte pour le hash (réduit le bruit OCR sans perdre le sens). */
-function normTextForHash(s='') {
+function normTextForHash(s = '') {
   return String(s)
     .replace(/\r/g, '\n')
     .replace(/\u00AD/g, '')      // soft hyphen
@@ -891,7 +891,7 @@ async function writeCache(key, hint = {}, valueObj) {
  * - `opts` : { model, date, sourceUrl, promptVersion }
  */
 export async function canonizeItemsCached(llmCanonFn, text, kind, opts = {}) {
-  const model = opts.model || getConfigValue('canon_model', 'gpt-5-thinking');
+  const model = opts.model || getConfig('canon_model', 'gpt-5-thinking');
   const promptVersion = opts.promptVersion || CANON_PROMPT_VERSION;
 
   const key = buildKey({ text, kind, model, promptVersion });
@@ -920,20 +920,20 @@ export async function canonizeItemsCached(llmCanonFn, text, kind, opts = {}) {
     },
     value // typiquement { items: [...] }
   };
-  try { await writeCache(key, { kind, date: opts.date }, record); } catch {}
+  try { await writeCache(key, { kind, date: opts.date }, record); } catch { }
 
   memCache.set(key, { value });
   return value;
 }
 
 
-async function canonizeItemsLLM(rawText, kind,{ model }) {
+async function canonizeItemsLLM(rawText, kind, { model }) {
   if (typeof rawText !== 'string') {
     console.warn(`  ⚠ ${kind}: entrée non textuelle, canonisation sautée`);
     return [];
   }
   const cleanText = clean(rawText);
-  const chars = cleanText.replace(/\s+/g,'').length;
+  const chars = cleanText.replace(/\s+/g, '').length;
 
   if (chars < 50) {
     console.log(`  ⚠ Texte insuffisant pour ${kind}: ${chars} chars`);
@@ -943,37 +943,37 @@ async function canonizeItemsLLM(rawText, kind,{ model }) {
   console.log(`  🤖 Canonisation ${kind} (${chars} chars) via ${CANON_MODEL}…`);
 
   const schema = {
-  type: "json_schema",
-  json_schema: {
-    name: "CanonItems",
-    schema: {
-      type: "object",
-      properties: {
-        items: {
-          type: "array",
+    type: "json_schema",
+    json_schema: {
+      name: "CanonItems",
+      schema: {
+        type: "object",
+        properties: {
           items: {
-            type: "object",
-            properties: {
-              order:    { type: "integer" },
-              raw:      { type: "string" },
-              title:    { type: "string" },
-              topic:    { type: "string" },
-              action:   { type: "string" },
-              domain:   { type: "string" },
-              keywords: { type: "array", items: { type: "string" } }
-            },
-            // >>> TOUS les champs listés dans 'properties' doivent être requis
-            required: ["order","raw","title","topic","action","domain","keywords"],
-            additionalProperties: false
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                order: { type: "integer" },
+                raw: { type: "string" },
+                title: { type: "string" },
+                topic: { type: "string" },
+                action: { type: "string" },
+                domain: { type: "string" },
+                keywords: { type: "array", items: { type: "string" } }
+              },
+              // >>> TOUS les champs listés dans 'properties' doivent être requis
+              required: ["order", "raw", "title", "topic", "action", "domain", "keywords"],
+              additionalProperties: false
+            }
           }
-        }
+        },
+        required: ["items"],
+        additionalProperties: false
       },
-      required: ["items"],
-      additionalProperties: false
-    },
-    strict: true
-  }
-};
+      strict: true
+    }
+  };
 
 
   try {
@@ -982,9 +982,10 @@ async function canonizeItemsLLM(rawText, kind,{ model }) {
       model: CANON_MODEL,
       response_format: schema,
       messages: [
-        { role: 'system', content:
-          PROMPT_CANON_SYSTEM_FR_OPHELIA + "\n" +
-`Vous extrayez les items d'un ODJ, PV ou liste de délibérations d’un conseil municipal français.
+        {
+          role: 'system', content:
+            PROMPT_CANON_SYSTEM_FR_OPHELIA + "\n" +
+            `Vous extrayez les items d'un ODJ, PV ou liste de délibérations d’un conseil municipal français.
 TÂCHE :
 1) Identifier tous les points
 2) Pour chaque point, fournir :
@@ -999,7 +1000,8 @@ CONTRAINTES :
 - Conserver l’ordre
 - Numéroter si absent
 - JSON strict selon le schéma` },// 2) Few-shot #1
-  { role: 'user', content: `
+        {
+          role: 'user', content: `
 [INPUT]
 25-10/081
 LE CONSEIL,
@@ -1009,45 +1011,56 @@ A l’unanimité des membres présents et représentés,
 ADOPTE la proposition de son Maire,
 DÉCIDE:
 ARTICLE 1 — Attribution d’une subvention de 5 000 € à l’association X…
-[/INPUT]`.trim() },
-  { role: 'assistant', content: JSON.stringify({
-      items: [{
-        order: 1,
-        raw: "25-10/081\nLE CONSEIL… DÉCIDE:\nARTICLE 1 — Attribution d’une subvention de 5 000 € à l’association X…",
-        title: "25-10/081 — Subvention association X (5 000 €)",
-        topic: "Attribution d’une subvention à l’association X",
-        action: "délibération",
-        domain: "culture",
-        keywords: ["unanimité","subvention","5 000 €","ARTICLE 1"]
-      }]
-    })
-  },
+[/INPUT]`.trim()
+        },
+        {
+          role: 'assistant', content: JSON.stringify({
+            items: [{
+              order: 1,
+              raw: "25-10/081\nLE CONSEIL… DÉCIDE:\nARTICLE 1 — Attribution d’une subvention de 5 000 € à l’association X…",
+              title: "25-10/081 — Subvention association X (5 000 €)",
+              topic: "Attribution d’une subvention à l’association X",
+              action: "délibération",
+              domain: "culture",
+              keywords: ["unanimité", "subvention", "5 000 €", "ARTICLE 1"]
+            }]
+          })
+        },
 
-  // 2) Few-shot #2
-  { role: 'user', content: `
+        // 2) Few-shot #2
+        {
+          role: 'user', content: `
 [INPUT]
 1. Approbation du PV du 12/09/2025
 2. DM n°2 du budget principal 2025
 3. Marché d’éclairage public — Avenant n°1
-[/INPUT]`.trim() },
-  { role: 'assistant', content: JSON.stringify({
-      items: [
-        { order:1, raw:"1. Approbation du PV du 12/09/2025",
-          title:"Approbation du PV du 12/09/2025",
-          topic:"Approbation du procès-verbal",
-          action:"approbation", domain:"finances", keywords:["PV","12/09/2025"] },
-        { order:2, raw:"2. DM n°2 du budget principal 2025",
-          title:"DM n°2 — Budget principal 2025",
-          topic:"Décision modificative du budget 2025",
-          action:"budget", domain:"finances", keywords:["DM n°2","budget 2025"] },
-        { order:3, raw:"3. Marché d’éclairage public — Avenant n°1",
-          title:"Avenant n°1 — Marché d’éclairage public",
-          topic:"Avenant au marché d’éclairage public",
-          action:"avenant", domain:"marchés publics",
-          keywords:["marché","éclairage public","avenant n°1"] }
-      ]
-    })
-  },
+[/INPUT]`.trim()
+        },
+        {
+          role: 'assistant', content: JSON.stringify({
+            items: [
+              {
+                order: 1, raw: "1. Approbation du PV du 12/09/2025",
+                title: "Approbation du PV du 12/09/2025",
+                topic: "Approbation du procès-verbal",
+                action: "approbation", domain: "finances", keywords: ["PV", "12/09/2025"]
+              },
+              {
+                order: 2, raw: "2. DM n°2 du budget principal 2025",
+                title: "DM n°2 — Budget principal 2025",
+                topic: "Décision modificative du budget 2025",
+                action: "budget", domain: "finances", keywords: ["DM n°2", "budget 2025"]
+              },
+              {
+                order: 3, raw: "3. Marché d’éclairage public — Avenant n°1",
+                title: "Avenant n°1 — Marché d’éclairage public",
+                topic: "Avenant au marché d’éclairage public",
+                action: "avenant", domain: "marchés publics",
+                keywords: ["marché", "éclairage public", "avenant n°1"]
+              }
+            ]
+          })
+        },
         { role: 'user', content: cleanText.slice(0, 15000) }
       ]
     });
@@ -1060,14 +1073,14 @@ ARTICLE 1 — Attribution d’une subvention de 5 000 € à l’association X�
 
     const items = Array.isArray(out.items)
       ? out.items.map((it, i) => ({
-          order:    Number.isInteger(it.order) ? it.order : (i + 1),
-          title:    clean(it.title || ''),
-          topic:    clean(it.topic || ''),
-          action:   clean(it.action || ''),
-          domain:   clean(it.domain || ''),
-          raw:      clean(it.raw || ''),
-          keywords: Array.isArray(it.keywords) ? it.keywords.slice(0, 8).map(clean) : []
-        }))
+        order: Number.isInteger(it.order) ? it.order : (i + 1),
+        title: clean(it.title || ''),
+        topic: clean(it.topic || ''),
+        action: clean(it.action || ''),
+        domain: clean(it.domain || ''),
+        raw: clean(it.raw || ''),
+        keywords: Array.isArray(it.keywords) ? it.keywords.slice(0, 8).map(clean) : []
+      }))
       : [];
 
     console.log(`  ✅ ${items.length} items extraits`);
@@ -1080,40 +1093,40 @@ ARTICLE 1 — Attribution d’une subvention de 5 000 € à l’association X�
 }
 
 // ---------- Embeddings ----------
-const BATCH_SIZE  = Number(getConfigValue('embed_batch_size', 64));
-const MAX_RETRY   = Number(getConfigValue('embed_max_retry', 5));
-const BASE_DELAY  = Number(getConfigValue('embed_base_delay_ms', 400));
-const CACHE_DIR   = getConfigValue('embed_cache_dir') ||
+const BATCH_SIZE = Number(getConfig('embed_batch_size', 64));
+const MAX_RETRY = Number(getConfig('embed_max_retry', 5));
+const BASE_DELAY = Number(getConfig('embed_base_delay_ms', 400));
+const CACHE_DIR = getConfig('embed_cache_dir') ||
   path.join(process.cwd(), 'public', 'docs', 'conseil', 'cache', 'emb');
 
 // --- utils
-function norm(s=''){
+function norm(s = '') {
   return String(s)
-    .replace(/\r/g,'\n')
-    .replace(/\u00AD/g,'')
-    .replace(/[ \t]+\n/g,'\n')
+    .replace(/\r/g, '\n')
+    .replace(/\u00AD/g, '')
+    .replace(/[ \t]+\n/g, '\n')
     .trim();
 }
-function keyFor(text, model=EMBED_MODEL){
-  return `${model}__${sha256hex(JSON.stringify({model, text:norm(text)}))}`;
+function keyFor(text, model = EMBED_MODEL) {
+  return `${model}__${sha256hex(JSON.stringify({ model, text: norm(text) }))}`;
 }
 
 
 // --- appel embeddings avec retry backoff
-async function embedBatchSerial(inputs, model=EMBED_MODEL){
+async function embedBatchSerial(inputs, model = EMBED_MODEL) {
   let attempt = 0;
-  for(;;){
-    try{
+  for (; ;) {
+    try {
       const res = await client.embeddings.create({ model, input: inputs });
       return res.data.map(d => d.embedding);
-    }catch(e){
+    } catch (e) {
       attempt++;
       if (attempt >= MAX_RETRY) throw e;
       const code = e?.status || e?.code || '';
-      const delay = BASE_DELAY * Math.pow(2, attempt-1) + Math.floor(Math.random()*100);
+      const delay = BASE_DELAY * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 100);
       // 429/5xx → backoff
-      await new Promise(r=>setTimeout(r, delay));
-      if (getConfigValue('debug_audit') === '1'){
+      await new Promise(r => setTimeout(r, delay));
+      if (getConfig('debug_audit') === '1') {
         console.warn(`[embed-batch retry ${attempt}] code=${code} wait=${delay}ms`);
       }
     }
@@ -1121,7 +1134,7 @@ async function embedBatchSerial(inputs, model=EMBED_MODEL){
 }
 
 // --- API: embeddings en série avec cache, ordre conservé
-async function embedManySerialized(arr, opts={}){
+async function embedManySerialized(arr, opts = {}) {
   const model = opts.model || EMBED_MODEL;
   const N = arr.length;
   if (!N) return [];
@@ -1131,7 +1144,7 @@ async function embedManySerialized(arr, opts={}){
   const toDoIdx = [];
   const toDoTxt = [];
 
-  for (let i=0;i<N;i++){
+  for (let i = 0; i < N; i++) {
     const t = String(arr[i] ?? '');
     const key = keyFor(t, model);
     const hit = await readCache(key);
@@ -1144,23 +1157,23 @@ async function embedManySerialized(arr, opts={}){
   }
 
   // 2) lots sérialisés (pas de Promise.all), ordre déterministe
-  for (let off=0; off<toDoTxt.length; off+=BATCH_SIZE){
-    const batchTxt = toDoTxt.slice(off, off+BATCH_SIZE);
-    const batchIdx = toDoIdx.slice(off, off+BATCH_SIZE);
+  for (let off = 0; off < toDoTxt.length; off += BATCH_SIZE) {
+    const batchTxt = toDoTxt.slice(off, off + BATCH_SIZE);
+    const batchIdx = toDoIdx.slice(off, off + BATCH_SIZE);
 
     const embs = await embedBatchSerial(batchTxt, model); // un seul appel réseau
     // mapping + cache
-    for (let k=0;k<embs.length;k++){
+    for (let k = 0; k < embs.length; k++) {
       const i = batchIdx[k];
       out[i] = embs[k];
       const key = keyFor(arr[i], model);
       // écriture non bloquante
-      writeCache(key, { model, embedding: embs[k] }).catch(()=>{});
+      writeCache(key, { model, embedding: embs[k] }).catch(() => { });
     }
   }
 
   // 3) sécurité: tout doit être rempli
-  for (let i=0;i<N;i++){
+  for (let i = 0; i < N; i++) {
     if (!Array.isArray(out[i])) {
       // fallback: vecteur zéro de longueur 1536/3072 selon modèle. On évite de crasher.
       const dim = (model.includes('small') ? 1536 : 3072);
@@ -1221,32 +1234,32 @@ async function judgePairs(date, pairs) {
   console.log(`  ⚖️  Jugement de ${pairs.length} paires ambiguës via ${JUDGE_MODEL}…`);
 
   const schema = {
-  type: "json_schema",
-  json_schema: {
-    name: "AgendaActsJudgement",
-    schema: {
-      type: "object",
-      properties: {
-        results: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              idx: { type: "integer" },
-              status: { type: "string", enum: ["CORRESPONDANCE","ORDRE_MODIFIE","LIBELLE_DIVERGENT","PERIMETRE_MODIFIE"] },
-              rationale: { type: "string" }
-            },
-            required: ["idx","status","rationale"],
-            additionalProperties: false
+    type: "json_schema",
+    json_schema: {
+      name: "AgendaActsJudgement",
+      schema: {
+        type: "object",
+        properties: {
+          results: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                idx: { type: "integer" },
+                status: { type: "string", enum: ["CORRESPONDANCE", "ORDRE_MODIFIE", "LIBELLE_DIVERGENT", "PERIMETRE_MODIFIE"] },
+                rationale: { type: "string" }
+              },
+              required: ["idx", "status", "rationale"],
+              additionalProperties: false
+            }
           }
-        }
+        },
+        required: ["results"],
+        additionalProperties: false
       },
-      required: ["results"],
-      additionalProperties: false
-    },
-    strict: true
-  }
-};
+      strict: true
+    }
+  };
 
   const input = pairs.map((p, i) => ({
     idx: i,
@@ -1264,9 +1277,10 @@ async function judgePairs(date, pairs) {
       model: JUDGE_MODEL,
       response_format: schema,
       messages: [
-        { role: 'system', content:
-          PROMPT_JUDGE_SYSTEM_FR_OPHELIA + "\n" +
-`Vous comparez des points ODJ vs Actes (PV/Délibérations).
+        {
+          role: 'system', content:
+            PROMPT_JUDGE_SYSTEM_FR_OPHELIA + "\n" +
+            `Vous comparez des points ODJ vs Actes (PV/Délibérations).
 STATUTS :
 - CORRESPONDANCE : même sujet, ordre identique
 - ORDRE_MODIFIE   : même sujet, ordre différent
@@ -1291,35 +1305,35 @@ async function processDate(date) {
   console.log(`\n${'='.repeat(60)}\n  Séance du ${date}\n${'='.repeat(60)}`);
 
   const odjX = ODJ.find(x => x.date === date);
-  const pvX  = PV.find(x => x.date === date);
-  const dlX  = DELIB_LISTES.find(x => x.date === date);
+  const pvX = PV.find(x => x.date === date);
+  const dlX = DELIB_LISTES.find(x => x.date === date);
 
   const res = { date, sources: {}, findings: [] };
   if (!odjX) { console.log(`  ⚠ Pas d’ODJ pour ${date}`); return res; }
 
-  const odjUrl  = absUrl(BASE, odjX.href);
+  const odjUrl = absUrl(BASE, odjX.href);
   const odjText = await getCachedMarkdown(odjUrl, date, 'odj');
-  res.sources.odj = { url: odjUrl, ok: (typeof odjText === 'string') && odjText.replace(/\s+/g,'').length >= 50 };
+  res.sources.odj = { url: odjUrl, ok: (typeof odjText === 'string') && odjText.replace(/\s+/g, '').length >= 50 };
   res.sources.searchable_odj = { local: path.join(CONSEIL_DIR, path.basename(await getArchivedPdfPath(odjUrl, date, 'odj'))) };
-  const odjItems = await canonizeItemsCached( canonizeItemsLLM, odjText, 'ODJ');
+  const odjItems = await canonizeItemsCached(canonizeItemsLLM, odjText, 'ODJ');
 
   let actUrl = null, actKind = null, actText = '', actItems = [];
 
   if (dlX) {
     console.log('\n  📋 Traitement DÉLIBÉRATIONS…');
-    actUrl  = absUrl(BASE, dlX.href);
+    actUrl = absUrl(BASE, dlX.href);
     actText = await getCachedMarkdown(actUrl, date, 'delib');
     actKind = 'DELIB';
-    actItems = await canonizeItemsCached( canonizeItemsLLM, actText, 'DELIB');
+    actItems = await canonizeItemsCached(canonizeItemsLLM, actText, 'DELIB');
   }
   if ((!actItems.length) && pvX) {
     console.log('\n  📋 Traitement PROCÈS-VERBAL…');
-    actUrl  = absUrl(BASE, pvX.href);
+    actUrl = absUrl(BASE, pvX.href);
     actText = await getCachedMarkdown(actUrl, date, 'pv');
     actKind = 'PV';
     actItems = await canonizeItemsCached(canonizeItemsLLM, actText, 'PV');
   }
-  if (actUrl) res.sources[actKind.toLowerCase()] = { url: actUrl, ok: (typeof actText === 'string') && actText.replace(/\s+/g,'').length >= 50 };
+  if (actUrl) res.sources[actKind.toLowerCase()] = { url: actUrl, ok: (typeof actText === 'string') && actText.replace(/\s+/g, '').length >= 50 };
 
   if (!odjItems.length || !actItems.length) {
     const msg = !odjItems.length ? 'ODJ vide' : 'Actes vides';
@@ -1409,14 +1423,14 @@ async function processDate(date) {
   console.log(`     - Ajouts          : ${summary.AJOUT_HORS_ODJ || 0}`);
 
   res.findings.push({ against: actKind || 'ACTES', rows });
-  res.actKind   = actKind || 'ACTES';
-  res.odjItems  = odjItems || [];
-  res.actItems  = actItems || [];
+  res.actKind = actKind || 'ACTES';
+  res.odjItems = odjItems || [];
+  res.actItems = actItems || [];
   return res;
 }
 
 
-async function extractEntitiesFromMarkdown(markdown, sourcePath){
+async function extractEntitiesFromMarkdown(markdown, sourcePath) {
   const schema = {
     type: "json_schema",
     json_schema: {
@@ -1424,122 +1438,142 @@ async function extractEntitiesFromMarkdown(markdown, sourcePath){
       schema: {
         type: "object",
         properties: {
-          people:   { type:"array", items:{ type:"object", properties:{
-            name:{type:"string"}, role:{type:"string"}, org:{type:"string"},
-            aliases:{type:"array", items:{type:"string"}},
-            summary:{type:"string"}, sources:{type:"array", items:{type:"string"}}
-          }, required:["name","role","org","aliases","summary","sources"], additionalProperties:false }},
-          orgs:     { type:"array", items:{ type:"object", properties:{
-            name:{type:"string"}, type:{type:"string"},
-            summary:{type:"string"}, aliases:{type:"array", items:{type:"string"}},
-            sources:{type:"array", items:{type:"string"}}
-          }, required:["name","type","summary","aliases","sources"], additionalProperties:false }},
-          places:   { type:"array", items:{ type:"object", properties:{
-            name:{type:"string"}, kind:{type:"string"}, address:{type:"string"},
-            summary:{type:"string"}, aliases:{type:"array", items:{type:"string"}},
-            sources:{type:"array", items:{type:"string"}}
-          }, required:["name","kind","address","summary","aliases","sources"], additionalProperties:false }},
-          projects: { type:"array", items:{ type:"object", properties:{
-            name:{type:"string"}, owner:{type:"string"}, status:{type:"string"},
-            budget_eur:{type:"number"}, summary:{type:"string"},
-            tags:{type:"array", items:{type:"string"}},
-            sources:{type:"array", items:{type:"string"}}
-          }, required:["name","owner","status","budget_eur","summary","tags","sources"], additionalProperties:false }},
-          acts:     { type:"array", items:{ type:"object", properties:{
-            date:{type:"string"}, title:{type:"string"}, domain:{type:"string"},
-            action:{type:"string"}, amount_eur:{type:"number"},
-            summary:{type:"string"}, source:{type:"string"}
-          }, required:["date","title","domain","action","amount_eur","summary","source"], additionalProperties:false }}
+          people: {
+            type: "array", items: {
+              type: "object", properties: {
+                name: { type: "string" }, role: { type: "string" }, org: { type: "string" },
+                aliases: { type: "array", items: { type: "string" } },
+                summary: { type: "string" }, sources: { type: "array", items: { type: "string" } }
+              }, required: ["name", "role", "org", "aliases", "summary", "sources"], additionalProperties: false
+            }
+          },
+          orgs: {
+            type: "array", items: {
+              type: "object", properties: {
+                name: { type: "string" }, type: { type: "string" },
+                summary: { type: "string" }, aliases: { type: "array", items: { type: "string" } },
+                sources: { type: "array", items: { type: "string" } }
+              }, required: ["name", "type", "summary", "aliases", "sources"], additionalProperties: false
+            }
+          },
+          places: {
+            type: "array", items: {
+              type: "object", properties: {
+                name: { type: "string" }, kind: { type: "string" }, address: { type: "string" },
+                summary: { type: "string" }, aliases: { type: "array", items: { type: "string" } },
+                sources: { type: "array", items: { type: "string" } }
+              }, required: ["name", "kind", "address", "summary", "aliases", "sources"], additionalProperties: false
+            }
+          },
+          projects: {
+            type: "array", items: {
+              type: "object", properties: {
+                name: { type: "string" }, owner: { type: "string" }, status: { type: "string" },
+                budget_eur: { type: "number" }, summary: { type: "string" },
+                tags: { type: "array", items: { type: "string" } },
+                sources: { type: "array", items: { type: "string" } }
+              }, required: ["name", "owner", "status", "budget_eur", "summary", "tags", "sources"], additionalProperties: false
+            }
+          },
+          acts: {
+            type: "array", items: {
+              type: "object", properties: {
+                date: { type: "string" }, title: { type: "string" }, domain: { type: "string" },
+                action: { type: "string" }, amount_eur: { type: "number" },
+                summary: { type: "string" }, source: { type: "string" }
+              }, required: ["date", "title", "domain", "action", "amount_eur", "summary", "source"], additionalProperties: false
+            }
+          }
         },
-        required:["people","orgs","places","projects","acts"],
-        additionalProperties:false
+        required: ["people", "orgs", "places", "projects", "acts"],
+        additionalProperties: false
       },
-      strict:true
+      strict: true
     }
   };
 
   const chunks = chunkText(markdown, 14000);
-  const acc = { people:[], orgs:[], places:[], projects:[], acts:[] };
+  const acc = { people: [], orgs: [], places: [], projects: [], acts: [] };
 
-  for (const ch of chunks){
+  for (const ch of chunks) {
     console.log('  🤖 Extraction d\'entités', sourcePath, 'via', CANON_MODEL, '…');
     const resp = await client.chat.completions.create({
       model: CANON_MODEL,
       response_format: schema,
       messages: [
-  { role: 'system', content: PROMPT_KB_SYSTEM_FR_OPHELIA },
-  { role: 'user',   content: `Source: ${sourcePath}\n\n${ch}` }
-]
+        { role: 'system', content: PROMPT_KB_SYSTEM_FR_OPHELIA },
+        { role: 'user', content: `Source: ${sourcePath}\n\n${ch}` }
+      ]
     });
     const pkt = JSON.parse(resp.choices[0].message.content);
-    for (const k of Object.keys(acc)) acc[k].push(...(pkt[k]||[]));
+    for (const k of Object.keys(acc)) acc[k].push(...(pkt[k] || []));
     console.log('  ✅ Extraction d\'entités', sourcePath, 'via', CANON_MODEL, '…');
   }
 
   // garantir la présence de la source
-  for (const arr of Object.values(acc)){
-    for (const it of arr){
-      if (Array.isArray(it.sources) && it.sources.length===0) it.sources=[sourcePath];
+  for (const arr of Object.values(acc)) {
+    for (const it of arr) {
+      if (Array.isArray(it.sources) && it.sources.length === 0) it.sources = [sourcePath];
       if (typeof it.source === 'string' && !it.source) it.source = sourcePath;
     }
   }
   return acc;
 }
 
-function mergeKB(kbList){
-  const out = { people:new Map(), orgs:new Map(), places:new Map(), projects:new Map(), acts:[] };
-  const upsert = (map,key,obj,mergeFn)=>{
+function mergeKB(kbList) {
+  const out = { people: new Map(), orgs: new Map(), places: new Map(), projects: new Map(), acts: [] };
+  const upsert = (map, key, obj, mergeFn) => {
     const k = normKey(key);
     if (!map.has(k)) { map.set(k, JSON.parse(JSON.stringify(obj))); return; }
     const prev = map.get(k);
-    map.set(k, mergeFn(prev,obj));
+    map.set(k, mergeFn(prev, obj));
   };
 
-  for (const kb of kbList){
-    for (const p of kb.people){
-      const key = p.name || (p.aliases?.[0]||'');
-      upsert(out.people, key, p, (a,b)=>({
-        name: a.name.length>=b.name.length ? a.name : b.name,
+  for (const kb of kbList) {
+    for (const p of kb.people) {
+      const key = p.name || (p.aliases?.[0] || '');
+      upsert(out.people, key, p, (a, b) => ({
+        name: a.name.length >= b.name.length ? a.name : b.name,
         role: a.role || b.role, org: a.org || b.org,
-        aliases: Array.from(new Set([...(a.aliases||[]), ...(b.aliases||[])])),
-        summary: (a.summary||'').length>=(b.summary||'').length ? a.summary : b.summary,
-        sources: Array.from(new Set([...(a.sources||[]), ...(b.sources||[])]))
+        aliases: Array.from(new Set([...(a.aliases || []), ...(b.aliases || [])])),
+        summary: (a.summary || '').length >= (b.summary || '').length ? a.summary : b.summary,
+        sources: Array.from(new Set([...(a.sources || []), ...(b.sources || [])]))
       }));
     }
-    for (const o of kb.orgs){
-      upsert(out.orgs, o.name, o, (a,b)=>({
-        name:a.name, type:a.type||b.type,
-        aliases:Array.from(new Set([...(a.aliases||[]), ...(b.aliases||[])])),
-        summary:(a.summary||'').length>=(b.summary||'').length?a.summary:b.summary,
-        sources:Array.from(new Set([...(a.sources||[]), ...(b.sources||[])]))
+    for (const o of kb.orgs) {
+      upsert(out.orgs, o.name, o, (a, b) => ({
+        name: a.name, type: a.type || b.type,
+        aliases: Array.from(new Set([...(a.aliases || []), ...(b.aliases || [])])),
+        summary: (a.summary || '').length >= (b.summary || '').length ? a.summary : b.summary,
+        sources: Array.from(new Set([...(a.sources || []), ...(b.sources || [])]))
       }));
     }
-    for (const pl of kb.places){
-      upsert(out.places, pl.name, pl, (a,b)=>({
-        name:a.name, kind:a.kind||b.kind, address:a.address||b.address,
-        aliases:Array.from(new Set([...(a.aliases||[]), ...(b.aliases||[])])),
-        summary:(a.summary||'').length>=(b.summary||'').length?a.summary:b.summary,
-        sources:Array.from(new Set([...(a.sources||[]), ...(b.sources||[])]))
+    for (const pl of kb.places) {
+      upsert(out.places, pl.name, pl, (a, b) => ({
+        name: a.name, kind: a.kind || b.kind, address: a.address || b.address,
+        aliases: Array.from(new Set([...(a.aliases || []), ...(b.aliases || [])])),
+        summary: (a.summary || '').length >= (b.summary || '').length ? a.summary : b.summary,
+        sources: Array.from(new Set([...(a.sources || []), ...(b.sources || [])]))
       }));
     }
-    for (const pr of kb.projects){
-      upsert(out.projects, pr.name, pr, (a,b)=>({
-        name:a.name, owner:a.owner||b.owner, status:a.status||b.status,
-        budget_eur: Number.isFinite(a.budget_eur)?a.budget_eur:b.budget_eur,
-        summary:(a.summary||'').length>=(b.summary||'').length?a.summary:b.summary,
-        tags:Array.from(new Set([...(a.tags||[]), ...(b.tags||[])])),
-        sources:Array.from(new Set([...(a.sources||[]), ...(b.sources||[])]))
+    for (const pr of kb.projects) {
+      upsert(out.projects, pr.name, pr, (a, b) => ({
+        name: a.name, owner: a.owner || b.owner, status: a.status || b.status,
+        budget_eur: Number.isFinite(a.budget_eur) ? a.budget_eur : b.budget_eur,
+        summary: (a.summary || '').length >= (b.summary || '').length ? a.summary : b.summary,
+        tags: Array.from(new Set([...(a.tags || []), ...(b.tags || [])])),
+        sources: Array.from(new Set([...(a.sources || []), ...(b.sources || [])]))
       }));
     }
-    out.acts.push(...(kb.acts||[]));
+    out.acts.push(...(kb.acts || []));
   }
 
   return {
-    people:  Array.from(out.people.values()).sort((a,b)=>a.name.localeCompare(b.name,'fr')),
-    orgs:    Array.from(out.orgs.values()).sort((a,b)=>a.name.localeCompare(b.name,'fr')),
-    places:  Array.from(out.places.values()).sort((a,b)=>a.name.localeCompare(b.name,'fr')),
-    projects:Array.from(out.projects.values()).sort((a,b)=>a.name.localeCompare(b.name,'fr')),
-    acts:    out.acts
+    people: Array.from(out.people.values()).sort((a, b) => a.name.localeCompare(b.name, 'fr')),
+    orgs: Array.from(out.orgs.values()).sort((a, b) => a.name.localeCompare(b.name, 'fr')),
+    places: Array.from(out.places.values()).sort((a, b) => a.name.localeCompare(b.name, 'fr')),
+    projects: Array.from(out.projects.values()).sort((a, b) => a.name.localeCompare(b.name, 'fr')),
+    acts: out.acts
   };
 }
 
@@ -1550,12 +1584,12 @@ async function generateNarrativeForSession({ date, sources, odjItems, actItems, 
     counts: {
       odj: odjItems.length,
       acts: actItems.length,
-      correspondance: compareRows.filter(r=>r.status==='CORRESPONDANCE').length,
-      ordre_mod:      compareRows.filter(r=>r.status==='ORDRE_MODIFIE').length,
-      libelle_div:    compareRows.filter(r=>r.status==='LIBELLE_DIVERGENT').length,
-      perimetre_mod:  compareRows.filter(r=>r.status==='PERIMETRE_MODIFIE').length,
-      absents:        compareRows.filter(r=>r.status==='ABSENT_DANS_ACTES').length,
-      ajouts:         compareRows.filter(r=>r.status==='AJOUT_HORS_ODJ').length,
+      correspondance: compareRows.filter(r => r.status === 'CORRESPONDANCE').length,
+      ordre_mod: compareRows.filter(r => r.status === 'ORDRE_MODIFIE').length,
+      libelle_div: compareRows.filter(r => r.status === 'LIBELLE_DIVERGENT').length,
+      perimetre_mod: compareRows.filter(r => r.status === 'PERIMETRE_MODIFIE').length,
+      absents: compareRows.filter(r => r.status === 'ABSENT_DANS_ACTES').length,
+      ajouts: compareRows.filter(r => r.status === 'AJOUT_HORS_ODJ').length,
     }
   };
 
@@ -1565,7 +1599,7 @@ async function generateNarrativeForSession({ date, sources, odjItems, actItems, 
     temperature: 0.1,
     messages: [
       { role: 'system', content: PROMPT_NARRATIVE_SYSTEM_FR_OPHELIA },
-      { role: 'user',   content: JSON.stringify(payload) }
+      { role: 'user', content: JSON.stringify(payload) }
     ]
   });
   console.log('  ✅ Narrative', date, 'via', JUDGE_MODEL, '…');
@@ -1575,42 +1609,42 @@ async function generateNarrativeForSession({ date, sources, odjItems, actItems, 
 function fmtItemLine(it) {
   const a = it.action ? `_${it.action}_` : '';
   const d = it.domain ? `• _${it.domain}_` : '';
-  const t = it.title || (it.raw || '').slice(0,120);
-  return `- [#${it.order ?? ''}] ${t} ${a} ${d}`.replace(/\s+/g,' ').trim();
+  const t = it.title || (it.raw || '').slice(0, 120);
+  return `- [#${it.order ?? ''}] ${t} ${a} ${d}`.replace(/\s+/g, ' ').trim();
 }
-function topN(rows, status, n=5) {
-  return rows.filter(r=>r.status===status).slice(0,n);
+function topN(rows, status, n = 5) {
+  return rows.filter(r => r.status === status).slice(0, n);
 }
 
-function buildSessionMarkdown(R, narrativeText='') {
+function buildSessionMarkdown(R, narrativeText = '') {
   const date = R.date;
   const srcs = [];
-  if (R.sources?.odj)   srcs.push(`[ODJ](${R.sources.odj.url})`);
+  if (R.sources?.odj) srcs.push(`[ODJ](${R.sources.odj.url})`);
   if (R.sources?.delib) srcs.push(`[Délibérations](${R.sources.delib.url})`);
-  if (R.sources?.pv)    srcs.push(`[PV](${R.sources.pv.url})`);
+  if (R.sources?.pv) srcs.push(`[PV](${R.sources.pv.url})`);
   const srcLine = srcs.join(' · ') || '—';
 
   const rows = (R.findings?.[0]?.rows) || [];
-  const summary = rows.reduce((acc,r)=>{ acc[r.status]=(acc[r.status]||0)+1; return acc; },{});
+  const summary = rows.reduce((acc, r) => { acc[r.status] = (acc[r.status] || 0) + 1; return acc; }, {});
 
-  const odjList  = (R.odjItems||[]).map(fmtItemLine).join('\n') || '_Aucun point détecté._';
-  const actList  = (R.actItems||[]).map(fmtItemLine).join('\n') || '_Aucune délibération détectée._';
+  const odjList = (R.odjItems || []).map(fmtItemLine).join('\n') || '_Aucun point détecté._';
+  const actList = (R.actItems || []).map(fmtItemLine).join('\n') || '_Aucune délibération détectée._';
 
-  const absents  = topN(rows,'ABSENT_DANS_ACTES').map(r=>`- ODJ #${r.odj_order}: ${r.odj_title}`).join('\n');
-  const ajouts   = topN(rows,'AJOUT_HORS_ODJ').map(r=>`- Acte #${r.act_order}: ${r.act_title}`).join('\n');
-  const ordreMod = topN(rows,'ORDRE_MODIFIE').map(r=>`- ODJ #${r.odj_order} ↔ Acte #${r.act_order}: ${r.odj_title}`).join('\n');
-  const perimMod = topN(rows,'PERIMETRE_MODIFIE').map(r=>`- ${r.odj_title} ↔ ${r.act_title}`).join('\n');
+  const absents = topN(rows, 'ABSENT_DANS_ACTES').map(r => `- ODJ #${r.odj_order}: ${r.odj_title}`).join('\n');
+  const ajouts = topN(rows, 'AJOUT_HORS_ODJ').map(r => `- Acte #${r.act_order}: ${r.act_title}`).join('\n');
+  const ordreMod = topN(rows, 'ORDRE_MODIFIE').map(r => `- ODJ #${r.odj_order} ↔ Acte #${r.act_order}: ${r.odj_title}`).join('\n');
+  const perimMod = topN(rows, 'PERIMETRE_MODIFIE').map(r => `- ${r.odj_title} ↔ ${r.act_title}`).join('\n');
 
   const table = mdTable(
-    ['Statut','#ODJ','#Acte','Similarité','Libellé ODJ','Libellé Acte'],
-    rows.map(r=>[
-      r.status, String(r.odj_order||''), String(r.act_order||''),
-      String(r.similarity||''), r.odj_title||'', r.act_title||''
+    ['Statut', '#ODJ', '#Acte', 'Similarité', 'Libellé ODJ', 'Libellé Acte'],
+    rows.map(r => [
+      r.status, String(r.odj_order || ''), String(r.act_order || ''),
+      String(r.similarity || ''), r.odj_title || '', r.act_title || ''
     ])
   );
 
   return [
-`# Conseil municipal — Corte — ${date}
+    `# Conseil municipal — Corte — ${date}
 
 **Sources** : ${srcLine}
 
@@ -1621,13 +1655,13 @@ ${odjList}
 ${actList}
 
 ## Analyse ODJ ↔ ${R.actKind || 'Actes'}
-**Correspondance**: ${summary.CORRESPONDANCE||0} · **Ordre modifié**: ${summary.ORDRE_MODIFIE||0} · **Libellé divergent**: ${summary.LIBELLE_DIVERGENT||0} · **Périmètre modifié**: ${summary.PERIMETRE_MODIFIE||0} · **Absents**: ${summary.ABSENT_DANS_ACTES||0} · **Ajouts**: ${summary.AJOUT_HORS_ODJ||0}
+**Correspondance**: ${summary.CORRESPONDANCE || 0} · **Ordre modifié**: ${summary.ORDRE_MODIFIE || 0} · **Libellé divergent**: ${summary.LIBELLE_DIVERGENT || 0} · **Périmètre modifié**: ${summary.PERIMETRE_MODIFIE || 0} · **Absents**: ${summary.ABSENT_DANS_ACTES || 0} · **Ajouts**: ${summary.AJOUT_HORS_ODJ || 0}
 
 ### Points à signaler
 ${absents || '- RAS'}
-${ajouts  ? '\n' + ajouts  : ''}
-${ordreMod? '\n' + ordreMod: ''}
-${perimMod? '\n' + perimMod: ''}
+${ajouts ? '\n' + ajouts : ''}
+${ordreMod ? '\n' + ordreMod : ''}
+${perimMod ? '\n' + perimMod : ''}
 
 ### Détails
 ${table}
@@ -1640,15 +1674,15 @@ ${narrativeText || '_Résumé non disponible._'}
 }
 
 
-async function buildOpheliaKnowledgeBase(){
-  await fs.mkdir(CONSEIL_DIR, { recursive:true });
-  const entries = await fs.readdir(CONSEILS_MD_DIR).catch(()=>[]);
-  const mdFiles = entries.filter(f=>f.toLowerCase().endsWith('.md'));
+async function buildOpheliaKnowledgeBase() {
+  await fs.mkdir(CONSEIL_DIR, { recursive: true });
+  const entries = await fs.readdir(CONSEILS_MD_DIR).catch(() => []);
+  const mdFiles = entries.filter(f => f.toLowerCase().endsWith('.md'));
   const kbs = [];
 
-  for (const f of mdFiles){
+  for (const f of mdFiles) {
     const p = path.join(CONSEILS_MD_DIR, f);
-    const md = await fs.readFile(p, 'utf8').catch(()=> '');
+    const md = await fs.readFile(p, 'utf8').catch(() => '');
     if (md.trim().length < 50) continue;
     const kb = await extractEntitiesFromMarkdown(md, p);
     kbs.push(kb);
@@ -1656,22 +1690,22 @@ async function buildOpheliaKnowledgeBase(){
 
   const merged = mergeKB(kbs);
 
-  const OPHELIA_KB_MD   = path.join(CONSEIL_DIR, 'ophelia_knowledge.md');
+  const OPHELIA_KB_MD = path.join(CONSEIL_DIR, 'ophelia_knowledge.md');
   const OPHELIA_KB_JSON = path.join(CONSEIL_DIR, 'ophelia_knowledge.json');
 
   let out = `# Base de connaissance — Ophélia\n\nSource: ODJ, PV, délibérations (OCR → Markdown).\n`;
 
-  const esc = s => String(s).replaceAll('|','\\|');
-  const table = (hdr, rows) => `\n| ${hdr.join(' | ')} |\n| ${hdr.map(()=> '---').join(' | ')} |\n` + rows.map(r=>`| ${r.map(esc).join(' | ')} |`).join('\n') + '\n';
+  const esc = s => String(s).replaceAll('|', '\\|');
+  const table = (hdr, rows) => `\n| ${hdr.join(' | ')} |\n| ${hdr.map(() => '---').join(' | ')} |\n` + rows.map(r => `| ${r.map(esc).join(' | ')} |`).join('\n') + '\n';
 
-  out += table(['Nom','Rôle','Organisation','Alias','Source'],
-               merged.people.map(x=>[x.name, x.role, x.org, (x.aliases||[]).join(', '), (x.sources||[])[0]||'']));
-  out += table(['Organisation','Type','Alias','Source'],
-               merged.orgs.map(x=>[x.name, x.type, (x.aliases||[]).join(', '), (x.sources||[])[0]||'']));
-  out += table(['Lieu','Type','Adresse','Source'],
-               merged.places.map(x=>[x.name, x.kind, x.address, (x.sources||[])[0]||'']));
-  out += table(['Projet','Porteur','Statut','Budget (€)','Tags','Source'],
-               merged.projects.map(x=>[x.name, x.owner, x.status, String(x.budget_eur||''), (x.tags||[]).join(', '), (x.sources||[])[0]||'']));
+  out += table(['Nom', 'Rôle', 'Organisation', 'Alias', 'Source'],
+    merged.people.map(x => [x.name, x.role, x.org, (x.aliases || []).join(', '), (x.sources || [])[0] || '']));
+  out += table(['Organisation', 'Type', 'Alias', 'Source'],
+    merged.orgs.map(x => [x.name, x.type, (x.aliases || []).join(', '), (x.sources || [])[0] || '']));
+  out += table(['Lieu', 'Type', 'Adresse', 'Source'],
+    merged.places.map(x => [x.name, x.kind, x.address, (x.sources || [])[0] || '']));
+  out += table(['Projet', 'Porteur', 'Statut', 'Budget (€)', 'Tags', 'Source'],
+    merged.projects.map(x => [x.name, x.owner, x.status, String(x.budget_eur || ''), (x.tags || []).join(', '), (x.sources || [])[0] || '']));
 
   await fs.writeFile(OPHELIA_KB_MD, out, 'utf8');
   await fs.writeFile(OPHELIA_KB_JSON, JSON.stringify(merged, null, 2), 'utf8');
@@ -1680,31 +1714,35 @@ async function buildOpheliaKnowledgeBase(){
 }
 
 
-async function generateNarrativeForSessionKb(R, kb){
-  const schema = { type:"json_schema", json_schema:{
-    name:"AuditNarrative",
-    schema:{ type:"object", properties:{
-      contexte:{type:"string"},
-      finalite:{type:"string"},
-      synthese:{type:"string"},
-      points_sensibles:{type:"array", items:{type:"string"}},
-      recommandations:{type:"array", items:{type:"string"}}
-    }, required:["contexte","finalite","synthese","points_sensibles","recommandations"], additionalProperties:false },
-    strict:true
-  }};
+async function generateNarrativeForSessionKb(R, kb) {
+  const schema = {
+    type: "json_schema", json_schema: {
+      name: "AuditNarrative",
+      schema: {
+        type: "object", properties: {
+          contexte: { type: "string" },
+          finalite: { type: "string" },
+          synthese: { type: "string" },
+          points_sensibles: { type: "array", items: { type: "string" } },
+          recommandations: { type: "array", items: { type: "string" } }
+        }, required: ["contexte", "finalite", "synthese", "points_sensibles", "recommandations"], additionalProperties: false
+      },
+      strict: true
+    }
+  };
 
-  const stats = (rows)=> {
-    const s = rows.reduce((a,r)=>{ a[r.status]=(a[r.status]||0)+1; return a; },{});
-    return `correspondances:${s.CORRESPONDANCE||0}, ordre_modifié:${s.ORDRE_MODIFIE||0}, libellé_divergent:${s.LIBELLE_DIVERGENT||0}, périmètre_modifié:${s.PERIMETRE_MODIFIE||0}, absents:${s.ABSENT_DANS_ACTES||0}, ajouts:${s.AJOUT_HORS_ODJ||0}`;
+  const stats = (rows) => {
+    const s = rows.reduce((a, r) => { a[r.status] = (a[r.status] || 0) + 1; return a; }, {});
+    return `correspondances:${s.CORRESPONDANCE || 0}, ordre_modifié:${s.ORDRE_MODIFIE || 0}, libellé_divergent:${s.LIBELLE_DIVERGENT || 0}, périmètre_modifié:${s.PERIMETRE_MODIFIE || 0}, absents:${s.ABSENT_DANS_ACTES || 0}, ajouts:${s.AJOUT_HORS_ODJ || 0}`;
   };
 
   const payload = {
     date: R.date,
     sources: R.sources,
-    resume: (R.findings||[]).map(b=>({ against:b.against, stats:stats(b.rows||[]) })),
+    resume: (R.findings || []).map(b => ({ against: b.against, stats: stats(b.rows || []) })),
     kb_hint: {
-      people: kb.people.slice(0,20).map(x=>({name:x.name, role:x.role, org:x.org})),
-      projects: kb.projects.slice(0,20).map(x=>({name:x.name, owner:x.owner, status:x.status}))
+      people: kb.people.slice(0, 20).map(x => ({ name: x.name, role: x.role, org: x.org })),
+      projects: kb.projects.slice(0, 20).map(x => ({ name: x.name, owner: x.owner, status: x.status }))
     }
   };
 
@@ -1713,9 +1751,9 @@ async function generateNarrativeForSessionKb(R, kb){
     model: JUDGE_MODEL,
     response_format: schema,
     messages: [
-  { role: 'system', content: PROMPT_NARRATIVE_SYSTEM_FR_OPHELIA },
-  { role: 'user',   content: JSON.stringify(payload) }
-]
+      { role: 'system', content: PROMPT_NARRATIVE_SYSTEM_FR_OPHELIA },
+      { role: 'user', content: JSON.stringify(payload) }
+    ]
   });
   console.log('  ✅ Narrative', R.date, 'via', JUDGE_MODEL, '…');
   return JSON.parse(resp.choices[0].message.content);
@@ -1759,13 +1797,13 @@ const kb = await buildOpheliaKnowledgeBase(); // <-- construire la base après g
 let md = `# Audit ODJ ↔ Actes (IA, précision maximale) — Commune de Corte\n\n`;
 md += `Méthode : canonicalisation ${CANON_MODEL}, embeddings ${EMBED_MODEL}, affectation hongroise, jugement ${JUDGE_MODEL}.\n\n`;
 
-const csvHeaders = ['date','contre','status','odj_order','act_order','similarity','odj_title','act_title','odj_url','act_url'];
+const csvHeaders = ['date', 'contre', 'status', 'odj_order', 'act_order', 'similarity', 'odj_title', 'act_title', 'odj_url', 'act_url'];
 const csv = [csvHeaders.join(',')];
 const json = [];
 
 for (const R of reports) {
   md += `## Séance ${R.date}\n`;
-  if (R.error){ md += `Erreur: ${R.error}\n\n`; continue; }
+  if (R.error) { md += `Erreur: ${R.error}\n\n`; continue; }
   const src = [];
   if (R.sources?.odj) src.push(`[ODJ](${R.sources.odj.url})`);
   if (R.sources?.delib) src.push(`[Délibérations](${R.sources.delib.url})`);
@@ -1776,8 +1814,8 @@ for (const R of reports) {
     const rows = bloc.rows || [];
     const summary = rows.reduce((acc, r) => { acc[r.status] = (acc[r.status] || 0) + 1; return acc; }, {});
     md += `### ODJ → ${bloc.against}\n`;
-    md += `**Correspondance**: ${summary.CORRESPONDANCE||0} · **Ordre modifié**: ${summary.ORDRE_MODIFIE||0} · **Libellé divergent**: ${summary.LIBELLE_DIVERGENT||0} · **Périmètre modifié**: ${summary.PERIMETRE_MODIFIE||0} · **Absents**: ${summary.ABSENT_DANS_ACTES||0} · **Ajouts**: ${summary.AJOUT_HORS_ODJ||0}\n\n`;
-    md += mdTable(['Statut','#ODJ','#Acte','Similarité','Libellé ODJ','Libellé Acte'],
+    md += `**Correspondance**: ${summary.CORRESPONDANCE || 0} · **Ordre modifié**: ${summary.ORDRE_MODIFIE || 0} · **Libellé divergent**: ${summary.LIBELLE_DIVERGENT || 0} · **Périmètre modifié**: ${summary.PERIMETRE_MODIFIE || 0} · **Absents**: ${summary.ABSENT_DANS_ACTES || 0} · **Ajouts**: ${summary.AJOUT_HORS_ODJ || 0}\n\n`;
+    md += mdTable(['Statut', '#ODJ', '#Acte', 'Similarité', 'Libellé ODJ', 'Libellé Acte'],
       rows.map(r => [
         r.status,
         String(r.odj_order || ''),
@@ -1792,8 +1830,8 @@ for (const R of reports) {
         R.date, bloc.against, r.status,
         r.odj_order || '', r.act_order || '',
         r.similarity || '',
-        `"${(r.odj_title || '').replace(/"/g,'""')}"`,
-        `"${(r.act_title || '').replace(/"/g,'""')}"`,
+        `"${(r.odj_title || '').replace(/"/g, '""')}"`,
+        `"${(r.act_title || '').replace(/"/g, '""')}"`,
         R.sources?.odj?.url || '',
         (bloc.against === 'PV' ? R.sources?.pv?.url : R.sources?.delib?.url) || ''
       ].join(','));
@@ -1802,30 +1840,30 @@ for (const R of reports) {
   }
   md += '\n';
 
-  for (const bloc of (R.findings||[])) {
+  for (const bloc of (R.findings || [])) {
     const rows = bloc.rows || [];
-    const summary = rows.reduce((acc,r)=>{ acc[r.status]=(acc[r.status]||0)+1; return acc; },{});
+    const summary = rows.reduce((acc, r) => { acc[r.status] = (acc[r.status] || 0) + 1; return acc; }, {});
     md += `### ODJ → ${bloc.against}\n`;
-    md += `**Correspondance**: ${summary.CORRESPONDANCE||0} · **Ordre modifié**: ${summary.ORDRE_MODIFIE||0} · **Libellé divergent**: ${summary.LIBELLE_DIVERGENT||0} · **Périmètre modifié**: ${summary.PERIMETRE_MODIFIE||0} · **Absents**: ${summary.ABSENT_DANS_ACTES||0} · **Ajouts**: ${summary.AJOUT_HORS_ODJ||0}\n\n`;
-    md += mdTable(['Statut','#ODJ','#Acte','Similarité','Libellé ODJ','Libellé Acte'],
-      rows.map(r=>[
-        r.status, String(r.odj_order||''), String(r.act_order||''), String(r.similarity||''),
-        r.odj_title||'', r.act_title||''
+    md += `**Correspondance**: ${summary.CORRESPONDANCE || 0} · **Ordre modifié**: ${summary.ORDRE_MODIFIE || 0} · **Libellé divergent**: ${summary.LIBELLE_DIVERGENT || 0} · **Périmètre modifié**: ${summary.PERIMETRE_MODIFIE || 0} · **Absents**: ${summary.ABSENT_DANS_ACTES || 0} · **Ajouts**: ${summary.AJOUT_HORS_ODJ || 0}\n\n`;
+    md += mdTable(['Statut', '#ODJ', '#Acte', 'Similarité', 'Libellé ODJ', 'Libellé Acte'],
+      rows.map(r => [
+        r.status, String(r.odj_order || ''), String(r.act_order || ''), String(r.similarity || ''),
+        r.odj_title || '', r.act_title || ''
       ])
     );
 
     for (const r of rows) {
       csv.push([
         R.date, bloc.against, r.status,
-        r.odj_order||'', r.act_order||'',
-        r.similarity||'',
-        `"${(r.odj_title||'').replace(/"/g,'""')}"`,
-        `"${(r.act_title||'').replace(/"/g,'""')}"`,
+        r.odj_order || '', r.act_order || '',
+        r.similarity || '',
+        `"${(r.odj_title || '').replace(/"/g, '""')}"`,
+        `"${(r.act_title || '').replace(/"/g, '""')}"`,
         R.sources?.odj?.url || '',
-        (bloc.against==='PV' ? R.sources?.pv?.url : R.sources?.delib?.url) || ''
+        (bloc.against === 'PV' ? R.sources?.pv?.url : R.sources?.delib?.url) || ''
       ].join(','));
     }
-    json.push({ date:R.date, against:bloc.against, rows, sources:R.sources });
+    json.push({ date: R.date, against: bloc.against, rows, sources: R.sources });
   }
 
   // --- AJOUT: encadré IA par séance ---
@@ -1836,14 +1874,14 @@ for (const R of reports) {
     md += `\n#### Contexte\n${note.contexte}\n\n`;
     md += `**Finalité.** ${note.finalite}\n\n`;
     md += `**Synthèse.** ${note.synthese}\n\n`;
-    if ((note.points_sensibles||[]).length){
-      md += `**Points sensibles.**\n` + note.points_sensibles.map(x=>`- ${x}`).join('\n') + '\n\n';
+    if ((note.points_sensibles || []).length) {
+      md += `**Points sensibles.**\n` + note.points_sensibles.map(x => `- ${x}`).join('\n') + '\n\n';
     }
-    if ((note.recommandations||[]).length){
-      md += `**Recommandations.**\n` + note.recommandations.map(x=>`- ${x}`).join('\n') + '\n\n';
+    if ((note.recommandations || []).length) {
+      md += `**Recommandations.**\n` + note.recommandations.map(x => `- ${x}`).join('\n') + '\n\n';
     }
-  } catch(e){
-    console.warn('Narrative IA indisponible:', e?.message||e);
+  } catch (e) {
+    console.warn('Narrative IA indisponible:', e?.message || e);
   }
 
   md += '\n';
@@ -1851,7 +1889,7 @@ for (const R of reports) {
 
 const SESSIONS_DIR = path.join(process.cwd(), 'public', 'docs', 'conseils');
 
-await fs.mkdir(SESSIONS_DIR, { recursive:true });
+await fs.mkdir(SESSIONS_DIR, { recursive: true });
 
 for (const R of reports) {
   try {
@@ -1869,7 +1907,7 @@ for (const R of reports) {
     const outPath = path.join(SESSIONS_DIR, `corte-${R.date}.md`);
     await fs.writeFile(outPath, md, 'utf8');
     console.log(`✓ Note de séance écrite: ${path.relative(process.cwd(), outPath)}`);
-  } catch(e) {
+  } catch (e) {
     console.error(`✗ Note de séance ${R.date}:`, e.message || e);
   }
 }

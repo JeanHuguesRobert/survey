@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { getSupabase } from "./supabase";
 import { getConfig } from "../common/config/instanceConfig.client.js";
 
 /**
@@ -14,17 +14,14 @@ export async function detectGazetteAssignments(group) {
 
   const assignments = [];
   const groupName = group.name.trim();
-  const globalEditorName = getConfig(
-    "global_gazette_editor_group",
-    import.meta.env.VITE_GLOBAL_GAZETTE_EDITOR_GROUP || "La Gazette"
-  );
+  const globalEditorName = getConfig("global_gazette_editor_group", "La Gazette");
 
   if (groupName === globalEditorName) {
     assignments.push("global");
   }
 
   try {
-    const { data } = await supabase
+    const { data } = await getSupabase()
       .from("posts")
       .select("id")
       .eq("metadata->>gazette", groupName)

@@ -5,7 +5,7 @@
 // ============================================================================
 
 import { createClient } from "@supabase/supabase-js";
-import { loadInstanceConfig, getConfigValue } from "../../common/config/instanceConfig.backend.js";
+import { loadInstanceConfig, getConfig } from "../../common/config/instanceConfig.backend.js";
 
 export async function handler(event, context) {
   // Vérification de la méthode
@@ -48,8 +48,8 @@ export async function handler(event, context) {
   try {
     // Charger la configuration
     await loadInstanceConfig();
-    const supabaseUrl = getConfigValue("supabase_url");
-    const supabaseServiceKey = getConfigValue("supabase_service_role_key");
+    const supabaseUrl = getConfig("supabase_url");
+    const supabaseServiceKey = getConfig("supabase_service_role_key");
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const {

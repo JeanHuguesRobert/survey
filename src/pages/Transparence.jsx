@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import {
   CITY_NAME,
   HASHTAG,
@@ -69,7 +69,7 @@ export default function Transparence() {
         setLoading(false);
         return;
       }
-      if (!supabase) {
+      if (!getSupabase()) {
         setError(
           "La connexion à la base de données est indisponible. Vérifiez la configuration Supabase."
         );
@@ -78,7 +78,7 @@ export default function Transparence() {
       }
 
       setLoading(true);
-      const { data, error: dbError } = await supabase
+      const { data, error: dbError } = await getSupabase()
         .from("municipal_transparency")
         .select("*")
         .order("commune_name");
@@ -200,7 +200,7 @@ export default function Transparence() {
     setError("");
     setSuccessMessage("");
 
-    if (!supabase) {
+    if (!getSupabase()) {
       setError("Configuration Supabase manquante : impossible d'enregistrer les données.");
       return;
     }
@@ -223,7 +223,7 @@ export default function Transparence() {
       population: formData.population === "" ? null : formData.population,
     };
 
-    const { data, error: dbError } = await supabase
+    const { data, error: dbError } = await getSupabase()
       .from("municipal_transparency")
       .upsert(payload, { returning: "representation" });
 

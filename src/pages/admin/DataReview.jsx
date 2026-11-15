@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { useSupabase } from "../../contexts/SupabaseContext";
 import { getUserRole, ROLE_ADMIN } from "../../lib/permissions";
 
@@ -75,7 +75,7 @@ export function DataReview() {
     try {
       setLoading(true);
 
-      let query = supabase
+      let query = getSupabase()
         .from("collected_data")
         .select(
           `
@@ -128,7 +128,7 @@ export function DataReview() {
   // Change status
   const handleChangeStatus = async (id, newStatus) => {
     try {
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from("collected_data")
         .update({ status: newStatus })
         .eq("id", id);

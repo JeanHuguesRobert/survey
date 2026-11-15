@@ -1,0 +1,27 @@
+# Cogentia corpus navigation exclusions for the legacy survey/Ophélia repo.
+# Keep human-facing design/API notes indexed; keep generated/runtime/build copies out.
+
+.github/**
+.gemini/**
+.trae/**
+.netlify/**
+.storybook/**
+.supabase/**
+.vscode/**
+.zed/**
+
+dist/**
+logs/**
+node_modules/**
+
+instances/**
+mcp/**
+packages/**
+public/docs/**
+public/prompts/**
+scripts/*.md
+widget/**
+
+AI_CSS_RULES.md
+GEMINI.md
+css-class-report.md

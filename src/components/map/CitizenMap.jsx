@@ -6,7 +6,7 @@ import LocateControl from "./LocateControl";
 import GeoportalControls from "./GeoportalControls";
 import MunicipalPoiLayer from "./layers/MunicipalPoiLayer";
 import MunicipalEventsLayer from "./layers/MunicipalEventsLayer";
-import { useInstanceConfig } from "../../lib/useInstanceConfig.js";
+import { getConfig } from "../../common/config/instanceConfig.client.js";
 
 // Fix pour les icônes Leaflet manquantes
 import icon from "leaflet/dist/images/marker-icon.png";
@@ -21,13 +21,9 @@ function getDefaultCenter() {
   const lat = getConfig("map_default_lat");
   const lng = getConfig("map_default_lng");
   if (lat && lng) {
-    return [lat, lng];
+    return [Number(lat), Number(lng)];
   }
-  // Fallback sur env var
-  const envCenter = import.meta.env.VITE_MAP_DEFAULT_CENTER;
-  if (envCenter && envCenter.includes(",")) {
-    return envCenter.split(",").map(Number);
-  }
+  // Fallback
   return DEFAULT_COORDS;
 }
 

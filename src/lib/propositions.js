@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { getSupabase } from "./supabase";
 import { appendOrMergeLastModifiedBy } from "./socialMetadata";
 
 // Réexport de validatePetitionUrl depuis le module centralisé pour compatibilité
@@ -40,7 +40,7 @@ export async function createPropositionWithTags({
     displayName: userDisplayName,
   });
 
-  const { data: proposition, error: propError } = await supabase
+  const { data: proposition, error: propError } = await getSupabase()
     .from("propositions")
     .insert({
       title: title.trim(),
@@ -65,7 +65,7 @@ export async function createPropositionWithTags({
 
   let createdTagIds = [];
   if (tagsToCreate.length > 0) {
-    const { data: insertedTags, error: tagsInsertError } = await supabase
+    const { data: insertedTags, error: tagsInsertError } = await getSupabase()
       .from("tags")
       .insert(tagsToCreate)
       .select();
@@ -82,7 +82,7 @@ export async function createPropositionWithTags({
       tag_id: tagId,
     }));
 
-    const { error: linkError } = await supabase.from("proposition_tags").insert(linkPayload);
+    const { error: linkError } = await getSupabase().from("proposition_tags").insert(linkPayload);
 
     if (linkError) throw linkError;
   }

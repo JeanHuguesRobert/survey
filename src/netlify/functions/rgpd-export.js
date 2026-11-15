@@ -5,7 +5,7 @@
 // ============================================================================
 
 import { createClient } from "@supabase/supabase-js";
-import { loadInstanceConfig, getConfigValue } from "../../common/config/instanceConfig.backend.js";
+import { loadInstanceConfig, getConfig } from "../../common/config/instanceConfig.backend.js";
 
 export async function handler(event, context) {
   // Vérification de la méthode
@@ -30,8 +30,8 @@ export async function handler(event, context) {
   try {
     // Charger la configuration
     await loadInstanceConfig();
-    const supabaseUrl = getConfigValue("supabase_url");
-    const supabaseServiceKey = getConfigValue("supabase_service_role_key");
+    const supabaseUrl = getConfig("supabase_url");
+    const supabaseServiceKey = getConfig("supabase_service_role_key");
 
     // Vérification de l'utilisateur via Supabase
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -56,7 +56,7 @@ export async function handler(event, context) {
       rgpdInfo: {
         purpose: "Export de données personnelles - Article 20 RGPD",
         dataController: "Plateforme de participation civique",
-        contactEmail: getConfigValue("contact_email", "jean_hugues_robert@yahoo.com"),
+        contactEmail: getConfig("contact_email", "jean_hugues_robert@yahoo.com"),
       },
 
       // 1. DONNÉES PUBLIQUES (visibles par tous)

@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useRef, useCallback } from "react";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { useDataLoader } from "../lib/useStatusOperations";
 
 export const CurrentUserContext = createContext({
@@ -88,7 +88,7 @@ export function CurrentUserProvider({ children }) {
     };
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from("users")
         .upsert(profileData, { onConflict: ["id"] })
         .select()
@@ -155,7 +155,7 @@ export function CurrentUserProvider({ children }) {
           "[CurrentUserContext] Fetching profile from users table for userId:",
           authUser.id
         );
-        const promise = supabase.from("users").select("*").eq("id", authUser.id).maybeSingle();
+        const promise = getSupabase().from("users").select("*").eq("id", authUser.id).maybeSingle();
         const { data, error } = await promise;
         if (error) throw error;
         profile = data;
@@ -219,7 +219,7 @@ export function CurrentUserProvider({ children }) {
   // Auth state management
   useEffect(() => {
     console.log("[CurrentUserContext] useEffect initializing");
-    if (!supabase) {
+    if (!getSupabase()) {
       console.log("[CurrentUserContext] Supabase client not initialized");
       setError("Supabase client not initialized");
       setLoading(false);
@@ -240,7 +240,7 @@ export function CurrentUserProvider({ children }) {
     // Listen to auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = getSupabase().auth.onAuthStateChange(async (event, session) => {
       console.log(
         "[CurrentUserContext] Auth state change event:",
         event,
@@ -291,7 +291,7 @@ export function CurrentUserProvider({ children }) {
       if (updates.metadata) {
         safeUpdates.metadata = updates.metadata;
       }
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from("users")
         .upsert(
           {
@@ -323,7 +323,7 @@ export function CurrentUserProvider({ children }) {
     if (!targetUser) {
       const {
         data: { session },
-      } = await supabase.auth.getSession();
+      } = await getSupabase().auth.getSession();
       targetUser = session?.user;
     }
     if (targetUser) {

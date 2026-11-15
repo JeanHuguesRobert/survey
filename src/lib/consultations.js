@@ -3,7 +3,7 @@
 // Stockage flexible avec Supabase - Logique métier côté JavaScript
 // Supporte la fédération nationale (double écriture local + national)
 
-import { supabase } from "./supabase";
+import { getSupabase } from "./supabase";
 import { createClient } from "@supabase/supabase-js";
 import {
   NATIONAL_API_URL,
@@ -316,7 +316,7 @@ export function formatDraftDate(isoDate) {
  * @returns {Promise<Object|null>} La consultation ou null
  */
 export async function getConsultationBySlug(slug) {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("consultations")
     .select("*")
     .eq("slug", slug)
@@ -337,7 +337,7 @@ export async function getConsultationBySlug(slug) {
 export async function getActiveConsultations() {
   const now = new Date().toISOString();
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("consultations")
     .select("id, slug, title, description, response_count, starts_at, ends_at")
     .eq("status", "active")
@@ -394,7 +394,7 @@ export async function submitConsultationResponse(consultationId, responses, opti
   try {
     // Vérifier que la consultation existe et est ouverte
     // Inclure les champs de fédération pour déterminer où synchroniser
-    const { data: consultation, error: consultationError } = await supabase
+    const { data: consultation, error: consultationError } = await getSupabase()
       .from("consultations")
       .select(
         `
@@ -448,7 +448,7 @@ export async function submitConsultationResponse(consultationId, responses, opti
     };
 
     // Insérer la réponse localement
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("consultation_responses")
       .insert(responseData)
       .select()
@@ -556,7 +556,7 @@ async function syncResponseToSource(consultation, localResponseId, responses, me
     if (syncError) {
       console.warn("Erreur sync vers source:", syncError.message);
       // Marquer comme échoué
-      await supabase
+      await getSupabase()
         .from("consultation_responses")
         .update({
           sync_status: "failed",
@@ -566,7 +566,7 @@ async function syncResponseToSource(consultation, localResponseId, responses, me
         .eq("id", localResponseId);
     } else {
       // Marquer comme synchronisé
-      await supabase
+      await getSupabase()
         .from("consultation_responses")
         .update({
           sync_status: "synced",
@@ -576,7 +576,7 @@ async function syncResponseToSource(consultation, localResponseId, responses, me
         .eq("id", localResponseId);
 
       // Incrémenter le compteur de sync sur la consultation
-      await supabase
+      await getSupabase()
         .from("consultations")
         .update({
           synced_response_count: (consultation.synced_response_count || 0) + 1,
@@ -588,7 +588,7 @@ async function syncResponseToSource(consultation, localResponseId, responses, me
     }
   } catch (err) {
     console.warn("Erreur sync source:", err);
-    await supabase
+    await getSupabase()
       .from("consultation_responses")
       .update({
         sync_status: "failed",
@@ -664,14 +664,14 @@ async function syncResponseToNational(consultationSlug, responses, metadata = {}
 async function incrementResponseCount(consultationId) {
   try {
     // Récupérer le count actuel et incrémenter
-    const { data: consultation } = await supabase
+    const { data: consultation } = await getSupabase()
       .from("consultations")
       .select("response_count")
       .eq("id", consultationId)
       .single();
 
     if (consultation) {
-      await supabase
+      await getSupabase()
         .from("consultations")
         .update({
           response_count: (consultation.response_count || 0) + 1,
@@ -696,7 +696,7 @@ export async function hasAlreadyResponded(consultationId, options = {}) {
 
   if (!userId && !sessionId) return false;
 
-  let query = supabase
+  let query = getSupabase()
     .from("consultation_responses")
     .select("id")
     .eq("consultation_id", consultationId);
@@ -726,7 +726,7 @@ export async function hasAlreadyResponded(consultationId, options = {}) {
 export async function getUserResponse(consultationId, userId) {
   if (!userId) return null;
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("consultation_responses")
     .select("*")
     .eq("consultation_id", consultationId)
@@ -757,7 +757,7 @@ export async function getUserResponse(consultationId, userId) {
 export async function getConsultationStats(consultationId) {
   try {
     // Récupérer toutes les réponses
-    const { data: responses, error } = await supabase
+    const { data: responses, error } = await getSupabase()
       .from("consultation_responses")
       .select("responses, is_complete, user_id, source, user_agent_category")
       .eq("consultation_id", consultationId);
@@ -898,7 +898,7 @@ export function formatStatsForChart(stats, field) {
 export async function getConsultationResponses(consultationId, options = {}) {
   const { limit = 100, offset = 0, completeOnly = false } = options;
 
-  let query = supabase
+  let query = getSupabase()
     .from("consultation_responses")
     .select("*")
     .eq("consultation_id", consultationId)
@@ -931,7 +931,7 @@ export async function getConsultationResponses(consultationId, options = {}) {
  */
 export async function getNationalStats(consultationSlug) {
   // Si on est le hub national, on utilise notre propre base
-  const client = nationalSupabase || supabase;
+  const client = nationalSupabase || getSupabase();
 
   if (!client) {
     console.warn("Pas de client Supabase disponible pour les stats nationales");

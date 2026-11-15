@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { parseFeed, detectFeedType } from "../../lib/FeedAdapter";
 
 export default function FeedManager({ userId, onSubscriptionsChanged }) {
@@ -15,7 +15,7 @@ export default function FeedManager({ userId, onSubscriptionsChanged }) {
   }, [userId]);
 
   async function fetchSubscriptions() {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("user_feed_subscriptions")
       .select(
         `
@@ -66,7 +66,7 @@ export default function FeedManager({ userId, onSubscriptionsChanged }) {
 
     try {
       // 1. Upsert feed
-      const { data: feed, error: feedError } = await supabase
+      const { data: feed, error: feedError } = await getSupabase()
         .from("feeds")
         .upsert(
           {
@@ -83,7 +83,7 @@ export default function FeedManager({ userId, onSubscriptionsChanged }) {
       if (feedError) throw feedError;
 
       // 2. Add subscription
-      const { error: subError } = await supabase.from("user_feed_subscriptions").insert({
+      const { error: subError } = await getSupabase().from("user_feed_subscriptions").insert({
         user_id: userId,
         feed_id: feed.id,
         category: category,
@@ -108,7 +108,7 @@ export default function FeedManager({ userId, onSubscriptionsChanged }) {
   }
 
   async function handleRemove(feedId) {
-    await supabase
+    await getSupabase()
       .from("user_feed_subscriptions")
       .delete()
       .eq("user_id", userId)

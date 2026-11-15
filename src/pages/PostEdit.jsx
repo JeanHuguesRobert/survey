@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { isDeleted } from "../lib/metadata";
 import PostEditor from "../components/social/PostEditor";
@@ -19,7 +19,7 @@ async function checkEditorForGazette(gazetteName, userId) {
     );
   }
   try {
-    const { data: group } = await supabase
+    const { data: group } = await getSupabase()
       .from("groups")
       .select("id")
       .eq("name", targetGroupName)
@@ -27,7 +27,7 @@ async function checkEditorForGazette(gazetteName, userId) {
     if (!group) return false;
     // Check membership for current user
     if (!userId) return false;
-    const { data: member } = await supabase
+    const { data: member } = await getSupabase()
       .from("group_members")
       .select("id")
       .eq("group_id", group.id)
@@ -61,7 +61,7 @@ export default function PostEdit() {
         setError(null);
 
         // Charger le post
-        const { data: postData, error: postError } = await supabase
+        const { data: postData, error: postError } = await getSupabase()
           .from("posts")
           .select("*")
           .eq("id", id)

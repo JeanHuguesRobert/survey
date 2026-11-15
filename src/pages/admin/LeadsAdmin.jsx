@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import SiteFooter from "../../components/layout/SiteFooter";
 
 const LEAD_TYPES = {
@@ -46,7 +46,7 @@ export default function LeadsAdmin() {
 
   async function loadLeads() {
     try {
-      let query = supabase
+      let query = getSupabase()
         .from("transparency_leads")
         .select("*")
         .order("created_at", { ascending: false });
@@ -72,7 +72,7 @@ export default function LeadsAdmin() {
 
   async function loadStats() {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from("transparency_leads_dashboard")
         .select("*")
         .single();
@@ -92,7 +92,10 @@ export default function LeadsAdmin() {
         updates.converted_at = new Date().toISOString();
       }
 
-      const { error } = await supabase.from("transparency_leads").update(updates).eq("id", leadId);
+      const { error } = await getSupabase()
+        .from("transparency_leads")
+        .update(updates)
+        .eq("id", leadId);
 
       if (error) throw error;
       loadLeads();
@@ -105,7 +108,7 @@ export default function LeadsAdmin() {
 
   async function addInteraction(leadId, type, content) {
     try {
-      const { error } = await supabase.from("lead_interactions").insert({
+      const { error } = await getSupabase().from("lead_interactions").insert({
         lead_id: leadId,
         interaction_type: type,
         content,
@@ -398,7 +401,7 @@ function LeadDetailModal({ lead, onClose, onUpdate }) {
   }, [lead.id]);
 
   async function loadInteractions() {
-    const { data } = await supabase
+    const { data } = await getSupabase()
       .from("lead_interactions")
       .select("*")
       .eq("lead_id", lead.id)
@@ -409,7 +412,7 @@ function LeadDetailModal({ lead, onClose, onUpdate }) {
   async function saveNotes() {
     setSaving(true);
     try {
-      await supabase.from("transparency_leads").update({ notes }).eq("id", lead.id);
+      await getSupabase().from("transparency_leads").update({ notes }).eq("id", lead.id);
       onUpdate();
     } catch (err) {
       console.error(err);
@@ -421,7 +424,7 @@ function LeadDetailModal({ lead, onClose, onUpdate }) {
   async function addInteraction() {
     if (!newInteraction.content.trim()) return;
     try {
-      await supabase.from("lead_interactions").insert({
+      await getSupabase().from("lead_interactions").insert({
         lead_id: lead.id,
         interaction_type: newInteraction.type,
         content: newInteraction.content,

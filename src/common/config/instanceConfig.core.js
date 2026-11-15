@@ -1,733 +1,402 @@
 // src/common/config/instanceConfig.core.js
 // Module de configuration centralisé (lecture seule)
-// Agnostique à l'environnement (Node.js, Deno, Frontend)
-// Les fonctions spécifiques à l'environnement (lecture env, client Supabase) sont injectées.
 
-// ============================================================================\
-// CONFIGURATION DES CLÉS
-// ============================================================================\
+const GLOBAL_CACHE_KEY = "__INSTANCE_DATA_CACHE_V1__";
 
-/**
- * Mapping des clés de config vers les variables d'environnement correspondantes
- * Chaque clé peut avoir plusieurs alternatives (la première trouvée est utilisée)
- */
-const ENV_KEY_MAPPING = {
-  // Identité
-  community_name: ["COMMUNITY_NAME", "CITY_NAME"],
-  community_type: ["COMMUNITY_TYPE"],
-  community_tagline: ["CITY_TAGLINE"],
-  community_code: ["COMMUNE_INSEE"],
-  city_name: ["CITY_NAME"],
-
-  // Localisation
-  region_name: ["REGION_NAME"],
-  region_code: ["REGION_CODE"],
-  country: ["COUNTRY"],
-  timezone: ["TIMEZONE"],
-  locale: ["LOCALE"],
-
-  // Branding
-  movement_name: ["MOVEMENT_NAME"],
-  party_name: ["PARTY_NAME"],
-  hashtag: ["HASHTAG"],
-  bot_name: ["BOT_NAME"],
-  primary_color: ["PRIMARY_COLOR"],
-  secondary_color: ["SECONDARY_COLOR"],
-  logo: ["LOGO"],
-  favicon: ["FAVICON"],
-
-  // Contact
-  contact_email: ["CONTACT_EMAIL", "VITE_CONTACT_EMAIL"],
-
-  // Supabase
-  supabase_url: ["SUPABASE_URL"],
-  supabase_service_role_key: ["SUPABASE_SERVICE_ROLE_KEY"],
-  supabase_anon_key: ["SUPABASE_ANON_KEY"],
-
-  // IA providers
-  openai_api_key: ["OPENAI_API_KEY"],
-  openai_model: ["OPENAI_MODEL"],
-  openai_base_url: ["OPENAI_BASE_URL"],
-  anthropic_api_key: ["ANTHROPIC_API_KEY"],
-  mistral_api_key: ["MISTRAL_API_KEY"],
-  huggingface_api_key: ["HUGGINGFACE_API_KEY", "HF_API_KEY"],
-  gemini_api_key: ["GEMINI_API_KEY"],
-  grok_api_key: ["GROK_API_KEY"],
-  google_filesearch_api_key: ["GOOGLE_FILESEARCH_API_KEY", "GEMINI_API_KEY"],
-
-  // Search
-  brave_search_api_key: ["BRAVE_SEARCH_API_KEY"],
-
-  // GitHub
-  github_token: ["GITHUB_TOKEN"],
-  github_repo: ["GITHUB_REPO"],
-  github_wiki_branch: ["GITHUB_WIKI_BRANCH"],
-  github_client_id: ["GITHUB_CLIENT_ID"],
-  github_client_secret: ["GITHUB_CLIENT_SECRET"],
-
-  // Facebook
-  facebook_app_id: ["FACEBOOK_APP_ID", "VITE_FACEBOOK_APP_ID"],
-  facebook_token: ["FACEBOOK_TOKEN"],
-  facebook_client_secret: ["FACEBOOK_CLIENT_SECRET"],
-  facebook_page_url: ["FACEBOOK_PAGE_URL"],
-
-  // Google OAuth
-  google_client_id: ["GOOGLE_CLIENT_ID"],
-  google_client_secret: ["GOOGLE_CLIENT_SECRET"],
-
-  // App
-  app_url: ["URL", "DEPLOY_PRIME_URL"],
-  app_base_url: ["APP_BASE_URL", "URL", "DEPLOY_PRIME_URL"],
-  bob_system_prompt: ["BOB_SYSTEM_PROMPT"],
-
-  // Database
-  postgres_url: ["POSTGRES_URL", "DATABASE_URL"],
-  database_url: ["DATABASE_URL", "POSTGRES_URL"],
-
-  // Cron
-  cron_api_key: ["CRON_API_KEY"],
-  cli_token: ["CLI_TOKEN"],
-
-  // Federation
-  parent_hub_url: ["PARENT_HUB_URL"],
-  parent_hub_api_key: ["PARENT_HUB_API_KEY"],
-  is_hub: ["IS_HUB"], // Déduit si SUPABASE_URL === NATIONAL_API_URL
-  hub_type: ["HUB_TYPE"],
-  federation_peers: ["FEDERATION_PEERS"],
-
-  // Features
-  disable_provider_randomization: ["DISABLE_PROVIDER_RANDOMIZATION"],
-  llm_stream_timeout_ms: ["LLM_STREAM_TIMEOUT_MS"],
-  site_config_cache_ttl: ["SITE_CONFIG_CACHE_TTL"],
-  feature_wiki: ["FEATURE_WIKI"],
-  feature_consultations: ["FEATURE_CONSULTATIONS"],
-  feature_petitions: ["FEATURE_PETITIONS"],
-  feature_chatbot: ["FEATURE_CHATBOT"],
-  feature_transparency: ["FEATURE_TRANSPARENCY"],
-  feature_social: ["FEATURE_SOCIAL"],
-  feature_rag: ["FEATURE_RAG"],
-  feature_comments: ["FEATURE_COMMENTS"],
-  feature_ocr: ["FEATURE_OCR"],
-  feature_moderation: ["FEATURE_MODERATION"],
-
-  // Document search
-  file_search_default_stores: ["FILE_SEARCH_DEFAULT_STORES"],
-  gemini_cache_id: ["GEMINI_CACHE_ID"],
-  supabase_storage_bucket: ["SUPABASE_STORAGE_BUCKET"],
-  file_search_cache_table: ["FILE_SEARCH_CACHE_TABLE"],
-  file_search_cache_ttl_days: ["FILE_SEARCH_CACHE_TTL_DAYS"],
-
-  // Gazette
-  global_gazette_editor_group: ["GLOBAL_GAZETTE_EDITOR_GROUP"],
-
-  // Chatbot
-  chatbot_welcome_message: ["CHATBOT_WELCOME_MESSAGE"],
-  chatbot_fallback_message: ["CHATBOT_FALLBACK_MESSAGE"],
-  chatbot_similarity_threshold: ["CHATBOT_SIMILARITY_THRESHOLD"],
-  chatbot_max_sources: ["CHATBOT_MAX_SOURCES"],
-
-  // Map
-  map_default_center: ["MAP_DEFAULT_CENTER"], // "lat,lng"
-  map_default_lat: ["MAP_DEFAULT_LAT"],
-  map_default_lng: ["MAP_DEFAULT_LNG"],
-  map_default_zoom: ["MAP_DEFAULT_ZOOM"],
-  map_style: ["MAP_STYLE"],
-};
-
-/**
- * Valeurs par défaut pour les clés connues
- */
-const DEFAULT_VALUES = {
-  community_name: "Corte",
-  community_type: "municipality",
-  community_tagline: "CAPITALE",
-  community_code: "2B096",
-  city_name: "Corte",
-  region_name: "Corse",
-  region_code: "COR",
-  country: "FR",
-  timezone: "Europe/Paris",
-  locale: "fr-FR",
-  movement_name: "Pertitellu",
-  hashtag: "#PERTITELLU",
-  bot_name: "Ophélia",
-  github_repo: "JeanHuguesRobert/survey",
-  github_wiki_branch: "main",
-  openai_model: "gpt-4o-mini",
-  openai_base_url: "https://api.openai.com/v1",
-  app_base_url: "http://localhost:8888",
-  llm_stream_timeout_ms: 30000,
-  site_config_cache_ttl: 5,
-  supabase_storage_bucket: "public-documents",
-  file_search_cache_table: "file_search_cache",
-  file_search_cache_ttl_days: 7,
-  global_gazette_editor_group: "La Gazette",
-  chatbot_welcome_message: "Bonjour ! Je suis Ophélia. Comment puis-je vous aider ?",
-  chatbot_fallback_message:
-    "Désolée, je ne trouve pas de réponse. Souhaitez-vous créer une proposition ?",
-  chatbot_similarity_threshold: 0.65,
-  chatbot_max_sources: 3,
-  map_default_lat: 42.3084,
-  map_default_lng: 9.1505,
-  map_default_zoom: 13,
-  map_style: "osm",
-  primary_color: "#B35A4A",
-  secondary_color: "#3B4E6B",
-  logo: { url: "/images/logo.png" },
-  favicon: { url: "/favicon.ico" },
-  hub_type: "commune",
-  federation_peers: [],
-
-  // Features (activées par défaut)
-  feature_wiki: true,
-  feature_consultations: true,
-  feature_petitions: true,
-  feature_chatbot: true,
-  feature_transparency: true,
-  feature_social: true,
-  feature_rag: true,
-  feature_comments: true,
-  feature_ocr: true,
-  feature_moderation: true,
-};
-
-// ============================================================================\
-// CACHE LOCAL
-// ============================================================================\
-
-let configCache = null;
-let cacheTimestamp = null;
-let vaultAvailable = null; // null = pas encore testé, true/false après test
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-
-// ============================================================================\
-// FONCTIONS INTERNES (injectées par l'adaptateur d'environnement)
-// ============================================================================\
-
-let _getEnvValue = null;
-let _createSupabaseClient = null;
-let _getSupabaseInstance = null; // Pour les cas où le client est déjà initialisé (ex: frontend)
-
-/**
- * Initialise les fonctions spécifiques à l'environnement.
- * Doit être appelée une fois au démarrage de l'application/environnement.
- * @param {Object} envFns
- * @param {Function} envFns.getEnvValue - Fonction pour lire une variable d'environnement.
- * @param {Function} [envFns.createSupabaseClient] - Fonction pour créer un client Supabase.
- * @param {Object} [envFns.supabaseInstance] - Instance Supabase déjà créée.
- */
-export function initializeConfigCore(envFns) {
-  if (!envFns || typeof envFns.getEnvValue !== "function") {
-    throw new Error("initializeConfigCore requires a getEnvValue function.");
+// Idempotency, singleton, global instance stuff
+var init_done = false;
+export function inited() {
+  return init_done;
+}
+function set_init_done() {
+  if (init_done) {
+    // console.log("set_init_done: multiple calls, ignored");
   }
-  _getEnvValue = envFns.getEnvValue;
-  _createSupabaseClient = envFns.createSupabaseClient;
-  _getSupabaseInstance = envFns.supabaseInstance;
+  init_done = true;
 }
 
-/**
- * Récupère une valeur depuis les variables d'environnement en utilisant la fonction injectée.
- * @param {string} key - Clé de configuration (lowercase avec underscores)
- * @returns {string|null}
- */
-function getEnvValue(key) {
-  if (!_getEnvValue) {
-    console.warn("ConfigCore: getEnvValue not initialized. Returning null for", key);
-    return null;
+function getGlobalCache() {
+  if (!globalThis[GLOBAL_CACHE_KEY]) {
+    globalThis[GLOBAL_CACHE_KEY] = {
+      config: null, // { [key]: row }
+      inFlight: null,
+      loadedAt: 0,
+      supabase: null,
+      factory: null,
+      getenv: null,
+      data: {},
+    };
   }
-  const envKeys = ENV_KEY_MAPPING[key];
-  if (envKeys) {
-    for (const envKey of envKeys) {
-      const value = _getEnvValue(envKey);
-      if (value) return value;
-    }
-    return null;
-  }
-
-  // Clé inconnue: convertir en UPPER_SNAKE_CASE
-  const envKey = key.toUpperCase().replace(/-/g, "_");
-  return _getEnvValue(envKey) || null;
+  return globalThis[GLOBAL_CACHE_KEY];
 }
 
-/**
- * Parse une valeur string en type approprié
- * @param {string} value - Valeur à parser
- * @param {string} key - Clé pour déterminer le type
- * @returns {any}
- */
-function parseValue(value, key) {
-  if (value === null || value === undefined || value === "") return null;
+async function fetchAllRows(supabaseClient) {
+  const pageSize = 1000;
+  let from = 0;
+  const all = [];
 
-  // Booléens
-  if (value === "true") return true;
-  if (value === "false") return false;
-  // Cas spécifique pour les features désactivées par "0" ou "1"
-  if (key.startsWith("disable_") || key.startsWith("feature_")) {
-    if (value === "1") return true;
-    if (value === "0") return false;
-  }
-
-  // Nombres (clés se terminant par _ms, _ttl, _days, _count, etc.)
-  if (/_(?:ms|ttl|days|count|size|limit|max|min)$/i.test(key)) {
-    const num = Number(value);
-    if (!isNaN(num)) return num;
-  }
-
-  // JSON (si la valeur est une chaîne JSON valide)
-  if (
-    (typeof value === "string" && value.startsWith("{") && value.endsWith("}")) ||
-    (typeof value === "string" && value.startsWith("[") && value.endsWith("]"))
-  ) {
-    try {
-      const json = JSON.parse(value);
-      return json;
-    } catch (e) {
-      // Pas du JSON valide, continuer
-    }
-  }
-
-  return value;
-}
-
-/**
- * Génère la config depuis les variables d'environnement
- * Utilisé pour pré-remplir le cache
- */
-function buildEnvConfig() {
-  const config = {};
-
-  // Parcourir toutes les clés connues
-  for (const key of Object.keys(ENV_KEY_MAPPING)) {
-    const value = getEnvValue(key);
-    if (value !== null) {
-      config[key] = parseValue(value, key);
-    } else if (DEFAULT_VALUES[key] !== undefined) {
-      config[key] = DEFAULT_VALUES[key];
-    }
-  }
-
-  // Gérer les cas spéciaux de déduction
-  // is_hub
-  const supabaseUrl = getEnvValue("supabase_url");
-  const nationalApiUrl = getEnvValue("NATIONAL_API_URL"); // Assumer que c'est une env var directe
-  if (supabaseUrl && nationalApiUrl && supabaseUrl === nationalApiUrl) {
-    config.is_hub = true;
-  } else if (config.is_hub === undefined) {
-    config.is_hub = false; // Valeur par défaut
-  }
-
-  // Map default center
-  const mapCenter = getEnvValue("map_default_center");
-  if (mapCenter && mapCenter.includes(",")) {
-    const [lat, lng] = mapCenter.split(",").map(parseFloat);
-    if (!isNaN(lat) && !isNaN(lng)) {
-      config.map_default_lat = lat;
-      config.map_default_lng = lng;
-    }
-  }
-
-  // Ajouter les features (valeurs par défaut si non définies par env)
-  for (const [key, value] of Object.entries(DEFAULT_VALUES)) {
-    if (key.startsWith("feature_") && config[key] === undefined) {
-      config[key] = value;
-    }
-  }
-
-  return config;
-}
-
-/**
- * Tente de charger la config depuis le vault (table instance_config)
- * Retourne {} si le vault n'est pas disponible (migration non appliquée)
- */
-async function loadFromVault() {
-  // Si on sait déjà que le vault n'est pas disponible, skip
-  if (vaultAvailable === false) {
-    return {};
-  }
-
-  let supabaseClient = null;
-  if (_getSupabaseInstance) {
-    supabaseClient = _getSupabaseInstance;
-  } else if (_createSupabaseClient) {
-    supabaseClient = _createSupabaseClient(true); // true pour service_role
-  }
-
-  if (!supabaseClient) {
-    vaultAvailable = false;
-    return {};
-  }
-
-  try {
-    // Tente d'appeler la fonction RPC si elle existe (frontend)
-    if (typeof supabaseClient.rpc === "function") {
-      const { data, error } = await supabaseClient.rpc("get_public_instance_config");
-      if (!error) {
-        vaultAvailable = true;
-        return parseConfigValues(data || {});
-      }
-      // Si la fonction RPC n'existe pas ou erreur, on essaie la table directe
-      if (
-        error.code !== "42883" &&
-        error.code !== "42P01" &&
-        !error.message?.includes("does not exist")
-      ) {
-        console.warn("[instanceConfig.core] Erreur RPC vault:", error.message);
-      }
-    }
-
-    // Fallback: lecture directe de la table (backend/edge)
+  while (true) {
     const { data, error } = await supabaseClient
       .from("instance_config")
-      .select("key, value, value_json")
-      .order("key");
+      .select("*")
+      .order("key", { ascending: true })
+      .range(from, from + pageSize - 1);
 
-    if (error) {
-      // Table n'existe pas = migration pas appliquée
-      if (error.code === "42P01" || error.message?.includes("does not exist")) {
-        console.log("[instanceConfig.core] Vault non disponible (migration pas appliquée)");
-        vaultAvailable = false;
-        return {};
-      }
-      console.warn("[instanceConfig.core] Erreur vault:", error.message);
-      return {};
-    }
+    if (error) throw new Error(`loadConfigTable: ${error.message}`);
 
-    vaultAvailable = true;
+    const rows = data ?? [];
+    all.push(...rows);
 
-    // Convertir en objet clé-valeur
-    const config = {};
-    for (const row of data || []) {
-      if (row.value_json !== null) {
-        config[row.key] = row.value_json;
-      } else if (row.value !== null && row.value !== "") {
-        config[row.key] = parseValue(row.value, row.key);
-      }
-    }
-
-    console.log(`[instanceConfig.core] ${Object.keys(config).length} configs depuis vault`);
-    return config;
-  } catch (err) {
-    console.warn("[instanceConfig.core] Vault inaccessible:", err.message);
-    vaultAvailable = false;
-    return {};
+    if (rows.length < pageSize) break;
+    from += pageSize;
   }
+
+  const map = Object.create(null);
+  for (const row of all) {
+    if (row?.key) {
+      // On trim la clé et on la stocke en minuscule pour faciliter la recherche
+      const k = String(row.key).trim().toLowerCase();
+      map[k] = row;
+    }
+  }
+  return map;
 }
 
-/**
- * Parse les valeurs de config (convertit strings en types appropriés)
- * Utilisé pour les données venant du vault.
- */
-function parseConfigValues(config) {
-  const parsed = {};
-  for (const [key, value] of Object.entries(config)) {
-    if (value === null || value === undefined) {
-      continue;
-    }
-    // Les valeurs du vault sont déjà souvent typées, mais on repasse par parseValue
-    // pour la cohérence et les cas spécifiques (features, etc.)
-    parsed[key] = parseValue(value, key);
-  }
-  return parsed;
-}
+// Load the instance config from some supabase. Reload if forced.
+export async function loadConfigTable(force = false, supabase_config = {}) {
+  const cache = getGlobalCache();
 
-// ============================================================================\
-// CHARGEMENT DE LA CONFIG PUBLIQUE
-// ============================================================================\
-
-/**
- * Charge la configuration de l'instance
- * APPROCHE PROGRESSIVE :
- * 1. Charge d'abord les env vars (fallback garanti)
- * 2. Tente de charger depuis la DB (si vault disponible)
- * 3. Fusionne : DB surcharge env vars
- *
- * @param {boolean} forceRefresh - Force le rechargement depuis la DB
- * @returns {Promise<Object>}
- */
-export async function loadInstanceConfig(forceRefresh = false) {
-  if (!_getEnvValue) {
-    console.error("ConfigCore: initializeConfigCore must be called before loadInstanceConfig.");
-    return {};
+  // If supabase config provided (url & keys), use them
+  if (supabase_config && Object.keys(supabase_config).length > 0) {
+    cache.supabase_config = supabase_config;
+    console.log("loadInstanceConfig: using provided supabase_config");
   }
 
-  // Vérifier le cache
-  if (!forceRefresh && configCache && cacheTimestamp) {
-    const age = Date.now() - cacheTimestamp;
-    if (age < CACHE_TTL_MS) {
-      return configCache;
-    }
+  if (!force && cache.inFlight) {
+    console.log("loadConfigTable: already running, return promise");
+    return cache.inFlight;
   }
 
-  // Toujours commencer par les env vars (garantit que l'app fonctionne)
-  const envConfig = buildEnvConfig();
+  // If config is already in cache, no need to fetch it again
+  if (!force && cache.config) {
+    // Defensive: Double check that supabase client instance is really there
+    if (cache.supabase) return cache.config;
+    console.warn("loadConfigTable: supabase client is null, but config is in cache");
+  }
 
-  // Tenter de charger depuis la DB (vault)
-  const dbConfig = await loadFromVault();
-
-  // Fusionner : DB surcharge env vars (mais env vars = fallback)
-  configCache = {
-    ...envConfig,
-    ...dbConfig, // Les valeurs DB écrasent les env vars
-  };
-  cacheTimestamp = Date.now();
-
-  if (Object.keys(dbConfig).length > 0) {
-    console.log(
-      `✓ Config: ${Object.keys(dbConfig).length} valeurs depuis vault, ${Object.keys(envConfig).length} depuis env`
-    );
+  // Reuse supabase client or create a new (non admin) one
+  // IF a specific config is provided, we MUST create a new client
+  if (cache.supabase && !supabase_config) {
+    console.log("loadConfigTable: using existing supabase client");
   } else {
-    console.log("📋 Config: mode env vars uniquement (vault non disponible ou vide)");
-  }
-
-  return configCache;
-}
-
-// ============================================================================\
-// ACCESSEURS PUBLICS
-// ============================================================================\
-
-/**
- * Récupère une valeur de configuration
- * @param {string} key - Clé de configuration
- * @param {any} defaultValue - Valeur par défaut
- * @returns {any}
- */
-export function getConfigValue(key, defaultValue = undefined) {
-  if (!configCache) {
-    // Si le cache n'est pas chargé, tenter de récupérer directement de l'env ou valeur par défaut
-    const envValue = getEnvValue(key);
-    if (envValue !== null && envValue !== "") {
-      return parseValue(envValue, key);
+    if (supabase_config) {
+      console.log("loadConfigTable: forcing new supabase client because config provided");
+    } else {
+      console.log("loadConfigTable: creating new supabase client");
     }
-    return defaultValue ?? DEFAULT_VALUES[key] ?? null;
+    // Pass cache.supabase_config to the factory if available
+    cache.supabase = cache.factory(cache.admin, cache.supabase_config);
+    // It should not be null
+    if (!cache.supabase) {
+      console.warn("loadInstanceConfig: supabase client is null, factory failed, fatal");
+      throw new Error("loadInstanceConfig: supabase client is null, factory failed, fatal");
+    }
+    // Defensive: make sure getSupabase() is ok, ie no exception
+    try {
+      const supabase = getSupabase();
+      // Assert it is the same
+      if (supabase !== cache.supabase) {
+        console.warn("loadInstanceConfig: getSupabase() returned a different client, fatal");
+        throw new Error("loadInstanceConfig: getSupabase() returned a different client, fatal");
+      }
+    } catch (e) {
+      console.warn("loadInstanceConfig: getSupabase() failed, fatal");
+      throw e;
+    }
   }
-  return configCache[key] ?? defaultValue ?? DEFAULT_VALUES[key] ?? null;
+
+  cache.inFlight = (async () => {
+    try {
+      const map = await fetchAllRows(cache.supabase);
+      cache.config = map;
+      cache.loadedAt = Date.now();
+      cache.forced = force;
+      return map;
+    } finally {
+      cache.inFlight = null;
+    }
+  })();
+
+  return cache.inFlight;
 }
 
 /**
- * Alias pour getConfigValue
+ * Get all entries's name in the instance config as a name table.
+ * One should then call getConfig( key ) to get the value.
  */
-export const getConfig = getConfigValue;
 
-/**
- * Vérifie si une feature est activée
- * @param {string} featureName - Nom de la feature (sans le préfixe feature_)
- * @returns {boolean}
- */
-export function isFeatureEnabled(featureName) {
-  return getConfig(`feature_${featureName}`, true);
-}
-
-// ============================================================================\
-// HELPERS SPÉCIALISÉS
-// ============================================================================\
-
-/**
- * Récupère les informations d'identité de l'instance
- * @returns {Object}
- */
-export function getIdentity() {
-  return {
-    name: getConfig("community_name", "Corte"),
-    type: getConfig("community_type", "municipality"),
-    tagline: getConfig("community_tagline", ""),
-    code: getConfig("community_code", ""),
-    region: getConfig("region_name", ""),
-    regionCode: getConfig("region_code", ""),
-    country: getConfig("country", "FR"),
-    timezone: getConfig("timezone", "Europe/Paris"),
-    locale: getConfig("locale", "fr-FR"),
-  };
+export function getAllConfigKeys() {
+  const cache = getGlobalCache();
+  const t = cache.config;
+  return t ? Object.keys(t) : [];
 }
 
 /**
- * Récupère les informations de branding
- * @returns {Object}
- */
-export function getBranding() {
-  return {
-    botName: getConfig("bot_name", "Ophélia"),
-    cityName: getConfig("city_name", "Corte"),
-    communityName: getConfig("community_name", "Corte"),
-    movementName: getConfig("movement_name", "Pertitellu"),
-    partyName: getConfig("party_name", ""),
-    hashtag: getConfig("hashtag", "#PERTITELLU"),
-    contactEmail: getConfig("contact_email", ""),
-    primaryColor: getConfig("primary_color", "#B35A4A"),
-    secondaryColor: getConfig("secondary_color", "#3B4E6B"),
-    logo: getConfig("logo", { url: "/images/logo.png" }),
-    favicon: getConfig("favicon", { url: "/favicon.ico" }),
-  };
-}
-
-/**
- * Récupère la configuration de la carte
- * @returns {Object}
- */
-export function getMapConfig() {
-  return {
-    center: [getConfig("map_default_lat", 42.3084), getConfig("map_default_lng", 9.1505)],
-    zoom: getConfig("map_default_zoom", 13),
-    style: getConfig("map_style", "osm"),
-  };
-}
-
-/**
- * Récupère la configuration du chatbot
- * @returns {Object}
- */
-export function getChatbotConfig() {
-  return {
-    welcomeMessage: getConfig("chatbot_welcome_message", "Bonjour !"),
-    fallbackMessage: getConfig("chatbot_fallback_message", "Désolée, je ne trouve pas de réponse."),
-    similarityThreshold: getConfig("chatbot_similarity_threshold", 0.65),
-    maxSources: getConfig("chatbot_max_sources", 3),
-  };
-}
-
-/**
- * Récupère la configuration de fédération
- * @returns {Object}
- */
-export function getFederationConfig() {
-  return {
-    isHub: getConfig("is_hub", false),
-    hubType: getConfig("hub_type", "commune"),
-    parentHubUrl: getConfig("parent_hub_url", ""),
-    peers: getConfig("federation_peers", []),
-  };
-}
-
-/**
- * Récupère la configuration GitHub
- */
-export function getGitHubConfig() {
-  const repo = getConfigValue("github_repo");
-  const [owner, repoName] =
-    repo && repo.includes("/") ? repo.split("/") : ["JeanHuguesRobert", repo];
-
-  return {
-    owner,
-    repo: repoName,
-    branch: getConfigValue("github_wiki_branch"),
-    wikiPath: "wiki",
-    token: getConfigValue("github_token", ""),
-  };
-}
-
-/**
- * Récupère la configuration OpenAI
- */
-export function getOpenAIConfig() {
-  return {
-    apiKey: getConfigValue("openai_api_key", ""),
-    model: getConfigValue("openai_model"),
-    baseUrl: getConfigValue("openai_base_url"),
-  };
-}
-
-/**
- * Récupère la clé API pour un provider donné
- * @param {string} provider - Nom du provider (openai, anthropic, mistral, etc.)
- * @returns {string}
- */
-export function getProviderApiKey(provider) {
-  const keyName = provider === "google" ? "gemini_api_key" : `${provider.toLowerCase()}_api_key`;
-  return getConfigValue(keyName, "");
-}
-
-/**
- * Vérifie si un provider est disponible (a une clé API)
- * @param {string} provider - Nom du provider
- * @returns {boolean}
- */
-export function isProviderAvailable(provider) {
-  const apiKey = getProviderApiKey(provider);
-  return Boolean(apiKey);
-}
-
-/**
- * Récupère la configuration Supabase
- */
-export function getSupabaseConfig() {
-  return {
-    url: getConfigValue("supabase_url", ""),
-    serviceRoleKey: getConfigValue("supabase_service_role_key", ""),
-    anonKey: getConfigValue("supabase_anon_key", ""),
-  };
-}
-
-/**
- * Récupère la config Facebook
- */
-export async function getFacebookConfig() {
-  return {
-    appId: getConfigValue("facebook_app_id", ""),
-    token: getConfigValue("facebook_token", ""),
-    clientSecret: getConfigValue("facebook_client_secret", ""),
-  };
-}
-
-/**
- * Récupère un secret (charge depuis vault si disponible)
+ * Récupère la valeur d'une clé depuis la table chargée (ou depuis le cache global).
+ *
  * @param {string} key
+ * @returns {*} value_json si présent, sinon value, sinon undefined
  */
-export async function getSecret(key) {
-  await loadInstanceConfig();
-  return getConfigValue(key, null);
-}
+export function getConfig(key, by_default = undefined) {
+  if (!key) return by_default;
 
-// ============================================================================\
-// INITIALISATION AU BOOT
-// ============================================================================\
+  const cache = getGlobalCache();
 
-/**
- * Initialise la configuration de l'instance
- * À appeler au démarrage de l'application/environnement.
- *
- * @returns {Promise<Object>}
- */
-export async function initInstanceConfig() {
-  console.log("🔧 Initialisation config instance...");
-
-  const config = await loadInstanceConfig();
-
-  // Afficher un résumé (sans secrets)
-  console.log(`📍 Instance: ${config.community_name} (${config.community_type})`);
-  console.log(`🤖 Bot: ${config.bot_name}`);
-  console.log(`🌍 Région: ${config.region_name}`);
-
-  if (vaultAvailable) {
-    console.log("🔐 Vault: activé");
-  } else {
-    console.log("📋 Vault: non disponible (mode env vars)");
+  // 1. Priorité aux variables d'environnement
+  if (cache.getenv) {
+    const envVal = cache.getenv(key);
+    if (envVal !== undefined && envVal !== null && envVal !== "") return envVal;
   }
 
-  return config;
+  // 2. Recherche dans la config chargée depuis Supabase
+  const t = cache.config;
+  if (t) {
+    const k = String(key).trim();
+    const kLower = k.toLowerCase();
+
+    // Recherche insensible à la casse et robuste
+    // On essaie d'abord la clé directe, puis la version minuscule
+    let row = t[k] || t[kLower];
+
+    // Si on ne trouve toujours pas, on fait une recherche exhaustive (au cas où)
+    if (!row) {
+      const allKeys = Object.keys(t);
+      const foundKey = allKeys.find((keyInMap) => keyInMap.toLowerCase() === kLower);
+      if (foundKey) row = t[foundKey];
+    }
+
+    if (row) {
+      // Priorité à value_json si présent
+      let val =
+        row.value_json !== null && row.value_json !== undefined ? row.value_json : row.value;
+
+      if (typeof val === "string") val = val.trim();
+
+      if (val !== null && val !== undefined && val !== "") {
+        return val;
+      }
+    }
+  }
+
+  return by_default;
 }
 
-// ============================================================================\
-// EXPORT PAR DÉFAUT (pour faciliter l'import)
-// ============================================================================\
+/** Optionnel: accès au timestamp du cache */
+export function getConfigInfo() {
+  const cache = getGlobalCache();
+  return {
+    loadedAt: cache.loadedAt,
+    hasConfig: !!cache.config,
+    config: cache.config,
+    data: cache.data,
+    inFlight: !!cache.inFlight,
+    supabase: cache.supabase,
+    factory: cache.factory,
+    getenv: cache.getenv,
+  };
+}
 
-export default {
-  initializeConfigCore,
-  loadInstanceConfig,
-  getConfigValue,
-  getConfig,
-  isFeatureEnabled,
-  getIdentity,
-  getBranding,
-  getMapConfig,
-  getChatbotConfig,
-  getFederationConfig,
-  getGitHubConfig,
-  getOpenAIConfig,
-  getProviderApiKey,
-  isProviderAvailable,
-  getSupabaseConfig,
-  getSecret,
-  // Note: createSupabaseClient n'est pas exporté ici car il dépend de l'implémentation
-  // spécifique à l'environnement et sera géré par les adaptateurs.
-};
+export function getSupabase() {
+  if (!inited()) {
+    console.warn("getSupabase: premature call, fatal");
+    throw new Error("getSupabase: premature call, fatal");
+  }
+  const cache = getGlobalCache();
+  if (!cache) {
+    console.warn("getSupabase: cache is null, fatal");
+    throw new Error("getSupabase: cache is null, fatal");
+  }
+  if (!cache.supabase) {
+    console.warn("getSupabase: supabase not initialized, fatal");
+    throw new Error("getSupabase: supabase not initialized, fatal");
+  }
+  return cache.supabase;
+}
+
+export function supabaseFactory() {
+  if (!inited) {
+    console.warn("supabaseFactory: premature call, fatal");
+    throw new Error("supabaseFactory: premature call, fatal");
+  }
+  const cache = getGlobalCache();
+  if (!cache) {
+    console.warn("supabaseFactory: cache is null, fatal");
+    throw new Error("supabaseFactory: cache is null, fatal");
+  }
+  if (!cache.factory) {
+    console.warn("supabaseFactory: factory is null, fatal");
+    throw new Error("supabaseFactory: factory is null, fatal");
+  }
+  return cache.factory;
+}
+
+export function setInstanceData(key, val) {
+  getGlobalCache().data[key] = val;
+}
+
+export function getInstanceData(key) {
+  return getGlobalCache().data[key];
+}
+
+export function getAllInstanceDataKeys() {
+  return Object.keys(getGlobalCache().data);
+}
+
+export async function initializeInstanceCore(supabase, getenv_impl, newSupabase_impl, admin) {
+  // This function is called by the runtime specific implementation of initializeInstance()
+
+  // Adapters must be provided
+  if (!getenv_impl || !newSupabase_impl) {
+    throw new Error("initializeInstanceCore: getenv_impl and newSupabase_impl must be provided");
+  }
+  // Admin option must be provided
+  if (admin === undefined) {
+    throw new Error("initializeInstanceCore: admin option must be provided");
+  }
+
+  const cache = getGlobalCache();
+  cache.admin = admin;
+  // Defensive: cache.supabase should not be nullized
+  if (supabase) {
+    if (cache.supabase && supabase !== cache.supabase) {
+      console.warn("initializeInstanceCore: supabase client changed, fatal");
+      throw new Error("initializeInstanceCore: supabase client changed, fatal");
+    }
+    cache.supabase = supabase;
+  }
+  cache.getenv = getenv_impl;
+  cache.factory = newSupabase_impl;
+  set_init_done();
+  // Returns a supabaseClient factory
+  return newSupabase_impl;
+}
+
+export async function reloadInstanceConfig() {
+  // Valid only if already initialized
+  if (!inited()) {
+    console.warn("reloadInstanceConfig: not initialized, ignored");
+    return false;
+  }
+  return loadConfigTable(true);
+}
+
+export async function loadInstanceConfigCore(force = false, supabase_config = {}) {
+  // Invalid if not initialized properly
+  if (!inited()) {
+    console.warn("loadInstanceConfig: initializeInstance() not initialized, fatal");
+    throw new Error("loadInstanceConfig: initializeInstance() not initialized, fatal");
+  }
+  console.log("initializeInstanceCore ok, loading instance config");
+  const prev_cache = getGlobalCache();
+  // Debug. Make a "by value copy" for future comparison, using keys in cache
+  const prev_values = {};
+  if (prev_cache) {
+    for (const k of Object.keys(prev_cache)) {
+      prev_values[k] = prev_cache[k];
+    }
+  }
+  const prev_supabase = prev_cache.supabase;
+  const result = await loadConfigTable(force, supabase_config);
+  const new_cache = getGlobalCache();
+  const new_values = {};
+  if (new_cache) {
+    for (const k of Object.keys(new_cache)) {
+      new_values[k] = new_cache[k];
+    }
+  }
+  const new_supabase = new_cache?.supabase;
+  if (prev_supabase && new_supabase !== prev_supabase) {
+    if (!new_supabase) {
+      console.warn("loadInstanceConfig: supabase client became null, fatal");
+      throw new Error("loadInstanceConfig: supabase client became null, fatal");
+    }
+    console.warn("loadInstanceConfig: supabase client changed, fatal");
+    throw new Error("loadInstanceConfig: supabase client changed, fatal");
+  }
+  // Debug: detect changes, is it the same cache?
+  if (prev_cache && prev_cache !== new_cache) {
+    // If changed, that's a fatal error, unless first time
+    console.warn("loadInstanceConfig: cache changed, fatal");
+    throw new Error("loadInstanceConfig: cache changed, fatal");
+  }
+  // Debug: detect changes, what keys and what previous vs new values
+  const changed_keys = [];
+  for (const k of Object.keys(new_values)) {
+    if (prev_values[k] !== new_values[k]) {
+      changed_keys.push(k);
+    }
+  }
+  // Debug: log changed keys
+  console.log("loadInstanceConfig: cache changed keys:", changed_keys);
+  // Debug: detect changes, log previous vs new values
+  for (const k of changed_keys) {
+    if (prev_values[k] !== new_values[k]) {
+      if (new_values[k] !== null) {
+        if (prev_values[k] === null) {
+          console.log("loadInstanceConfig: cache value changed (was null), not null, key:", k);
+        } else {
+          console.log("loadInstanceConfig: cache value changed, was not null, not null, key:", k);
+        }
+      } else {
+        if (prev_values[k] !== null) {
+          console.log("loadInstanceConfig: cache value changed (became null), key:", k);
+        } else {
+          console.log("loadInstanceConfig: cache value changed, null, key:", k);
+        }
+      }
+    }
+    // Signal what was null and isn't anymore
+    if (prev_values[k] === null && new_values[k] !== null) {
+      console.log("loadInstanceConfig: cache changed (was null), key:", k);
+    }
+    // Signal what was not null and became null
+    if (prev_values[k] !== null && new_values[k] === null) {
+      console.log("loadInstanceConfig: cache changed (became null), key:", k);
+    }
+  }
+
+  // Defensive: make sure getSupabase() is ok, ie no exception
+  try {
+    getSupabase();
+  } catch (e) {
+    console.warn("loadInstanceConfig: getSupabase() failed, fatal");
+    throw e;
+  }
+  // Defensive: make sure getConfig() is ok, ie no exception
+  try {
+    getConfig("community_name");
+  } catch (e) {
+    console.warn("loadInstanceConfig: getConfig() failed, fatal");
+    throw e;
+  }
+  return result;
+}
+
+export function getenv(key) {
+  // Invalid if not initialized
+  if (!inited()) {
+    console.warn("instanceConfigCore.getenv: not initialized, fatal");
+    throw new Error("InstanceConfigCore.getenv: not initialized, fatal");
+  }
+  return getGlobalCache().getenv(key);
+}
+
+export function getFederationConfig() {
+  // TODO: implement federation config
+  // Invalid if not initialized
+  if (!inited()) {
+    console.warn("instanceConfigCore.getFederationConfig: not initialized, fatal");
+    throw new Error("instanceConfigCore.getFederationConfig: not initialized, fatal.");
+  }
+  return {};
+}

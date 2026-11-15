@@ -1,11 +1,13 @@
-import { loadConfig, getConfigValue, createSupabaseClient } from "./lib/config.js";
+// scripts/backfill-lastmodifiedby.js
+// Tool to fix missing lastModifiedBy metadata in posts table.
+
+import { loadConfig, getConfig, createSupabaseClient } from "./lib/config.js";
 
 // Charger la configuration
 await loadConfig();
 
-const SUPABASE_URL = getConfigValue("supabase_url");
-const SUPABASE_KEY =
-  getConfigValue("supabase_anon_key") || getConfigValue("supabase_service_role_key");
+const SUPABASE_URL = getConfig("supabase_url");
+const SUPABASE_KEY = getConfig("supabase_anon_key") || getConfig("supabase_service_role_key");
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error("Please set SUPABASE_URL and SUPABASE_KEY environment variables.");
   process.exit(1);

@@ -11,6 +11,7 @@
 [functions]
   directory = "src/netlify/functions"
   node_bundler = "esbuild"
+  included_files = ["public/**"]
 
 [functions.public_browser]
   included_files = ["public/**"]
@@ -23,11 +24,14 @@
 [[edge_functions]]
   path = "/*"
   function = "instance-resolver"
-  excludedPath = ["/assets/*", "/images/*", "/fonts/*", "/_next/*", "/api/*"]
 
 [[edge_functions]]
   path = "/*"
   function = "root-redirect"
+
+[[edge_functions]]
+  path = "/api/config"
+  function = "config"
 
 [[edge_functions]]
   path = "/api/chat-stream"

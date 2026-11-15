@@ -6,6 +6,7 @@
  * Retourne l'état de synchronisation de toutes les instances
  */
 
+import { loadInstanceConfig } from "../../common/config/instanceConfig.backend.js";
 import { createClient } from "@supabase/supabase-js";
 
 export async function handler(event) {
@@ -26,8 +27,11 @@ export async function handler(event) {
   }
 
   try {
-    const hubUrl = process.env.VITE_SUPABASE_URL;
-    const hubKey = process.env.VITE_SUPABASE_ANON_KEY;
+    // Load instance config
+    await loadInstanceConfig();
+
+    const hubUrl = getConfig("SUPABASE_URL");
+    const hubKey = getConfig("SUPABASE_ANON_KEY");
 
     if (!hubUrl || !hubKey) {
       return {

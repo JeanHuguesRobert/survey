@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { createPropositionWithTags } from "../../lib/propositions";
 import { validatePetitionUrl } from "../../lib/petitions";
 import { getDisplayName } from "../../lib/userDisplay";
@@ -24,7 +24,7 @@ export default function CreateProposition({ user }) {
   }, []);
 
   const loadTags = async () => {
-    const { data, error } = await supabase.from("tags").select("*").order("name");
+    const { data, error } = await getSupabase().from("tags").select("*").order("name");
 
     if (!error && data) {
       setTags(data);
@@ -34,7 +34,7 @@ export default function CreateProposition({ user }) {
   const handleCreateTag = async () => {
     if (!newTagName.trim()) return;
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("tags")
       .insert({ name: newTagName.toLowerCase().trim() })
       .select()
@@ -80,7 +80,7 @@ export default function CreateProposition({ user }) {
       console.log("User ID:", user?.id);
 
       // Vérifions si le user existe dans la table users
-      const { data: userExists, error: userCheckError } = await supabase
+      const { data: userExists, error: userCheckError } = await getSupabase()
         .from("users")
         .select("id")
         .eq("id", user.id)

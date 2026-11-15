@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import SiteFooter from "../components/layout/SiteFooter";
@@ -25,7 +25,7 @@ export default function WikiDashboard() {
       setLoading(true);
 
       // Get pages created by user
-      const { data: userCreatedPages, error: createdError } = await supabase
+      const { data: userCreatedPages, error: createdError } = await getSupabase()
         .from("wiki_pages")
         .select("*")
         .eq("author_id", currentUser.id)
@@ -34,7 +34,7 @@ export default function WikiDashboard() {
       if (createdError) throw createdError;
 
       // Get revisions by user
-      const { data: userRevisions, error: revisionsError } = await supabase
+      const { data: userRevisions, error: revisionsError } = await getSupabase()
         .from("wiki_revisions")
         .select(
           `

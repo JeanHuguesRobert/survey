@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getConfigValue } from "../../common/config/instanceConfig.edge.js";
+import { getConfig } from "../../common/config/instanceConfig.edge.js";
 import { AgentExecutorService } from "../../common/services/AgentExecutorService.js";
 
 import { getSystemPrompt } from "./lib/utils/system-prompt.js";
@@ -21,8 +21,8 @@ export default async (request, context) => {
   }
 
   try {
-    const supabaseUrl = getConfigValue("supabase_url");
-    const supabaseKey = getConfigValue("supabase_service_role_key");
+    const supabaseUrl = getConfig("supabase_url");
+    const supabaseKey = getConfig("supabase_service_role_key");
 
     if (!supabaseUrl || !supabaseKey) {
       return new Response(JSON.stringify({ error: "Missing Supabase configuration" }), {

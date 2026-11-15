@@ -6,7 +6,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { useSupabase } from "../../contexts/SupabaseContext";
 import SiteFooter from "../../components/layout/SiteFooter";
 
@@ -370,12 +370,12 @@ export default function VerificationQueue() {
   // Fetch items
   useEffect(() => {
     const fetchItems = async () => {
-      if (!supabase) return;
+      if (!getSupabase()) return;
 
       setLoading(true);
 
       try {
-        const { data, error: fetchError } = await supabase
+        const { data, error: fetchError } = await getSupabase()
           .from("v_proofs_to_verify")
           .select("*")
           .order("priority", { ascending: true })
@@ -400,7 +400,7 @@ export default function VerificationQueue() {
     if (!user?.id) return;
 
     try {
-      const { error: updateError } = await supabase
+      const { error: updateError } = await getSupabase()
         .from("verification_queue")
         .update({
           status: "IN_PROGRESS",
@@ -429,7 +429,7 @@ export default function VerificationQueue() {
 
     try {
       // Update queue
-      const { error: queueError } = await supabase
+      const { error: queueError } = await getSupabase()
         .from("verification_queue")
         .update({
           status: "VERIFIED",
@@ -442,7 +442,7 @@ export default function VerificationQueue() {
       if (queueError) throw queueError;
 
       // Update proof
-      const { error: proofError } = await supabase
+      const { error: proofError } = await getSupabase()
         .from("proof")
         .update({
           verified_at: new Date().toISOString(),
@@ -465,7 +465,7 @@ export default function VerificationQueue() {
     if (!user?.id) return;
 
     try {
-      const { error: updateError } = await supabase
+      const { error: updateError } = await getSupabase()
         .from("verification_queue")
         .update({
           status: "REJECTED",

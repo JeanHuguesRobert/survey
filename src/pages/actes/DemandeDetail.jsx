@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { useSupabase } from "../../contexts/SupabaseContext";
 import SiteFooter from "../../components/layout/SiteFooter";
 
@@ -226,7 +226,7 @@ export default function DemandeDetail() {
 
   useEffect(() => {
     const fetchDemande = async () => {
-      if (!supabase || !id) {
+      if (!getSupabase() || !id) {
         setError("Configuration manquante ou ID invalide.");
         setLoading(false);
         return;
@@ -237,7 +237,7 @@ export default function DemandeDetail() {
 
       try {
         // Fetch demande with related data
-        const { data: demandeData, error: demandeError } = await supabase
+        const { data: demandeData, error: demandeError } = await getSupabase()
           .from("demande_admin")
           .select(
             `
@@ -255,7 +255,7 @@ export default function DemandeDetail() {
         setDemande(demandeData);
 
         // Fetch responses
-        const { data: responsesData, error: responsesError } = await supabase
+        const { data: responsesData, error: responsesError } = await getSupabase()
           .from("reponse_admin")
           .select("*")
           .eq("demande_id", id)
@@ -265,7 +265,7 @@ export default function DemandeDetail() {
         setResponses(responsesData || []);
 
         // Fetch proofs linked to this demande
-        const { data: proofsData } = await supabase
+        const { data: proofsData } = await getSupabase()
           .from("proof_link")
           .select(
             `
@@ -277,7 +277,7 @@ export default function DemandeDetail() {
         setProofs((proofsData || []).map((pl) => pl.proof).filter(Boolean));
 
         // Fetch deadlines for this demande
-        const { data: deadlinesData } = await supabase
+        const { data: deadlinesData } = await getSupabase()
           .from("deadline_instance")
           .select(
             `

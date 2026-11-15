@@ -1,14 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
-import { loadInstanceConfig, getConfigValue } from "../../common/config/instanceConfig.backend.js";
+import { loadInstanceConfig, getConfig } from "../../common/config/instanceConfig.backend.js";
 
 // Supabase client initialisé de façon lazy
 let _supabase = null;
 function getSupabase() {
   if (!_supabase) {
-    _supabase = createClient(
-      getConfigValue("supabase_url"),
-      getConfigValue("supabase_service_role_key")
-    );
+    _supabase = createClient(getConfig("supabase_url"), getConfig("supabase_service_role_key"));
   }
   return _supabase;
 }

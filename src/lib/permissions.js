@@ -1,7 +1,5 @@
 // src/lib/permissions.js
 
-import { CONTACT_EMAIL } from "../constants";
-
 export const ROLE_USER = "user";
 export const ROLE_MODERATOR = "moderator";
 export const ROLE_ADMIN = "admin";
@@ -18,13 +16,12 @@ export const ANONYMOUS_EMAIL = "anonymous@lepp.com";
  *
  * STRATÉGIE DE PERMISSIONS (Décembre 2025):
  * ------------------------------------------
- * Actuellement, le rôle est déterminé par l'email (admin = CONTACT_EMAIL).
  * La colonne `users.role` existe en base de données et est utilisée par les
  * policies RLS de Supabase.
  *
  * Migration progressive vers DB-based roles :
  *   1. [FAIT] Colonne users.role ajoutée (default: 'user')
- *   2. [FAIT] Policies RLS utilisent users.role
+ *   2. [TOTO] Policies RLS utilisent users.role
  *   3. [TODO] Cette fonction doit vérifier users.role depuis le profil
  *   4. [TODO] Interface admin pour gérer les rôles
  *
@@ -47,13 +44,8 @@ export function getUserRole(user) {
   // Vérifier d'abord le rôle en base de données (si disponible dans le profil)
   // Ceci permet une migration progressive vers les rôles DB-based
   const dbRole = user.role || user.profile?.role;
-  if (dbRole && ["admin", "moderator", "user"].includes(dbRole)) {
+  if (dbRole && ["admin", "moderator", "user", "ai"].includes(dbRole)) {
     return dbRole;
-  }
-
-  // Fallback : vérification par email (comportement legacy)
-  if (email === CONTACT_EMAIL) {
-    return ROLE_ADMIN;
   }
 
   return ROLE_USER;

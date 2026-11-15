@@ -1,12 +1,12 @@
 // netlify/functions/facebook-deletion-status.js
-import { loadInstanceConfig, getConfigValue } from "../../common/config/instanceConfig.backend.js";
+import { loadInstanceConfig, getConfig } from "../../common/config/instanceConfig.backend.js";
 
 export const handler = async (event) => {
   try {
     // Charger la configuration
     await loadInstanceConfig();
-    const SUPABASE_URL = getConfigValue("supabase_url");
-    const SUPABASE_SERVICE_ROLE_KEY = getConfigValue("supabase_service_role_key");
+    const SUPABASE_URL = getConfig("supabase_url");
+    const SUPABASE_SERVICE_ROLE_KEY = getConfig("supabase_service_role_key");
 
     const code = (event.queryStringParameters && event.queryStringParameters.code) || null;
     if (!code) {

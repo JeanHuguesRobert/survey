@@ -1,4 +1,12 @@
+// src/lib/supabase.js
 import { createClient } from "@supabase/supabase-js";
+import { resolveInstance } from "./instanceResolver.js";
+
+import {
+  getConfig as getInstanceConfig,
+  getAllConfigKeys as getAllInstanceConfigKeys,
+  getSupabase as getInstanceSupabase,
+} from "../common/config/instanceConfig.core.js";
 
 // ============================================================================
 // SUPABASE DYNAMIQUE MULTI-INSTANCES
@@ -26,17 +34,20 @@ let initPromise = null;
  * @param {string} subdomain - Pour isoler les sessions
  * @returns {SupabaseClient}
  */
-function createLoggingClient(url, anonKey, subdomain = "default") {
-  const rawClient = createClient(url, anonKey, {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-      // Clé de stockage unique par instance (isole les sessions)
-      storageKey: `sb-${subdomain}-auth`,
-      storage: typeof window !== "undefined" ? window.localStorage : undefined,
-    },
-  });
+function createLoggingClient(url, anonKey, subdomain = "local", supabase_client = null) {
+  const existing_supabase = supabase_client || getInstanceSupabase();
+  const rawClient =
+    existing_supabase ||
+    createClient(url, anonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+        // Clé de stockage unique par instance (isole les sessions)
+        storageKey: `sb-${subdomain}-auth`,
+        storage: typeof window !== "undefined" ? window.localStorage : undefined,
+      },
+    });
 
   // Proxy de logging (même logique qu'avant)
   return new Proxy(rawClient, {
@@ -96,17 +107,35 @@ function createLoggingClient(url, anonKey, subdomain = "default") {
  * @returns {SupabaseClient|null}
  */
 export function initSupabaseWithInstance(instanceConfig) {
-  if (!instanceConfig?.supabaseUrl || !instanceConfig?.supabaseAnonKey) {
-    console.error("❌ Configuration Supabase invalide");
-    return null;
+  // We need either a supabase instance or a supabaseUrl and supabaseAnonKey
+  if (!instanceConfig.supabase) {
+    if (!instanceConfig?.supabaseUrl || !instanceConfig?.supabaseAnonKey) {
+      throw new Error("❌ Configuration Supabase invalide");
+    }
   }
 
   currentInstanceConfig = instanceConfig;
+  // Debug trace
+  console.log(
+    `🔧 Initializing Supabase for: ${instanceConfig.displayName || instanceConfig.subdomain}`
+  );
+  console.log(
+    `🔧 Config: ${JSON.stringify({
+      supabaseUrl: instanceConfig.supabaseUrl,
+      supabaseAnonKey: instanceConfig.supabaseAnonKey,
+      subdomain: instanceConfig.subdomain || "local",
+    })}`
+  );
+  // Debug trace, is there a supabase instance already?
+  console.log(`🔧 supabaseInstance: ${JSON.stringify(supabaseInstance)}`);
   supabaseInstance = createLoggingClient(
     instanceConfig.supabaseUrl,
     instanceConfig.supabaseAnonKey,
-    instanceConfig.subdomain || "default"
+    instanceConfig.subdomain || "local",
+    instanceConfig.supabase || null
   );
+  console.log(`🔧 Supabase Logging Client created`);
+  instanceConfig.supabase = supabaseInstance;
 
   console.log(
     `✅ Supabase initialisé pour: ${instanceConfig.displayName || instanceConfig.subdomain}`
@@ -118,6 +147,7 @@ export function initSupabaseWithInstance(instanceConfig) {
       subdomain: instanceConfig.subdomain,
       displayName: instanceConfig.displayName,
       source: instanceConfig.source,
+      supabase: supabaseInstance,
     };
   }
 
@@ -129,6 +159,7 @@ export function initSupabaseWithInstance(instanceConfig) {
  * @returns {Promise<{supabase: SupabaseClient, instance: Object}>}
  */
 export async function initSupabase() {
+  console.log(`🔧 initSupabase: ${JSON.stringify(currentInstanceConfig)}`);
   // Éviter les initialisations multiples
   if (initPromise) {
     return initPromise;
@@ -140,15 +171,13 @@ export async function initSupabase() {
   }
 
   initPromise = (async () => {
-    // Import dynamique pour éviter les dépendances circulaires
-    const { resolveInstance } = await import("./instanceResolver.js");
-
     const instance = await resolveInstance();
 
     if (!instance.isConfigured && !instance.supabaseUrl) {
       throw new Error("Aucune configuration Supabase valide trouvée");
     }
 
+    console.log(`🔧 initSupabase: ${JSON.stringify(instance)}`);
     const client = initSupabaseWithInstance(instance);
 
     return { supabase: client, instance };
@@ -156,24 +185,6 @@ export async function initSupabase() {
 
   return initPromise;
 }
-
-// ============================================================================
-// COMPATIBILITÉ : EXPORT SYNCHRONE
-// ============================================================================
-
-// Pour la compatibilité avec le code existant, on crée un client par défaut
-// Ce client sera remplacé par initSupabase() au démarrage de l'app
-
-const defaultUrl = import.meta.env.VITE_SUPABASE_URL;
-const defaultAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-// Client par défaut (sera remplacé par initSupabase au boot)
-const defaultClient =
-  defaultUrl && defaultAnonKey ? createLoggingClient(defaultUrl, defaultAnonKey, "default") : null;
-
-// Export synchrone pour compatibilité
-// ATTENTION: Préférer getSupabase() après initSupabase()
-export const supabase = defaultClient;
 
 // ============================================================================
 // ACCESSEURS
@@ -186,12 +197,7 @@ export const supabase = defaultClient;
  */
 export function getSupabase() {
   if (!supabaseInstance) {
-    // Fallback sur le client par défaut
-    if (defaultClient) {
-      console.warn("⚠️ Utilisation du client Supabase par défaut (initSupabase non appelé)");
-      return defaultClient;
-    }
-    throw new Error("Supabase non initialisé. Appeler initSupabase() d'abord.");
+    throw new Error("Supabase non initialisée. Appeler initSupabase() d'abord.");
   }
   return supabaseInstance;
 }
@@ -200,7 +206,7 @@ export function getSupabase() {
  * Récupère la configuration de l'instance actuelle
  * @returns {Object|null}
  */
-export function getInstanceConfig() {
+export function getInstance() {
   return currentInstanceConfig;
 }
 
@@ -209,7 +215,7 @@ export function getInstanceConfig() {
  * @returns {boolean}
  */
 export function isSupabaseReady() {
-  return supabaseInstance !== null || defaultClient !== null;
+  return supabaseInstance !== null;
 }
 
 // ============================================================================
@@ -232,7 +238,18 @@ export function resetSupabase() {
 /**
  * Hook to get current authenticated user (deprecated - use useSupabase context instead)
  */
-export function useAuth() {
+export function deprecated_useAuth() {
   console.warn("useAuth is deprecated. Use useSupabase context instead.");
   return { user: null, loading: false };
+}
+
+export function getConfig(key) {
+  if (!currentInstanceConfig) {
+    throw new Error("Instance non configurée. Appeler initSupabase() d'abord.");
+  }
+  return getInstanceConfig(key);
+}
+
+export function getAllConfigKeys() {
+  return getAllInstanceConfigKeys();
 }

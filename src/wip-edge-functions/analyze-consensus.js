@@ -1,4 +1,4 @@
-import { getConfigValue, loadInstanceConfig } from "../../common/config/instanceConfig.edge.js";
+import { getConfig } from "../../common/config/instanceConfig.edge.js";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Shared config from summarize.js (duplicated for independence, ideally should be valid shared lib)
@@ -23,12 +23,12 @@ const PROVIDER_CONFIGS = {
 
 const isProviderAvailable = (provider) => {
   const keyName = `${provider.toLowerCase()}_api_key`;
-  return Boolean(getConfigValue(keyName));
+  return Boolean(getConfig(keyName));
 };
 
 const getAvailableProvider = () => {
   // Prefer Anthropic or OpenAI for complex reasoning
-  const providers = ["anthropic", "openai", "mistral", "huggingface"];
+  const providers = ["anthropic", "openai", "anthropic", "mistral", "huggingface"];
   for (const provider of providers) {
     if (isProviderAvailable(provider)) {
       return provider;
@@ -38,13 +38,11 @@ const getAvailableProvider = () => {
 };
 
 async function analyzeConsensus(payload, provider = null) {
-  await loadInstanceConfig();
-
   if (!provider) provider = getAvailableProvider();
   if (!provider) throw new Error("No AI provider configured.");
 
   const config = PROVIDER_CONFIGS[provider];
-  const apiKey = getConfigValue(`${provider.toLowerCase()}_api_key`);
+  const apiKey = getConfig(`${provider.toLowerCase()}_api_key`);
   const model = config.defaultModel;
 
   const { title, description, refusalReasons, comments } = payload;

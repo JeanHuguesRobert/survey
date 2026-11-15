@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import { isAdmin } from "../../lib/permissions";
 import { getFederationConfig } from "../../common/config/instanceConfig.client.js";
@@ -36,7 +36,7 @@ export default function FilSubmissionForm() {
   const checkDuplicate = async (url) => {
     if (!url) return null;
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data } = await supabase
+    const { data } = await getSupabase()
       .from("posts")
       .select("id, metadata, created_at")
       .ilike("metadata->>type", "fil_%")
@@ -73,7 +73,7 @@ export default function FilSubmissionForm() {
 
       const {
         data: { session },
-      } = await supabase.auth.getSession();
+      } = await getSupabase().auth.getSession();
       const token = session?.access_token;
       if (!token) throw new Error("Session expirée. Reconnectez-vous.");
 

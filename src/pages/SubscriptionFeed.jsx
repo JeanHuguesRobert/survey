@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { isDeleted, getMetadata } from "../lib/metadata";
 import { enrichUserMetadata } from "../lib/userTransform";
@@ -97,7 +97,7 @@ export default function SubscriptionFeed() {
       setLoading(true);
 
       // Charger tous les abonnements avec metadata
-      let query = supabase
+      let query = getSupabase()
         .from("content_subscriptions")
         .select("*")
         .eq("user_id", currentUser.id)
@@ -139,7 +139,7 @@ export default function SubscriptionFeed() {
     // Posts
     if (byType.post?.length) {
       const ids = byType.post.map((s) => s.content_id);
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from("posts")
         .select("id, content, metadata, created_at, users(id, display_name)")
         .in("id", ids);
@@ -160,7 +160,7 @@ export default function SubscriptionFeed() {
     // Propositions
     if (byType.proposition?.length) {
       const ids = byType.proposition.map((s) => s.content_id);
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from("propositions")
         .select("id, title, author_id, users(id, display_name)")
         .in("id", ids);
@@ -181,7 +181,10 @@ export default function SubscriptionFeed() {
     // Groupes
     if (byType.group?.length) {
       const ids = byType.group.map((s) => s.content_id);
-      const { data } = await supabase.from("groups").select("id, name, description").in("id", ids);
+      const { data } = await getSupabase()
+        .from("groups")
+        .select("id, name, description")
+        .in("id", ids);
 
       byType.group.forEach((sub) => {
         const group = data?.find((g) => g.id === sub.content_id);
@@ -198,7 +201,7 @@ export default function SubscriptionFeed() {
     // Missions
     if (byType.mission?.length) {
       const ids = byType.mission.map((s) => s.content_id);
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from("groups")
         .select("id, name, description, metadata")
         .in("id", ids)
@@ -219,7 +222,7 @@ export default function SubscriptionFeed() {
     // Users
     if (byType.user?.length) {
       const ids = byType.user.map((s) => s.content_id);
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from("users")
         .select("id, display_name, metadata")
         .in("id", ids);
@@ -259,7 +262,7 @@ export default function SubscriptionFeed() {
     if (!confirm("Voulez-vous vous désabonner de ce contenu ?")) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from("content_subscriptions")
         .delete()
         .eq("user_id", currentUser.id)

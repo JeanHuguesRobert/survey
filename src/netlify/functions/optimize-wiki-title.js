@@ -1,5 +1,5 @@
 import { OpenAI } from "openai";
-import { getConfig } from "../../common/config/instanceConfig.backend.js";
+import { loadInstanceConfig, getConfig } from "../../common/config/instanceConfig.backend.js";
 
 export const handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -19,7 +19,10 @@ export const handler = async (event) => {
       };
     }
 
-    const { apiKey: openaiApiKey, model } = await getOpenAIConfig();
+    // Load instance config
+    await loadInstanceConfig();
+
+    const openaiApiKey = getConfig("openai_api_key");
     if (!openaiApiKey) {
       return {
         statusCode: 500,

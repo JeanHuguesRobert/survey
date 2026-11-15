@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { appendOrMergeLastModifiedBy, getLatestModifier } from "../lib/socialMetadata";
 import wikiFederation from "../lib/wikiFederation";
@@ -20,7 +20,7 @@ export default function WikiEdit() {
 
   useEffect(() => {
     const loadPage = async () => {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from("wiki_pages")
         .select("*")
         .eq("slug", initialSlug)
@@ -46,7 +46,7 @@ export default function WikiEdit() {
 
   const handleSave = async () => {
     try {
-      const { data: slugPage, error: slugError } = await supabase
+      const { data: slugPage, error: slugError } = await getSupabase()
         .from("wiki_pages")
         .select("*")
         .eq("slug", slug)

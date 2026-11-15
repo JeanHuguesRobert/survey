@@ -1,13 +1,13 @@
 import { PROVIDERS } from "../edge-functions/lib/lib/oauthProviders.js";
 import fetch from "node-fetch"; // Netlify Functions environment usually has node-fetch or global fetch in Node 18+
 import { createClient } from "@supabase/supabase-js";
-import { loadInstanceConfig, getConfigValue } from "../../common/config/instanceConfig.backend.js";
+import { loadInstanceConfig, getConfig } from "../../common/config/instanceConfig.backend.js";
 
 // Helper to exchange code for token
 async function exchangeCodeForToken(providerConf, code, redirectUri) {
   const params = new URLSearchParams({
-    client_id: getConfigValue(providerConf.clientIdEnv.toLowerCase().replace(/_/g, "_")),
-    client_secret: getConfigValue(providerConf.clientSecretEnv.toLowerCase().replace(/_/g, "_")),
+    client_id: getConfig(providerConf.clientIdEnv.toLowerCase().replace(/_/g, "_")),
+    client_secret: getConfig(providerConf.clientSecretEnv.toLowerCase().replace(/_/g, "_")),
     code,
     redirect_uri: redirectUri,
   });
@@ -81,7 +81,7 @@ export const handler = async (event) => {
       };
     }
 
-    const appBaseUrl = getConfigValue("app_base_url", "http://localhost:8888");
+    const appBaseUrl = getConfig("app_base_url", "http://localhost:8888");
     // Prefer the redirectUri stored in user metadata at oauth-start, if present. This ensures
     // the token exchange uses the exact same redirect_uri used in the authorize request.
     let redirectUri = `${appBaseUrl}${conf.redirectPath}`;
@@ -94,8 +94,8 @@ export const handler = async (event) => {
     }
     const accessToken = authHeader.split(" ")[1];
 
-    const SUPABASE_URL = getConfigValue("supabase_url");
-    const SUPABASE_SERVICE_ROLE_KEY = getConfigValue("supabase_service_role_key");
+    const SUPABASE_URL = getConfig("supabase_url");
+    const SUPABASE_SERVICE_ROLE_KEY = getConfig("supabase_service_role_key");
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       return {
         statusCode: 500,

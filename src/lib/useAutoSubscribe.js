@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { getSupabase } from "./supabase";
 
 /**
  * Types de contenu pour lesquels on peut s'abonner
@@ -34,22 +34,24 @@ export async function autoSubscribe(contentType, contentId, userId) {
 
   try {
     // Upsert pour éviter les doublons
-    const { error } = await supabase.from("content_subscriptions").upsert(
-      {
-        user_id: userId,
-        content_type: contentType,
-        content_id: contentId,
-        metadata: {
-          auto_subscribed: true,
-          subscribed_at: new Date().toISOString(),
-          unread_count: 0,
+    const { error } = await getSupabase()
+      .from("content_subscriptions")
+      .upsert(
+        {
+          user_id: userId,
+          content_type: contentType,
+          content_id: contentId,
+          metadata: {
+            auto_subscribed: true,
+            subscribed_at: new Date().toISOString(),
+            unread_count: 0,
+          },
         },
-      },
-      {
-        onConflict: "user_id,content_type,content_id",
-        ignoreDuplicates: true,
-      }
-    );
+        {
+          onConflict: "user_id,content_type,content_id",
+          ignoreDuplicates: true,
+        }
+      );
 
     if (error) {
       console.error("autoSubscribe error:", error);

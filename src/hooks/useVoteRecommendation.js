@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 
 /**
  * Hook to find if a user has delegates who have voted on a specific proposition.
@@ -23,7 +23,7 @@ export function useVoteRecommendation(propositionId, userId, tags) {
       try {
         // 1. Get my delegations for these tags
         const tagIds = tags.map((t) => t.tag.id);
-        const { data: delegations, error: delError } = await supabase
+        const { data: delegations, error: delError } = await getSupabase()
           .from("delegations")
           .select("delegate_id, tag_id, tag:tags(name)")
           .eq("delegator_id", userId)
@@ -36,7 +36,7 @@ export function useVoteRecommendation(propositionId, userId, tags) {
 
         // 2. Check if any delegate has voted on this proposition
         const delegateIds = delegations.map((d) => d.delegate_id);
-        const { data: delegateVotes, error: voteError } = await supabase
+        const { data: delegateVotes, error: voteError } = await getSupabase()
           .from("votes")
           .select("user_id, vote_value, users(display_name)")
           .eq("proposition_id", propositionId)

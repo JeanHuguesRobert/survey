@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { getTaskTitleFromPost } from "../lib/taskHelpers";
 import { TASK_STATUS_LABELS } from "../lib/taskMetadata";
 import {
@@ -36,7 +36,7 @@ export default function UserDashboard() {
   const checkAuth = async () => {
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await getSupabase().auth.getUser();
     if (user) {
       setCurrentUser(user);
       loadDashboardData(user);
@@ -50,16 +50,16 @@ export default function UserDashboard() {
 
     try {
       const results = await Promise.allSettled([
-        supabase.from("propositions").select("id").eq("author_id", user.id),
-        supabase.from("votes").select("id, vote_value, created_at").eq("user_id", user.id),
-        supabase.from("delegations").select("id").eq("delegator_id", user.id),
-        supabase.from("posts").select("id").eq("author_id", user.id),
-        supabase.from("comments").select("id").eq("author_id", user.id),
-        supabase.from("wiki_pages").select("id").eq("author_id", user.id),
-        supabase.from("content_subscriptions").select("id").eq("user_id", user.id),
-        supabase.rpc("count_user_subscribers", { target_user_id: user.id }),
-        supabase.from("group_members").select("group_id").eq("user_id", user.id),
-        supabase
+        getSupabase().from("propositions").select("id").eq("author_id", user.id),
+        getSupabase().from("votes").select("id, vote_value, created_at").eq("user_id", user.id),
+        getSupabase().from("delegations").select("id").eq("delegator_id", user.id),
+        getSupabase().from("posts").select("id").eq("author_id", user.id),
+        getSupabase().from("comments").select("id").eq("author_id", user.id),
+        getSupabase().from("wiki_pages").select("id").eq("author_id", user.id),
+        getSupabase().from("content_subscriptions").select("id").eq("user_id", user.id),
+        getSupabase().rpc("count_user_subscribers", { target_user_id: user.id }),
+        getSupabase().from("group_members").select("group_id").eq("user_id", user.id),
+        getSupabase()
           .from("posts")
           .select("id, content, metadata, updated_at")
           .eq("metadata->>type", "task")
@@ -162,7 +162,7 @@ export default function UserDashboard() {
       let missionDetails = [];
       if (missionMemberships.length > 0) {
         const groupIds = missionMemberships.map((row) => row.group_id);
-        const { data: missionGroups, error: missionGroupsError } = await supabase
+        const { data: missionGroups, error: missionGroupsError } = await getSupabase()
           .from("groups")
           .select("id, name, metadata")
           .in("id", groupIds);
@@ -197,7 +197,7 @@ export default function UserDashboard() {
 
       let projectMap = {};
       if (projectIds.length > 0) {
-        const { data: taskProjects, error: taskProjectsError } = await supabase
+        const { data: taskProjects, error: taskProjectsError } = await getSupabase()
           .from("groups")
           .select("id, name")
           .in("id", projectIds);

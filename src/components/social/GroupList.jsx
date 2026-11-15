@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
+import { getSupabase } from "../../lib/supabase";
 import { isDeleted } from "../../lib/metadata";
 import GroupCard from "./GroupCard";
 
@@ -20,7 +20,7 @@ export default function GroupList({ filterType = null, currentUserId = null, gaz
       setLoading(true);
       setError(null);
 
-      let query = supabase.from("groups").select("*, group_members(count)");
+      let query = getSupabase().from("groups").select("*, group_members(count)");
 
       // Filtre par type si spécifié
       if (filterType) {

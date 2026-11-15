@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import MissionCard from "../components/missions/MissionCard";
 import { getMetadata } from "../lib/metadata";
@@ -25,7 +25,7 @@ export default function MissionsPage() {
       // Note: Supabase filtering on JSONB can be tricky, so we might filter client-side if needed
       // But let's try to filter in query first if possible, or fetch all groups and filter
 
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from("groups")
         .select("*, group_members(count)")
         .order("created_at", { ascending: false });

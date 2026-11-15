@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import SiteFooter from "../components/layout/SiteFooter";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 
 // Couleurs par niveau de maturité
 const MATURITY_COLORS = {
@@ -31,7 +31,7 @@ export default function TransparenceVitrine() {
   async function loadData() {
     try {
       // Charger les leads publics (ceux qui ont accepté d'être affichés)
-      const { data: leads } = await supabase
+      const { data: leads } = await getSupabase()
         .from("transparency_leads")
         .select(
           "commune_name, commune_insee, lead_type, maturity_level, organization_name, accepted_charter, created_at, status"
@@ -65,7 +65,7 @@ export default function TransparenceVitrine() {
       setEngagements(Array.from(communeMap.values()));
 
       // Stats globales
-      const { data: statsData } = await supabase
+      const { data: statsData } = await getSupabase()
         .from("transparency_leads_dashboard")
         .select("*")
         .single();

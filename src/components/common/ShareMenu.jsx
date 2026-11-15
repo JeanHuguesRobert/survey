@@ -24,7 +24,7 @@ export default function ShareMenu({
   description = "",
   currentUserId,
 }) {
-  const botName = getConfig("bot_name", import.meta.env.VITE_BOT_NAME || "Ophélia");
+  const botName = getConfig("bot_name", "Ophélia");
   const [isOpen, setIsOpen] = useState(false);
   const [showGazetteDialog, setShowGazetteDialog] = useState(false);
   const [showOpheliaModal, setShowOpheliaModal] = useState(false);
