@@ -51,7 +51,7 @@
     "@tailwindcss/vite": "^4.1.17",
     "cheerio": "^1.0.0-rc.12",
     "node-fetch": "^3.0.0",
-    "dompurify": "^3.3.1",
+    "dompurify": "^3.4.17",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.1",
     "geoportal-extensions-leaflet": "^2.4.3",
