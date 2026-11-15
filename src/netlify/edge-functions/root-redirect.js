@@ -1,6 +1,7 @@
 // netlify/edge-functions/root-redirect.js
 
 import { initializeInstanceAdmin, getConfig } from "../../common/config/instanceConfig.edge.js";
+import { injectMetadata } from "./lib/html-injector.js";
 
 export default async (request, context) => {
   const url = new URL(request.url);
@@ -26,7 +27,7 @@ export default async (request, context) => {
       const cookie = request.headers.get("cookie") || "";
       if (/ngrok_bypass=1/.test(cookie)) return context.next();
       // Redirect to dev server thru ngrok tunnel
-      return Response.redirect(cfg.redirect_url, 302);
+      return Response.redirect(redirect_url, 302);
     } catch (e) {
       console.error("Error redirecting to", redirect_url, e);
     }
@@ -42,7 +43,17 @@ export default async (request, context) => {
   }
 
   // Process, most functions will to call loadInstanceConfig()
-  return context.next();
+  const response = await context.next();
+
+  // On n'injecte les métadonnées que pour le HTML
+  const contentType = response.headers.get("content-type");
+  const skipInjection = request.headers.get("X-Ophelia-Skip-Default-Injection") === "true";
+
+  if (contentType && contentType.includes("text/html") && !skipInjection) {
+    return injectMetadata(response, null, null);
+  }
+
+  return response;
 };
 
 function resolveMarkdownTarget(request, url) {
