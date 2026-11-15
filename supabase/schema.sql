@@ -1253,7 +1253,7 @@ CREATE TABLE public.users (
   rgpd_consent_date timestamp with time zone,
   updated_at timestamp with time zone DEFAULT now(),
   metadata jsonb NOT NULL DEFAULT '{"schemaVersion": 1}'::jsonb,
-  role text NOT NULL DEFAULT 'user'::text CHECK (role = ANY (ARRAY['user'::text, 'moderator'::text, 'admin'::text])),
+  role text NOT NULL DEFAULT 'user'::text CHECK (role = ANY (ARRAY['user'::text, 'moderator'::text, 'admin'::text, 'ai'::text])),
   public_profile boolean NOT NULL DEFAULT true,
   CONSTRAINT users_pkey PRIMARY KEY (id)
 );

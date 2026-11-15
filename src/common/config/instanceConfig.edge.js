@@ -18,9 +18,10 @@ function getenv(key) {
 
 // Fonction pour créer une instance Supabase côté Deno Edge , sync
 const createSupabase_Edge = (admin = false, options = {}) => {
-  const supabaseUrl = getenv("SUPABASE_URL");
-  const supabaseServiceRoleKey = getenv("SUPABASE_SERVICE_ROLE_KEY");
-  const supabaseAnonKey = getenv("SUPABASE_ANON_KEY");
+  const supabaseUrl = options.supabaseUrl || getenv("SUPABASE_URL");
+  const supabaseServiceRoleKey =
+    options.supabaseServiceRoleKey || getenv("SUPABASE_SERVICE_ROLE_KEY");
+  const supabaseAnonKey = options.supabaseAnonKey || getenv("SUPABASE_ANON_KEY");
 
   const supabaseKey = admin ? supabaseServiceRoleKey : supabaseAnonKey;
   if (!supabaseKey) {
@@ -63,6 +64,22 @@ export function newSupabase(admin = false, options = {}) {
     "Supabase Service Role Key:",
     getenv("SUPABASE_SERVICE_ROLE_KEY").substring(0, 4) + "..."
   );
+  // Defensive, compare with options
+  if (options.supabaseUrl !== getenv("SUPABASE_URL")) {
+    console.warn("Supabase URL in options does not match environment variable.");
+    // Force if null
+    options.supabaseUrl = getenv("SUPABASE_URL");
+  }
+  if (options.supabaseServiceRoleKey !== getenv("SUPABASE_SERVICE_ROLE_KEY")) {
+    console.warn("Supabase Service Role Key in options does not match environment variable.");
+    // Force if null
+    options.supabaseServiceRoleKey = getenv("SUPABASE_SERVICE_ROLE_KEY");
+  }
+  if (options.supabaseAnonKey !== getenv("SUPABASE_ANON_KEY")) {
+    console.warn("Supabase Anon Key in options does not match environment variable.");
+    // Force if null
+    options.supabaseAnonKey = getenv("SUPABASE_ANON_KEY");
+  }
   return createSupabase_Edge(admin, options);
 }
 
@@ -76,7 +93,7 @@ export async function initializeInstanceAdmin(supabase) {
   return initializeInstance(supabase, true);
 }
 
-export async function loadInstanceConfig(force = false, supabase_config = null) {
+export async function loadInstanceConfig(force = false, supabase_config = {}) {
   // Invalid if not initialized properly
   if (!inited()) {
     console.warn("loadInstanceConfig: calling initializeInstanceAdmin()");

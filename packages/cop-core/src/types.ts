@@ -9,7 +9,6 @@ export type EventType = string & {};
 //
 
 export interface Event {
-
   id: string;
   topicId: string;
 
@@ -35,7 +34,6 @@ export interface Event {
   metadata?: Record<string, unknown>;
 }
 
-
 // ----
 // Topic : un flux d'événements sur un sujet (profil-dépendant).
 //
@@ -50,7 +48,6 @@ export interface Topic {
   updatedAt: string;
   metadata?: Record<string, unknown>;
 }
-
 
 // ----
 // Task : une tâche sur un sujet (profil-dépendant).
@@ -68,7 +65,6 @@ export interface Task {
   lastEventAt?: string;
   metadata?: Record<string, unknown>;
 }
-
 
 // ----
 // Step : une étape dans la vie d'une Task.
@@ -106,14 +102,12 @@ export interface Artifact {
   metadata?: Record<string, unknown>;
 }
 
-
 // ----
 // Minimal persistence interfaces for topics, tasks, steps, artifacts.
 // This is a projection API over the immutable Event + Artifact log.
 //
 
 export interface COPStore {
-
   // Topics
   getTopic(id: string): Promise<Topic | null>;
   saveTopic(topic: Topic): Promise<void>;
@@ -176,7 +170,6 @@ export interface COPStore {
   listArtifacts(params: { topicId: string; type?: string; limit?: number }): Promise<Artifact[]>;
 }
 
-
 // ----
 // runtime/agent.ts
 
@@ -211,7 +204,6 @@ export interface COPAgent {
    */
   onTick?(ctx: AgentContext): Promise<void>;
 }
-
 
 // -----
 // runtime/bus.ts
@@ -260,11 +252,9 @@ export interface COPBus {
   subscribe?: (params: { topicId: string }, onEvent: (event: Event) => void) => () => void;
 }
 
-
 // src/cop/runtime/scheduler.ts
 
 export interface SchedulerOptions {
-
   agents: COPAgent[];
   bus: COPBus;
   store: COPStore;
