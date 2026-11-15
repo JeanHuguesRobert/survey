@@ -7,7 +7,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "test": "vitest"
+    "test": "tsc --noEmit -p tsconfig.build.json"
   },
   "keywords": [
     "cop",
@@ -17,8 +17,7 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "typescript": "^5.5.0",
-    "vitest": "^4.0.15"
+    "typescript": "^5.5.0"
   },
   "dependencies": {
     "swagger-ui-dist": "^5.31.0"

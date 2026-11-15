@@ -91,5 +91,10 @@
     "stylelint-config-standard": "^39.0.1",
     "tailwindcss": "^4.1.17",
     "vite": "^7.2.7"
+  },
+  "overrides": {
+    "supabase": {
+      "tar": "7.5.19"
+    }
   }
 }
