@@ -45,7 +45,7 @@ import Proposition from "./pages/Proposition";
 import Transparence from "./pages/Transparence";
 import Survey from "./pages/Survey";
 import SiteFooter from "./components/layout/SiteFooter";
-import { LegalPage } from "./components/LegalLinks";
+import { LegalPage } from "./components/common/LegalLinks";
 import PublicBrowser from "./components/PublicBrowser";
 
 export default function ConsultationPertitellu() {
