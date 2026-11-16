@@ -70,35 +70,35 @@ function spawnDenoTest(filePath, isQuiet) {
   return new Promise((resolve) => {
     let stdout = "";
     let stderr = "";
-    const stdioOption = isQuiet ? ["inherit", "ignore", "ignore"] : ["inherit", "pipe", "pipe"];
+    const stdioOption = ["inherit", "pipe", "pipe"];
     const denoArgs = ["test", filePath];
     if (isQuiet) {
       denoArgs.push("--quiet");
     }
     const child = spawn("deno", denoArgs, { stdio: stdioOption });
 
-    if (!isQuiet) {
+    {
       child.stdout.on("data", (data) => {
         stdout += data.toString();
-        process.stdout.write(data);
+        if (!isQuiet) process.stdout.write(data);
       });
 
       child.stderr.on("data", (data) => {
         stderr += data.toString();
-        process.stderr.write(data);
+        if (!isQuiet) process.stderr.write(data);
       });
     }
 
     child.on("close", (code) => {
       const result = { passed: 0, failed: 0, error: null };
-      const summaryMatch = stdout.match(/\| (\d+) passed \| (\d+) failed/);
+      const summaryMatch = (stdout + "\n" + stderr).match(/(\d+)\s+passed\s*\|\s*(\d+)\s+failed/);
 
       if (summaryMatch) {
         result.passed = parseInt(summaryMatch[1], 10);
         result.failed = parseInt(summaryMatch[2], 10);
-      } else if (code !== 0) {
-        // If no summary but non-zero exit code, it's a failure
+      } else {
         result.failed = 1;
+        result.error = "Deno summary missing or process failed";
       }
 
       if (code !== 0 && result.failed === 0) {
@@ -117,35 +117,37 @@ function spawnNodeTest(filePath, isQuiet) {
   return new Promise((resolve) => {
     let stdout = "";
     let stderr = "";
-    const stdioOption = isQuiet ? ["inherit", "ignore", "ignore"] : ["inherit", "pipe", "pipe"];
-    const nodeArgs = ["--test", filePath];
-    if (isQuiet) {
-      nodeArgs.push("--test-reporter=dot");
-    }
+    const stdioOption = ["inherit", "pipe", "pipe"];
+    const nodeArgs = ["--test", "--test-reporter=tap", filePath];
     const child = spawn("node", nodeArgs, { stdio: stdioOption });
 
-    if (!isQuiet) {
+    {
       child.stdout.on("data", (data) => {
         stdout += data.toString();
-        process.stdout.write(data);
+        if (!isQuiet) process.stdout.write(data);
       });
 
       child.stderr.on("data", (data) => {
         stderr += data.toString();
-        process.stderr.write(data);
+        if (!isQuiet) process.stderr.write(data);
       });
     }
 
     child.on("close", (code) => {
       const result = { passed: 0, failed: 0, error: null };
-      const passedMatch = stdout.match(/ℹ pass (\d+)/);
-      const failedMatch = stdout.match(/ℹ fail (\d+)/);
+      const passedMatch = stdout.match(/^# pass (\d+)$/m);
+      const failedMatch = stdout.match(/^# fail (\d+)$/m);
 
       if (passedMatch) {
         result.passed = parseInt(passedMatch[1], 10);
       }
       if (failedMatch) {
         result.failed = parseInt(failedMatch[1], 10);
+      }
+
+      if (!passedMatch || !failedMatch) {
+        result.failed = Math.max(result.failed, 1);
+        result.error = "Node.js TAP summary unavailable";
       }
 
       if (code !== 0 && result.failed === 0) {
