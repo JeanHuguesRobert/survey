@@ -50,14 +50,14 @@
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.17",
     "cheerio": "^1.0.0-rc.12",
-    "node-fetch": "^3.0.0",
-    "dompurify": "^3.3.1",
+    "dompurify": "^3.4.18",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.1",
     "geoportal-extensions-leaflet": "^2.4.3",
-    "glob": "^13.0.0",
+    "glob": "^14.0.6",
     "leaflet": "^1.9.4",
     "marked": "^17.0.1",
+    "node-fetch": "^3.0.0",
     "npm-ls": "^1.0.0",
     "openai": "^6.10.0",
     "pg": "^8.0.0",
@@ -67,7 +67,7 @@
     "react-is": "^19.2.1",
     "react-leaflet": "^5.0.0",
     "react-markdown": "^10.1.0",
-    "react-router-dom": "^7.12.0",
+    "react-router-dom": "^7.18.5",
     "recharts": "^3.5.1",
     "remark-gfm": "^4.0.1",
     "sqlite": "^5.1.1",
@@ -93,8 +93,6 @@
     "vite": "^7.2.7"
   },
   "overrides": {
-    "supabase": {
-      "tar": "7.5.19"
-    }
+    "tar": "7.5.19"
   }
 }
