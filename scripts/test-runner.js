@@ -4,6 +4,7 @@ import { glob } from "glob";
 import { readFileSync } from "fs";
 import { spawn } from "child_process";
 import { resolve } from "path";
+import { tmpdir } from "node:os";
 
 async function runTests() {
   const args = process.argv.slice(2);
@@ -71,7 +72,7 @@ function spawnDenoTest(filePath, isQuiet) {
     let stdout = "";
     let stderr = "";
     const stdioOption = ["inherit", "pipe", "pipe"];
-    const denoArgs = ["test", filePath];
+    const denoArgs = ["test", "--allow-read=" + tmpdir(), "--allow-write=" + tmpdir(), filePath];
     if (isQuiet) {
       denoArgs.push("--quiet");
     }
@@ -91,7 +92,7 @@ function spawnDenoTest(filePath, isQuiet) {
 
     child.on("close", (code) => {
       const result = { passed: 0, failed: 0, error: null };
-      const summaryMatch = (stdout + "\n" + stderr).match(/(\d+)\s+passed\s*\|\s*(\d+)\s+failed/);
+      const summaryMatch = (stdout + "\n" + stderr).match(/(\d+)\s+passed(?:\s+\(\d+\s+steps\))?\s*\|\s*(\d+)\s+failed/);
 
       if (summaryMatch) {
         result.passed = parseInt(summaryMatch[1], 10);
