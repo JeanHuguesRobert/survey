@@ -1,3 +1,4 @@
+import { describe, it, beforeEach, afterEach } from "https://deno.land/std@0.208.0/testing/bdd.ts";
 import { assertEquals, assert } from "jsr:@std/assert";
 import { createDenoSqliteConnection } from "../../sqlite/deno-sqlite.js";
 
@@ -48,7 +49,7 @@ globalThis.Worker = MockWorker;
 let connection;
 let mockWorker;
 
-Deno.test.beforeEach(async () => {
+beforeEach(async () => {
   // Reset mockWorker before each test
   globalThis.Worker = MockWorker;
   connection = await createDenoSqliteConnection({ uri: ":memory:" });
@@ -56,18 +57,18 @@ Deno.test.beforeEach(async () => {
   mockWorker.postMessageCalls = []; // Clear calls for each test
 });
 
-Deno.test.afterEach(() => {
+afterEach(() => {
   // Restore original Worker after each test
   globalThis.Worker = OriginalWorker;
 });
 
-Deno.test("DenoSqliteConnection", async () => {
-  Deno.test("should connect and close", async () => {
+describe("DenoSqliteConnection", () => {
+  it("should connect and close", async () => {
     await connection.close();
     assert(mockWorker.postMessageCalls.some((call) => call.method === "close"));
   });
 
-  Deno.test("should execute run operations", async () => {
+  it("should execute run operations", async () => {
     const sql = "INSERT INTO users (name) VALUES (?)";
     const params = ["John Doe"];
     const result = await connection.run(sql, params);
@@ -76,11 +77,11 @@ Deno.test("DenoSqliteConnection", async () => {
         (call) => call.method === "run" && call.sql === sql && call.params[0] === params[0]
       )
     );
-    assert.strictEqual(result.rowsAffected, 1);
-    assert.strictEqual(result.lastInsertId, 1);
+    assertEquals(result.rowsAffected, 1);
+    assertEquals(result.lastInsertId, 1);
   });
 
-  Deno.test("should execute get operations", async () => {
+  it("should execute get operations", async () => {
     const sql = "SELECT * FROM users WHERE id = ?";
     const params = [1];
     const result = await connection.get(sql, params);
@@ -89,26 +90,26 @@ Deno.test("DenoSqliteConnection", async () => {
         (call) => call.method === "get" && call.sql === sql && call.params[0] === params[0]
       )
     );
-    assert.deepStrictEqual(result, { id: 1, name: "test" });
+    assertEquals(result, { id: 1, name: "test" });
   });
 
-  Deno.test("should execute all operations", async () => {
+  it("should execute all operations", async () => {
     const sql = "SELECT * FROM users";
     const result = await connection.all(sql);
     assert(mockWorker.postMessageCalls.some((call) => call.method === "all" && call.sql === sql));
-    assert.deepStrictEqual(result, [
+    assertEquals(result, [
       { id: 1, name: "test" },
       { id: 2, name: "test2" },
     ]);
   });
 
-  Deno.test("should execute exec operations", async () => {
+  it("should execute exec operations", async () => {
     const sql = "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)";
     await connection.exec(sql);
     assert(mockWorker.postMessageCalls.some((call) => call.method === "exec" && call.sql === sql));
   });
 
-  Deno.test("should throw error for transaction method", async () => {
+  it("should throw error for transaction method", async () => {
     let error;
     try {
       await connection.transaction(async (trx) => {});
@@ -116,7 +117,7 @@ Deno.test("DenoSqliteConnection", async () => {
       error = e;
     }
     assert(error instanceof Error);
-    assert.strictEqual(
+    assertEquals(
       error.message,
       "La méthode 'transaction' doit être implémentée par l'adaptateur spécifique."
     );

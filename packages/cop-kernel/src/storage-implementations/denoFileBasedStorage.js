@@ -1,4 +1,5 @@
 import * as fs from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import * as path from "node:path";
 import { createAuditLogger } from "./auditLogger.js";
 
@@ -130,9 +131,10 @@ export function createDenoFileBasedStorage(options = {}) {
       async list({ status, limit = 100 } = {}) {
         const dirPath = path.join(basePath, "agentIdentities");
         await ensureDir(dirPath);
-        const files = await fs.readdir(dirPath, { withFileTypes: true });
-        for (const dirEntry of files) {
-          if (dirEntry.isFile() && dirEntry.name.endsWith(".json")) {
+        const dirEntries = await fs.readdir(dirPath, { withFileTypes: true });
+        const files = [];
+        for (const dirEntry of dirEntries) {
+          if (dirEntry.isFile && dirEntry.name.endsWith(".json")) {
             files.push(dirEntry.name);
           }
         }
@@ -169,7 +171,7 @@ export function createDenoFileBasedStorage(options = {}) {
 
     tasks: {
       async upsert(taskRecord) {
-        const newTask = { ...taskRecord, id: taskRecord.id || `task_${Date.now()}` };
+        const newTask = { ...taskRecord, id: taskRecord.id || `task_${randomUUID()}` };
         newTask.version = (newTask.version || 0) + 1;
         const filePath = getEntityFilePath("tasks", newTask.id);
         await writeJsonFile(filePath, newTask);
@@ -189,9 +191,10 @@ export function createDenoFileBasedStorage(options = {}) {
       async list({ status, limit = 100 } = {}) {
         const dirPath = path.join(basePath, "tasks");
         await ensureDir(dirPath);
-        const files = await fs.readdir(dirPath, { withFileTypes: true });
-        for (const dirEntry of files) {
-          if (dirEntry.isFile() && dirEntry.name.endsWith(".json")) {
+        const dirEntries = await fs.readdir(dirPath, { withFileTypes: true });
+        const files = [];
+        for (const dirEntry of dirEntries) {
+          if (dirEntry.isFile && dirEntry.name.endsWith(".json")) {
             files.push(dirEntry.name);
           }
         }
@@ -235,7 +238,7 @@ export function createDenoFileBasedStorage(options = {}) {
 
     steps: {
       async upsert(stepRecord) {
-        const newStep = { ...stepRecord, id: stepRecord.id || `step_${Date.now()}` };
+        const newStep = { ...stepRecord, id: stepRecord.id || `step_${randomUUID()}` };
         const filePath = getEntityFilePath("steps", newStep.id);
         await writeJsonFile(filePath, newStep);
         await auditLogger.logEvent({
@@ -249,9 +252,10 @@ export function createDenoFileBasedStorage(options = {}) {
       async listByTask(taskId) {
         const dirPath = path.join(basePath, "steps");
         await ensureDir(dirPath);
-        const files = await fs.readdir(dirPath, { withFileTypes: true });
-        for (const dirEntry of files) {
-          if (dirEntry.isFile() && dirEntry.name.endsWith(".json")) {
+        const dirEntries = await fs.readdir(dirPath, { withFileTypes: true });
+        const files = [];
+        for (const dirEntry of dirEntries) {
+          if (dirEntry.isFile && dirEntry.name.endsWith(".json")) {
             files.push(dirEntry.name);
           }
         }

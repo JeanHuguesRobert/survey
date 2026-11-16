@@ -1,10 +1,10 @@
 import { assert, assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
-import { afterEach, beforeEach } from "https://deno.land/std@0.208.0/testing/bdd.ts";
+import { describe, it, afterEach, beforeEach } from "https://deno.land/std@0.208.0/testing/bdd.ts";
 import * as path from "https://deno.land/std@0.208.0/path/mod.ts";
 import * as fs from "https://deno.land/std@0.208.0/fs/mod.ts";
 import { createDenoFileBasedStorage } from "../denoFileBasedStorage.js";
 
-Deno.test("DenoFileBasedStorage", () => {
+describe("DenoFileBasedStorage", () => {
   let storage;
   let testBasePath;
   let testAuditLogPath;
@@ -22,27 +22,27 @@ Deno.test("DenoFileBasedStorage", () => {
     await Deno.remove(testBasePath, { recursive: true });
   });
 
-  Deno.test("should insert debug logs", async () => {
+  it("should insert debug logs", async () => {
     const logRecord = { message: "test log" };
     const result = await storage.debugLogs.insert(logRecord);
     assertEquals(result.ok, true);
   });
 
-  Deno.test("should insert events", async () => {
+  it("should insert events", async () => {
     const eventRecord = { type: "test_event", payload: { data: "test" } };
     const result = await storage.events.insert(eventRecord);
     assertEquals(result.ok, true);
     assertEquals(result.event, eventRecord);
   });
 
-  Deno.test("should insert artifacts", async () => {
+  it("should insert artifacts", async () => {
     const artifactRecord = { name: "test_artifact", content: "some content" };
     const result = await storage.artifacts.insert(artifactRecord);
     assertEquals(result.ok, true);
     assertEquals(result.artifact, artifactRecord);
   });
 
-  Deno.test("agentIdentities should upsert new identity", async () => {
+  it("agentIdentities should upsert new identity", async () => {
     const identity = { agent_id: "agent_1", agent_name: "test_agent", status: "active" };
     const result = await storage.agentIdentities.upsert(identity);
     assertEquals(result.ok, true);
@@ -57,7 +57,7 @@ Deno.test("DenoFileBasedStorage", () => {
     assertEquals(JSON.parse(nameIndexContent), { test_agent: "agent_1" });
   });
 
-  Deno.test("agentIdentities should update existing identity", async () => {
+  it("agentIdentities should update existing identity", async () => {
     const initialIdentity = { agent_id: "agent_1", agent_name: "test_agent", status: "active" };
     await storage.agentIdentities.upsert(initialIdentity);
     const updatedIdentity = { agent_id: "agent_1", agent_name: "test_agent", status: "inactive" };
@@ -70,7 +70,7 @@ Deno.test("DenoFileBasedStorage", () => {
     assertEquals(JSON.parse(fileContent), updatedIdentity);
   });
 
-  Deno.test("agentIdentities should get identity by id", async () => {
+  it("agentIdentities should get identity by id", async () => {
     const identity = { agent_id: "agent_1", agent_name: "test_agent" };
     await storage.agentIdentities.upsert(identity);
     const result = await storage.agentIdentities.getById("agent_1");
@@ -78,7 +78,7 @@ Deno.test("DenoFileBasedStorage", () => {
     assertEquals(result.identity, identity);
   });
 
-  Deno.test("agentIdentities should get identity by name", async () => {
+  it("agentIdentities should get identity by name", async () => {
     const identity = { agent_id: "agent_1", agent_name: "test_agent" };
     await storage.agentIdentities.upsert(identity);
     const result = await storage.agentIdentities.getByName("test_agent");
@@ -86,7 +86,7 @@ Deno.test("DenoFileBasedStorage", () => {
     assertEquals(result.identity, identity);
   });
 
-  Deno.test("agentIdentities should list identities", async () => {
+  it("agentIdentities should list identities", async () => {
     await storage.agentIdentities.upsert({
       agent_id: "agent_1",
       agent_name: "agent1",
@@ -109,7 +109,7 @@ Deno.test("DenoFileBasedStorage", () => {
     );
   });
 
-  Deno.test("agentIdentities should list identities by status", async () => {
+  it("agentIdentities should list identities by status", async () => {
     await storage.agentIdentities.upsert({
       agent_id: "agent_1",
       agent_name: "agent1",
@@ -126,7 +126,7 @@ Deno.test("DenoFileBasedStorage", () => {
     assertEquals(result.identities[0].status, "active");
   });
 
-  Deno.test("agentIdentities should update status", async () => {
+  it("agentIdentities should update status", async () => {
     const identity = { agent_id: "agent_1", agent_name: "test_agent", status: "active" };
     await storage.agentIdentities.upsert(identity);
     const result = await storage.agentIdentities.updateStatus("agent_1", "inactive");
@@ -136,7 +136,7 @@ Deno.test("DenoFileBasedStorage", () => {
     assertEquals(updated.identity.status, "inactive");
   });
 
-  Deno.test("tasks should upsert new task", async () => {
+  it("tasks should upsert new task", async () => {
     const taskRecord = { name: "test_task", status: "pending" };
     const result = await storage.tasks.upsert(taskRecord);
     assertEquals(result.ok, true);
@@ -148,7 +148,7 @@ Deno.test("DenoFileBasedStorage", () => {
     assertEquals(JSON.parse(fileContent), result.task);
   });
 
-  Deno.test("tasks should update existing task", async () => {
+  it("tasks should update existing task", async () => {
     const initialTask = { id: "task_1", name: "test_task", status: "pending", version: 1 };
     await storage.tasks.upsert(initialTask);
     const updatedTask = { id: "task_1", name: "test_task", status: "running", version: 2 };
@@ -162,7 +162,7 @@ Deno.test("DenoFileBasedStorage", () => {
     assertEquals(JSON.parse(fileContent), result.task);
   });
 
-  Deno.test("tasks should fail update on optimistic lock mismatch", async () => {
+  it("tasks should fail update on optimistic lock mismatch", async () => {
     const initialTask = { id: "task_1", name: "test_task", status: "pending", version: 1 };
     await storage.tasks.upsert(initialTask);
     const updatedTask = { id: "task_1", name: "test_task", status: "running", version: 1 }; // Version mismatch
@@ -171,7 +171,7 @@ Deno.test("DenoFileBasedStorage", () => {
     assertEquals(result.code, storage.ERROR_CODES.OPTIMISTIC_LOCK_FAIL);
   });
 
-  Deno.test("tasks should get task by id", async () => {
+  it("tasks should get task by id", async () => {
     const task = { id: "task_1", name: "test_task" };
     await storage.tasks.upsert(task);
     const result = await storage.tasks.get("task_1");
@@ -179,7 +179,7 @@ Deno.test("DenoFileBasedStorage", () => {
     assertEquals(result.task.name, "test_task");
   });
 
-  Deno.test("tasks should list tasks", async () => {
+  it("tasks should list tasks", async () => {
     await storage.tasks.upsert({ id: "task_1", name: "task1", status: "pending" });
     await storage.tasks.upsert({ id: "task_2", name: "task2", status: "running" });
     const result = await storage.tasks.list();
@@ -194,7 +194,7 @@ Deno.test("DenoFileBasedStorage", () => {
     );
   });
 
-  Deno.test("tasks should list tasks by status", async () => {
+  it("tasks should list tasks by status", async () => {
     await storage.tasks.upsert({ id: "task_1", name: "task1", status: "pending" });
     await storage.tasks.upsert({ id: "task_2", name: "task2", status: "running" });
     const result = await storage.tasks.list({ status: "pending" });
@@ -203,7 +203,7 @@ Deno.test("DenoFileBasedStorage", () => {
     assertEquals(result.tasks[0].status, "pending");
   });
 
-  Deno.test("steps should upsert new step", async () => {
+  it("steps should upsert new step", async () => {
     const stepRecord = { task_id: "task_1", name: "test_step", status: "created" };
     const result = await storage.steps.upsert(stepRecord);
     assertEquals(result.ok, true);
@@ -215,17 +215,34 @@ Deno.test("DenoFileBasedStorage", () => {
     assertEquals(JSON.parse(fileContent), result.step);
   });
 
-  Deno.test("steps should list steps by task", async () => {
+  it("generated task and step IDs stay distinct within one millisecond", async () => {
+    const oldNow = Date.now;
+    Date.now = () => 1700000000000;
+    try {
+      const a = await storage.tasks.upsert({ name: "first", status: "pending" });
+      const b = await storage.tasks.upsert({ name: "second", status: "pending" });
+      const c = await storage.steps.upsert({ task_id: a.task.id, name: "first" });
+      const e = await storage.steps.upsert({ task_id: a.task.id, name: "second" });
+      assert(a.task.id !== b.task.id);
+      assert(c.step.id !== e.step.id);
+      const result = await storage.steps.listByTask(a.task.id);
+      assertEquals(result.steps.map((x) => x.name).sort(), ["first", "second"]);
+    } finally {
+      Date.now = oldNow;
+    }
+  });
+
+  it("steps should list steps by task", async () => {
     await storage.steps.upsert({ task_id: "task_1", name: "step1" });
     await storage.steps.upsert({ task_id: "task_1", name: "step2" });
     await storage.steps.upsert({ task_id: "task_2", name: "step3" });
     const result = await storage.steps.listByTask("task_1");
     assertEquals(result.ok, true);
     assertEquals(result.steps.length, 2);
-    assertEquals(result.steps[0].name, "step1");
+    assertEquals(result.steps.map((step) => step.name).sort(), ["step1", "step2"]);
   });
 
-  Deno.test("steps should update existing step", async () => {
+  it("steps should update existing step", async () => {
     const initialStep = { id: "step_1", task_id: "task_1", name: "test_step", status: "created" };
     await storage.steps.upsert(initialStep);
     const updatedStep = { status: "running" };
@@ -238,7 +255,7 @@ Deno.test("DenoFileBasedStorage", () => {
     assertEquals(JSON.parse(fileContent).status, "running");
   });
 
-  Deno.test("fileStorage should upload artifact", async () => {
+  it("fileStorage should upload artifact", async () => {
     const bucket = "test_bucket";
     const artifactPath = "test/path/file.txt";
     const content = "file content";
@@ -252,7 +269,7 @@ Deno.test("DenoFileBasedStorage", () => {
     assertEquals(fileContent, content);
   });
 
-  Deno.test("fileStorage should download artifact", async () => {
+  it("fileStorage should download artifact", async () => {
     const bucket = "test_bucket";
     const filePath = "test/path/file.txt";
     const content = "file content";
@@ -262,7 +279,7 @@ Deno.test("DenoFileBasedStorage", () => {
     assertEquals(result.data, content);
   });
 
-  Deno.test("fileStorage should get public url", async () => {
+  it("fileStorage should get public url", async () => {
     const bucket = "test_bucket";
     const artifactPath = "test/path/file.txt";
     const content = "file content";
@@ -275,7 +292,7 @@ Deno.test("DenoFileBasedStorage", () => {
     );
   });
 
-  Deno.test("should clear all data", async () => {
+  it("should clear all data", async () => {
     await storage.agentIdentities.upsert({
       agent_id: "agent_1",
       agent_name: "agent1",
