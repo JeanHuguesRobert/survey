@@ -44,7 +44,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@google/generative-ai": "^0.24.1",
     "@huggingface/inference": "^4.13.5",
-    "@mistralai/mistralai": "^1.10.0",
+    "@mistralai/mistralai": "^1.15.1",
     "@phosphor-icons/react": "^2.1.10",
     "@supabase/supabase-js": "^2.87.1",
     "@tailwindcss/typography": "^0.5.19",
